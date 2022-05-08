@@ -215,12 +215,13 @@
 				$blockPos = 0;
 
 				$profBlocks = new profileBlocks($uid);
+				$existingBlocks = $profBlocks->getBlocks();
 
 				foreach ($newBlocks as $block) {
 					// this is a new block (since blockid begins with zero)
 					if ($block['blockid']{0} == '0') {
-						// no content, skip
-						if (! strlen($block['content']))
+						// no content or maximum blocks reached; skip
+						if (! strlen($block['content']) || count($existingBlocks) == $maxlengths['numProfileBlocks'])
 							continue;
 
 						// have content, so add block
@@ -230,10 +231,15 @@
 							'blockorder'	=> ++$blockPos,
 							'permission'	=> $block['permission']
 						)));
+						$existingBlocks = $profBlocks->getBlocks();
 					}
 
 					// this is an update to an existing block
 					else {
+						// block does not exist; skip
+						if (! isset($existingBlocks[$block['blockid']]))
+							continue;
+
 						// no content, delete the block
 						if (! strlen($block['content'])) {
 							$profBlocks->delBlocks(array($block['blockid']));
@@ -249,12 +255,9 @@
 								'blockorder'	=> ++$blockPos,
 								'permission'	=> $block['permission']
 							)));
+							$existingBlocks = $profBlocks->getBlocks();
 						}
 					}
-
-					// we've already saved the user's maximum allotted blocks, so skip the rest
-					if ($blockPos == $maxlengths['numProfileBlocks'])
-						break;
 				}
 
 				$usersdb->prepare_query("UPDATE profile SET profileupdatetime = # WHERE userid = %", time(), $uid);
@@ -501,7 +504,7 @@ function setLength(field, maxlimit, output) {
 	reset($blocks);
 
 	$prefBlocks = array();
-	foreach (range(1, $maxlengths['numProfileBlocks']) as $count) {
+	foreach (range(1,  max(count($blocks), $maxlengths['numProfileBlocks'])) as $count) {
 		$block = count($blocks) ? array_shift($blocks) : array(
 			'blockid' => '0' . uniqid(), 'blocktitle' => '', 'blockcontent' => '', 'blockorder' => ++$maxnum, 'permission' => 'anyone'
 		);

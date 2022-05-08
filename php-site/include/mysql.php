@@ -153,7 +153,7 @@ class sql_db extends sql_base { //must be saved by reference
 		}else{
 			$error = $this->error();
 			if(($error['code'] == 2013 || $error['code'] == 2006) && $reconnect){ //disconnect
-				$this->debugerror("SQL Error", ": $error[code], $error[message]. Query: $query", false);
+				$this->debugerror("", "Reconnect: SQL Error: $error[code], $error[message]. Query: $query", false);
 //				trigger_error("SQL error: $error[code], $error[message]. Query: $query", E_USER_WARNING);
 				$this->close();
 
@@ -219,7 +219,10 @@ class sql_db extends sql_base { //must be saved by reference
 		return false;
 	}
 
-	function getSeqID($id, $area){ //eg: $userid, messages
+	function getSeqID($id, $area, $start = false){ //eg: $userid, messages
+		if(!$start)
+			$start = 1;
+	
 		if(!$this->seqtable)
 			trigger_error("Call getSeqID ($id, $area) without a seqtable defined for this db", E_USER_ERROR);
 
@@ -230,12 +233,12 @@ class sql_db extends sql_base { //must be saved by reference
 		if($inid)
 			return $inid;
 
-		$this->prepare_query("INSERT IGNORE INTO " . $this->seqtable . " SET max = 1, id = #, area = #", $id, $area);
+		$this->prepare_query("INSERT IGNORE INTO " . $this->seqtable . " SET max = #, id = #, area = #", $start, $id, $area);
 
 		if($this->affectedrows())
-			return 1;
+			return $start;
 		else
-			return $this->getSeqID($id, $area);
+			return $this->getSeqID($id, $area, $start);
 	}
 
 	function error(){

@@ -1,4 +1,4 @@
-#!/usr/local/php-cli/bin/php
+#!/usr/local/php/bin/php
 <?
 
 $forceserver=true;
@@ -30,7 +30,7 @@ $logserver_port = 5556;
 
 $bannerserver = new bannerserver( $bannerdb, count($bannerservers));
 
-$version = "2.2.1";
+$version = "2.2.2";
 
 $initialsocktimeout = 10; //10 sec timeout
 $socktimeout = $initialsocktimeout; 
@@ -84,8 +84,8 @@ $logsock = null;
 if($logserver){
 	$logsock = fsockopen($logserver, $logserver_port, $errno, $errstr, 0.05);
 	if($logsock){
-		stream_set_timeout($logsock, 0.05);
-		stream_set_blocking($logsock, 0); //non blocking
+		stream_set_timeout($logsock, 0.02);
+//		stream_set_blocking($logsock, 0); //non blocking
 	}else{
 		$logsock = null;
 	}
@@ -192,6 +192,7 @@ while(1){
 							$params = substr($msg, $pos+1);
 						}else{
 							$cmd = substr($msg, 0);
+							$params = '';
 						}
 
 						switch($cmd){
@@ -199,7 +200,7 @@ while(1){
 								$stats['get']++;
 								$slidingstats[$statstime]['get']++;
 
-								list($usertime, $size, $userid, $age, $sex, $loc, $interests, $page, $passback) = explode(' ', $params);
+								list($usertime, $size, $userid, $age, $sex, $loc, $interests, $page, $passback, $debugGet) = explode(' ', $params);
 
 								if($interests == '0')
 									$interests = array();
@@ -209,7 +210,7 @@ while(1){
 								if($passback)
 									$bannerserver->passbackBanner($passback, $userid);
 								
-									$ret = $bannerserver->getBanner($usertime, $size, $userid, $age, $sex, $loc, $interests, $page);
+									$ret = $bannerserver->getBanner($usertime, $size, $userid, $age, $sex, $loc, $interests, $page, $debugGet);
 
 								if ($debug['passback']) {
 									if ($passback) {
@@ -237,6 +238,7 @@ while(1){
 								if($debug['getlog'] && $logsock){
 									if(fwrite($logsock, "get $params => $ret\n") == false){
 										bannerDebug("log server connection error: $errstr ($errno)<br />");
+										fclose($logsock);
 										$logsock = null;
 									}
 								}
@@ -344,6 +346,10 @@ while(1){
 
 								break;
 
+							case "uptime":
+								 socket_write($sock,  "Uptime: " . ($time - $stats['starttime']) . "\n");
+								 break;
+
 							case "show":
 								if(isset($debug[$params])){
 									$debug[$params] = true;
@@ -365,7 +371,7 @@ while(1){
 							case "shutdown": //dump stats, clean up most memory, and quit. Good for upgrading the server early :p
 								socket_write($sock, "shutting down\n");
 								bannerDebug("shutting down");
-								$bannerserver->daily();
+								$bannerserver->daily($debug['timeupdates']);
 								exit;
 							
 							case "version":
@@ -381,11 +387,11 @@ while(1){
 
 								if($logserver && $logserver_port){
 									if($logsock = fsockopen($logserver, $logserver_port, $errno, $errstr, 0.05)){
-										stream_set_timeout($logsock, 0.05);
-										stream_set_blocking($logsock, 0); //non blocking
-										socket_write($sock, "success\n");
+										stream_set_timeout($logsock, 0.02);
+//										stream_set_blocking($logsock, 0); //non blocking
+										socket_write($sock, "success: $logserver, $logserver_port\n");
 									}else{
-										socket_write($sock, "failed\n");
+										socket_write($sock, "failed: $logserver, $logserver_port\n");
 										$logsock = null;
 									}
 								}else{
@@ -393,7 +399,9 @@ while(1){
 								}
 									
 								break;
-							
+							case "logstat":
+								socket_write($sock, ($logsock ? "connected" : "not") . ": $logserver, $logserver_port\n");
+								break;
 
 /*
 							case "globals":

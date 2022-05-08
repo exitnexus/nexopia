@@ -44,7 +44,7 @@ function delete($delpass, $reason){
 }
 
 function changepass($data){
-	global $userData, $msgs, $uid, $usersdb, $mods, $cache;
+	global $userData, $msgs, $uid, $usersdb, $mods, $cache, $auth;
 
 	if($userData['userid'] != $uid && !$mods->isAdmin($userData['userid'],'editpassword'))
 		return false;
@@ -54,7 +54,7 @@ function changepass($data){
 		return false;
 	}
 
-	$passmatch = (($userData['userid'] != $uid) || $auth->checkpassword($userid, $password));
+	$passmatch = (($userData['userid'] != $uid) || $auth->checkpassword($userData['userid'], $data['oldpass']));
 
 	if($passmatch){
 		if($data['newpass1']!=$data['newpass2']){
@@ -64,7 +64,7 @@ function changepass($data){
 		}elseif(strlen($data['newpass1'])>16){
 			$msgs->addMsg("New password is too long. Password not changed");
 		}else{
-			$auth->changePassword($uid, $password);
+			$auth->changePassword($uid, $data['newpass1']);
 
 			$res = $usersdb->prepare_query("SELECT sessionid FROM sessions WHERE userid = % && sessionid != ?", $uid, $userData['sessionkey']);//log out all other of your sessions
 

@@ -227,7 +227,7 @@ echo "</table>\n";
 
 
 	$headtext = "<html><head><title>$config[title]</title>\n";
-	$headtext.= "<link rel=stylesheet href='$skinloc" . "default.css'>\n";
+	$headtext.= "<link rel=stylesheet href='$skinloc" . "default.css?rev=$reporev'>\n";
 	if($_SERVER['PHP_SELF'] == "/index.php"){
 		$headtext.= "<meta name=\"description\" content=\"$config[metadescription]\">\n";
 		$headtext.= "<meta name=\"keywords\" content=\"$config[metakeywords]\">\n";
@@ -290,7 +290,7 @@ function createHeader($size, $bodyname){
 	closeAllDBs();
 
 	echo "<html><head><title>$config[title]</title><script src=$config[jsloc]general.js?rev=$reporev></script>";
-	echo "<link rel=stylesheet href='$skinloc" . "default.css'>";
+	echo "<link rel=stylesheet href='$skinloc" . "default.css?rev=$reporev'>";
 
 	echo "</head>\n";
 	echo "<body" . ($skindata['backgroundpic'] ? " background='$skinloc$skindata[backgroundpic]' " : "" ) . ">\n";

@@ -23,7 +23,7 @@ class sql_base {
 	function prepare_multikey($keys, $values)
 	function escape($val)
 
-	function getSeqID($userid, $area)
+	function getSeqID($userid, $area, $start = false)
 	function affectedrows()
 	function insertid()
 
@@ -243,7 +243,7 @@ debuglevels:
 			if($tokens[$i-1] == '?'){
 				foreach($var as $k => $v){
 					if(is_array($v))
-						trigger_error("SQL error: Trying to escape: " . var_export($v), E_USER_ERROR);
+						trigger_error("SQL error: Trying to escape: " . var_export($v, true), E_USER_ERROR);
 					else
 						$var[$k] = $this->escape($v);
 				}
@@ -251,13 +251,13 @@ debuglevels:
 		//already prepared by a subprepare function
 			}else if($tokens[$i-1] == '^'){
 				if (count($var) != 1 || is_array($var[0]) || !preg_match('|/\*\*\^\*\*/$|', $var[0])) // looking for /**^**/ at the end of the string
-						trigger_error("SQL error: Trying to inject: " . var_export($v), E_USER_ERROR);
+						trigger_error("SQL error: Trying to inject: " . var_export($v, true), E_USER_ERROR);
 				$query .= $var[0];
 		//int and null
 			}else{ // == '#' | '%'
 				foreach($var as $k => $v){
 					if(is_array($v))
-						trigger_error("SQL error: Trying to escape: " . var_export($v), E_USER_ERROR);
+						trigger_error("SQL error: Trying to escape: " . var_export($v, true), E_USER_ERROR);
 					elseif(is_null($v))
 						$var[$k] = "NULL";
 					else
@@ -285,7 +285,7 @@ debuglevels:
 				$item = explode(':', $item);
 
 			if (count($keys) != count($item))
-				trigger_error("Argument count mismatch in prepare_multikey: " . var_export($keys) . ", " . var_export($values), E_USER_ERROR);
+				trigger_error("Argument count mismatch in prepare_multikey: " . var_export($keys, true) . ", " . var_export($values, true), E_USER_ERROR);
 
 			// make it into a single array
 			$item = array_combine(array_keys($keys), $item);
@@ -295,7 +295,7 @@ debuglevels:
 				$clause[] = $this->prepare("$key = $keys[$key]", $val);
 			$clauses[] = "(" . implode(' AND ', $clause) . ")";
 		}
-		return implode(' OR ', $clauses) . '/**^**/';
+		return '(' . implode(' OR ', $clauses) . ') /**^**/';
 	}
 
 	function getServerValues(&$query){
@@ -327,9 +327,10 @@ debuglevels:
 				if(!$escape && $query{$i} == '\\'){
 					$escape = true;
 				}else{
-					$escape = false;
-					if($query{$i} == $quote)
+					if(!$escape && $query{$i} == $quote) {
 						$quote = false;
+					}
+					$escape = false;
 				}
 			}
 		}

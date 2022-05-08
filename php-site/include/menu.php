@@ -32,6 +32,18 @@
 	$menus['personal']->addItem("Recent Visitors","/profileviews.php",			2);
 	$menus['personal']->addItem("My Page",		"/profile.php?requestType=mine",1);
 
+	$menus['manage'] = new menu();
+	$menus['manage']->addItem("Profile",		"/manageprofile.php",			1);
+	$menus['manage']->addItem("Blog",			"/weblog.php",					1);
+	$menus['manage']->addItem("Pictures",		"/managepicture.php",			1);
+	$menus['manage']->addItem("Files",			"/managefiles.php",				2);
+	$menus['manage']->addItem("Friends",		"/friends.php",					1);
+	$menus['manage']->addItem("Messages",		"/messages.php",				1);
+	$menus['manage']->addItem("Subscriptions","/managesubscriptions.php",		1);
+	$menus['manage']->addItem("Bookmarks",		"/bookmarks.php",				1);
+	$menus['manage']->addItem("Settings",		"/prefs.php",					1);
+	$menus['manage']->addItem("My Page",		"/profile.php?requestType=mine",1);
+
 	$menus['admin'] = new menu();
 	$menus['admin']->addItem("Admin Log",		'/adminlog.php',			1,	'adminlog');
 	$menus['admin']->addItem("Mirrors",			'/adminmirrors.php',		1,	'mirror');
@@ -77,7 +89,8 @@
 	$menus['bottom']->addItem("Privacy Policy",	'/privacy.php',		0);
 	$menus['bottom']->addItem("Contact Admin",	'/contactus.php',	0);
 	$menus['bottom']->addItem("Change Skin",	'/changeskin.php',	0);
-	$menus['bottom']->addItem("Advertise",		'http://advertise.nexopia.com',	0, 	false, '_blank');
+//	$menus['bottom']->addItem("Advertise",		'http://advertise.nexopia.com',	0, 	false, '_blank');
+	$menus['bottom']->addItem("Advertise",		'/wiki/advertise', 0); // request from melina
 	$menus['bottom']->addItem("Jobs",			'/pages.php?id=37',	0);
 	$menus['bottom']->addItem("Plus",			'/plus.php',		1);
 

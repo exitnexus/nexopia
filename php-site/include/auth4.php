@@ -172,7 +172,7 @@ class useraccounts {
 
 		$usernames = getUserName($uids);
 
-		$res = $this->masterdb->prepare_query("SELECT userid, email FROM useremails WHERE userid IN (#) && active = 'y'", $uids);
+		$res = $this->masterdb->prepare_query("SELECT userid, email FROM useremails WHERE userid IN (#) ORDER BY active", $uids); //ie active='y' second if there is one
 		$emails = $res->fetchfields('userid');
 
 		foreach ($lines as $line){
@@ -348,23 +348,35 @@ class useraccounts {
 
 
 
-		if($prev){
+		if(!$prev){
 			$line = getUserInfo($userid);
 
-			$this->db->prepare_query("INSERT IGNORE INTO newestusers SET userid = %, username = ?, time = #, age = #, sex = ?", $line['userid'], $line['username'], time(), $line['age'], $line['sex']);
+			global $db;
+
+			$db->prepare_query("INSERT IGNORE INTO newestusers SET userid = %, username = ?, time = #, age = #, sex = ?", $line['userid'], $line['username'], time(), $line['age'], $line['sex']);
 		}
 
 		return true;
 	}
 
 	function freeze($userid, $time = 0){
+		global $cache;
+		
 		$this->usersdb->prepare_query("UPDATE users SET state = 'frozen', frozentime = # WHERE userid = %", ($time ? (time() + $time) : 0), $userid);
+
+		$cache->remove("userinfo-$userid");
+		$cache->remove("userprefs-$userid");
 
 		return (bool) $this->usersdb->affectedrows();
 	}
 
 	function unfreeze($userid){
+		global $cache;
+	
 		$this->usersdb->prepare_query("UPDATE users SET state = 'active' WHERE userid = %", $userid);
+
+		$cache->remove("userinfo-$userid");
+		$cache->remove("userprefs-$userid");
 
 		return (bool) $this->usersdb->affectedrows();
 	}
@@ -511,7 +523,7 @@ class authentication {
 	}
 
 	function hash_password($pass){
-		$salt = "108026098705829461539309790415834498398411555247654961668072468164701"; //random string from random.org
+		$salt = "<removed>"; //random string from random.org
 
 		return md5($salt . $pass);
 	}

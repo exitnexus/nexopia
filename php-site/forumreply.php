@@ -200,7 +200,7 @@ function postReply($msg,$subscribe){
 	$forums->db->commit();
 
 	$usersdb->prepare_query("UPDATE users SET posts = posts+1 WHERE userid = %", $userData['userid']);
-	$cache->incr(array($userData['userid'], "forumuserposts-$userData[userid]"));
+	$cache->incr("forumuserposts-$userData[userid]");
 
 	$cache->put("forumread-$userData[userid]-$tid", array('subscribe' => $subscribe, 'time' => $time, 'posts' => $thread['posts']+1), 10800);
 

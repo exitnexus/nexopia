@@ -85,7 +85,9 @@ Check out " . $myname . "'s profile right now and see what we're all about: http
 
 If you do not want to receive invitation emails from Nexopia members in the future, you can click here: http://www.nexopia.com/inviteoptout.php?email=$friendemails[$i]&k=" . makeKey($friendemails[$i], -1);
 
-				smtpmail("$friendnames[$i] <$friendemails[$i]>", $subject, $message, "From: $myname <$userData[email]>");
+				$email = $useraccounts->getEmail($userData['userid']);
+
+				smtpmail("$friendnames[$i] <$friendemails[$i]>", $subject, $message, "From: $myname <$email>");
 
 				$parts[] = $db->prepare("(?,?,#,#)", $friendnames[$i], $friendemails[$i], $userData['userid'], $time);
 

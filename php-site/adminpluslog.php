@@ -7,9 +7,11 @@
 
 	if(!$mods->isAdmin($userData['userid'],"editinvoice"))
 		die("You do not have permission to see this page");
+	
+	$supervisor = $mods->isAdmin($userData['userid'],"superviseinvoice");
 
 	$user = getPOSTval('user');
-
+	
 	if(!$user){
 		$user = getREQval('user', 'int');
 		$k = getREQval('k');
@@ -17,51 +19,83 @@
 		if(!checkKey($user, $k))
 			$user = '';
 	}
+	
+	$admin = getPOSTval('admin');
 
+	if(!$admin){
+		$admin = getREQval('admin', 'int');
+		$k = getREQval('k');
 
+		if(!checkKey($admin, $k))
+			$admin = '';
+	}
+
+	$data = getREQval("data", "array");
+	$start = ($data['startmonth'] == 0 && $data['startday'] == 0 && $data['startyear'] == 0 ? 0 : usermktime(0,0,0,$data['startmonth'],$data['startday'],$data['startyear']));
+	$end   = ($data['endmonth'] == 0 && $data['endday'] == 0 && $data['endyear'] == 0 ? 0 : usermktime(23,59,59,$data['endmonth'],$data['endday'],$data['endyear']));
+	
 	$uid = getUserID($user);
-
+	$adminid = getUserID($admin);
+	if (!$supervisor) {
+		$adminid = $userData['userid'];
+	}
+	
 	$rows = array();
 	$users = array();
 
-	if($uid){
-		switch($action){
-			case "Give Plus":
-				$duration = getPOSTval('duration', 'float');
-				if(empty($duration))
+	if($uid || ($supervisor && $adminid) || $start || $end){
+		if ($uid) {
+			switch($action){
+				case "Give Plus":
+					$duration = getPOSTval('duration', 'float');
+					if(empty($duration))
+						break;
+	
+					$msgs->addMsg(addPlus($uid, $duration, 0, 0));
+					$mods->adminlog('add plus',"Add Plus to $uid for $duration months");
 					break;
-
-				$msgs->addMsg(addPlus($uid, $duration, 0, 0));
-				$mods->adminlog('add plus',"Add Plus to $uid for $duration months");
-				break;
-
-			case "Transfer Plus":
-				$to = getPOSTval('to');
-				$to = getUserID($to);
-				if($to){
-					transferPlus($uid, $to);
-					$mods->adminlog('transfer plus',"Transfer Plus from $uid to $to");
-				}
-				break;
-
-			case 'remove':
-				$id = getREQval('id', 'int');
-				$k = getREQval('k');
-				if($id && checkKey($uid, $k)){
-					removePlus($uid, $id);
-					$mods->adminlog('remove plus',"Remove Plus from $uid");
-				}
-				break;
-
-			case "Fix Plus":
-				fixPlus($uid);
-				$mods->adminlog('fix plus',"Fix Plus for $uid");
-				break;
+	
+				case "Transfer Plus":
+					$to = getPOSTval('to');
+					$to = getUserID($to);
+					if($to){
+						transferPlus($uid, $to);
+						$mods->adminlog('transfer plus',"Transfer Plus from $uid to $to");
+					}
+					break;
+	
+				case 'remove':
+					$id = getREQval('id', 'int');
+					$k = getREQval('k');
+					if($id && checkKey($uid, $k)){
+						removePlus($uid, $id);
+						$mods->adminlog('remove plus',"Remove Plus from $uid");
+					}
+					break;
+	
+				case "Fix Plus":
+					fixPlus($uid);
+					$mods->adminlog('fix plus',"Fix Plus for $uid");
+					break;
+			}
 		}
 
 
-		$res = $db->prepare_query("SELECT * FROM pluslog WHERE userid = # ORDER BY id DESC", $uid);
-
+		if ($start) {
+			$set[] = "time >= #"; 		$params[] = $start;
+		}
+		if ($end) {
+			$set[] = "time <= #"; 		$params[] = $end;
+		}
+		if ($uid) {
+			$set[] = "userid = #"; 		$params[] = $uid;
+		}
+		if ($adminid) {
+			$set[] = "admin = #"; 		$params[] = $adminid;
+		}
+		
+		$res = $db->prepare_array_query("SELECT * FROM pluslog WHERE " . implode(" && ", $set), $params);
+		
 		$uids = array();
 
 		while($line = $res->fetchrow()){
@@ -80,11 +114,30 @@
 
 	echo "<table align=center>";
 
-	echo "<form action=$_SERVER[PHP_SELF] method=post><tr><td class=header colspan=8 align=center>";
-	echo "User: <input class=body type=text name=user value=\"$user\"><input class=body type=submit name=action value=Go>";
-	echo "</td></tr></form>";
+	for($i=1;$i<=12;$i++)
+		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+	
+	echo "<tr><td colspan=8 class=body><table align=\"center\"><form action=$_SERVER[PHP_SELF] method=post>";
+	echo "<tr><td class=header align=right>User:</td>";
+		echo "<td class=body><input class=body type=text name=user value=\"$user\" size=27></td></tr>";
+	if ($supervisor) {
+		echo "<tr><td class=header align=right>Admin: </td>";
+		echo "<td class=body><input class=body type=text name=admin value=\"$admin\" size=27></td></tr>";
+	}
+	echo "<tr><td class=header valign=top>Start Date:</td><td class=body colspan=7>";
+		echo "<select class=body name=data[startmonth]><option value=0>Month" . make_select_list_key($months, $data['startmonth']) . "</select>";
+		echo "<select class=body name=data[startday]><option value=0>Day" . make_select_list(range(1,31), $data['startday']) . "</select>";
+		echo "<select class=body name=data[startyear]><option value=0>Year" . make_select_list(range(userdate("Y")-1,userdate("Y")+1), $data['startyear']) . "</select>";
+	echo "</td></tr>\n";
+	echo "<tr><td class=header valign=top>End Date:</td><td class=body colspan=7>";
+		echo "<select class=body name=data[endmonth]><option value=0>Month" . make_select_list_key($months, $data['endmonth']) . "</select>";
+		echo "<select class=body name=data[endday]><option value=0>Day" . make_select_list(range(1,31), $data['endday']) . "</select>";
+		echo "<select class=body name=data[endyear]><option value=0>Year" . make_select_list(range(userdate("Y")-1,userdate("Y")+1), $data['endyear']) . "</select>";
+	echo "</td></tr>\n";
+	echo "<tr><td class=body colspan=4 align=center><input class=body type=submit name=action value=Go></td></tr>";
+	echo "</form></table></td></tr>";
 
-	if($uid){
+	if($uid || $adminid || $start || $end){
 
 		if($rows){
 			echo "<tr>";
@@ -142,25 +195,30 @@
 			}
 		}
 
-		$expiry = getPlusExpiry($uid);
-
-		echo "<tr><td class=header colspan=8>";
-		if($expiry > time())
-			echo "Expires: " . userdate("D M j, Y G:i:s", $expiry);
-		else
-			echo "Expired";
-
-		echo "</td></tr>";
+		if ($uid) {
+			$expiry = getPlusExpiry($uid);
+	
+			echo "<tr><td class=header colspan=8>";
+			if($expiry > time())
+				echo "Expires: " . userdate("D M j, Y G:i:s", $expiry);
+			else
+				echo "Expired";
+	
+			echo "</td></tr>";
+		}
 
 		echo "</table>";
 
 		echo "<table align=center>";
 
-		echo "<form action=$_SERVER[PHP_SELF] method=post>";
-		echo "<input type=hidden name=user value=$uid>";
-		echo "<tr><td class=header colspan=2 align=center>Add Plus</td></tr>";
-		echo "<tr><td class=body>Give <input class=body type=text name=duration size=3> months.</td><td class=body><input class=body type=submit name=action value='Give Plus'></td></tr>";
-		echo "</form>";
+		if ($uid) {
+			echo "<form action=$_SERVER[PHP_SELF] method=post>";
+			echo "<input type=hidden name=user value=$uid>";
+				
+			echo "<tr><td class=header colspan=2 align=center>Add Plus</td></tr>";
+			echo "<tr><td class=body>Give <input class=body type=text name=duration size=3> months.</td><td class=body><input class=body type=submit name=action value='Give Plus'></td></tr>";
+			echo "</form>";
+		}
 		echo "<tr><td class=body>&nbsp;</td></tr>";
 
 		if($expiry > time()){
@@ -177,11 +235,8 @@
 			echo "<tr><td class=body><input class=body type=submit name=action value='Fix Plus'></td></tr>";
 			echo "</form>";
 			echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
-
 		}
 	}
-
 	echo "</table>";
-
 	incFooter();
 

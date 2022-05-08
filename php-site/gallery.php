@@ -134,6 +134,7 @@
 			$i = -1;
 			$class = array('body', 'body2');
 
+			$previewurl = array();
 			foreach($galleryids as $id){
 				$i++;
 				$line = $galleryobjs[$id];
@@ -324,10 +325,10 @@
 				}
 			}
 			$template = new template('pictures/gallery/filmStripThumbs');
-			$template->set('line', $line);
 			if (isset($line)) {
+				$template->set('line', $line);
 				$fullurl = ($user['premiumexpiry'] < time()? '' : $linkbase . "/$id/full");
-				$initialpic = "/imgframe.php?picid=$id&imgurl=" . $line->getImageURL() . "&fullurl=$fullurl";
+				$initialpic = "http://$_SERVER[HTTP_HOST]/imgframe.php?picid=$id&imgurl=" . $line->getImageURL() . "&fullurl=$fullurl";
 				$template->set('initialpic', $initialpic);
 				$template->set('jsurl', $config['jsloc']);
 				$template->set('reporev', $reporev);
@@ -353,6 +354,8 @@
 				$template->set('thumbcountarray', $thumbcountarray);
 				$template->set('thumbcount', $thumbcount);
 				$template->set('intialpic', $initialpic);
+			} else {
+				$template->set('line', false);
 			}
 			$template->display();
 

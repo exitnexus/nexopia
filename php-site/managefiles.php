@@ -138,8 +138,14 @@
 
 			$this->registerSubHandler(__FILE__, new varsubhandler(
 				$this, 'savePerms', REQUIRE_LOGGEDIN_PLUS,
-				varargs('action', 'savePerms', 'request', true),
-				varargs('perms', 'string', 'request', true)
+				varargs('action', 'savePerms', 'post', true),
+				varargs('perms', 'string', 'post', true)
+			));
+
+			$this->registerSubHandler(__FILE__, new varsubhandler(
+				$this, 'setQuota', REQUIRE_LOGGEDIN_PLUS,
+				varargs('action', 'Set Quota', 'post', true),
+				varargs('quota', 'int', 'post', true)
 			));
 
 			$this->registerSubHandler(__FILE__, new varsubhandler(
@@ -279,7 +285,8 @@
 				'curFiles'			=> $curFiles,
 				'ttlsize'			=> floor($ttlsize / 1024) . " kB",
 				'allsize'			=> floor($allsize / 1024) . ' kB',
-				'maxsize'			=> floor($maxsize / 1024) . ' kB'
+				'maxsize'			=> floor($maxsize / 1024) . ' kB',
+				'quota'				=> floor($maxsize / 1024 / 1024)
 			));
 		}
 
@@ -657,12 +664,15 @@
 
 			header('Content-type: text/xml');
 			$blank = new DOMDocument();
-			$blank->appendChild( $blank->createElement('root', htmlspecialchars(htmlspecialchars($toolbars))) );
+			$blank->appendChild( $blank->createElement('root') );
 			echo $blank->saveXML();
 		}
 
 		function savePerms ($action, $perms) {
 			global $usersdb;
+
+			if (! $this->userfiles->canWrite)
+				return $this->showError('You do not have permission to modify this user\'s files.');
 
 			header('Content-type: text/xml');
 			$blank = new DOMDocument();
@@ -675,6 +685,26 @@
 			}
 
 			echo $blank->saveXML();
+		}
+
+		function setQuota ($action, $quota) {
+			global $usersdb;
+
+			$userfiles = $this->userfiles;
+
+			if (! $userfiles->isAdmin)
+				return $this->showError('You do not have permission to modify this user\'s files.');
+
+			if ($quota >= 0 && $quota < 1000) {
+				$usersdb->prepare_query('UPDATE users SET filesquota=# WHERE userid=%', $quota * 1024 * 1024, $userfiles->euid);
+				$userfiles->config['maxTotal'] = $quota * 1024 * 1024;
+				$this->adminlog("set quota;{$quota} MB");
+				$this->errmsgs[] = "- User's quota set to $quota MB.";
+			}
+			else
+				$this->errmsgs[] = "- Invalid quota. Quota must be between 0 and 999 MB.";
+
+			$this->filesIndex();
 		}
 
 		function showError ($errmsg) {

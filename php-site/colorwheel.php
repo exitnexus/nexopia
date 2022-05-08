@@ -23,7 +23,7 @@ if(!$algorythm){
 exit;
 }
 
-$size = 256; //must be divisible by 4
+$size = 180; //must be divisible by 4
 $bandsize = 0.2; //fraction of the radius that should be the colour wheel
 $insidemargin = 5; //pixels from the wheel to the inside
 
@@ -161,31 +161,21 @@ switch($algorythm){
 						$color=imageColorAllocate($image, $rgb[0],$rgb[1],$rgb[2]);
 						break;
 					case 6:
-						//$width =$ length;
-						//$scaledx = (($linestart+$x)/$length);
-						//$scaledy = ($y/$height);
+						/*
+							This code translates the x,y position in regular screen
+							coordinates into a triangular coordinate set.
+							Variables:
+								$d1 is the distance measured down the center line from the
+									top right vertex.  
+								$d2 is the distance along the line measured from the top
+									right vertex to the bottom vertex.
+									 
+							Note: cos(30) = 0.866, sin(30) = 0.5
+						*/
 						$d1 = (($length-($linestart+$x))*0.866 + $y*0.5) / ($radius*1.5);
 						$d2 = (($linestart+$x)*0.5 + $y*0.866) / ($length);
-						
-						//$scaledx2 = (($linestart+$x)/$height);
-						//$scaledy2 = ($y/$length);
-						
-						//$rgb = hsb2rgb(0, round(100*($x/$linewidth)), round(100*(1 - ($y/$height))));
-						//$alpha = (0.866-((($linestart+$x)/($radius*1.73))*0.866) + (($y/$height)*0.5))*127;
-						//$grey = 1.11-($scaledx*0.5 + $scaledy*0.866);
-						//$grey=1-$scaledy;
-						//$grey = 1;
-						//$alpha = 1-(0.866-$scaledx*0.866 + $scaledy*0.5);
-						//$alpha = pow($alpha,1.27);//-pow($alpha,3)+1.5*pow($alpha,2)+0.5*$alpha;
-						//$alpha=0;
-						//$grey = pow($grey,1);
-						//$grey *=255/1.11;
 						$alpha = (1-$d1) * 127;
-						//$alpha = 0;
 						$grey = (1-$d2) * 255;
-						//$grey = 0;
-						//(((($linestart+$x)/($radius*1.73))*0.866) + (($y/$height)*0.5))*255;
-						//if ($grey < 0) die();
 						$color=imageColorAllocateAlpha($image, $grey, $grey, $grey, $alpha);
 						break;
 					

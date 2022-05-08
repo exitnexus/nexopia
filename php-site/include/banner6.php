@@ -113,6 +113,7 @@ class bannercampaign {
 		if ($line = $results->fetchrow()) {
 			$this->clienttype = $line['type'];
 		}
+		unset($results);
 
 		if($vals['sex'] == ''){
 			$this->sex = array(SEX_UNKNOWN => true, SEX_MALE => true, SEX_FEMALE => true);
@@ -176,7 +177,7 @@ class bannercampaign {
 
 		$this->maxviews 	= $vals['maxviews'];
 		$this->maxclicks 	= $vals['maxclicks'];
-		$this->minviewsperday	= ceil($vals['viewsperday'] / $numservers);
+		$this->minviewsperday	= ceil($vals['minviewsperday'] / $numservers);
 		$this->viewsperday	= ceil($vals['viewsperday'] / $numservers);
 		$this->clicksperday	= ceil($vals['clicksperday'] / $numservers);
 		$this->viewsperuser = $vals['viewsperuser'];
@@ -199,6 +200,7 @@ class bannercampaign {
 			$this->banners[$newbanner->id] = $newbanner;
 			$this->sizes[$newbanner->size] = 1;
 		}
+		unset($result);
 
 		
 	}
@@ -210,6 +212,7 @@ class bannercampaign {
 		while($line = $result->fetchrow()) {
 			$this->sizes[$line['bannersize']] = 1;
 		}
+		unset($result);
 	}
 	
 	
@@ -243,12 +246,12 @@ class bannercampaign {
 		if ($line = $result->fetchrow()) {
 			$this->credits = $line['credits'];
 		}
+		unset($result);
 		$this->charge = 0;
 		
 	}
 
 	function dailyviews() {
-		//return 0; //CHECK
 		$dailyviews = 0;
 		foreach($this->banners as $id => $banner) {
 			$dailyviews += $banner->dailyviews;
@@ -257,7 +260,6 @@ class bannercampaign {
 	}
 
 	function dailyclicks() {
-		//return 0; //CHECK
 		$dailyclicks = 0;
 		foreach($this->banners as $id => $banner) {
 			$dailyclicks += $banner->dailyclicks;
@@ -268,9 +270,15 @@ class bannercampaign {
 	function hit($bannerid, $userid, $time) {
 		if ($this->viewsperuser) {
 			$this->userviewtimes[$userid][] = $time;
-			if (count($this->userviewtimes[$userid]) > BANNER_SLIDE_SIZE*$this->viewsperuser) {
-				reset($this->userviewtimes[$userid]);
-				unset($this->userviewtimes[$userid][key($this->userviewtimes[$userid])]);
+			foreach ($this->userviewtimes[$userid] as $id => $viewtime) {
+				if ($viewtime > $time-$this->limitbyperiod) {
+					break; //we only need to process old entries
+				} else {
+					unset($this->userviewtimes[$userid][$id]);
+					if (empty($this->userviewtimes[$userid])) {
+						unset($this->userviewtimes[$userid]);
+					}
+				}
 			}
 		}
 		$this->banners[$bannerid]->hit($userid, $time);
@@ -349,7 +357,9 @@ class bannercampaign {
 	//Returns an array of the banners within the campaign which satisfy the criteria.
 	//Returns false if campaign constraint fails, an empty array if campaign passes but no banners do.
 	//First it checks campaign constraints and then checks individual banner constraints
-	function valid($userid, $age, $sex, $loc, $interests, $page, $time, $size, $usertime){
+	function valid($userid, $age, $sex, $loc, $interests, $page, $time, $size, $usertime, $debug){
+		$debugLog = "";
+		if ($debug) $debugLog .= "Checking campaign: $this->id";
 		//if(!$this->enabled)
 		//	return false;
 		//date
@@ -359,39 +369,53 @@ class bannercampaign {
 		//targetting
 		//age
 		if($this->age[0]){ //default true
-			if( $age &&  isset($this->age[$age]) && !$this->age[$age]) //is explicitely untargetted
+			if( $age &&  isset($this->age[$age]) && !$this->age[$age]) {//is explicitely untargetted
+				if ($debug) bannerDebug($debugLog);
 				return false;
+			}
 		}else{ //default false
-			if(!$age || !isset($this->age[$age]) || !$this->age[$age]) //is explicitely targetted
+			if(!$age || !isset($this->age[$age]) || !$this->age[$age]) {//is explicitely targetted
+				if ($debug) bannerDebug($debugLog);
 				return false;
+			}
 		}
-
+		if ($debug) $debugLog .= " 1";
 		//sex
 		//if(!$this->sex[$sex])
 		//	return false;
 
 		//location
 		if($this->loc[0]){ //default true
-			if( $loc &&  isset($this->loc[$loc]) && !$this->loc[$loc])
+			if( $loc &&  isset($this->loc[$loc]) && !$this->loc[$loc]) {
+				if ($debug) bannerDebug($debugLog);
 				return false;
+			}
 		}else{ //default false
-			if(!$loc || !isset($this->loc[$loc]) || !$this->loc[$loc])
+			if(!$loc || !isset($this->loc[$loc]) || !$this->loc[$loc]) {
+				if ($debug) bannerDebug($debugLog);
 				return false;
+			}
 		}
-
+		if ($debug) $debugLog .= " 2";
 		//page
 		if($this->page[0]){ //default true
-			if( $page &&  isset($this->page[$page]) && !$this->page[$page])
+			if( $page &&  isset($this->page[$page]) && !$this->page[$page]) {
+				if ($debug) bannerDebug($debugLog);
 				return false;
+			}
 		}else{ //default false
-			if(!$page || !isset($this->page[$page]) || !$this->page[$page])
+			if(!$page || !isset($this->page[$page]) || !$this->page[$page]) {
+				if ($debug) bannerDebug($debugLog);
 				return false;
+			}
 		}
-
+		if ($debug) $debugLog .= " 3";
 		//interests
 		if(count($this->interests)){
-			if(count($interests) == 0)
+			if(count($interests) == 0) {
+				if ($debug) bannerDebug($debugLog);
 				return false;
+			}
 			$found = false;
 
 			foreach($interests as $i){
@@ -401,43 +425,53 @@ class bannercampaign {
 				}
 			}
 
-			if(!$found)
+			if(!$found) {
+				if ($debug) bannerDebug($debugLog);
 				return false;
+			}
 		}
-		
+		if ($debug) $debugLog .= " 4";
 		//time
 		$day = gmdate("w", $usertime);
 		$hour = gmdate("G", $usertime);
 		
 		if (!$this->allowedtimes->validHours[$day][$hour]) {
+			if ($debug) bannerDebug($debugLog);
 			return false;
 		}
-		
+		if ($debug) $debugLog .= " 5";
 	//frequency capping at the campaign level
 	//this period (day/hour)
-		if($this->viewsperday && $this->dailyviews() >= $this->viewsperday)
+		if($this->viewsperday && $this->dailyviews() >= $this->viewsperday) {
+			if ($debug) bannerDebug($debugLog);
 			return false;
-
-		if($this->clicksperday && $this->dailyclicks() >= $this->clicksperday)
+		}
+		if ($debug) $debugLog .= " 6";
+		if($this->clicksperday && $this->dailyclicks() >= $this->clicksperday) {
+			if ($debug) bannerDebug($debugLog);
 			return false;
-
+		}
+		if ($debug) $debugLog .= " 7";
 	//views per user
 		if($this->viewsperuser && isset($this->userviewtimes[$userid])) {
 			end($this->userviewtimes[$userid]);
 			$keyToCheck = key($this->userviewtimes[$userid]) - $this->viewsperuser + 1;
 			if (isset($this->userviewtimes[$userid][$keyToCheck]) && $this->userviewtimes[$userid][$keyToCheck] >= ($time-$this->limitbyperiod)) {
+				if ($debug) bannerDebug($debugLog);
 				return false;
 			}
 		}
+		if ($debug) $debugLog .= " 8";
 		//bannerDebug("Campaign valid: $this->id");
 		$validBanners = false;
 		//check individual banners for validity
 		foreach($this->banners as $id => &$banner) {
-			if ($banner->valid($userid, $age, $sex, $loc, $interests, $page, $time, $size, $usertime)) {
+			if ($banner->valid($userid, $age, $sex, $loc, $interests, $page, $time, $size, $usertime, $debug)) {
 				//bannerDebug("Banner valid: $banner->id");
 				$validBanners[] = $banner->id;
 			}
 		}
+		if ($debug) bannerDebug($debugLog);
 		return $validBanners;
 	}
 
@@ -455,7 +489,7 @@ class bannercampaign {
 	function pruneUserViews($time) {
 		foreach ($this->userviewtimes as $uid => $userview) {
 			foreach ($userview as $id => $viewtime) {
-				if ($viewtime > $time-(BANNER_SLIDE_SIZE*$this->limitbyperiod)) {
+				if ($viewtime > $time-$this->limitbyperiod) {
 					break; //we only need to process old entries
 				} else {
 					unset($this->userviewtimes[$uid][$id]);
@@ -649,9 +683,15 @@ class banner{
 	function hit($userid, $time){
 		if ($this->viewsperuser) {
 			$this->userviewtimes[$userid][] = $time;
-			if (count($this->userviewtimes[$userid]) > BANNER_SLIDE_SIZE*$this->viewsperuser) {
-				reset($this->userviewtimes[$userid]);
-				unset($this->userviewtimes[$userid][key($this->userviewtimes[$userid])]);
+			foreach ($this->userviewtimes[$userid] as $id => $viewtime) {
+				if ($viewtime > $time-$this->limitbyperiod) {
+					break; //we only need to process old entries
+				} else {
+					unset($this->userviewtimes[$userid][$id]);
+					if (empty($this->userviewtimes[$userid])) {
+						unset($this->userviewtimes[$userid]);
+					}
+				}
 			}
 		}
 
@@ -693,9 +733,15 @@ class banner{
 			for ($i=0; $i < $this->viewsperuser; $i++) {
 				$this->userviewtimes[$userid][] = $time; //ie it's hit its limit, stop showing them this ad.
 			}
-			while (count($this->userviewtimes[$userid]) > BANNER_SLIDE_SIZE*$this->viewsperuser) {
-				reset($this->userviewtimes[$userid]);
-				unset($this->userviewtimes[$userid][key($this->userviewtimes[$userid])]);
+			foreach ($this->userviewtimes[$userid] as $id => $viewtime) {
+				if ($viewtime > $time-$this->limitbyperiod) {
+					break; //we only need to process old entries
+				} else {
+					unset($this->userviewtimes[$userid][$id]);
+					if (empty($this->userviewtimes[$userid])) {
+						unset($this->userviewtimes[$userid]);
+					}
+				}
 			}
 		}
 	}
@@ -715,6 +761,7 @@ class banner{
 		if ($line = $result->fetchrow()) {
 			$this->credits = $line['credits'];
 		}
+		unset($result);
 		
 		$this->charge = 0;
 		$this->views = 0;
@@ -756,7 +803,7 @@ class banner{
 	function pruneUserViews($time) {
 		foreach ($this->userviewtimes as $uid => $userview) {
 			foreach ($userview as $id => $viewtime) {
-				if ($viewtime > $time-(BANNER_SLIDE_SIZE*$this->limitbyperiod)) {
+				if ($viewtime > $time- $this->limitbyperiod) {
 					break; //we only need to process old entries
 				} else {
 					unset($this->userviewtimes[$uid][$id]);
@@ -822,72 +869,92 @@ class banner{
 		}
 	}
 
-	function valid($userid, $age, $sex, $loc, $interests, $page, $time, $size, $usertime){
+	function valid($userid, $age, $sex, $loc, $interests, $page, $time, $size, $usertime, $debug = 0){
+		$debugLog = "";
+		if ($debug) $debugLog .= "Checking banner $this->id:";
+
 		//bannerDebug("Testing banner: $this->id");
 		if(!$this->enabled) {
+			if ($debug) bannerDebug($debugLog);
 			return false;
 		}
-		
-		if(!$this->moded) {
-			return false;
-		}
+		if ($debug) $debugLog .= " 1";
+		//if(!$this->moded) {
+		//	return false;
+		//}
 		
 		//date
 		if($this->startdate >= $time || ($this->enddate && $this->enddate <= $time)) {
+			if ($debug) bannerDebug($debugLog);
 			return false;
 		}
+		if ($debug) $debugLog .= " 2";
 		//bannerDebug("testing size: $this->size == $size");
 		//size
 		if($this->size != $size) {
+			if ($debug) bannerDebug($debugLog);
 			return false;
 		}
+		if ($debug) $debugLog .= " 3";
 
 		//targetting
 		//age
 		//bannerDebug("testing age");
 		if($this->age[0]){ //default true
-			if( $age &&  isset($this->age[$age]) && !$this->age[$age]) //is explicitely untargetted
-			return false;
+			if( $age &&  isset($this->age[$age]) && !$this->age[$age]) {//is explicitely untargetted
+				if ($debug) bannerDebug($debugLog);
+				return false;
+			}
 		}else{ //default false
-			if(!$age || !isset($this->age[$age]) || !$this->age[$age]) //is explicitely targetted
-			return false;
+			if(!$age || !isset($this->age[$age]) || !$this->age[$age]) { //is explicitely targetted
+				if ($debug) bannerDebug($debugLog);
+				return false;
+			}
 		}
+		if ($debug) $debugLog .= " 4";
 
 		//sex
 		//bannerDebug("testing sex");
 		if(!$this->sex[$sex]) {
+			if ($debug) bannerDebug($debugLog);
 			return false;
 		}
-
+		if ($debug) $debugLog .= " 5";
 		//location
 		//bannerDebug("testing location");
 		if($this->loc[0]){ //default true
 			if( $loc &&  isset($this->loc[$loc]) && !$this->loc[$loc]) {
+				if ($debug) bannerDebug($debugLog);
 				return false;
 			}
 		}else{ //default false
 			if(!$loc || !isset($this->loc[$loc]) || !$this->loc[$loc]) {
+				if ($debug) bannerDebug($debugLog);
 				return false;
 			}
 		}
-
+		if ($debug) $debugLog .= " 6";
 		//page
 		//bannerDebug("testing page");
 		if($this->page[0]){ //default true
 			if( $page &&  isset($this->page[$page]) && !$this->page[$page]) {
+				if ($debug) bannerDebug($debugLog);
 				return false;
 			}
 		}else{ //default false
 			if(!$page || !isset($this->page[$page]) || !$this->page[$page]) {
+				if ($debug) bannerDebug($debugLog);
 				return false;
 			}
 		}
-
+		if ($debug) $debugLog .= " 7";
 		//interests
 		//bannerDebug("testing interests");
 		if(count($this->interests)){
-			if(count($interests) == 0)
-			return false;
+			if(count($interests) == 0) {
+				if ($debug) bannerDebug($debugLog);
+				return false;
+			}
 			//*
 			$found = false;
 
@@ -898,53 +965,60 @@ class banner{
 				}
 			}
 
-			if(!$found)
-			return false;
+			if(!$found) {
+				if ($debug) bannerDebug($debugLog);
+				return false;
+			}
 			/*/
 			$intersect = array_intersect($this->interests, $interests);
 			if(count($intersect) == 0)
 			return false;
 			//*/
 		}
-		
+		if ($debug) $debugLog .= " 8";
 		//time
 		//bannerDebug("testing time");
 		$day = gmdate("w", $usertime);
 		$hour = gmdate("G", $usertime);
 		if (!$this->allowedtimes->validHours[$day][$hour]) {
+			if ($debug) bannerDebug($debugLog);
 			return false;
 		}
-		
+		if ($debug) $debugLog .= " 9";
 		//payment available
-		if ($this->campaign->clienttype == "payinadvance") {
-			if ($this->credits + $this->campaign->credits < $this->payrate()) {
-				return false;
-			}
-		}
+		//if ($this->campaign->clienttype == "payinadvance") {
+		//	if ($this->credits + $this->campaign->credits < $this->payrate()) {
+		//		return false;
+		//	}
+		//}
 		
 		//frequency capping
 		//this period (day/hour)
 		//bannerDebug("testing frequency capping");
 		if($this->viewsperday && $this->dailyviews >= $this->viewsperday) {
+			if ($debug) bannerDebug($debugLog);
 			return false;
 		}
-
+		if ($debug) $debugLog .= " 10";
 		if($this->clicksperday && $this->dailyclicks >= $this->clicksperday) {
+			if ($debug) bannerDebug($debugLog);
 			return false;
 		}
-
+		if ($debug) $debugLog .= " 11";
 		//views per user
 		if($this->viewsperuser && isset($this->userviewtimes[$userid])) {
 			end($this->userviewtimes[$userid]);
 			$keyToCheck = key($this->userviewtimes[$userid]) - $this->viewsperuser + 1;
 			
 			if (isset($this->userviewtimes[$userid][$keyToCheck]) && $this->userviewtimes[$userid][$keyToCheck] >= ($time-$this->limitbyperiod)) {
+				if ($debug) bannerDebug($debugLog);
 				return false;
 			}
 		}
-
+		if ($debug) $debugLog .= " 12";
 		//bannerDebug("valid banner: $this->id");
 		//all else works
+		if ($debug) bannerDebug($debugLog);
 		return true;
 	}
 }
@@ -1115,7 +1189,7 @@ class bannerserver{
 		$res = $this->db->prepare_query("SELECT * FROM bannercampaigns WHERE id = #", $id);
 
 		$campaign = $res->fetchrow();
-
+		unset($res);
 		if($campaign){
 			$this->bannercampaigns[$campaign['id']] = new bannercampaign($campaign, $this->numservers);
 			foreach($this->bannercampaigns[$campaign['id']]->banners as $banner) {
@@ -1130,7 +1204,7 @@ class bannerserver{
 	function updateCampaign($id) {
 		$res = $this->db->prepare_query("SELECT * FROM bannercampaigns WHERE id = #", $id);
 		$campaign = $res->fetchrow();
-
+		unset($res);
 		if ($campaign) {
 			if (isset($this->bannercampaigns[$id])) { //update the campaign
 				$this->bannercampaigns[$id]->update($campaign);
@@ -1146,7 +1220,8 @@ class bannerserver{
 	function addBanner($id){
 		$res = $this->db->prepare_query("SELECT * FROM banners WHERE id = #", $id);
 		$banner = $res->fetchrow();
-
+		unset($res);
+		
 		if($banner){
 			$newBanner = new banner($banner, $this->numservers, $this->bannercampaigns[$banner['campaignid']]);
 			$this->bannercampaigns[$banner['campaignid']]->addBanner($newBanner);
@@ -1160,7 +1235,8 @@ class bannerserver{
 	function updateBanner($id){
 		$res = $this->db->prepare_query("SELECT * FROM banners WHERE id = #", $id);
 		$banner = $res->fetchrow();
-
+		unset($res);
+		
 		if($banner){
 			if ($banner['campaignid'] == $this->campaignids[$id]) { //same campaign just update the banner in it
 				$this->bannercampaigns[$this->campaignids[$id]]->getBannerID($id)->update($banner, $this->numservers, $this->bannercampaigns[$this->campaignids[$id]]);
@@ -1217,16 +1293,21 @@ class bannerserver{
 		}
 	}
 
-	function getBanner($usertime, $size, $userid, $age, $sex, $loc, $interests, $page, $id = null){
+	function getBanner($usertime, $size, $userid, $age, $sex, $loc, $interests, $page, $debug = 0, $id = null){
+		$debugLog = "";
+		if ($debug) $debugLog .= "$usertime, $size, $userid, $age, $sex, $loc, $page, $debug";
 		if($id === null){
 			$valid = array();
 			foreach($this->bannercampaigns as &$campaign){
 				//check campaign size and campaign enabled
+				if ($debug) $debugLog .= "\nPre-checking campaign $campaign->id:"; 
 				if(isset($campaign->sizes[$size]) && $campaign->enabled) {
 					//check valid start/end date and valid sex
+					if ($debug) $debugLog .= " 1"; 
 					if(!($campaign->startdate >= $this->time || ($campaign->enddate && $campaign->enddate <= $this->time)) && $campaign->sex[$sex]) {
+						if ($debug) $debugLog .= " 2"; 
 						//bannerDebug("Passed prescreening for $campaign->id");
-						if($validBanners = $campaign->valid($userid, $age, $sex, $loc, $interests, $page, $this->time, $size, $usertime)){
+						if($validBanners = $campaign->valid($userid, $age, $sex, $loc, $interests, $page, $this->time, $size, $usertime, $debug)){
 							$valid[$campaign->id] = $campaign->priority($userid, $validBanners, $this->time);
 							$banners[$campaign->id] = $validBanners;
 							foreach ($validBanners as $bannerid) {
@@ -1241,8 +1322,10 @@ class bannerserver{
 				}
 			}
 			
-			if(count($valid) == 0)
+			if(count($valid) == 0) {
+				if ($debug) bannerDebug($debugLog); 
 				return 0;
+			}
 
 			
 			$campaignID = chooseWeight($valid, false);
@@ -1255,6 +1338,8 @@ class bannerserver{
 
 		$this->bannercampaigns[$campaignID]->hit($id, $userid, $this->time);
 
+		if ($debug) $debugLog .= "\nChose banner $id";
+		if ($debug) bannerDebug($debugLog); 
 
 		return $id;
 	}
@@ -1349,6 +1434,7 @@ class bannerserver{
 				}
 			}
 		}
+		unset($result);
 	}
 }
 
@@ -1419,7 +1505,8 @@ class bannerclient{
 
 		for($i = 0; $i < $numhosts; $i++){
 			$host = $this->hosts[($i + $hostnum) % $numhosts];
-
+			$errno = 0;
+			$errstr = "";
 			if($this->persistant)
 				$this->sock = @pfsockopen($host, BANNER_PORT, $errno, $errstr, $this->timeout);
 			else
@@ -1427,6 +1514,7 @@ class bannerclient{
 
 			if($this->sock) //else try next host
 				break;
+			
 		}
 
 		if(!$this->sock){ //if no host found, mark as dead, don't try again
@@ -1517,11 +1605,13 @@ class bannerclient{
 
 		if(!$banner){
 			$res = $this->db->prepare_query("SELECT bannertype, image, link, alt, refresh, campaignid FROM banners WHERE id = #", $id);
-
 			$banner = $res->fetchrow();
+			unset($res);
+			
 			if ($banner['refresh'] < 0) {
 				$res = $this->db->prepare_query("SELECT refresh FROM bannercampaigns WHERE id = #", $banner['campaignid']);
 				$campaign = $res->fetchrow();
+				unset($res);
 				$banner['refresh'] = $campaign['refresh'];
 			}
 
@@ -1536,7 +1626,7 @@ class bannerclient{
 	}
 	
 	
-	function getBanner($size, $refresh = false, $passback = 0){
+	function getBanner($size, $refresh = false, $passback = 0, $debug = 0){
 		global $cache;
 
 
@@ -1546,7 +1636,7 @@ class bannerclient{
 			return "";
 
 		$usertime = time() + getusertimeoffset();
-		fwrite($this->sock, "get $usertime $size $this->userid $this->age $this->sex $this->loc $this->interests $this->page $passback\n");
+		fwrite($this->sock, "get $usertime $size $this->userid $this->age $this->sex $this->loc $this->interests $this->page $passback $debug\n");
 
 //*
 		$buf = "";
@@ -1578,11 +1668,13 @@ class bannerclient{
 
 		if(!$banner){
 			$res = $this->db->prepare_query("SELECT bannertype, image, link, alt, refresh, campaignid FROM banners WHERE id = #", $id);
-
 			$banner = $res->fetchrow();
+			unset($res);
+			
 			if ($banner['refresh'] < 0) {
 				$res = $this->db->prepare_query("SELECT refresh FROM bannercampaigns WHERE id = #", $banner['campaignid']);
 				$campaign = $res->fetchrow();
+				unset($res);
 				$banner['refresh'] = $campaign['refresh'];
 			}
 
@@ -1598,8 +1690,8 @@ class bannerclient{
 
 	function getBannerID($id){
 		$res = $this->db->prepare_query("SELECT id, bannersize, bannertype, image, link, alt FROM banners WHERE id = #", $id);
-
 		$line = $res->fetchrow();
+		unset($res);
 
 		if(!$line)
 			return "";
@@ -1616,7 +1708,9 @@ class bannerclient{
 		fwrite($this->sock, "click $id $this->age $this->sex $this->loc $this->interests $page $time\n");
 
 		$res = $this->db->prepare_query("SELECT link FROM banners WHERE id = #", $id);
-		return $res->fetchfield();
+		$field = $res->fetchfield();
+		unset($res);
+		return $field;
 	}
 
 	function addBanner($id){

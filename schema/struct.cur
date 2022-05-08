@@ -398,6 +398,13 @@ column:db.skins:menudata:text NOT NULL
 column:db.skins:active:enum('n','y') NOT NULL DEFAULT 'n' 
 key:db.skins:PRIMARY:unique:BTREE:id ASC
 key:db.skins:userid:nonunique:BTREE:userid ASC
+table:db.smilies:MyISAM:Fixed:row_format=FIXED
+column:db.smilies:id:int(10) unsigned NOT NULL auto_increment
+column:db.smilies:code:char(16) NOT NULL 
+column:db.smilies:pic:char(16) NOT NULL 
+column:db.smilies:uses:int(10) unsigned NOT NULL 
+key:db.smilies:PRIMARY:unique:BTREE:id ASC
+key:db.smilies:code:unique:BTREE:code ASC
 table:db.spotlight:MyISAM:Fixed:
 column:db.spotlight:id:int(10) unsigned NOT NULL auto_increment
 column:db.spotlight:userid:int(10) unsigned NOT NULL 
@@ -540,6 +547,7 @@ column:forumdb.forumpostsdel:authorid:int(10) unsigned NOT NULL
 column:forumdb.forumpostsdel:time:int(11) NOT NULL 
 column:forumdb.forumpostsdel:edit:int(11) NOT NULL 
 column:forumdb.forumpostsdel:msg:text NOT NULL 
+column:forumdb.forumpostsdel:parse_bbcode:enum('y','n') NOT NULL DEFAULT 'y' 
 key:forumdb.forumpostsdel:PRIMARY:unique:BTREE:id ASC
 key:forumdb.forumpostsdel:authorid:nonunique:BTREE:authorid ASC
 key:forumdb.forumpostsdel:threadid:nonunique:BTREE:threadid ASC
@@ -788,10 +796,12 @@ column:moddb.admin:createbanners:enum('n','y') NOT NULL DEFAULT 'n'
 column:moddb.admin:listinvoices:enum('n','y') NOT NULL DEFAULT 'n' 
 column:moddb.admin:viewinvoice:enum('n','y') NOT NULL DEFAULT 'n' 
 column:moddb.admin:editinvoice:enum('n','y') NOT NULL DEFAULT 'n' 
+column:moddb.admin:superviseinvoice:enum('n','y') NOT NULL DEFAULT 'n' 
 column:moddb.admin:contests:enum('n','y') NOT NULL DEFAULT 'n' 
 column:moddb.admin:staticpages:enum('n','y') NOT NULL DEFAULT 'n' 
 column:moddb.admin:wiki:enum('n','y') NOT NULL DEFAULT 'n' 
 column:moddb.admin:editskins:enum('n','y') NOT NULL DEFAULT 'n' 
+column:moddb.admin:viewfriendblogs:enum('n','y') NOT NULL DEFAULT 'n' 
 key:moddb.admin:PRIMARY:unique:BTREE:id ASC
 key:moddb.admin:userid:unique:BTREE:userid ASC
 table:moddb.adminlog:MyISAM:Dynamic:
@@ -861,7 +871,7 @@ column:moddb.modvoteslog:time:int(11) NOT NULL
 column:moddb.modvoteslog:description:varchar(255) NOT NULL 
 column:moddb.modvoteslog:points:tinyint(3) unsigned NOT NULL 
 key:moddb.modvoteslog:modid:nonunique:BTREE:modid ASC
-key:moddb.modvoteslog:picid:nonunique:BTREE:picid ASC
+key:moddb.modvoteslog:picid:nonunique:BTREE:userid ASC,picid ASC
 key:moddb.modvoteslog:time:nonunique:BTREE:time ASC
 table:picmodexamdb.examconfig:MyISAM:Dynamic:
 column:picmodexamdb.examconfig:var:varchar(20) NOT NULL 
@@ -1013,6 +1023,18 @@ column:scrumdb.users:full_name:varchar(250)
 column:scrumdb.users:email:varchar(250) 
 key:scrumdb.users:PRIMARY:unique:BTREE:user_id ASC
 key:scrumdb.users:login:unique:BTREE:login ASC
+table:shopdb.basketcontents:InnoDB:Fixed:
+column:shopdb.basketcontents:basketid:int(10) unsigned NOT NULL 
+column:shopdb.basketcontents:type:int(10) unsigned NOT NULL 
+column:shopdb.basketcontents:subtype:int(11) NOT NULL 
+column:shopdb.basketcontents:quantity:int(10) unsigned NOT NULL 
+key:shopdb.basketcontents:PRIMARY:unique:BTREE:basketid ASC,type ASC,subtype ASC
+table:shopdb.baskets:InnoDB:Fixed:
+column:shopdb.baskets:id:int(10) unsigned NOT NULL auto_increment
+column:shopdb.baskets:uid:int(10) unsigned NOT NULL 
+column:shopdb.baskets:completed:enum('n','y') NOT NULL DEFAULT 'n' 
+column:shopdb.baskets:modification:int(10) unsigned NOT NULL 
+key:shopdb.baskets:PRIMARY:unique:BTREE:id ASC
 table:shopdb.billingpeople:MyISAM:Dynamic:
 column:shopdb.billingpeople:id:int(10) unsigned NOT NULL auto_increment
 column:shopdb.billingpeople:userid:int(10) unsigned NOT NULL 
@@ -1046,7 +1068,7 @@ column:shopdb.invoice:id:int(10) unsigned NOT NULL auto_increment
 column:shopdb.invoice:userid:int(10) unsigned NOT NULL 
 column:shopdb.invoice:creationdate:int(11) NOT NULL 
 column:shopdb.invoice:total:decimal(6,2) unsigned NOT NULL DEFAULT '0.00' 
-column:shopdb.invoice:paymentmethod:enum('cash','cheque','paypal','moneyorder','debit','emailmoneytransfer','payg','visa','mc') NOT NULL DEFAULT 'cash' 
+column:shopdb.invoice:paymentmethod:enum('cash','cheque','paypal','moneyorder','debit','emailmoneytransfer','payg','visa','mc','bp') NOT NULL DEFAULT 'cash' 
 column:shopdb.invoice:paymentcontact:varchar(32) NOT NULL 
 column:shopdb.invoice:paymentdate:int(11) NOT NULL 
 column:shopdb.invoice:amountpaid:decimal(6,2) unsigned NOT NULL DEFAULT '0.00' 
@@ -1121,6 +1143,21 @@ column:shopdb.paygstores:id:int(10) unsigned NOT NULL auto_increment
 column:shopdb.paygstores:name:varchar(64) NOT NULL 
 column:shopdb.paygstores:address:text NOT NULL 
 key:shopdb.paygstores:PRIMARY:unique:BTREE:id ASC
+table:shopdb.payments:InnoDB:Dynamic:
+column:shopdb.payments:id:int(10) unsigned NOT NULL auto_increment
+column:shopdb.payments:uid:int(10) unsigned NOT NULL 
+column:shopdb.payments:basketid:int(10) unsigned NOT NULL 
+column:shopdb.payments:amountPending:float NOT NULL 
+column:shopdb.payments:amountApproved:float NOT NULL 
+column:shopdb.payments:class:text NOT NULL 
+column:shopdb.payments:completed:enum('n','y') NOT NULL DEFAULT 'n' 
+column:shopdb.payments:modification:int(10) unsigned NOT NULL 
+column:shopdb.payments:creationTime:int(10) unsigned NOT NULL 
+column:shopdb.payments:completionTime:int(10) unsigned NOT NULL 
+column:shopdb.payments:person:text NOT NULL 
+column:shopdb.payments:company:text NOT NULL 
+column:shopdb.payments:transaction:text NOT NULL 
+key:shopdb.payments:PRIMARY:unique:BTREE:id ASC
 table:shopdb.productcats:MyISAM:Dynamic:
 column:shopdb.productcats:id:int(10) unsigned NOT NULL auto_increment
 column:shopdb.productcats:parent:int(10) unsigned NOT NULL 
@@ -1348,7 +1385,6 @@ column:usersdb.pics:age:tinyint(3) unsigned NOT NULL
 column:usersdb.pics:sex:enum('Male','Female') NOT NULL DEFAULT 'Male' 
 column:usersdb.pics:signpic:enum('n','y') NOT NULL DEFAULT 'n' 
 key:usersdb.pics:PRIMARY:unique:BTREE:itemid ASC,id ASC
-key:usersdb.pics:sexage:unique:BTREE:sex ASC,age ASC,id ASC
 table:usersdb.picspending:MyISAM:Dynamic:
 column:usersdb.picspending:id:int(10) unsigned NOT NULL 
 column:usersdb.picspending:itemid:int(10) unsigned NOT NULL 

@@ -30,16 +30,16 @@ function updateStats(){
 		if($online === false){
 			$online = array();
 
-			$friends = getFriendsList($userData['userid']);
+			$friends = getFriendsListIDs($userData['userid']);
 
 			if(count($friends)){
-				$activetimes = $cache->get_multi(array_keys($friends), 'useractive-');
+				$activetimes = $cache->get_multi($friends, 'useractive-');
 
 				$time = time();
 
 				foreach($activetimes as $uid => $activetime)
 					if($activetime > $time - $config['friendAwayTime'])
-						$online[$uid] = $friends[$uid];
+						$online[] = $uid;
 			}
 
 			$cache->put("friendsonline-$userData[userid]", $online, 60);
@@ -182,9 +182,9 @@ function getStats(){
 
 	$parts = array();
 	foreach($siteStats as $k => $v)
-		$parts[] = $masterdb->prepare("$k = #", $v);
+		$parts[] = $masterdb->prepare("$k = ?", $v);
 
-	$masterdb->query("INSERT INTO statshist SET " . implode(", ", $parts));
+	$masterdb->query("INSERT IGNORE INTO statshist SET " . implode(", ", $parts));
 
 	return $siteStats;
 }
@@ -351,7 +351,7 @@ function updateUserIndexes(){
 		$dbRecordCount = 0;
 		$db->query("TRUNCATE usersearch");
 		$db->prepare_query("ALTER TABLE usersearch auto_increment = #", $insertId);
-		$result = $db->prepare_query("INSERT INTO usersearch (userid, age, sex, loc, active, pic, single, sexuality) 
+		$result = $db->prepare_query("INSERT INTO usersearch (userid, age, sex, loc, active, pic, single, sexuality)
 			SELECT userid, age, sex, loc, ( (activetime > #) + (online = 'y' && activetime > #) ) as active,
 				( (firstpic >= 1) + (signpic = 'y') ) as pic, (single = 'y') as single, sexuality
 				FROM users", time() - 86400*7, time() - 3600);
@@ -634,7 +634,8 @@ function getNumUsersInLocs($locs){
 
 	$total = 0;
 	foreach($locs as $loc)
-		$total += $users[$loc];
+		if (isset($users[$loc]))
+			$total += $users[$loc];
 
 	return $total;
 }

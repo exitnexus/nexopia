@@ -68,7 +68,7 @@
 					varargs('commit', array('t'), 'post'),
 					varargs('description', array('string'), 'post'),
 					varargs('type', 'pending', 'post'),
-					varargs('action', 'Save', 'post')
+					varargs('action', 'Save Descriptions', 'post')
 				)
 			);
 
@@ -288,8 +288,9 @@
 			$numpics = count($pics);
 
 			$legacy = false;
-			if (stripos($_SERVER['HTTP_USER_AGENT'], 'Opera') || stripos($_SERVER['HTTP_USER_AGENT'], 'MSIE 4.') ||
-				stripos($_SERVER['HTTP_USER_AGENT'], 'MSIE 5.0') || stripos($_SERVER['HTTP_USER_AGENT'], 'Firefox/1.0'))
+			if (!isset($_SERVER['HTTP_USER_AGENT']) ||stripos($_SERVER['HTTP_USER_AGENT'], 'Opera')
+				|| stripos($_SERVER['HTTP_USER_AGENT'], 'MSIE 4.') || stripos($_SERVER['HTTP_USER_AGENT'], 'MSIE 5.0')
+				|| stripos($_SERVER['HTTP_USER_AGENT'], 'Firefox/1.0'))
 			{
 				$legacy = true;
 			}
@@ -338,7 +339,7 @@
 			$result = $usersdb->prepare_query("SELECT id FROM picspending WHERE userid = % AND id IN (#)", $uid, array_keys($commit));
 			while ($line = $result->fetchrow())
 			{
-				removePicPending("$userData[userid]:$line[id]");
+				removePicPending("$uid:$line[id]");
 
 				if($uid != $userData['userid'])
 					$mods->adminlog("delete pending picture", "Delete pending user picture: userid $uid");
@@ -418,7 +419,7 @@
 				{
 					if (parent && parent.uploadDone && parent.maxUploads)
 					{
-						parent.uploadDone(uploadid, uploadedpic, uploadeddesc, '$config[thumbdir]' + uploadedurl, document.getElementById('messages').innerHTML);
+						parent.uploadDone(uploadid, uploadedpic, uploadeddesc, '$config[thumbloc]' + uploadedurl, document.getElementById('messages').innerHTML);
 						" . ($reachedMax? "parent.maxUploads();" : "") . "
 					}
 				}";

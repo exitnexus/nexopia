@@ -97,8 +97,8 @@ function listMods($type){
 		$allowdel = true;
 		if ($type == MOD_PICS) { // only strip deletion for pic mod type
 			if (!$mods->isAdmin($line['userid'])) {
-				$res = $forumdb->prepare_query('SELECT COUNT(*) AS modcnt FROM forummods, forums WHERE forummods.userid=# AND forummods.forumid=forums.id AND forums.official=?', $line['userid'], 'y');
-				$isforummod = $res->fetchfield();
+				$fres = $forumdb->prepare_query('SELECT COUNT(*) AS modcnt FROM forummods, forums WHERE forummods.userid=# AND forummods.forumid=forums.id AND forums.official=?', $line['userid'], 'y');
+				$isforummod = $fres->fetchfield();
 
 				if (!is_null($isforummod) and $isforummod > 0) {
 					$rows[$line['userid']]['adminormod'] = 'forum mod';

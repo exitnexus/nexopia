@@ -1,4 +1,6 @@
 <?
+$simplepage = true;
+$forceserver = true;
 require_once("include/general.lib.php");
 $template = new template('pictures/imgframe');
 if (isset($_GET['imgurl']) && isset($_GET['picid']))
@@ -8,7 +10,7 @@ if (isset($_GET['imgurl']) && isset($_GET['picid']))
 	$template->set('picid', getREQval('picid', 'int'));
 	// Todo: validate?
 	$template->set('fullurl', (isset($_GET['fullurl'])? htmlentities($_GET['fullurl']) : ''));
-	
+
 }
 $template->display();
 

@@ -25,6 +25,7 @@
 	$bannerservers = array('192.168.0.50');
 
 	$memcacheoptions = 	array(
+		'name' => 'cache',
 		'servers' => array( '192.168.0.50:11211',
 							),
 		'debug'   => false,
@@ -33,6 +34,7 @@
 		'persistant' => false);
 
 	$pagecacheoptions = array(
+		'name' => 'pagecache',
 		'servers' => array( '192.168.0.50:11211'		),
 		'debug'   => false,
 		'compress_threshold' => 8000,
@@ -68,6 +70,10 @@
 	$lockSplitWriteOps = false;
 
 	$config = array(
+		'templatefilesdir' => "$sitebasedir/templates/template_files/",
+		'templateparsedir' => "$sitebasedir/templates/compiled_files/",
+		'templateusecached' => false,
+
 		'allowThreadUpdateEmails' => false, //send subscribed users an email if a thread is updated
 		'defaultMessageAllowEmails' => true, // whether or not deliverMsg defaults to allowing emails to be sent
 
@@ -97,6 +103,7 @@
 		'memcached' => true, //Use Memcache?
 		'gd2' => true, //which image resize function to use
 
+		'voteHistLength' => 86400*21, //poll vote length
 
 		'smtp_host' => '127.0.0.1', //outgoing email server
 		'paypalemail' => 'timo@tzc.com',
@@ -177,6 +184,7 @@
 		'picmodexamloc' => "http://$staticimgdomain/picmodexam/", //directory relative to the docroot to save pic mod exam imgs
 		'picmodpluserrrate' => 2.5, //maximum error rate required during a week to earn plus
 		'picmodpluspicrate' => 2500, //modded pics required during a week to get plus
+		'picmodmonthlymin'	=> 10000
 	);
 
 	include_once("include/errorlog.php");

@@ -671,8 +671,8 @@ class blogcomment
 	function invalidate()
 	{
 		global $cache;
-		$cache->remove("weblog-comment-{$this->blogpost->userid}-{$this->commentid}");
-		$cache->remove("weblog-comment-parsed-{$this->blogpost->userid}-{$this->commentid}");
+		$cache->remove("weblog-comment-{$this->blogpost->uid}-{$this->commentid}");
+		$cache->remove("weblog-comment-parsed-{$this->blogpost->uid}-{$this->commentid}");
 	}
 
 	function commit()
@@ -1079,8 +1079,8 @@ class userblog
 		// delete the corresponding postcount from the cache if it's there.
 
 		$operator = ($existingpost? '>' : '<');
-
-		foreach ($userids as $userid)$weblog->db->prepare_query("UPDATE bloglastreadfriends SET postcount = postcount + 1 WHERE userid IN (%) AND readtime $operator #", $userids, $unreadsince);
+		$weblog->db->prepare_query("UPDATE bloglastreadfriends SET postcount = postcount + 1 WHERE userid IN (%) AND readtime $operator #", $userids, $unreadsince);
+		foreach ($userids as $userid)
 		{
 			if (isset($lastreads[$userid]) &&
 			   (($existingpost && $lastreads[$userid] > $unreadsince) ||

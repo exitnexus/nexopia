@@ -30,9 +30,11 @@
 
 	$page = getREQval('page', 'int');
 
-	$isAdmin = $userData['loggedIn'] && $mods->isAdmin($userData['userid'], 'editjournal');
+	$isFriendViewAdmin = $userData['loggedIn'] && $mods->isAdmin($userData['userid'], 'viewfriendblogs');
+	$isRegularAdmin = $userData['loggedIn'] && $mods->isAdmin($userData['userid'], 'editjournal');
 
 	$user = getUserInfo($uid);
+
 	if($userData['loggedIn'] && $userData['userid'] == $uid){
 		$isFriend = true;
 	}else{
@@ -68,13 +70,13 @@
 			exit;
 		}
 
-		$isFriend = $isAdmin || ($userData['loggedIn'] && isFriend($userData['userid'], $uid));
+		$isFriend = $isFriendViewAdmin || ($userData['loggedIn'] && isFriend($userData['userid'], $uid));
 	}
 
 	$scope = WEBLOG_PUBLIC;
 	if($userData['loggedIn'])
 		$scope = WEBLOG_LOGGEDIN;
-	if($isFriend || $isAdmin)
+	if($isFriend || $isFriendViewAdmin)
 		$scope = WEBLOG_FRIENDS;
 	if($userData['loggedIn'] && $uid == $userData['userid'])
 		$scope = WEBLOG_PRIVATE;
@@ -102,13 +104,13 @@
 		{
 			if ($newreplies)
 			{
-				// $entry is not really valid at this point, but we'll hack it a bit.
-                // XXX: this is evil.
+				//XXX: entry is valid at this point, but this is still evil.
                 $entry->entryid = $id;
 				$entry->invalidateNewReplies($userData['userid']);
+			} else {
+				$entry = null;
+				$id = 0;
 			}
-			$entry = null;
-			$id = 0;
 		}
 		if ($entry && (!$userData['loggedIn'] || $entry->uid != $userData['userid']))
 		{
@@ -119,7 +121,7 @@
 	switch ($action)
 	{
 		case 'Delete':
-			if (($uid == $userData['userid'] || $isAdmin) && $id){
+			if (($uid == $userData['userid'] || $isRegularAdmin) && $id){
 				if($check = getPOSTval('checkID', 'array'))
 				{
 					$comments = blogcomment::getBlogComments($entry, $check);
@@ -148,8 +150,8 @@
 			break;
 
 		case "Edit":
-			if(($uid == $userData['userid']) || ($isAdmin && $id))
-				addBlogEntry($entry); //exit
+			if(($uid == $userData['userid']) || ($isRegularAdmin && $id) || ($isFriendViewAdmin && $id))
+				addBlogEntry($entry, false, true); //exit
 
 			break;
 		case "Post":
@@ -166,7 +168,7 @@
 				}
 			}
 
-			if($uid == $userData['userid'] || ($isAdmin && $id)) //can't post new entry in someone elses blog, but can edit if admin
+			if($uid == $userData['userid'] || ($isRegularAdmin && $id)) //can't post new entry in someone elses blog, but can edit if admin
             {
 				$entry = updateBlogEntry($entry, $data, !$id);
 				if (!$id)
@@ -558,7 +560,7 @@ function getUserColumn($userid, &$authors, &$usernames, $showbloglink = false)
 
 function showEntry($uid, $entry, $commentcount, $userinfo, $showcomments, $replies = array()){
 
-    global $weblog, $userblog, $scope, $user, $userData, $action, $isAdmin, $config, $isFriend, $msgs, $cache, $newreplies;
+    global $weblog, $userblog, $scope, $user, $userData, $action, $isRegularAdmin, $isFriendViewAdmin, $config, $isFriend, $msgs, $cache, $newreplies;
     $template = new template("weblog/weblog_entry");
 	$id = $entry->entryid;
 	$key = makeKey($id);
@@ -599,7 +601,7 @@ function showEntry($uid, $entry, $commentcount, $userinfo, $showcomments, $repli
     $template->set("uid",$uid);
     $template->set("id", $id);
     $template->set("loggedin",$userData['loggedIn'] );
-    $template->set("user_is_admin", $uid == $userData['userid'] || $isAdmin);
+    $template->set("user_is_admin", $uid == $userData['userid'] || $isRegularAdmin);
 
     $template->set("mod_userabuse", MOD_USERABUSE);
     $entry_array['key'] = $key;
@@ -618,7 +620,7 @@ function showEntry($uid, $entry, $commentcount, $userinfo, $showcomments, $repli
     $entry_array['entryid'] = $entry->entryid;
     $entry_array['scope']   = $weblog->scopes[$entry->scope] ;
     $entry_array['time']    = $entry->time;
-    $entry_array['allow_comments' ] = $entry->allowcomments;
+    $entry_array['allow_comments' ] = ($entry->allowcomments == 'y');
     $entry_array['uid'] = $entry->uid;
     $entry_array['show_comments'] = $showcomments;
     $entry_array['comment_count']= 0;
@@ -655,6 +657,10 @@ $entry_array['count_commentids'] = count($comments);
 				    $comment_array['deleted'] = false;
 				    $comment_array['user_column'] = getUserColumn($line->userid, $authors, $usernames) ;
                     $comment_array['text'] = $line->getParsedText();
+				} else {
+					$comment_array['deleted'] = true;
+				    $comment_array['user_column'] = "";
+                    $comment_array['text'] = "";
 				}
 				if ($line->deleted == 'f')
 				{
@@ -675,13 +681,22 @@ $entry_array['count_commentids'] = count($comments);
                         $comment_array['userid'] = "";
                     }
 
+				} else {
+					$comment_array['time'] = $line->time;
+					$comment_array['show_user_links'] = false;
+					$comment_array['rootid'] = "";
+                    $comment_array['userid'] = "";
 				}
 				array_push($comments_array, $comment_array);
 			}
 			$entry_array['comments'] = $comments_array;
 		}
 	}else {
+		$entry_array['comments'] = array();
 		$entry_array['showcomments'] = $showcomments;
+		$entry_array['count_commentids'] = 0;
+        $entry_array['comments_newreplies'] = $newreplies;
+        $entry_array['comment_pagelist'] = "";
 	}
 
 	$template->set('entry' , $entry_array);
@@ -689,8 +704,14 @@ $entry_array['count_commentids'] = count($comments);
 	return $template->toString();
 }
 
-function addBlogEntry($line, $preview = false){
-	global $uid, $userData, $weblog;
+function addBlogEntry($line, $preview = false, $edit=false){
+	global $uid, $userData, $weblog, $mods;
+    if (!$line) {
+    	incHeader();
+    	echo "Invalid blog entry.";
+    	incFooter();
+    	exit;
+    }
     $template = new Template("weblog/add_weblogentry");
 	$title = "";
 	$msg = "";
@@ -715,7 +736,10 @@ function addBlogEntry($line, $preview = false){
 	$template->set("id", $id);
 	$template->set("line_entryid", $line->entryid);
 	$template->set("uid", $uid);
-	$template->set("is_curr_user", $uid == $userData['userid'] );
+	$template->set("is_curr_user", $uid == $userData['userid'] || 
+		($edit && $mods->isAdmin($userData['userid'], "editjournal")) ||
+		$mods->isAdmin($userData['userid'], "viewfriendblogs")
+	);
     $template->set("line_title", $line->title);
     $template->set("select_list_scopes" ,make_select_list_key($weblog->scopes, $line->scope));
     $template->set("checkbox_resettime", makeCheckBox('data[time]', 'Reset Time'));
@@ -740,7 +764,7 @@ function addBlogEntry($line, $preview = false){
 }
 
 function updateBlogEntry($blogentry, $data, $notify){
-	global $weblog, $uid, $msgs;
+	global $weblog, $uid, $msgs, $userblog;
 
 	$title = "";
 	$msg = "";

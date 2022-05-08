@@ -34,7 +34,7 @@
 	for($i=1;$i<=12;$i++)
 		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
 
-	$res = $masterdb->prepare_query("SELECT * FROM statshist WHERE time >= # && time <= #", $time, $time + 86400);
+	$res = $masterdb->prepare_query("SELECT * FROM statshist WHERE time >= # && time <= #", $time, $time + 87000);
 
 	$rows = array();
 	while($line = $res->fetchrow())
@@ -88,22 +88,22 @@
 			}else{
 				$time = userdate("M j, Y, g a", $line['time']);
 			}
-			
+
 			if($time != $lasttime){
 				echo "<tr>";
 				echo "<td class=" . $classes[$i = !$i] . ">$time</td>";
-				
+
 				echo "<td class=" . $classes[$i] . " align=right>" . number_format($line['hitsanon'] - $last['hitsanon']) . "</td>";
 				echo "<td class=" . $classes[$i] . " align=right>" . number_format($line['hitsuser'] - $last['hitsuser']) . "</td>";
 				echo "<td class=" . $classes[$i] . " align=right>" . number_format($line['hitsplus'] - $last['hitsplus']) . "</td>";
-				
+
 				echo "<td class=" . $classes[$i] . " align=right>" . number_format($line['hitstotal'] - $last['hitstotal']) . "</td>";
 				echo "<td class=" . $classes[$i] . " align=right>" . number_format($line['userstotal'] - $last['userstotal']) . "</td>";
 				echo "<td class=" . $classes[$i] . " align=right>" . number_format($last['onlineusers']) . " + " . number_format($last['onlineguests']) . "</td>";
 				echo "<td class=" . $classes[$i] . " align=right>" . number_format($last['userstotal']) . "</td>";
 				echo "<td class=" . $classes[$i] . " align=right>" . number_format($last['hitstotal']) . "</td>";
 				echo "</tr>";
-			
+
 				$last = $line;
 				$lasttime = $time;
 			}
@@ -111,7 +111,7 @@
 
 		if($today){
 			echo "<tr>";
-			echo "<td class=" . $classes[$i = !$i] . ">". userdate("M j, Y, g a") . "</td>";
+			echo "<td class=" . $classes[$i = !$i] . ">". userdate("M j, Y, g:i a") . "</td>";
 			echo "<td class=" . $classes[$i] . " align=right colspan=4>" . number_format($siteStats['hitstotal'] - $last['hitstotal']) . " (" . number_format(($siteStats['hitstotal'] - $last['hitstotal'])*3600/(time()-$last['time'])) . ")</td>";
 			echo "<td class=" . $classes[$i] . " align=right>" . number_format($siteStats['userstotal'] - $last['userstotal']) . "</td>";
 			echo "<td class=" . $classes[$i] . " align=right>" . number_format($siteStats['onlineusers']) . " + " . number_format($siteStats['onlineguests']) . "</td>";

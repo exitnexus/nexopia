@@ -30,18 +30,18 @@ $databases = array(
 		'inherit' => 'dbserv',
 		'type' => 'multi',
 		'roles' => array(
-			'insert' => array('debug' => 2),
+			'insert' => array(),
 			'select' => array(
-				array('debug' => 2, 'weight' => 1, 'plus' => 'n'),
+				array('weight' => 1, 'plus' => 'n'),
 				array('weight' => 1, 'plus' => 'y'),
 			),
-			'backup' => array('debug' => 2)
+			'backup' => array()
 		)
 	),
 
 	'general' => array(
 		'host' => '10.0.2.3',
-		'inherit' => 'devdb',
+		'inherit' => 'devdbmulti',
 	),
 
 	/* new dbs */
@@ -133,6 +133,7 @@ $databases = array(
 		'instance' => true,
 		'db' => 'newbanners',
 		'inherit' => 'general',
+		'debuglevel' => 0,
 	),
 	'contestdb' => array(
 		'instance' => true,

@@ -1,5 +1,5 @@
 <?
-	$forceserver=true;
+//	$forceserver=true;
 	$login=0;
 
 	require_once("include/general.lib.php");

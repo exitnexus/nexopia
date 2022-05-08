@@ -8,6 +8,7 @@ constructor:
 public:
 
 - get($name, $refresh, $callback, $default) - get $name, if refresh, etc. set, wrap in expiry array. Wrapping gives atomicity and default values at the cost of speed
+- get_multi($keys, $prefix)
 - put($name, $value, $refresh, $wrap) - put $value in cache under $name for $refresh seconds, if $wrap, wrap in expiry array
 - incr($name, $value) - increments the value of $name by $value, only works with numbers, returns the result, won't work for wrapped values
 - decr($name, $value) - decrements the value of $name by $value, only works with numbers, returns the result, won't work for wrapped values
@@ -29,6 +30,7 @@ class cache{
 	public $memcache;
 
 	public $actions = array();
+	public $keyactions = 0;
 	public $time = 0;
 
 	function __construct( & $memcache, $basedir, $debug = true){
@@ -54,6 +56,7 @@ class cache{
 
 		if($refresh === false){
 			$ret = $this->memcache->get($key);
+			$this->keyactions++;
 
 			$this->action("get " . ($ret === false ? '-' : '+'), $name, gettime() - $time1);
 
@@ -62,6 +65,7 @@ class cache{
 
 
 		$line = $this->memcache->get($key);
+		$this->keyactions++;
 
 		$this->action("getback", $name, gettime() - $time1);
 
@@ -121,6 +125,7 @@ class cache{
 		}
 
 		$ret = $this->memcache->get_multi($keys);
+		$this->keyactions += count($keys);
 
 		if ($prefix)
 		{
@@ -162,6 +167,7 @@ class cache{
 			$this->memcache->set($key, $value, $refresh);
 			$this->action("put", $name, gettime() - $time1);
 		}
+		$this->keyactions++;
 	}
 
 	function append($key, $value, $refresh){
@@ -175,9 +181,11 @@ class cache{
 		$time1 = gettime();
 		$name = (is_array($key) ? $key[1] : $key);
 		$ret = $this->memcache->incr($key, $value);
-		$this->action("incr", $name, gettime() - $time1);
 		if($ret === 'NOT_FOUND')
 			$ret = false;
+
+		$this->action("incr " . ($ret ? '+' : '-'), $name, gettime() - $time1);
+		$this->keyactions++;
 
 		return $ret;
 	}
@@ -186,9 +194,11 @@ class cache{
 		$time1 = gettime();
 		$name = (is_array($key) ? $key[1] : $key);
 		$ret = $this->memcache->decr($key, $value);
-		$this->action("decr", $name, gettime() - $time1);
 		if($ret === 'NOT_FOUND')
 			$ret = false;
+
+		$this->action("decr " . ($ret ? '+' : '-'), $name, gettime() - $time1);
+		$this->keyactions++;
 
 		return $ret;
 	}
@@ -198,6 +208,7 @@ class cache{
 		$name = (is_array($key) ? $key[1] : $key);
 		$this->memcache->delete($key);
 		$this->action("del", $name, gettime() - $time1);
+		$this->keyactions++;
 	}
 
 	function cleanup(){
@@ -222,13 +233,13 @@ class cache{
 
 	function outputActions(){
 		echo "<table border=0 cellspacing=1 cellpadding=2>";
-		echo "<tr><td class=header>MemCache</td><td class=header colspan=2>" . count($this->actions) . " actions</td></tr>";
+		echo "<tr><td class=header>MemCache</td><td class=header colspan=2>" . count($this->actions) . " actions, " . $this->keyactions . " keys</td></tr>";
 		echo "<tr><td class=header>Total Time</td><td class=header colspan=2>" . number_format($this->time/10, 3) . " ms</td></tr>";
 
 		foreach($this->actions as $row){
 			$class = (strpos($row['action'], 'get') !== false ? 'body' : 'body2');
 
-			echo "<tr><td class=$class align=right>" . number_format($row['time']/10, 3) . " ms</td><td class=$class>$row[action]</td><td class=$class>" . htmlentities($row['key']) . "</td></tr>";
+			echo "<tr><td class=$class align=right>" . number_format($row['time']/10, 3) . " ms</td><td class=$class nowrap>$row[action]</td><td class=$class>" . htmlentities($row['key']) . "</td></tr>";
 		}
 
 		echo "</table>";

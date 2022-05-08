@@ -14,9 +14,9 @@ Two new database servers are being added to help handle the load at peak time. T
 <br><br><br>
 
 <object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,29,0" width="457" height="520">
-<param name="movie" value="http://img0.img.nexopia.com/brikpong.swf">
+<param name="movie" value="http://static.nexopia.com/games/brikpong.swf">
 <param name="quality" value="high">
-<embed src="http://img0.img.nexopia.com/brikpong.swf" quality="high" pluginspage="http://www.macromedia.com/go/getflashplayer" type="application/x-shockwave-flash" width="457" height="520"></embed>
+<embed src="http://static.nexopia.com/games/brikpong.swf" quality="high" pluginspage="http://www.macromedia.com/go/getflashplayer" type="application/x-shockwave-flash" width="457" height="520"></embed>
 </object>
 
 </center>

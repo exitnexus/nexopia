@@ -139,7 +139,7 @@
 
 				foreach($checkID as $check){
 					if($useraccounts->freeze($check, $freezetime)){
-						$abuselog->addAbuse($check, ABUSE_ACTION_FREEZE_ACCOUNT, $reason, $input, "");
+						$abuselog->addAbuse($check, ABUSE_ACTION_FREEZE_ACCOUNT, $reason, $input . ' [ unfreeze ' . userdate("M j, y", time() + $freezetime) . ' ]', "");
 						$mods->adminlog('freeze user',"Freeze user $check: $input");
 						$msgs->addMsg("$check frozen");
 						$cache->remove("userprefs-$check");
@@ -174,7 +174,7 @@
 	if(!empty($search)){
 
 		isValidSortd($sortd, 'DESC');
-		
+
 		$sortselectable = $selectable;
 		unset($sortselectable['username'],
 		      $sortselectable['hits'],
@@ -260,7 +260,7 @@
 				$users[$line['userid']]['email'] = $line['email'];
 
 			sortCols($users, SORT_ASC, SORT_CASESTR, 'username', ($sortd == 'ASC' ? SORT_ASC : SORT_DESC), SORT_STRING, $sortt);
-			
+
 		//put the searched user at the top again
 			if($firstuid){
 				$user = $users[$firstuid];
@@ -343,10 +343,12 @@
 				switch($n){
 					case 'userid':
 					case 'hits':
-					case 'email':
 					case 'age':
 					case 'sex':
 						echo $line[$n];
+						break;
+					case 'email':
+						echo $useraccounts->getEmail($line['userid']);
 						break;
 					case 'username':
 						echo "<a class=body href=/profile.php?uid=$line[userid]>$line[username]</a>";

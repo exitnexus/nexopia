@@ -598,6 +598,18 @@ CREATE TABLE `skins` (
 
 --------------------------------------------------------
 
+-- db.smilies
+CREATE TABLE `smilies` (
+  `id` int(10) unsigned NOT NULL auto_increment,
+  `code` char(16) NOT NULL default '',
+  `pic` char(16) NOT NULL default '',
+  `uses` int(10) unsigned NOT NULL default '0',
+  PRIMARY KEY  (`id`),
+  UNIQUE KEY `code` (`code`)
+) TYPE=MyISAM ROW_FORMAT=FIXED
+
+--------------------------------------------------------
+
 -- db.spotlight
 CREATE TABLE `spotlight` (
   `id` int(10) unsigned NOT NULL auto_increment,
@@ -816,6 +828,7 @@ CREATE TABLE `forumpostsdel` (
   `time` int(11) NOT NULL default '0',
   `edit` int(11) NOT NULL default '0',
   `msg` text NOT NULL,
+  `parse_bbcode` enum('y','n') NOT NULL default 'y',
   PRIMARY KEY  (`id`),
   KEY `threadid` (`threadid`),
   KEY `time` (`time`),
@@ -1169,10 +1182,12 @@ CREATE TABLE `admin` (
   `listinvoices` enum('n','y') NOT NULL default 'n',
   `viewinvoice` enum('n','y') NOT NULL default 'n',
   `editinvoice` enum('n','y') NOT NULL default 'n',
+  `superviseinvoice` enum('n','y') NOT NULL default 'n',
   `contests` enum('n','y') NOT NULL default 'n',
   `staticpages` enum('n','y') NOT NULL default 'n',
   `wiki` enum('n','y') NOT NULL default 'n',
   `editskins` enum('n','y') NOT NULL default 'n',
+  `viewfriendblogs` enum('n','y') NOT NULL default 'n',
   PRIMARY KEY  (`id`),
   UNIQUE KEY `userid` (`userid`)
 ) TYPE=MyISAM
@@ -1272,8 +1287,8 @@ CREATE TABLE `modvoteslog` (
   `description` varchar(255) NOT NULL default '',
   `points` tinyint(3) unsigned NOT NULL default '0',
   KEY `modid` (`modid`),
-  KEY `picid` (`picid`),
-  KEY `time` (`time`)
+  KEY `time` (`time`),
+  KEY `picid` (`userid`,`picid`)
 ) TYPE=MyISAM
 
 --------------------------------------------------------
@@ -1532,6 +1547,28 @@ CREATE TABLE `users` (
 
 --------------------------------------------------------
 
+-- shopdb.basketcontents
+CREATE TABLE `basketcontents` (
+  `basketid` int(10) unsigned NOT NULL default '0',
+  `type` int(10) unsigned NOT NULL default '0',
+  `subtype` int(11) NOT NULL default '0',
+  `quantity` int(10) unsigned NOT NULL default '0',
+  PRIMARY KEY  (`basketid`,`type`,`subtype`)
+) TYPE=InnoDB
+
+--------------------------------------------------------
+
+-- shopdb.baskets
+CREATE TABLE `baskets` (
+  `id` int(10) unsigned NOT NULL auto_increment,
+  `uid` int(10) unsigned NOT NULL default '0',
+  `completed` enum('n','y') NOT NULL default 'n',
+  `modification` int(10) unsigned NOT NULL default '0',
+  PRIMARY KEY  (`id`)
+) TYPE=InnoDB
+
+--------------------------------------------------------
+
 -- shopdb.billingpeople
 CREATE TABLE `billingpeople` (
   `id` int(10) unsigned NOT NULL auto_increment,
@@ -1571,7 +1608,7 @@ CREATE TABLE `invoice` (
   `userid` int(10) unsigned NOT NULL default '0',
   `creationdate` int(11) NOT NULL default '0',
   `total` decimal(6,2) unsigned NOT NULL default '0.00',
-  `paymentmethod` enum('cash','cheque','paypal','moneyorder','debit','emailmoneytransfer','payg','visa','mc') NOT NULL default 'cash',
+  `paymentmethod` enum('cash','cheque','paypal','moneyorder','debit','emailmoneytransfer','payg','visa','mc','bp') NOT NULL default 'cash',
   `paymentcontact` varchar(32) NOT NULL default '',
   `paymentdate` int(11) NOT NULL default '0',
   `amountpaid` decimal(6,2) unsigned NOT NULL default '0.00',
@@ -1672,6 +1709,26 @@ CREATE TABLE `paygstores` (
   `address` text NOT NULL,
   PRIMARY KEY  (`id`)
 ) TYPE=MyISAM
+
+--------------------------------------------------------
+
+-- shopdb.payments
+CREATE TABLE `payments` (
+  `id` int(10) unsigned NOT NULL auto_increment,
+  `uid` int(10) unsigned NOT NULL default '0',
+  `basketid` int(10) unsigned NOT NULL default '0',
+  `amountPending` float NOT NULL default '0',
+  `amountApproved` float NOT NULL default '0',
+  `class` text NOT NULL,
+  `completed` enum('n','y') NOT NULL default 'n',
+  `modification` int(10) unsigned NOT NULL default '0',
+  `creationTime` int(10) unsigned NOT NULL default '0',
+  `completionTime` int(10) unsigned NOT NULL default '0',
+  `person` text NOT NULL,
+  `company` text NOT NULL,
+  `transaction` text NOT NULL,
+  PRIMARY KEY  (`id`)
+) TYPE=InnoDB
 
 --------------------------------------------------------
 
@@ -2033,8 +2090,7 @@ CREATE TABLE `pics` (
   `age` tinyint(3) unsigned NOT NULL default '0',
   `sex` enum('Male','Female') NOT NULL default 'Male',
   `signpic` enum('n','y') NOT NULL default 'n',
-  PRIMARY KEY  (`userid`,`id`),
-  UNIQUE KEY `sexage` (`sex`,`age`,`id`)
+  PRIMARY KEY  (`userid`,`id`)
 ) TYPE=MyISAM
 
 --------------------------------------------------------

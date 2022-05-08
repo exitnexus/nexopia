@@ -28,9 +28,9 @@ tables:
 		if(!$uid)
 			$uid = $userData['userid'];
 
-		$id = $this->db->getSeqID($uid, DB_AREA_MESSAGE_FOLDER);
+		$id = $this->db->getSeqID($uid, DB_AREA_MESSAGE_FOLDER, 4); //start after MSG_TRASH
 
-		$this->db->prepare_query("INSERT INTO msgfolder SET userid = %, id = #, name = ?", $uid, $id, $name);
+		$this->db->prepare_query("INSERT INTO msgfolder SET userid = %, id = ?, name = ?", $uid, $id, $name);
 
 		$cache->remove("msgfolders-$uid");
 
@@ -51,7 +51,7 @@ tables:
 
 		$this->moveMsg($msgids, MSG_TRASH, $uid);
 
-		$this->db->prepare_query("DELETE FROM msgfolder WHERE userid = % && id IN (#)", $uid, $id);
+		$this->db->prepare_query("DELETE FROM msgfolder WHERE userid = % && id IN (?)", $uid, $id);
 
 		$cache->remove("msgfolders-$uid");
 
@@ -64,7 +64,7 @@ tables:
 		if(!$uid)
 			$uid = $userData['userid'];
 
-		$this->db->prepare_query("UPDATE msgfolder SET name = ? WHERE userid = % && id = #", $name, $uid, $id);
+		$this->db->prepare_query("UPDATE msgfolder SET name = ? WHERE userid = % && id = ?", $name, $uid, $id);
 
 		$cache->remove("msgfolders-$uid");
 
@@ -130,7 +130,7 @@ tables:
 			return;
 
 		if($moveto >= 4){
-			$res = $this->db->prepare_query("SELECT id FROM msgfolder WHERE id = # && userid = %", $moveto, $uid);
+			$res = $this->db->prepare_query("SELECT id FROM msgfolder WHERE id = ? && userid = %", $moveto, $uid);
 			if(!$res->fetchrow()){
 				$msgs->addMsg("Folder doesn't exist");
 				return;
@@ -138,7 +138,7 @@ tables:
 		}
 
 		if($moveto == MSG_TRASH){
-			$this->db->prepare_query("UPDATE msgs SET status = 'read' WHERE userid = % && `to` = # && status = 'new' && id IN (#)", $uid, $uid, $checkID);
+			$this->db->prepare_query("UPDATE msgs SET status = 'read' WHERE userid = % && `to` = # && status = 'new' && id IN (?)", $uid, $uid, $checkID);
 
 			$num = $this->db->affectedrows();
 
@@ -153,7 +153,7 @@ tables:
 			}
 		}
 
-		$this->db->prepare_query("UPDATE msgs SET folder = # WHERE userid = % && id IN (#)", $moveto, $uid, $checkID);
+		$this->db->prepare_query("UPDATE msgs SET folder = # WHERE userid = % && id IN (?)", $moveto, $uid, $checkID);
 
 		$msgs->addMsg("Message(s) Moved");
 		return;
@@ -168,7 +168,7 @@ tables:
 		if(!$uid)
 			$uid = $userData['userid'];
 
-		$this->db->prepare_query("UPDATE msgs SET mark = 'y' WHERE userid = % && id IN (#)", $uid, $checkID);
+		$this->db->prepare_query("UPDATE msgs SET mark = 'y' WHERE userid = % && id IN (?)", $uid, $checkID);
 
 		$msgs->addMsg("Message Marked");
 		return;
@@ -183,7 +183,7 @@ tables:
 		if(!$uid)
 			$uid = $userData['userid'];
 
-		$this->db->prepare_query("UPDATE msgs SET mark = 'n' WHERE userid = % && id IN (#)", $uid, $checkID);
+		$this->db->prepare_query("UPDATE msgs SET mark = 'n' WHERE userid = % && id IN (?)", $uid, $checkID);
 
 		$msgs->addMsg("Message UnMarked");
 		return;
@@ -223,7 +223,7 @@ tables:
 		$missingids = array_diff($ids, array_keys($msgs));
 
 		if(count($missingids)){
-			$res = $this->db->prepare_query("SELECT * FROM msgs WHERE userid = % && id IN (#)", $uid, $missingids);
+			$res = $this->db->prepare_query("SELECT * FROM msgs WHERE userid = % && id IN (?)", $uid, $missingids);
 
 			while($line = $res->fetchrow()){
 				$msgs[$line['id']] = $line;
@@ -240,7 +240,7 @@ tables:
 		$missingids = array_diff($ids, array_keys($msgtexts));
 
 		if(count($missingids)){
-			$res = $this->db->prepare_query("SELECT id, msg, html, parse_bbcode FROM msgtext WHERE userid = % && id IN (#)", $uid, $missingids);
+			$res = $this->db->prepare_query("SELECT id, msg, html, parse_bbcode FROM msgtext WHERE userid = % && id IN (?)", $uid, $missingids);
 
 			while($line = $res->fetchrow()){
 				$msgtexts[$line['id']] = $line;
@@ -312,7 +312,7 @@ tables:
 		$otherreply = 0;
 
 		if($replyto){
-			$res = $this->db->prepare_query("SELECT othermsgid FROM msgs WHERE userid = % && id = #", $fromid, $replyto);
+			$res = $this->db->prepare_query("SELECT othermsgid FROM msgs WHERE userid = % && id = ?", $fromid, $replyto);
 			$otherreply = $res->fetchrow();
 
 			if($otherreply)
@@ -326,17 +326,17 @@ tables:
 			$firstmsgid = $this->db->getSeqID($toid, DB_AREA_MESSAGE);
 			$secondmsgid = ($fromid ? $this->db->getSeqID($fromid, DB_AREA_MESSAGE) : 0);
 
-			$this->db->prepare_query("INSERT INTO msgs SET userid = %, id = #, folder = #, otheruserid = #, `to` = #, toname = ?, `from` = #, fromname = ?, date = #, status = 'new', subject = ?, replyto = #, othermsgid = #",
+			$this->db->prepare_query("INSERT INTO msgs SET userid = %, id = ?, folder = #, otheruserid = #, `to` = #, toname = ?, `from` = #, fromname = ?, date = #, status = 'new', subject = ?, replyto = #, othermsgid = #",
 								$toid, $firstmsgid, MSG_INBOX, $fromid, $toid, $user['username'], $fromid, $fromname, $time, $nsubject, $otherreply, $secondmsgid);
 
-			$this->db->prepare_query("INSERT INTO msgtext SET userid = %, id = #, msg = ?, date = #, html = ?, parse_bbcode = ?", $to, $firstmsgid, $nmsg, $time, $html, $parse_bbcode);
+			$this->db->prepare_query("INSERT INTO msgtext SET userid = %, id = ?, msg = ?, date = #, html = ?, parse_bbcode = ?", $toid, $firstmsgid, $nmsg, $time, $html, $parse_bbcode);
 			$cache->put("msgtext-$toid-$firstmsgid", $msgtext, 86400);
 
 			if($fromid){
-				$this->db->prepare_query("INSERT INTO msgs SET userid = %, id = #, folder = #, otheruserid = #, `to` = #, toname = ?, `from` = #, fromname = ?, date = #, status = 'new', subject = ?, replyto = #, othermsgid = #",
+				$this->db->prepare_query("INSERT INTO msgs SET userid = %, id = ?, folder = #, otheruserid = #, `to` = #, toname = ?, `from` = #, fromname = ?, date = #, status = 'new', subject = ?, replyto = #, othermsgid = #",
 									$fromid, $secondmsgid, MSG_SENT, $toid, $toid, $user['username'], $fromid, $fromname, $time, $nsubject, $replyto, $firstmsgid);
 
-				$this->db->prepare_query("INSERT INTO msgtext SET userid = %, id = #, msg = ?, date = #, html = ?, parse_bbcode = ?", $fromid, $secondmsgid, $nmsg, $time, $html, $parse_bbcode);
+				$this->db->prepare_query("INSERT INTO msgtext SET userid = %, id = ?, msg = ?, date = #, html = ?, parse_bbcode = ?", $fromid, $secondmsgid, $nmsg, $time, $html, $parse_bbcode);
 				$cache->put("msgtext-$fromid-$secondmsgid", $msgtext, 86400);
 			}
 
@@ -347,7 +347,7 @@ tables:
 		}
 
 		if($otherreply)
-			$this->db->prepare_query("UPDATE msgs SET status='replied' WHERE (userid = % && id = #) || (userid = % && id = #)", $toid, $otherreply, $fromid, $replyto);
+			$this->db->prepare_query("UPDATE msgs SET status='replied' WHERE (userid = % && id = ?) || (userid = % && id = ?)", $toid, $otherreply, $fromid, $replyto);
 
 		$this->db->prepare_query("UPDATE users SET newmsgs = newmsgs+1 WHERE userid IN (%)", array_keys($tousers));
 

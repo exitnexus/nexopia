@@ -526,6 +526,9 @@ class memcached {
 		$val = array();
 
 		foreach($this->_servers as $server) {
+			if(is_array($server))
+				$server = $server[0];
+
 			$sock = $this->sock_to_host($server);
 
 			if (!is_resource($sock)){
@@ -1002,6 +1005,9 @@ class memcached {
 	 * @access  private
 	 */
 	function sock_to_host($host){
+		if(is_array($host))
+			$host = $host[0];
+	
 		if (isset($this->_cache_sock[$host]))
 			return $this->_cache_sock[$host];
 

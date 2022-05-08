@@ -203,7 +203,7 @@ function parseHTML($str){
 
 	$pos = 0;
 	$match = array();
-	while ( preg_match("/\G.*?\[code\](.*?)\[\/code\]/", $str, $match, PREG_OFFSET_CAPTURE, $pos) ) {
+	while ( preg_match("/\G.*?\[code\](.*?)\[\/code\]/s", $str, $match, PREG_OFFSET_CAPTURE, $pos) ) {
 		$insideText = $match[1];
 		$insideText = str_replace("[", "&#91;", $insideText);
 		$str = substr_replace($str, $insideText, $match[1][1], strlen($match[1][0]));
@@ -233,7 +233,7 @@ function parseHTML($str){
 	$str = preg_replace("/(?Uis)\[sup\](.*)\[\/sup\]/",			"<sup>\\1</sup>",		$str);
 	$str = preg_replace("/(?Uis)\[sub\](.*)\[\/sub\]/",			"<sub>\\1</sub>",		$str);
 //	$str = preg_replace("/(?Uis)\[code\](.*)\[\/code\]/",		"<pre>\\1</pre>",		$str);
-	$str = preg_replace("/(?Uis)\[\/?code\]/", "", $str);
+//	$str = preg_replace("/(?Uis)\[\/?code\]/", "", $str);
 	$str = preg_replace("/(?Uis)\[strike\](.*)\[\/strike\]/",	"<strike>\\1</strike>",	$str);
 	$str = preg_replace("/(?Uis)\[center\](.*)\[\/center\]/",	"<center>\\1</center>",	$str);
 	$str = preg_replace("/(?Uis)\[left\](.*)\[\/left\]/",		"<div style=\"text-align:left\">\\1</div>",		$str);

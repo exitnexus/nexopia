@@ -393,17 +393,16 @@ function modpolls($polls, $votes)
 				$row['lenientOrStrict'] = 'neither';
 
 			$row['picsmodded'] = $row['right'] + $row['wrong'];
-			$row['errrate'] = $row['picsmodded'] > 0 ? $row['wrong'] * 100 / $row['picsmodded'] : 0;
+			$row['errrate'] = $row['picsmodded'] ? $row['wrong'] * 100 / $row['picsmodded'] : 0;
 
 			$modstats['lifetime'] = $modstats['monthly'] = $modstats['weekly'] = $row;
 		}
 
 		// create weekly stats by subtracting the totals as they were at the beginning of the current week.
 		// the week used is monday-sunday, not sunday-saturday
-
 		// worst date handling ever. this grabs the GMT epoch time for midnight of this week's monday
-		$time = time();
-		$time -= date('Z', $time);
+
+		$time = gmdate('U');
 		$date = getdate($time);
 		$wday = $date['wday'] == 0 ? 7 : $date['wday'];
 		$startdate = getdate($time - (60 * 60 * 24 * abs(1 - $wday)));
@@ -416,7 +415,7 @@ function modpolls($polls, $votes)
 			$modstats['weekly']['strict'] -= $row['strict'];
 			$modstats['weekly']['lenient'] -= $row['lenient'];
 			$modstats['weekly']['picsmodded'] -= $row['right'] + $row['wrong'];
-			$modstats['weekly']['errrate'] = (($modstats['weekly']['wrong'] - $row['wrong']) * 100) / ( ($modstats['weekly']['right'] - $row['right']) + ($modstats['weekly']['wrong'] - $row['wrong']) );
+			$modstats['weekly']['errrate'] = $modstats['weekly']['picsmodded'] ? ( ($modstats['weekly']['wrong'] * 100) / $modstats['weekly']['picsmodded'] ) : 0;
 
 			if ($modstats['weekly']['errrate'] <= $config['picmodpluserrrate'] && $modstats['weekly']['picsmodded'] >= $config['picmodpluspicrate'])
 				$modstats['weekly']['earnedplus'] = true;
@@ -436,11 +435,7 @@ function modpolls($polls, $votes)
 			$modstats['monthly']['strict'] -= $row['strict'];
 			$modstats['monthly']['lenient'] -= $row['lenient'];
 			$modstats['monthly']['picsmodded'] -= $row['right'] + $row['wrong'];
-			$divby = ( ($modstats['monthly']['right'] - $row['right']) + ($modstats['monthly']['wrong'] - $row['wrong']) );
-			if ($divby)
-				$modstats['monthly']['errrate'] = (($modstats['monthly']['wrong'] - $row['wrong']) * 100) / $divby;
-			else
-				$modstats['monthly']['errrate'] = 0;
+			$modstats['monthly']['errrate'] = $modstats['monthly']['picsmodded'] ? ( ($modstats['monthly']['wrong'] * 100) / $modstats['monthly']['picsmodded'] ) : 0;
 		}
 
 		foreach ($modstats as &$stats) {
@@ -576,6 +571,8 @@ function modpolls($polls, $votes)
 
 		if($lvl === false)
 			return;
+
+		set_time_limit(0);
 
 //		$this->db->query("LOCK TABLES modvotes WRITE, moditems WRITE, mods WRITE");
 		$this->db->begin();
@@ -763,9 +760,10 @@ function modpolls($polls, $votes)
 
 		$time = time();
 
+		$allpics = array_merge($pics['y'], $pics['n'], array_keys($votes));
 		$keys = array('userid' => '%', 'id' => '#');
 		$res = $usersdb->prepare_query("SELECT id, userid, description, md5 FROM picspending WHERE ^",
-			$usersdb->prepare_multikey($keys, array_merge($pics['y'], $pics['n'])));
+			$usersdb->prepare_multikey($keys, $allpics));
 
 		$userids = array();
 		$picids = array();
@@ -778,6 +776,15 @@ function modpolls($polls, $votes)
 			$md5s[$id] = $line['md5'];
 			$descriptions[$id] = $line['description'];
 		}
+		$missing = array_diff($allpics, array_keys($picids));
+		foreach ($missing as $missingid)
+		{
+			if (isset($pics['y'][$missingid]))
+				unset($pics['y'][$missingid]);
+			if (isset($pics['n'][$missingid]))
+				unset($pics['n'][$missingid]);
+			unset($votes[$missingid]);
+		}
 
 		if($type == MOD_PICS){
 		//log the votes
@@ -788,46 +795,49 @@ function modpolls($polls, $votes)
 					$lvl = $this->getModLvl($modid, MOD_PICS);
 					if ($lvl === false)
 						$lvl = 0;
+
 					$querytail[] = $moddb->prepare("(#,#,#,?,#,?,#)", $modid, $picids[$picid], $userids[$picid], $vote, $time, $descriptions[$picid], $lvl);
-
-					$moddb->query("INSERT INTO modvoteslog (modid, picid, userid, vote, time, description, points) VALUES " . implode(",", $querytail));
-
-					//add pics that didn't get a unanimous vote either way
-					$questionables = array();
-
-					foreach($votes as $picid => $uservotes){
-						$questionable = false;
-						foreach($uservotes as $userid => $vote){
-							if(!$questionable)
-								$questionable = $vote;
-							elseif($questionable != $vote){
-								list($picuid, $picitem) = explode(':', $picid);
-								if (!isset($questionables[$picuid]))
-									$questionables[$picuid] = array();
-								$questionables[$picuid][] = $picitem;
-								break;
-							}
-						}
-					}
-
-					if(count($questionables)){
-						$this->newSplitItem(MOD_QUESTIONABLEPICS, $questionables);
-
-						foreach($questionables as $uid => $ids){
-							foreach ($ids as $id)
-							{
-								$id = "$uid:$id";
-								if(isset($pics['y'][$id]))	unset($pics['y'][$id]);
-								if(isset($pics['n'][$id]))	unset($pics['n'][$id]);
-									unset($votes[$id]);
-							}
-						}
-					}
-
-					if(count($pics['y']) == 0 && count($pics['n']) == 0)
-						return;
 				}
 			}
+
+			$moddb->query("INSERT INTO modvoteslog (modid, picid, userid, vote, time, description, points) VALUES " . implode(",", $querytail));
+
+		//add pics that didn't get a unanimous vote either way
+			$questionables = array();
+
+			foreach($votes as $picid => $uservotes){
+				$questionable = false;
+				foreach($uservotes as $userid => $vote){
+					if(!$questionable){
+						$questionable = $vote;
+					}elseif($questionable != $vote){
+						list($picuid, $picitem) = explode(':', $picid);
+						if (!isset($questionables[$picuid]))
+							$questionables[$picuid] = array();
+						$questionables[$picuid][] = $picitem;
+						break;
+					}
+				}
+			}
+
+		//if there are questionables, add them to the queue and remove them from this section
+			if(count($questionables)){
+				$this->newSplitItem(MOD_QUESTIONABLEPICS, $questionables);
+
+				foreach($questionables as $uid => $ids){
+					foreach ($ids as $id){
+						$id = "$uid:$id";
+						if(isset($pics['y'][$id]))
+							unset($pics['y'][$id]);
+						if(isset($pics['n'][$id]))
+							unset($pics['n'][$id]);
+						unset($votes[$id]);
+					}
+				}
+			}
+
+			if(count($pics['y']) == 0 && count($pics['n']) == 0)
+				return;
 		}
 
 		// $votes	[ itemid ]	[ modid ]	=	y/n
@@ -836,29 +846,27 @@ function modpolls($polls, $votes)
 		// votes for questionable queue are in. go back and fix the original pic mod's stats to reflect
 		// the voting decision attained by the quesitonable queue mods
 		elseif ($type == MOD_QUESTIONABLEPICS) {
-			// fetch each vote cast for the pics in question (from original AND questionable queues)
-			$sth = $moddb->prepare_query('SELECT picid, userid, modid, vote, points FROM modvoteslog WHERE picid IN (#)', array_keys($votes));
+			// fetch each vote cast for the pics in question (from original picmod queue)
+			$logkeys = array('userid' => '#', 'picid' => '#');
+			$sth = $moddb->prepare_query('SELECT picid, userid, modid, vote, points FROM modvoteslog WHERE ^',
+				$moddb->prepare_multikey($logkeys, array_keys($votes)));
 			$rows = $sth->fetchrowset();
 
 			// need a point count of original picmods' votes
 			$origvotes = array();
-			foreach ($rows as $index => $row) {
-				$picid = "$row[userid]:$row[picid]";
-				// vote was cast in questionable queue. don't need it
-				if (isset($votes[ $picid ][ $row['modid'] ])) {
-					unset($rows[$index]);
-					continue;
-				}
+			foreach ($rows as $row) {
+				$picid = "{$row['userid']}:{$row['picid']}";
 
-				// vote was cast in original picmod queue
-				if (! isset($origvotes[ $picid ][ $row['vote'] ]))
-					$origvotes[ $picid ][ $row['vote'] ] = 0;
+				if (! isset($origvotes[ $picid ]))
+					$origvotes[ $picid ] = array('y' => 0, 'n' => 0);
 				$origvotes[ $picid ][ $row['vote'] ] += $row['points'];
 			}
 
 			// loop through the original picmod votes, and calculate the stats diffs
 			$modpoints = array();
 			foreach ($rows as $row) {
+				$picid = "{$row['userid']}:{$row['picid']}";
+
 				if (! isset($modpoints[ $row['modid'] ]))
 					$modpoints[ $row['modid'] ] = array(
 						'right' => 0, 'wrong' => 0, 'strict' => 0, 'lenient' => 0
@@ -899,8 +907,10 @@ function modpolls($polls, $votes)
 				}
 			}
 
-			foreach ($modpoints as $modid => $points)
-				$this->db->prepare_query("UPDATE mods SET `right` = `right` + #, wrong = wrong + #, strict = strict + #, lenient = lenient + #, time = # WHERE userid = # && type = #", $points['right'], $points['wrong'], $points['strict'], $points['lenient'], time(), $modid, MOD_PICS);
+			foreach ($modpoints as $modid => $points) {
+				if ($points['right'] != 0 || $points['wrong'] != 0 || $points['strict'] != 0 || $points['lenient'] != 0)
+					$this->db->prepare_query("UPDATE mods SET `right` = `right` + #, wrong = wrong + #, strict = strict + #, lenient = lenient + #, time = # WHERE userid = # && type = #", $points['right'], $points['wrong'], $points['strict'], $points['lenient'], time(), $modid, MOD_PICS);
+			}
 		}
 
 //pics that were denied
@@ -963,11 +973,11 @@ function modpolls($polls, $votes)
 			while($line = $res->fetchrow())
 				$numpics[$line['userid']] = $line['count'];
 
-			$usersdb->prepare_query("INSERT IGNORE INTO pics (id, userid, description) SELECT id, userid, description FROM picspending WHERE ^",
+			$usersdb->prepare_query("INSERT INTO pics (id, userid, description) SELECT id, userid, description FROM picspending WHERE ^",
 				$usersdb->prepare_multikey($keys, $pics['y']));
 
 			$pendingkeys = array('picspending.userid' => '%', 'picspending.id' => '#');
-			$res = $usersdb->prepare_query("SELECT picbans.md5, picbans.userid FROM picbans,picspending WHERE ^ && picbans.userid=picspending.userid && picbans.md5=picspending.md5",
+			$res = $usersdb->prepare_query("SELECT picbans.md5, picbans.userid FROM picbans,picspending WHERE ^ && picbans.md5=picspending.md5 && picbans.userid=picspending.userid",
 				$usersdb->prepare_multikey($pendingkeys, $pics['y']));
 
 			$unbans = array();

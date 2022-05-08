@@ -7,6 +7,7 @@
 
 	$skins["azureframes"]=		array(	'name' => "Azure Frames",		'plus' => false);
 	$skins['azure'] = 			array(	'name' => "Azure",				'plus' => true);
+	$skins["newsite"] = 		array(	'name' => "New Site",			'plus' => false);
 	$skins["orangeframes"]=		array(	'name' => "Tangerine Frames",	'plus' => false);
 	$skins["orange"] = 			array(	'name' => "Tangerine",			'plus' => true);
 	$skins["solarframes"] = 	array(	'name' => "Solar Flare Frames",	'plus' => false);

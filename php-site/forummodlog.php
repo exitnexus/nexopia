@@ -85,6 +85,10 @@
 	}
 
 	$userNames = getUserName($userids);
+	$missingids = array_diff($userids, array_keys($userNames));
+	foreach ($missingids as $id) {
+		$userNames[$id] = "";
+	}
 	
 	$threadnames = array();
 	$threadDeleted = array();

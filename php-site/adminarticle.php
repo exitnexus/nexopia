@@ -39,7 +39,7 @@
 		case "Update":
 		case "Preview":
 			update($id,$category,$title,$msg,$action);
-			$cache->remove("article-$id"));
+			$cache->remove("article-$id");
 			break;
 	}
 

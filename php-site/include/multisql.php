@@ -112,8 +112,8 @@ class multiple_sql_db extends sql_base { //equiv to raid 1
 		return $this->insertdb->rollback();
 	}
 
-    function getSeqID($id, $area){
-  	    return $this->insertdb->getSeqID($id, $area);
+	function getSeqID($id, $area, $start = false){
+		return $this->insertdb->getSeqID($id, $area, $start);
 	}
 
 	function listtables(){
@@ -347,7 +347,7 @@ side effects:
 			trigger_error("Missing key for query: $query", E_USER_ERROR);
 
 		if($keys === false || $keys === null){ //do for all
-			if(strtoupper(substr($query,0,6)) == "INSERT") //allow update, delete, analyze, optomize, alter table, etc, but not single row changing ops
+			if(strtoupper(substr($query,0,6)) == "INSERT" && !strpos($query, "SELECT")) //allow select, insert ... select, update, delete, analyze, optomize, alter table, etc, but not single row changing ops
 				$this->debugerror("Cannot INSERT to all dbs", ": $query", true);
 
 			$ids = array_keys($this->dbs);
@@ -399,13 +399,13 @@ side effects:
 		}while($this->affectedrows() >= $limit);
 	}
 
-	function getSeqID($id, $area){
+	function getSeqID($id, $area, $start = false){
 
 		$idfunc = $this->splitfunc;
 		$serverids = $idfunc($this, array($id), true);
 
 		if ($serverids)
-			return $this->dbs[array_shift($serverids)]->getSeqID($id, $area);
+			return $this->dbs[array_shift($serverids)]->getSeqID($id, $area, $start);
 		else
 			return false;
 	}

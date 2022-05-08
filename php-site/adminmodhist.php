@@ -37,7 +37,7 @@
 	$day = gmdate("j", $startdate);
 	$year = gmdate("Y", $startdate);
 
-	$res = $mods->db->prepare_query("SELECT userid, `right`+`wrong` as total, `right`, `wrong`, strict, lenient, level, IF(`right`+`wrong`=0,0,100.0*`wrong`/(`right` + `wrong`)) as percent, '1' as new FROM mods WHERE type = #", $type);
+	$res = $mods->db->prepare_query("SELECT userid, `right`+`wrong` as total, `right`, `wrong`, strict, lenient, level, IF(`right`+`wrong`=0,0,100.0*`wrong`/(`right` + `wrong`)) as percent, '1' as new, time, creationtime FROM mods WHERE type = #", $type);
 
 	$rows = array();
 	while($line = $res->fetchrow())
@@ -45,7 +45,7 @@
 
 	$usernames = getUserName(array_keys($rows));
 
-	$res = $mods->db->prepare_query("SELECT userid, `right`+`wrong` as total, `right`, `wrong`, strict, lenient, level, IF(`right`+`wrong`=0,0,100.0*`wrong`/(`right` + `wrong`)) as percent FROM modhist WHERE type = # && dumptime BETWEEN # AND #", $type, $startdate, $startdate + 86399);
+	$res = $mods->db->prepare_query("SELECT userid, `right`+`wrong` as total, `right`, `wrong`, strict, lenient, level, IF(`right`+`wrong`=0,0,100.0*`wrong`/(`right` + `wrong`)) as percent, time, creationtime FROM modhist WHERE type = # && dumptime BETWEEN # AND #", $type, $startdate, $startdate + 86399);
 
 	while($line = $res->fetchrow()){
 		if(!isset($rows[$line['userid']]))

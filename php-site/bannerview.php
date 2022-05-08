@@ -10,6 +10,8 @@
 	
 	$js = getREQval('js', 'bool');
 	
+	$debug = getREQval('debug', 'int', 0);
+	
 	$str = "";
 
 	if(!$passback || !$js){ //javascript passbacks already have this, don't add it a second time.
@@ -17,8 +19,8 @@
 		$str .= "<table cellspacing=0 cellpadding=0 width=100% height=100%><tr><td align=right valign=top>";
 	}
 
-	$str .= $banner->getbanner($type, true, $passback);
-
+	$str .= $banner->getbanner($type, true, $passback, $debug);
+	
 	if(!$passback || !$js){
 		$str .= "</td></tr></table>";
 		$str .= "</body></html>";

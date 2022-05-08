@@ -48,7 +48,7 @@
 			$abuselog->addAbuse($uid, $abuseaction, $reason, $subject, $msg);
 
 			$abuseaction = $reason = 0;
-			$uid = "";
+//			$uid = "";
 			break;
 
 		case "Preview":

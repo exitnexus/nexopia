@@ -901,7 +901,7 @@ function unignore($id){
 }
 
 function archive($checkID){
-	global $messaging, $uid, $userData, $config, $emaildomain, $msgs;
+	global $messaging, $uid, $userData, $config, $emaildomain, $msgs, $useraccounts;
 
 	if(empty($checkID)){
 		$msgs->addMsg("You must check the messages you would like archived. They will be emailed to you");

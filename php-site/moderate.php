@@ -219,7 +219,7 @@ function displaySignPics(){
 		$picdir[$i] = floor($line['userid']/1000) . "/" . weirdmap($line['userid']);
 
 		$nextJump[$i] = $i+1;
-		$waitTime[$i] = number_format(($time - $line['time'])/3600, 2);
+		$waitTime[$i] = '';//number_format(($time - $line['time'])/3600, 2);
 		$i++;
 	}
 	$template->set('picdir', $picdir);
@@ -274,7 +274,7 @@ function displayGallery(){
 	$time = time();
 	$i=1;
 	foreach($rows as $line){
-		$picdir[$i] = $line['userid'];//floor($line['id']/1000);
+		$picdir[$i] = floor($line['userid']/1000) . '/' . $line['userid'];//floor($line['id']/1000);
 
 		$nextJump[$i] = $i+1;
 		$i++;
@@ -306,7 +306,7 @@ function displayGalleryAbuse(){
 
 	while($line = $res->fetchrow()){
 		$line['abuseid'] = "$line[userid]:$line[id]";
-		$rows[] = $line;
+		$rows["$line[userid]:$line[id]"] = $line;
 		$uids[$line['userid']] = $line['userid'];
 		unset($ids["$line[userid]:$line[id]"]);
 	}
@@ -317,7 +317,9 @@ function displayGalleryAbuse(){
 	if(!count($rows))
 		return;
 
-	$res = $db->prepare_query("SELECT itemid, userid, reason, time FROM abuse WHERE type = # && itemid IN (#)", MOD_GALLERYABUSE, array_keys($rows));
+	$abusekeys = array('userid' => '#', 'itemid' => '#');
+	$res = $db->prepare_query("SELECT itemid, userid, reason, time FROM abuse WHERE type = # && ^", MOD_GALLERYABUSE,
+		$db->prepare_multikey($abusekeys, array_keys($rows)));
 
 	$abuses = array();
 	while($line = $res->fetchrow()){
@@ -334,10 +336,11 @@ function displayGalleryAbuse(){
 	$template->set('picloc', $picloc);
 	$template->set('users', $users);
 	$template->set('rows', $rows);
+	$template->set('abuses', $abuses);
 	$i=0;
 	$nextJump = array();
 	foreach($rows as $line){
-		$picdir[$i] = floor($line['id']/1000);
+		$picdir[$i] = floor($line['userid']/1000) . '/' . $line['userid'];
 		$nextJump[$i] = $i + 1;
 		$i++;
 	}
@@ -516,7 +519,7 @@ function displayForumRanks(){
 
 	$i=0;
 	foreach($rows as $line){
-		$nextJump[$i] = ++$i;
+		$nextJump[$i++] = $i;
 	}
 
 	$template->set('nextJump', $nextJump);

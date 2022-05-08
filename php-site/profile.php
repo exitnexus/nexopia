@@ -298,10 +298,16 @@ function userSearchQuery (
 		$requestParams['userName'] = false;
 	}
 
-	// if sex is set to both, we can also remove that parameter (since this means its not a factor in the search)
-	if ($requestParams['sex'] == "Both")
+	if (strtolower($requestParams['sex']) == "both") 
+		// if sex is set to both, we can also remove that parameter (since this means its not a factor in the search)
 		$requestParams['sex'] = false;
-
+	elseif (strtolower($requestParams['sex']) == "male")
+		$requestParams['sex'] = "Male";
+	elseif (strtolower($requestParams['sex']) == "female")
+		$requestParams['sex'] = "Female";
+	else
+		$requestParams['sex'] = false;
+		
 	// set the result type based on if display list is checked or not, as well as setting how the search method is called
 	if ($requestParams['displayList'] === true) {
 		$resultType = "LIST";
@@ -380,6 +386,9 @@ function displayList (
 		$displayAgeSelect = false;
 		$menuOptions = false;
 	}
+
+	if($requestParams['displayList'])
+		$requestParams['displayList'] = 'y';
 
 	// re-set displayList to y and remove the page number parameter
 	$requestParams['displayList'] = 'y';
@@ -651,7 +660,8 @@ function displayUser($uid,$picid=0){ // either userid and picnum, or userid or p
 
 		if($pic){
 			$picnum = $pic['priority'];
-		}
+		}else
+			$picnum = 1;
 	} else
 		$picnum = 1;
 
@@ -691,7 +701,7 @@ function displayUser($uid,$picid=0){ // either userid and picnum, or userid or p
 			$anonymousValue = 0;
 
 // if the user has anonymousviews set to y, the view will be anonymous in all cases
-			if ($currentUserInfo['anonymousviews'] == "y") {
+			if ($currentUserInfo['anonymousviews'] == "y" && $currentUserInfo['plus']) {
 				$anonymousValue = 1;
 			}
 
@@ -708,7 +718,7 @@ function displayUser($uid,$picid=0){ // either userid and picnum, or userid or p
 			$usersdb->prepare_query("INSERT IGNORE INTO profileviews SET hits = 1, time = #, userid = %, viewuserid = #, anonymous = #", time(), $uid, $userData['userid'], $anonymousValue);
 			if($usersdb->affectedrows()){
 				$usersdb->prepare_query("UPDATE profile SET views = views + 1 WHERE userid = %", $uid);
-				$user['views'] = $cache->incr(array($uid, "profileviews-$uid"));
+				$user['views'] = $cache->incr("profileviews-$uid");
 			}else{
 				$usersdb->prepare_query("UPDATE profileviews SET hits = hits + 1, time = #, anonymous = # WHERE userid = % && viewuserid = #", time(), $anonymousValue, $uid, $userData['userid']);
 				$user['views'] = $cache->get("profileviews-$uid");
@@ -736,8 +746,11 @@ function displayUser($uid,$picid=0){ // either userid and picnum, or userid or p
 			$res = $usersdb->prepare_query("SELECT msn, icq, yahoo, aim, skin, showbday, showjointime, showactivetime, showprofileupdatetime, showpremium, profile, profileupdatetime, views, showlastblogentry FROM profile WHERE userid = %", $uid);
 			$user2 = $res->fetchrow();
 
-			$sthBlocks = $usersdb->prepare_query("SELECT blocktitle, blockcontent, blockorder, permission FROM profileblocks WHERE userid = %", $uid);
-			$profBlocks = $sthBlocks->fetchrowset();
+//			$sthBlocks = $usersdb->prepare_query("SELECT blocktitle, blockcontent, blockorder, permission FROM profileblocks WHERE userid = %", $uid);
+//			$profBlocks = $sthBlocks->fetchrowset();
+
+			$blocks = new profileBlocks($uid);
+			$profBlocks = $blocks->getBlocks();
 
 			foreach ($profBlocks as $index => $profBlock) {
 				$profBlocks[$index]['nBlocktitle'] = removeHTML(trim($profBlock['blocktitle']));
@@ -752,10 +765,11 @@ function displayUser($uid,$picid=0){ // either userid and picnum, or userid or p
 //			$user2['nlikes'] = nl2br(wrap(parseHTML(smilies($user2['likes']))));
 //			$user2['ndislikes'] = nl2br(wrap(parseHTML(smilies($user2['dislikes']))));
 
-			unset($user2['about'], $user2['likes'], $user2['dislikes'], $user['views']);
-
+			$user['views'] = $users2['views'];
+			unset($user2['about'], $user2['likes'], $user2['dislikes'], $user2['views']);
+			
 			$cache->put("profile-$uid", $user2, 86400*7);
-			$cache->put("profileviews-$uid", $user2['views'], 86400*7);
+			$cache->put("profileviews-$uid", $user['views'], 86400*7);
 		}else{
 			$res = $usersdb->prepare_query("SELECT views FROM profile WHERE userid = %", $uid);
 			$user['views'] = $res->fetchfield();
@@ -795,12 +809,13 @@ echo "<table border=0 width=100% align=center cellspacing=0 cellpadding=0>\n";
 
 	$width = 100.0/$cols;
 
-    if($sort['mode'] == "Search")
+/*    if($sort['mode'] == "Search")
     {
         echo "<tr><td colspan=2>";
         echo "<a href='".$_SERVER['PHP_SELF']."?".$_SERVER['QUERY_STRING']."'><center><b>Next Profile >></b></center></a>";
         echo "</td></tr>";
     }
+*/
 	echo "<tr>";
 	echo "<td class=body colspan=2>";
 	echo "<table width=100%>";
@@ -822,13 +837,10 @@ echo "<table border=0 width=100% align=center cellspacing=0 cellpadding=0>\n";
 	$ignoring = $ignored = $enablecomments = false;
 	$cols = 2;
 
-	$res = $usersdb->prepare_query("SELECT ignoreid FROM `ignore` WHERE userid = % AND ignoreid = #", $userData['userid'], $uid);
-	if ( ($row = $res->fetchrow()) !== false )
-		$ignoring = true;
-
-	$res = $usersdb->prepare_query("SELECT ignoreid FROM `ignore` WHERE userid = % AND ignoreid = #", $uid, $userData['userid']);
-	if ( ($row = $res->fetchrow()) !== false && ! $mods->isAdmin($userData['userid'], 'listusers'))
-		$ignored = true;
+	if($userData['loggedIn']){
+		$ignored = isIgnored($uid, $userData['userid'], false);
+		$ignoring = isIgnored($userData['userid'], $uid, false);
+	}
 
 	if (! $ignored)
 		$cols++;
@@ -1137,7 +1149,7 @@ echo 					"<td class=body valign=top>\n";
 	$userinterests = $cache->get("userinterests-$uid");
 
 	if($userinterests === false){
-		$res = $usersdb->prepare_query("SELECT interestid FROM userinterests WHERE userid = #", $uid);
+		$res = $usersdb->prepare_query("SELECT interestid FROM userinterests WHERE userid = %", $uid);
 
 		$userinterests = array();
 		while($line = $res->fetchrow())
@@ -1217,7 +1229,8 @@ echo 					"<td class=body valign=top>\n";
 	foreach ($user['profBlocks'] as $index => $profBlock) {
 		if (
 			strlen($profBlock['nBlockcontent']) && (
-				($profBlock['permission'] == 'anyone') ||
+				$mods->isAdmin($userData['userid'], 'editprofile') ||
+				$profBlock['permission'] == 'anyone' ||
 				($profBlock['permission'] == 'loggedin' && $userData['loggedIn']) ||
 				($profBlock['permission'] == 'friends' && ($userData['userid'] == $uid || isset($friends[$userData['userid']])))
 			)
@@ -1287,7 +1300,7 @@ echo 		"<td colspan=3 class=body>\n";
 
 		if($comments === false){
 			global $usercomments;
-			$res = $usercomments->db->prepare_query("SELECT authorid, time, nmsg FROM usercomments WHERE userid = % ORDER BY id DESC LIMIT 5", $uid);
+			$res = $usercomments->db->prepare_query("SELECT authorid, time, nmsg FROM usercomments WHERE userid = % ORDER BY time DESC LIMIT 5", $uid);
 
 			$comments = array();
 			$authorids = array();

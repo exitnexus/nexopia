@@ -56,6 +56,7 @@ function listSkins(){
 	$template = new template('profiles/manageprofileskins/listSkins');
 	$template->set('rows', $rows);
 
+	$key = array();
 	foreach($rows as $id => $name){
 		$key[$id] = makekey($id);
 	}

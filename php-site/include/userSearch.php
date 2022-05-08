@@ -115,6 +115,9 @@ class userSearch {
 		$resultType,			// I: type of result set to give back
 		$debug	= false			// I: true/false enable/disable debug
 	) {
+	
+	$debug = false;
+	
 		// pull in references to database and cache objects from the global scope
 		global $masterdb, $usersdb, $configdb, $db, $cache;
 		$this->masterdb = &$masterdb;
@@ -1446,8 +1449,8 @@ class userSearch {
 		if ($queryRange === true) {
 			foreach ($queryDbs as $dbid) {
 				$dbInstance = $this->usersdb->dbs[$dbid-1];
-				$databaseName = $dbInstance->selectdb->dbname;
 				if ($this->debug === true) {
+					$databaseName = $dbInstance->selectdb->dbname;
 					$startTime = microtime(true);
 					$results = $dbInstance->query($queryStrings[$dbid]);
 					$endTime = microtime(true);

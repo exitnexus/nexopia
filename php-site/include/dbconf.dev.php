@@ -95,22 +95,22 @@ $databases = array(
 
 	'polldb' => array(
 		'instance' => true,
-		'db' => 'nexopiapolls',
+		'db' => 'newpolls',
 		'inherit' => 'devdb',
 	),
 	'shopdb' => array(
 		'instance' => true,
-		'db' => 'nexopiashop',
+		'db' => 'newshop',
 		'inherit' => 'devdb',
 	),
 	'filesdb' => array(
 		'instance' => true,
-		'db' => 'nexopiafileupdates',
+		'db' => 'newfileupdates',
 		'inherit' => 'devdb',
 	),
 	'bannerdb' => array(
 		'instance' => true,
-		'db' => 'nexopiabanners',
+		'db' => 'newbanners',
 		'inherit' => 'devdb',
 		/*/
 		'instance' => true,
@@ -123,23 +123,23 @@ $databases = array(
 	),
 	'contestdb' => array(
 		'instance' => true,
-		'db' => 'nexopiacontest',
+		'db' => 'newcontest',
 		'inherit' => 'devdb',
 	),
 	'forumdb' => array(
 		'instance' => true,
-		'db' => 'nexopiaforum',
+		'db' => 'newforum',
 		'inherit' => 'devdb',
 //		'needkey' => DB_KEY_FORBIDDEN
 	),
 	'articlesdb' => array(
 		'instance' => true,
-		'db' => 'nexopiaarticles',
+		'db' => 'newarticles',
 		'inherit' => 'devdb',
 	),
 	'wikidb' => array(
 		'instance' => true,
-		'db' => 'nexopiawiki',
+		'db' => 'newwiki',
 		'inherit' => 'devdb',
 	),
 	'picmodexamdb' => array(

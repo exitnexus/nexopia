@@ -192,18 +192,16 @@ if(isset($tidyoutput) && $tidyoutput && extension_loaded('tidy'))
 	extract($dbs);
 timeline('dbs', true);
 
-//*
+
 include_once("include/memcached-client.php");
+//include_once("include/mcachewrapper.php");
+//include_once("include/peclmemcachewrapper.php");
+//include_once("include/peclmemcached-client.php");
+
 	$memcache = new memcached($memcacheoptions);
 	$pagememcache = new memcached($pagecacheoptions);
 
-/*/
-include_once("include/peclmemcached-client.php");
-	$memcache = new peclmemcached($memcacheoptions);
-	$pagememcache = new peclmemcached($pagecacheoptions);
 
-//*/
-//include_once("include/memcache.php"); //hdget is bad!
 include_once("include/memcache2.php");
 	$cache 		= new cache($memcache, "$sitebasedir/cache");
 	$pagecache	= new cache($pagememcache, "$sitebasedir/cache");
@@ -383,16 +381,16 @@ function debugOutput(){
 		echo "<table><tr><td valign=top>";
 
 		echo "<table>";
-		echo "<tr><td class=header>Total time:</td><td class=header align=right>" . number_format($total, 2) . " ms</td></tr>";
-		echo "<tr><td class=body>Parse time:</td><td class=body align=right>" . number_format($parse, 2) . " ms</td></tr>";
-		echo "<tr><td class=body>Mysql time:</td><td class=body align=right>" . number_format($mysql, 2) . " ms</td></tr>";
-		echo "<tr><td class=body>Memcache time:</td><td class=body align=right>" . number_format($cachetime, 2) . " ms</td></tr>";
-		echo "<tr><td class=body>PHP time:</td><td class=body align=right>" . number_format($php, 2) . " ms</td></tr>";
+		echo "<tr><td class=header nowrap>Total time:</td><td class=header align=right nowrap>" . number_format($total, 2) . " ms</td></tr>";
+		echo "<tr><td class=body nowrap>Parse time:</td><td class=body align=right nowrap>" . number_format($parse, 2) . " ms</td></tr>";
+		echo "<tr><td class=body nowrap>Mysql time:</td><td class=body align=right nowrap>" . number_format($mysql, 2) . " ms</td></tr>";
+		echo "<tr><td class=body nowrap>Memcache time:</td><td class=body align=right nowrap>" . number_format($cachetime, 2) . " ms</td></tr>";
+		echo "<tr><td class=body nowrap>PHP time:</td><td class=body align=right nowrap>" . number_format($php, 2) . " ms</td></tr>";
 		if($outputmemory)
-			echo "<tr><td class=body>Memory usage:</td><td class=body align=right>" . number_format(get_memory_usage()/1024) . " KB</td></tr>";
+			echo "<tr><td class=body nowrap>Memory usage:</td><td class=body align=right nowrap>" . number_format(get_memory_usage()/1024) . " KB</td></tr>";
 		if(isset($config['showsource']) && $config['showsource'])
-			echo "<tr><td class=body colspan=2><a class=body href=/source.php?file=$_SERVER[PHP_SELF]&k=" . makeKey($_SERVER['PHP_SELF']) . ">View Source</a></td></tr>";
-		echo "<tr><td class=body colspan=2>$revstr</td></tr>";
+			echo "<tr><td class=body colspan=2 nowrap><a class=body href=/source.php?file=$_SERVER[PHP_SELF]&k=" . makeKey($_SERVER['PHP_SELF']) . ">View Source</a></td></tr>";
+		echo "<tr><td class=body colspan=2 nowrap>$revstr</td></tr>";
 
 		echo "</table>";
 
@@ -427,13 +425,13 @@ function debugOutput(){
 				echo "<tr>";
 
 			if($j < $num){
-				echo "<td class=body align=right>" . number_format(($times[$j] - $start)/10, 2) . " ms</td>";
+				echo "<td class=body align=right nowrap>" . number_format(($times[$j] - $start)/10, 2) . " ms</td>";
 				if($outputmemory)
-					echo "<td class=body align=right>" . number_format($memory[$j]/1024) . " KB</td>";
-				echo "<td class=body>$names[$j]</td>";
+					echo "<td class=body align=right nowrap>" . number_format($memory[$j]/1024) . " KB</td>";
+				echo "<td class=body nowrap>$names[$j]</td>";
 				if($col < $cols-1)
 //					echo "<td width=1 bgcolor=#000000></td>";
-					echo "<td class=body>&nbsp; | &nbsp;</td>";
+					echo "<td class=body nowrap>&nbsp; | &nbsp;</td>";
 			}
 
 			if($i % $cols == $cols - 1)
@@ -1558,7 +1556,7 @@ function makeCheckBox($name, $title, $checked = false){
 function getFriendsListIDs($uid, $mode = USER_FRIENDS){
 	global $cache, $usersdb;
 
-	$friendids = $cache->get("friends$mode-$uid");
+	$friendids = $cache->get("friendids$mode-$uid");
 
 	if($friendids === false){
 		if($mode == USER_FRIENDS){
@@ -1635,6 +1633,9 @@ function getUserInfo($uids, $getactive = true){
 	if(!$array)
 		$uids = array($uids);
 
+	foreach ($uids as & $uid)
+		settype($uid, 'integer');
+
 	$users = $cache->get_multi($uids, "userinfo-");
 
 	$missingids = array_diff($uids, array_keys($users));
@@ -1646,22 +1647,12 @@ function getUserInfo($uids, $getactive = true){
 		$res = $usersdb->prepare_query("SELECT * FROM users WHERE userid IN (%)", $missingids);
 
 		while($line = $res->fetchrow()){
-			$users[$line['userid']] = $line;
-			$users[$line['userid']]['username'] = $names[$line['userid']];
 			$line['username'] = $names[$line['userid']];
+			$users[$line['userid']] = $line;
 			$cache->put("userinfo-$line[userid]", $line, 86400*7);
 		}
 
-		$missingids = array_diff($uids, array_keys($users));
-
-		foreach($missingids as $id){
-			foreach($uids as $k => $uid){
-				if($uid == $id){
-					unset($uids[$k]);
-					break;
-				}
-			}
-		}
+		$uids = array_keys($users);
 
 		if(count($uids) == 0)
 			return ($array ? array() : false);
@@ -1671,8 +1662,7 @@ function getUserInfo($uids, $getactive = true){
 		$activetimes = $cache->get_multi($uids, "useractive-"); //don't need to set, as it is never removed, and should never be older than the above cached version
 
 		foreach($activetimes as $uid => $activetime)
-			if($activetime > $users[$uid]['activetime'])
-				$users[$uid]['activetime'] = $activetime;
+			$users[$uid]['activetime'] = $activetime;
 	}
 
 	foreach($uids as $uid){

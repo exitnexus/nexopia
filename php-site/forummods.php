@@ -203,6 +203,9 @@ function listMods(){
 
 	sortCols($rows, SORT_ASC, SORT_CASESTR, 'username');
 
+	$powers = array();
+	$key = array();
+
 	foreach($rows as $line){
 		$key[$line['userid']][$fid] = makeKey("$line[userid]:$fid");
 		$vals = array();

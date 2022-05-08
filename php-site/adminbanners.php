@@ -1117,19 +1117,12 @@ function addBanner($bannertype, $id = 0, $data = array()){
 	if (!isset($allowedTimesTable)) $allowedTimesTable = '';
 	$template->set('allowedTimesTable', $allowedTimesTable);
 	
-	switch($bannertype){
-		case BANNER_IMAGE:
-			$template->set('BANNER_IMAGE', true); break;
-		case BANNER_FLASH:
-			$template->set('BANNER_FLASH', true); break;
-		case BANNER_IFRAME:
-			$template->set('BANNER_IFRAME', true); break;
-		case BANNER_HTML:
-			$template->set('BANNER_HTML', true); break;
-		case BANNER_TEXT:
-			$template->set('BANNER_TEXT', true); break;
-	}
-
+	$template->set('BANNER_IMAGE', ($bannertype == BANNER_IMAGE));
+	$template->set('BANNER_FLASH', ($bannertype == BANNER_FLASH));
+	$template->set('BANNER_IFRAME', ($bannertype == BANNER_IFRAME));
+	$template->set('BANNER_HTML', ($bannertype == BANNER_HTML));
+	$template->set('BANNER_TEXT', ($bannertype == BANNER_TEXT));
+	
 	if($id){
 		$template->set('bannersize', $bannersize);
 	}

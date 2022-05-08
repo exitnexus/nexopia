@@ -166,7 +166,7 @@
 
 	$rows = array();
 	foreach($friendids as $id => $mutual)
-		if ($users[$id])
+		if(isset($users[$id]))
 			$rows[$id] = $users[$id] + array('mutual' => $mutual, 'comment' => (isset($comments[$id]) ? $comments[$id] : ''));
 
 

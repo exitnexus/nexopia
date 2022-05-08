@@ -74,10 +74,11 @@
 
 //		echo "<tr><td class=header colspan=2 align=center>Picmod Stats</td></tr>";
 
-		if ($modstats['weekly']['earnedplus'])
-			echo "<tr><td class=body colspan=2 align=center><strong>You have earned Plus this week!</strong></td></tr>";
+//		if ($modstats['weekly']['earnedplus'])
+//			echo "<tr><td class=body colspan=2 align=center><strong>You have earned Plus this week!</strong></td></tr>";
 
-			echo "<tr><td class=body colspan=2 align=center>To rank in the top 5 Pic Mods this month you need<br />to beat a monthly error rate of ${top5}%.</td></tr>";
+		echo "<tr><td class=body colspan=2 align=center>To earn Plus for the week, you need to mod at least {$config['picmodpluspicrate']} pics,<br />with an error rate of {$config['picmodpluserrrate']}% or less (under \"This Week\" below).";
+		echo "<tr><td class=body colspan=2 align=center>To rank in the top 5 Pic Mods this month you need to mod at least {$config['picmodmonthlymin']} pics.<br />The current monthly error rate to beat is ${top5}% (under \"This Month\" below).</td></tr>";
 			
 		echo "<tr><td class=body colspan=2><table width='100%'>";
 		echo "<tr><td class=body2>&nbsp;</td><td class=body2>This Week</td><td class=body2>This Month</td><td class=body2>Lifetime</td></tr>";
@@ -108,45 +109,37 @@
 
 
 	function getTop5ErrRate () {
-		global $cache, $mods;
+		global $cache, $mods, $config;
 
 		if ( ($top5 = $cache->get("modprefs-stats-top5")) !== false )
 			return $top5;
 
+		// uids to skip (cannot win prize) - everybody in the office
+		$skipuids = array(
+			1488612, 912943, 501744, 1, 5, 1223423, 2350, 6377, 997372, 1106759,
+			1522402, 1345816, 1304901, 1610572, 1610544, 1692408, 1685648
+		);
 		$top5 = array('100.00');
 
 		$modids = $mods->getMods();
 		foreach ($modids as $modid) {
-			if ($mods->getModLvl($modid, MOD_PICS) === false)
+			if (in_array($modid, $skipuids) || $mods->getModLvl($modid, MOD_PICS) === false)
 				continue;
 
 			$modstats = $mods->getPicModStats($modid);
 
-			if ($modstats['monthly']['picsmodded'] == 0)
-				continue;
-
-			$addit = false;
-			foreach ($top5 as $top) {
-				if ($modstats['monthly']['errrate'] < $top && ! in_array($modstats['monthly']['errrate'], $top5)) {
-					$addit = true;
-					break;
-				}
-			}
-
-			if ($addit || (! $addit && count($top5) < 5 && ! in_array($modstats['monthly']['errrate'], $top5))) {
+			if ($modstats['monthly']['picsmodded'] > $config['picmodmonthlymin'] && ! in_array($modstats['monthly']['errrate'], $top5) && (
+				count($top5) < 5 ||
+				$modstats['monthly']['errrate'] < max($top5)
+			)) {
 				if (count($top5) == 5)
-					array_splice($top5, array_search(max($top5), $top5) + 1, 1);
+					unset($top5[ array_search(max($top5), $top5)]);
 				$top5[] = $modstats['monthly']['errrate'];
 			}
 		}
 
-		if (count($top5) <= 5)
-			$top5 = number_format(max($top5), 2);
-		else {
-			sort($top5);
-			$top5 = number_format($top5[4], 2);
-		}
+		$top5 = number_format(max($top5), 2);
 
-		$cache->put("modprefs-stats-top5", $top5, 60 * 60); // updated once an hour
+		$cache->put("modprefs-stats-top5", $top5, 60 * 15); // updated once every 15 mins
 		return $top5;
 	}

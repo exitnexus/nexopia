@@ -610,7 +610,7 @@ function getSmilies($sort = 'usage'){
 			':blush:' => 'blush',
 			':hearts:' => 'hearts',
 			':rolleyes:' => 'rolleyes',
-			':love' => 'love',
+			':love:' => 'love',
 			':rofl:' => 'rofl',
 			':gjob:' => 'thumbs',
 			':sex:' => 'smileysex',
@@ -628,7 +628,7 @@ function getSmilies($sort = 'usage'){
 			':cussing:' => 'cussing',
 			':shifty:' => 'shiftyeyes',
 			':omfg:' => 'omfg',
-			':consfused:' => 'confused',
+			':confused:' => 'confused',
 			':nuts:' => 'silly',
 
 			':evil:' => 'evil',
@@ -661,7 +661,7 @@ function getSmilies($sort = 'usage'){
 			':egrin:' => 'egrin',
 
 			':transport:' => 'transport',
-			':crazy' => 'crazy',
+			':crazy:' => 'crazy',
 			':skull:' => 'skull',
 			':sleep:' => 'sleep',
 			':tv:' => 'tv',
@@ -676,12 +676,12 @@ function getSmilies($sort = 'usage'){
 		);
 		
 	if($sort == 'length'){
-		function lengthcmp($a, $b){
-			return (strlen($b) - strlen($a));
-		}
-	
 		uksort($smilies, 'lengthcmp');
 	}
 
 	return $smilies;
+}
+
+function lengthcmp($a, $b){
+	return (strlen($b) - strlen($a));
 }

@@ -62,7 +62,7 @@ function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false)
 		$skindata['rows']++;
 
 	echo "<html><head><title>$config[title]</title><script src=$config[jsloc]general.js?rev=$reporev></script>";
-	echo "<link rel=stylesheet href='$skinloc" . "default.css'>";
+	echo "<link rel=stylesheet href='$skinloc" . "default.css?rev=$reporev'>";
 	if($_SERVER['PHP_SELF'] == "/index.php"){
 		echo "<meta name=\"description\" content=\"$config[metadescription]\">\n";
 		echo "<meta name=\"keywords\" content=\"$config[metakeywords]\">\n";
@@ -341,7 +341,7 @@ if($skindata['admin']){
 
 			echo "<table cellspacing=0 cellpadding=0 width=100%><tr>";
 			if(!empty($skindata['menuends']))
-				echo "<td class=menu align=left width=1><img src='$skinlocleft$skindata[menuends]'></td>";
+				echo "<td class=menu align=left width=1><img src='$skinloc" . "left$skindata[menuends]'></td>";
 
 			echo "<td class=menu align=left>&nbsp;&nbsp;&nbsp;&nbsp;";
 
@@ -357,7 +357,7 @@ if($skindata['admin']){
 
 			echo "</td>";
 			if(!empty($skindata['menuends']))
-				echo "<td class=menu align=right width=1><img src='$skinlocright$skindata[menuends]'></td>";
+				echo "<td class=menu align=right width=1><img src='$skinloc" . "right$skindata[menuends]'></td>";
 
 			echo "</tr></table>";
 		echo "</td>";

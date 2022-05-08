@@ -24,14 +24,15 @@
 	$endyear = getREQval('endyear', 'int', userdate("Y"));
 
 
-	$reports = array(	0 => "Full",
-						1 => "Summary",
-						2 => "Errors",
-						3 => "Summary by Type",
-						4 => "Summary by Contact",
-						5 => "Daily Summary",
-						6 => "Moneris Summary",
-
+	$reports = array(	"Full",
+						"Summary",
+						"Errors",
+						"Incomplete",
+						"Summary by Type",
+						"Summary by Contact",
+						"Daily Summary",
+						"Moneris Summary",
+						"Billing People",
 						);
 
 
@@ -45,20 +46,34 @@
 		if(!isset($sortt) || ($sortt != 'creationdate' && $sortt != 'paymentdate'))
 			$sortt = 'creationdate';
 
-		$query = "SELECT SQL_CALC_FOUND_ROWS id, userid, amountpaid, paymentdate, paymentmethod, paymentcontact, txnid, total, completed FROM invoice WHERE completed = 'y' &&";
+		$completed = isset($_REQUEST['completed']);
+
+		$query = "SELECT SQL_CALC_FOUND_ROWS * FROM invoice ";
+
+		$parts = array();
+		$params = array();
+
+		if($completed)
+			$parts[] = "completed = 'y'";
 
 		if(count($methods)){
-			$query .= "paymentmethod IN (?) && ";
+			$parts[] = "paymentmethod IN (?)";
 			$params[] = $methods;
 		}
 		if(count($contacts)){
-			$query .= "paymentcontact IN (?) && ";
+			$parts[] = "paymentcontact IN (?)";
 			$params[] = $contacts;
 		}
 
-		$query .= "paymentdate >= ? && paymentdate < ? ORDER BY $sortt";
+		$column = ($completed ? 'paymentdate' : 'creationdate');
+		$parts[] = "$column >= # && $column < #";
 		$params[] = $start;
 		$params[] = $end;
+		
+		if($parts)
+			$query .= "WHERE " . implode(" && ", $parts);
+		
+		$query .= " ORDER BY $sortt";
 
 		$res = $shoppingcart->db->prepare_array_query($query, $params);
 
@@ -117,10 +132,11 @@
 			echo "<select class=body name=\"endday\"><option value=''>Day" . make_select_list(range(1,31),$endday) . "</select>";
 			echo "<select class=body name=\"endyear\"><option value=''>Year" . make_select_list(range(2004,userdate("Y")),$endyear) . "</select><br>";
 
-			echo "Sort By: <select class=body name=\"sortt\"><option value=paymentdate>Payment Date<option value=creationdate>Creationdate</select><br>";
-			echo "Include Formatting: <input type=checkbox class=body name=formatting><br>";
+			echo "Sort By: <select class=body name=\"sortt\"><option value=paymentdate>Payment Date<option value=creationdate>Creation Date</select><br>";
+			echo "Include Formatting: <input type=checkbox class=body name=formatting checked><br>";
+			echo "Only Completed: <input type=checkbox class=body name=completed checked><br>";
 
-			echo "Report: <select class=body name=report>" . make_select_list_key($reports) . "</select><br>";
+			echo "Report: <select class=body name=report>" . make_select_list($reports) . "</select><br>";
 
 			echo "<input class=body type=submit name=action value=Go>";
 		echo "</td>";
@@ -152,7 +168,7 @@
 		echo "<br><br>";
 
 		switch($report){
-			case 0: //"Full":
+			case "Full":
 
 				echo "<table width=100%>";
 
@@ -183,7 +199,7 @@
 				echo "</table>";
 				break;
 
-			case 1: //"Summary":
+			case "Summary":
 				$total = 0;
 				foreach($invoices as $invoice)
 					$total += $invoice['amountpaid'];
@@ -194,7 +210,7 @@
 				echo "</table>";
 				break;
 
-			case 2: //"Errors":
+			case "Errors":
 
 				echo "<table width=100%>";
 
@@ -230,8 +246,7 @@
 				echo "<tr><td class=body>Total revenue:</td><td class=body>\$" . number_format($total, 2) . "</td></tr>";
 				echo "</table>";
 				break;
-			case 3: //By Type
-
+			case "Summary by Type":
 				if(!count($methods)) //set above
 					$methods = array_keys($shoppingcart->paymentmethods);
 
@@ -280,7 +295,7 @@
 				break;
 
 
-			case 4: //By Contact
+			case "Summary by Contact":
 
 				$totals = array();
 				$num = array();
@@ -367,7 +382,7 @@
 				echo "</table>";
 				break;
 
-			case 5: //daily
+			case "Daily Summary":
 				$days = array();
 				$total = 0;
 				$num = 0;
@@ -438,7 +453,7 @@
 				echo "<td class=header align=right></td>";
 				echo "</tr>";
 
-				if(time() > $end){
+				if(time() < $end){
 					echo "<tr>";
 					echo "<td class=header>Expected</td>";
 					echo "<td class=header align=right>" . number_format((($end-$start)/(time()-$start)) * $num) . "</td>";
@@ -451,8 +466,7 @@
 				echo "</table>";
 				break;
 
-			case 6: // visa/mc/debit daily totals
-
+			case "Moneris Summary":
 				$days = array();
 
 				foreach($invoices as $invoice){
@@ -538,6 +552,94 @@
 
 				echo "</table>";
 				break;
+
+
+			case "Billing People":
+				$newinvoices = array();
+				foreach($invoices as $v)
+					if($v['paymentmethod'] == 'bp')
+						$newinvoices[$v['id']] = $v + array('transactionid' => '');
+				
+				$invoices = $newinvoices;
+				
+				$res = $shopdb->prepare_query("SELECT invoiceid, transactionid FROM billingpeople WHERE invoiceid IN (#)", array_keys($invoices));
+				
+				while($line = $res->fetchrow()){
+					if($invoices[$line['invoiceid']]['transactionid'])
+						$invoices[$line['invoiceid']]['transactionid'] .= ", $line[transactionid]";
+					else
+						$invoices[$line['invoiceid']]['transactionid'] = $line['transactionid'];
+				}
+			
+				sortCols($invoices, 'transactionid');
+			
+				echo "<table width=100%>";
+
+				echo "<tr>";
+				echo "<td class=header>Invoice</td>";
+				echo "<td class=header>Username</td>";
+				echo "<td class=header>Payment Date</td>";
+				echo "<td class=header>Paid</td>";
+				echo "<td class=header>Contact</td>";
+				echo "<td class=header>Transaction ID</td>";
+				echo "<td class=header>Sequence</td>";
+
+				echo "</tr>";
+
+				$total = 0;
+				foreach($invoices as $invoice){
+					$class = ($invoice['transactionid'] ? 'body' : 'body2');
+				
+					echo "<tr>";
+					echo "<td class=$class nowrap><a class=body href=/invoice.php?id=$invoice[id]>$invoice[id]</a></td>";
+					echo "<td class=$class nowrap>$invoice[username]</td>";
+					echo "<td class=$class nowrap>" . ($invoice['paymentdate'] ? gmdate("M j, y, g:i a", $invoice['paymentdate']) . " GMT" : "" ) . "</td>";
+					echo "<td class=$class nowrap align=right>\$$invoice[amountpaid]</td>";
+					echo "<td class=$class nowrap>$invoice[paymentcontact]</td>";
+					echo "<td class=$class nowrap>$invoice[txnid]</td>";
+					echo "<td class=$class nowrap>$invoice[transactionid]</td>";
+					echo "</tr>";
+					$total += $invoice['amountpaid'];
+				}
+				echo "<tr><td class=header colspan=3>" . count($invoices) . " invoices</td><td class=header align=right>\$" . number_format($total,2) . "</td><td class=header colspan=3></td></tr>";
+				echo "</table>";
+				break;
+
+			case "Incomplete":
+				echo "<table width=100%>";
+
+				echo "<tr>";
+				echo "<td class=header>Invoice</td>";
+				echo "<td class=header>Username</td>";
+				echo "<td class=header>Payment Date</td>";
+				echo "<td class=header>Paid</td>";
+				echo "<td class=header>Payment Method</td>";
+				echo "<td class=header>Contact</td>";
+				echo "<td class=header>Transaction ID</td>";
+
+				echo "</tr>";
+
+				$total = 0;
+				$count = 0;
+				foreach($invoices as $invoice){
+					if($invoice['completed'] == 'n' && $invoice['amountpaid'] > 0){
+						echo "<tr>";
+						echo "<td class=body nowrap><a class=body href=/invoice.php?id=$invoice[id]>$invoice[id]</a></td>";
+						echo "<td class=body nowrap>$invoice[username]</td>";
+						echo "<td class=body nowrap>" . ($invoice['paymentdate'] ? gmdate("M j, y, g:i a", $invoice['paymentdate']) . " GMT" : "" ) . "</td>";
+						echo "<td class=body nowrap align=right>\$$invoice[amountpaid]</td>";
+						echo "<td class=body nowrap>$invoice[paymentcontact]</td>";
+						echo "<td class=body nowrap>" . $shoppingcart->paymentmethods[$invoice['paymentmethod']] . "</td>";
+						echo "<td class=body nowrap>$invoice[txnid]</td>";
+						echo "</tr>";
+						$total += $invoice['amountpaid'];
+						$count++;
+					}
+				}
+				echo "<tr><td class=header colspan=3>$count invoices, " . count($invoices) . " checked</td><td class=header align=right>\$" . number_format($total,2) . "</td><td class=header colspan=3></td></tr>";
+				echo "</table>";
+				break;
+
 
 		}
 

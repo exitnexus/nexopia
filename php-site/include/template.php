@@ -16,25 +16,37 @@ define("HTMLENTITIES_IND",      "#", false);
 define("COUNT_IND",             "@", false);
 define("SLASHES_IND",           "&", false);
 define("VARIABLE_IND",          "$", false);
-define("PARSED_FILES_PATH",     "$sitebasedir/templates/compiled_files/" );
-define("TEMPLATE_FILES_PATH",   "$sitebasedir/templates/template_files/");
 
 function tmpl_switch($i, $arr)
 {
 	return $arr[ $i % count($arr) ];
 }
 
+function addslashes_extra($var)
+{
+	$var = addslashes($var);
+	$search = array("\x00", "\x0a", "\x0d", "\x1a");
+	$replace = array('\0', '\n', '\r', '\Z');
+
+	return str_replace($search, $replace, $var );
+}
+
 class Template
 {
+	private $parseddir;
+	private $tmpldir;
+	private $filepath;
+	private $name; //just the last part of $filepath
 
-	private $tmpl_str;
+	private $parsed_path; //set if it already exists
+	private $tmpl_str; //set if the parsed doesn't exist
+	private $parsed_str; //set once it is parsed, to be evaled. If it is already cached, this won't be set, use include instead
+
 	private $vars;
 	private $if_stack;
 	private $loop_stack;
 	private $errors;
 	private $show_whitespace;
-	private $parsed;
-	private $parsed_str;
 	private $tmpl_name_prefix;
 	private $found_vars;
 	private $allowed_functions = array(
@@ -49,47 +61,69 @@ class Template
 	                                'truncate'          =>  'truncate($1, $2)',
 	                                'number_format'     =>  'number_format($1,$2)',
 	                                'count'             =>  'count($1)',
-	                                'switch'			=>  'tmpl_switch($1, array($2, $3))',
+	                                'switch'            =>  'tmpl_switch($1, array($2, $3))',
 	                                );
+	public $display_header = false;
 
 	//constructor
-	function Template($filepath, $parsed = true)
-	{
-		if($parsed)
-		{
-			$this->tmpl_str = @file_get_contents(PARSED_FILES_PATH.$filepath.".parsed.php");
-			if(!$this->tmpl_str )
-			{
-				$this->tmpl_str = @file_get_contents(TEMPLATE_FILES_PATH.$filepath.".html");
-				$parsed=false;
-			}
-		}
-		else
-		{
-			$this->tmpl_str = @file_get_contents(TEMPLATE_FILES_PATH.$filepath.".html");
-		}
+	function Template($filepath, $newskin=false){
+		global $config, $skindata;
+		$this->display_header=$newskin;
+		$this->usecached = $config['templateusecached'];
+		$this->parseddir = $config['templateparsedir'];
+		$this->tmpldir = $config['templatefilesdir'];
 
-		if($this->tmpl_str === false)
+		$this->filepath = $filepath;
+		$this->name = substr($filepath, strrpos($filepath, '/')+1);
+
+		$this->tmpl_str = "";
+		$this->parsed_str = "";
+
+		$parsedpath = $this->parseddir . $filepath . ".parsed.php";
+		$templpath = $this->tmpldir . $filepath . ".html";
+
+	//if it's already parsed, get the directory
+		if($this->usecached && file_exists($parsedpath))
+			$this->parsed_path = $parsedpath;
+
+	//if not parsed, get the template file
+		if(!$this->parsed_path && file_exists($templpath))
+			$this->tmpl_str = file_get_contents($templpath);
+
+		if(!$this->tmpl_str && !$this->parsed_path)
 			die("Template '$filepath' not found.");
 
-		//$this->tmpl_str  = file_get_contents($filepath);
-		$this->vars	       = array();
+		$this->show_whitespace = true;
+		$this->tmpl_name_prefix = str_replace('/', '_', $filepath);
+		$this->vars        = array();
+
+	//compile variables
 		$this->loop_stack  = array();
 		$this->errors      = array();
 		$this->if_stack    = array();
 		$this->loop_stack  = array();
-		$this->show_whitespace = true;
-		$this->parsed       = $parsed;
-		$this->tmpl_name_prefix = str_replace('/', '_', $filepath);
 		$this->found_vars = array();
 
-		$this->setMultiple(array(
-			'THIS_PAGE' => $_SERVER['PHP_SELF']
-		));
+		$this->set('THIS_PAGE', $_SERVER['PHP_SELF']);
+
+	//parse it if it's not already cached
+		if(!$this->parsed_path){
+			$parsed_str = $this->parse($this->tmpl_str);
+			timeline('compiled: ' . $this->name);
+
+		//cache it if needed
+			if($this->usecached)
+				$this->write($parsedpath, $parsed_str);
+
+			$this->parsed_str = $parsed_str;
+		}
+	}
+	
+	function setHeader(){
+		$this->display_header = true;
 	}
 
-	function show_whitespace($bool)
-	{
+	function show_whitespace($bool){
 		$this->show_whitespace = $bool;
 	}
 
@@ -113,8 +147,7 @@ class Template
 	//primitive function -- does a dump of the interpreted php need to view source
 	function dump()
 	{
-		$parsed = $this->parse($this->tmpl_str);
-		$lines = explode("\n", $parsed);
+		$lines = explode("\n", $this->parsed_str);
 
 		echo "<table><tr><td class=header colspan=2>This is a dump</td></tr>";
 
@@ -125,41 +158,29 @@ class Template
 		return;
 	}
 
-	function write($file_path)
+	function write($file_path, $parsed_str)
 	{
-		$parsed_str = $this->parse($this->tmpl_str);
-
-		$file_path =  PARSED_FILES_PATH.$file_path.".parsed.php";
 		$dirs = explode('/', $file_path);
-		$dir_path = "";
-		foreach( $dirs as $dir )
-		{
-			if($dir == $dirs[count($dirs) -1])
-				break;
 
-			$dir_path .= $dir;
-			if(!is_dir($dir_path) && $dir != ".." )
-			{
+		array_shift($dirs); //don't create the root directory
+		array_pop($dirs); //get rid of the filename
+
+		$dir_path = "";
+		foreach( $dirs as $dir ){
+			$dir_path .= "/$dir";
+			if(!is_dir($dir_path) && $dir != ".."){
 				if(!mkdir($dir_path))
-					echo "Cannot create directory (". $dir_path . ")";
+					echo "Cannot create directory ($dir_path)";
 			}
-			$dir_path .= "/";
 		}
 
 		$handle = fopen($file_path, "wb");
-		if (!$handle)
-		{
-			echo "Cannot open file (". $file_path . ")";
-			exit;
-		}
-
-
+		if(!$handle)
+			die("Cannot open file ($file_path)");
 
 		if(fwrite($handle, $parsed_str) === FALSE)
-		{
-			echo "Cannot write to file (". $file_path . ")";
-			exit;
-		}
+			die("Cannot write to file ($file_path)");
+
 		fclose($handle);
 	}
 
@@ -169,27 +190,22 @@ class Template
 		echo $this->toString();
 	}
 
-	function toString()
-	{
-		timeline('start output');
-
-		$this->parsed_str = "";
-		if(!$this->parsed){
-			$this->parsed_str = $this->parse($this->tmpl_str);
-			timeline('compiled');
-		}else{
-			$this->parsed_str = $this->tmpl_str;
-		}
+	function toString(){
+		timeline('start output: ' . $this->name);
 
 		extract($this->vars);
 
 		ob_start();
-		eval('?'.'>'. $this->parsed_str);
+		if($this->parsed_path){
+			include($this->parsed_path); //include so the php opcode cache works
+		} else {
+			eval('?'.'>'. $this->parsed_str);
+		}
 		$content=ob_get_contents();
 
 		ob_end_clean();
 
-		timeline('done output');
+		timeline('done output: ' . $this->name);
 
 		return $content;
 	}
@@ -358,6 +374,7 @@ class Template
 	 */
 	function process_tag($tag)
 	{
+		global $skindata;
 		$php_str = "";
 		$tag = trim($tag);
 		$i = -1;
@@ -409,25 +426,34 @@ class Template
 
 		elseif(substr($tag,0,6) == 'header')
 		{
-
-			$header = $this->process_header(trim(substr($tag, 6)));
-			if($header != null)
-			{
-				$php_str .= $header;
-			}
-			else
-			{
-				array_push($this->errors , str_replace('$1', $tag, ERROR_INVALID_TAG));
+			if (!isset($skindata['isnew']) || $this->display_header == true){
+				$header = $this->process_header(trim(substr($tag, 6)));
+				if($header != null)
+				{
+					$php_str .= $header;
+				}
+				else
+				{
+					array_push($this->errors , str_replace('$1', $tag, ERROR_INVALID_TAG));
+				}
+			} else {
+				$php_str .= "<table>";
 			}
 
 		}
 		elseif($tag == "addRefreshHeaders")
 		{
-			$php_str .= "<? addRefreshHeaders(); ?".">";
+			if (!isset($skindata['isnew']) || $this->display_header == true)
+				$php_str .= "<? addRefreshHeaders(); ?".">";
+			else
+				$php_str .= "<table>";
 		}
 		elseif($tag == "footer")
 		{
-			$php_str .= "<? incFooter(); ?".">";
+			if (!isset($skindata['isnew']) || $this->display_header == true){
+				$php_str .= "<? incFooter(); ?".">";
+			} else
+				$php_str .= "</table>";
 		}
 
 		//else tag
@@ -737,7 +763,7 @@ class Template
 		}
 		elseif( $addslashes )
 		{
-			$php_var .= 'addslashes(';
+			$php_var .= 'addslashes_extra(';
 			$php_var .= $var;
 			$php_var .= ')';
 		}

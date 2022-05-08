@@ -58,10 +58,10 @@ function incBookmarksBlock($side){
 
 function incSortBlock($side){
 	global $userData, $sort, $config, $usersdb, $configdb, $requestType, $requestParams;
-	
+
 	// get values for the output template for all the user search options
 	$menuOptions = new userSearchMenuOptions(true, 'incSortBlock', $requestType, $requestParams);
-		
+
 	$template =  new template("include/blocks/sort_block");
 	$template->set('minage', $menuOptions->searchMinAge);
 	$template->set('maxage', $menuOptions->searchMaxAge);
@@ -128,7 +128,14 @@ function incFriendsBlock($side){
 	if(!$userData['loggedIn'])
 		return;
 
-	$template->set('userData', $userData);
+	$friends = $userData['friends'];
+	$friendnames = getUserName($friends);
+
+
+	natcasesort($friendnames);
+
+	$template->set('friendsonline', $userData['friendsonline']);
+	$template->set('friends', $friendnames);
 	$block_contents = $template->toString();
 	blockContainer('Friends',$side, $block_contents);
 }
@@ -312,56 +319,85 @@ function incSubscribedThreadsBlock($side){
 }
 
 function incNewestMembersBlock($side){
-	global $userData;
+	global $userData, $cache, $db;
 
-	$userSearch = new userSearch("NEWUSERS", "LIST", $userData['debug']);
+	$queryParts = Array();
+	$queryParams = Array();
+	$mcparams = array();
+	$query = "SELECT userid FROM newestusers";
+	$queryParams[0] = &$query;
 
-	if($userData['loggedIn']){
-		if ($userData['defaultsex'])
-			$userSearch->setSex($userData['defaultsex']);
+	$queryParts[0] = "sex = ?";
+	$queryParams[1] = $userData['defaultsex'];
+	$mcparams[0] = "sex:{$userData['defaultsex']}";
 
-		if ($userData['defaultminage'] && $userData['defaultmaxage'])
-			$userSearch->setAgeRange($userData['defaultminage'], $userData['defaultmaxage']);
+	$queryParts[] = "age IN (#)";
+	$queryParams[] = range($userData['defaultminage'], $userData['defaultmaxage']);
+	$mcparams[] = 'age:' . implode(',', range($userData['defaultminage'], $userData['defaultmaxage']));
+
+	$query .= " WHERE " . implode(" && ", $queryParts);
+
+	$query .= " ORDER BY id DESC LIMIT 5";
+
+	$cachekey = 'search-new-user-' . implode('-', $mcparams);
+	if (!($resultSet = $cache->get($cachekey)))
+	{
+		$query = call_user_func_array(Array(&$db, 'prepare'), $queryParams);
+
+		$queryResult = $db->query($query);
+		$resultSet = Array();
+		while($row = $queryResult->fetchrow())
+			$resultSet[] = $row['userid'];
+
+		$cache->put($cachekey, $resultSet, 30);
 	}
 
-	$searchResults = $userSearch->search(1,5);
-	
-	// deal with debug output from search object
-	if ($userData['debug'] === true) {
-		global $inlineDebug;
-		$inlineDebug->addItem("User search (Newest Members Block)", $searchResults->getFormattedDebugOutput());
-	}
-	
-	
+	$users = getUserName($resultSet);
+
 	$template = new template('include/blocks/list_users_block');
-	$template->set('searchResults', $searchResults);
+	$template->set('users', $users);
 	$block_contents = $template->toString();
 	blockContainer('New Members', $side, $block_contents);
 }
 
 function incRecentUpdateProfileBlock($side){
-	global $userData;
+	global $userData, $cache, $db;
 
-	$userSearch = new userSearch("NEWPROFILE", "LIST", $userData['debug']);
+	$queryParts = Array();
+	$queryParams = Array();
+	$mcparams = array();
+	$query = "SELECT userid FROM newestprofile";
+	$queryParams[0] = &$query;
 
-	if($userData['loggedIn']){
-		if ($userData['defaultsex'])
-			$userSearch->setSex($userData['defaultsex']);
+	$queryParts[0] = "sex = ?";
+	$queryParams[1] = $userData['defaultsex'];
+	$mcparams[0] = "sex:{$userData['defaultsex']}";
 
-		if ($userData['defaultminage'] && $userData['defaultmaxage'])
-			$userSearch->setAgeRange($userData['defaultminage'], $userData['defaultmaxage']);
+	$queryParts[] = "age IN (#)";
+	$queryParams[] = range($userData['defaultminage'], $userData['defaultmaxage']);
+	$mcparams[] = 'age:' . implode(',', range($userData['defaultminage'], $userData['defaultmaxage']));
+
+	$query .= " WHERE " . implode(" && ", $queryParts);
+
+	$query .= " ORDER BY id DESC LIMIT 5";
+
+	$cachekey = 'search-new-profile-' . implode('-', $mcparams);
+	if (!($resultSet = $cache->get($cachekey)))
+	{
+		$query = call_user_func_array(Array(&$db, 'prepare'), $queryParams);
+
+		$queryResult = $db->query($query);
+		$resultSet = Array();
+		while($row = $queryResult->fetchrow())
+			$resultSet[] = $row['userid'];
+
+		$cache->put($cachekey, $resultSet, 30);
 	}
 
-	$searchResults = $userSearch->search(1,5);
+	$users = getUserName($resultSet);
 
-	// deal with debug output from search object
-	if ($userData['debug'] === true) {
-		global $inlineDebug;
-		$inlineDebug->addItem("User search (Recent Profile Updates Block)", $searchResults->getFormattedDebugOutput());
-	}
-	
 	$template = new template('include/blocks/list_users_block');
-	$template->set('searchResults', $searchResults);
+	$template->set('users', $users);
 	$block_contents = $template->toString();
 	blockContainer('Updated Profiles', $side, $block_contents);
 }

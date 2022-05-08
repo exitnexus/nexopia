@@ -202,7 +202,7 @@
 
 				if ($galleryobj && $galleryobj->ownerid == $uid)
 				{
-					$pic = $galleryobj->getPic($pictureid);
+					$pic = $galleryobj->getPic("$uid:$pictureid");
 					if ($pic)
 					{
 						$pic->increasePriority($direction);
@@ -467,8 +467,9 @@
 			$reachedmax = ($countpics + $countpending) >= $maxpics;
 
 			$legacy = false;
-			if (stripos($_SERVER['HTTP_USER_AGENT'], 'Opera') || stripos($_SERVER['HTTP_USER_AGENT'], 'MSIE 4.') ||
-				stripos($_SERVER['HTTP_USER_AGENT'], 'MSIE 5.0') || stripos($_SERVER['HTTP_USER_AGENT'], 'Firefox/1.0'))
+			if (!isset($_SERVER['HTTP_USER_AGENT']) ||stripos($_SERVER['HTTP_USER_AGENT'], 'Opera')
+				|| stripos($_SERVER['HTTP_USER_AGENT'], 'MSIE 4.') || stripos($_SERVER['HTTP_USER_AGENT'], 'MSIE 5.0')
+				|| stripos($_SERVER['HTTP_USER_AGENT'], 'Firefox/1.0'))
 			{
 				$legacy = true;
 			}
@@ -613,12 +614,13 @@
 
 			$reachedmax = ($countpics + $countpending) >= $maxpics;
 
+			$picid = 0;
+			$description = "";
 			if (!$reachedmax)
 			{
 				// file stuff is not built into the new system, so hack it for now. It's optional,
 				// so no big deal.
 				$userfiles = getFILEval('userfile');
-				$picid = 0;
 				if (!empty($userfiles['tmp_name']))
 				{
 					$sourcepic = new sourcepicture($sourcepictures->db);

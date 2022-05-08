@@ -68,6 +68,9 @@ class inlineDebug {
 	public function itemToHtml (
 		$debugItem		// I: key of item in the debugItems array to format
 	) {
+	
+	return '';
+	
 		// init output template
 		$template = new template('inlineDebug/itemOutput');
 

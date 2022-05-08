@@ -115,7 +115,7 @@ if ($interactive) {
  * END HISTORY */
 function hourly () {
 	/* : BEGIN GLOBALS */
-	global $db, $mods, $debuginfousers, $usernotify, $usersdb, $timer;
+	global $db, $mods, $debuginfousers, $usernotify, $usersdb, $timer, $dbs;
 	/* : END GLOBALS */
 
 	$newtime=gmmktime(gmdate("H"),0,0,gmdate("n"),gmdate("j"),gmdate("Y"));
@@ -138,7 +138,7 @@ function hourly () {
 		foreach($sexes as $sex){
 			$result = $db->prepare_query("SELECT userid FROM newestusers WHERE age = ? && sex = ? ORDER BY userid DESC LIMIT 10, 1000", $age, $sex);
 			while($line = $result->fetchrow())
-				$ids[] = $line['id'];
+				$ids[] = $line['userid'];
 		}
 	}
 
@@ -154,7 +154,7 @@ function hourly () {
 		foreach($sexes as $sex){
 			$result = $db->prepare_query("SELECT userid FROM newestprofile WHERE age = ? && sex = ? ORDER BY userid LIMIT 10,10000", $age, $sex);
 			while($line = $result->fetchrow())
-				$ids[] = $line['id'];
+				$ids[] = $line['userid'];
 		}
 	}
 	if(count($ids))
@@ -238,7 +238,7 @@ function daily () {
 
 
 	echo $timer->lap("clear poll vote history");
-	$polls->db->prepare_query("DELETE FROM pollvotes WHERE time <= ?", $newtime-$config['voteHistLength']);
+	$polls->db->prepare_query("DELETE FROM pollvotes WHERE time <= #", $newtime - 86400*90);
 
 	echo $timer->lap("delete pending gallery pics");
 	$galleries->clearpending();
@@ -255,7 +255,7 @@ function daily () {
 	$forums->db->repeatquery($forums->db->prepare("DELETE FROM forumread WHERE readtime <= ?", $newtime-86400*14));
 
 	echo $timer->lap("delete old blog notifications (14 days)");
-	$usersdb->squery(false, $usersdb->prepare("DELETE FROM blogcommentsunread WHERE time <= ?", $newtime - 86400*14));
+	$usersdb->prepare_query("DELETE FROM blogcommentsunread WHERE time <= ?", $newtime - 86400*14);
 
 
 	echo $timer->lap("delete bad moditems");

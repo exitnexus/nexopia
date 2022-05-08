@@ -69,7 +69,14 @@
 			);
 
 	$memcacheoptions = array(
-		'servers' => array( 
+		'servers' => array(
+				array("10.0.2.43:11211", 8),
+				array("10.0.2.7:11211",  5),
+				array("10.0.2.8:11211",  5),
+				array("10.0.2.9:11211",  5),
+				array("10.0.2.10:11211", 5),
+				array("10.0.2.11:11211", 5),
+/*
 				"10.0.3.1:11211",
 				"10.0.3.2:11211",
 				"10.0.3.3:11211",
@@ -106,13 +113,20 @@
 				"10.0.3.34:11211",
 				"10.0.3.35:11211",
 				"10.0.3.36:11211",
+*/
 			),
 		'debug'   => false,
 		'compress_threshold' => 8000,
 		'persistant' => true);
 
 	$pagecacheoptions = array(
-		'servers' => array( 
+		'servers' => array(
+				'10.0.2.27:11211',
+				'10.0.2.28:11211',
+				'10.0.2.29:11211',
+				'10.0.2.30:11211',
+				'10.0.2.31:11211',
+/*
 				'10.0.3.37:11211',
 				'10.0.3.38:11211',
 				'10.0.3.39:11211',
@@ -121,6 +135,7 @@
 				'10.0.3.42:11211',
 				'10.0.3.43:11211',
 				'10.0.3.44:11211',
+*/
 			),
 		'debug'   => false,
 		'compress_threshold' => 8000,
@@ -158,8 +173,12 @@
 	$lockSplitWriteOps = false;
 
 	$config = array(
+		'templatefilesdir' => "$docRoot/include/templates/template_files/",
+		'templateparsedir' => "$docRoot/include/templates/compiled_files/",
+		'templateusecached' => true,
+	
 		'allowThreadUpdateEmails' => false, //send subscribed users an email if a thread is updated
-		'defaultMessageAllowEmails' => false, // whether or not deliverMsg defaults to allowing emails to be sent
+		'defaultMessageAllowEmails' => true, // whether or not deliverMsg defaults to allowing emails to be sent
 
 		'jsdir' => '/site_data/javascript/',
 		'jsloc' => "http://$staticimgdomain/javascript/",
@@ -185,6 +204,7 @@
 		'memcached' => true, //Use Memcache?
 		'gd2' => true, //which image resize function to use
 
+		'voteHistLength' => 86400*21, //poll vote length
 
 		'smtp_host' => '10.0.0.33', //outgoing email server
 		'paypalemail' => 'timo@tzc.com',
@@ -264,7 +284,8 @@
 		'picmodexamdir' => '/site_data/picmodexam/', //directory relative to the docroot to save pic mod exam imgs
 		'picmodexamloc' => "http://$staticimgdomain/picmodexam/", //directory relative to the docroot to save pic mod exam imgs
 		'picmodpluserrrate' => 2.5, //maximum error rate required during a week to earn plus
-		'picmodpluspicrate' => 2500, //modded pics required during a week to get plus
+		'picmodpluspicrate'	=> 2500, //modded pics required during a week to get plus
+		'picmodmonthlymin'	=> 10000, //modded pics required during a month to make top 5
 	);
 
 	include_once("include/errorsyslog.php");
