@@ -4,9 +4,13 @@
 
 	require_once("include/general.lib.php");
 
+    $action = getPOSTval('action');
+    
 	switch($action){
 		case "Resend Activation":
-			if(!isset($username) || $username==""){
+            $username = getPOSTval('username');
+            
+			if(blank($username)){
 				$msgs->addMsg("You must specify your username");
 				break;
 			}
@@ -37,7 +41,12 @@ If you didn't request this email, you can safely ignore it.";
 			}
 			break;
 		case "Change Password":
-			if(!isset($username) || !isset($pass1) || !isset($activation) || $username=="" || $pass1=="" || $activation==""){
+            $username = getPOSTval('username');
+            $pass1 = getPOSTval('pass1');
+            $pass2 = getPOSTval('pass2');
+            $activation = getPOSTval('activation');
+            
+			if(blank($username, $pass1, $pass2, $activation)){
 				$msgs->addMsg("You must specify your username, new password and the activation key");
 				break;
 			}
@@ -60,7 +69,9 @@ If you didn't request this email, you can safely ignore it.";
 			}
 			break;
 		case "Activate":
-			if(isset($username) && isset($actkey) && strlen($username)>0 && strlen($actkey)>0){
+            $username = getPOSTval('username');
+            $actkey = getPOSTval('actkey');
+			if(!blank($username, $actkey)){
 				if(activateAccount($username,$actkey))
 					$msgs->addMsg("Activation complete.");
 				else

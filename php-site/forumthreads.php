@@ -24,22 +24,28 @@
 	if($userData['loggedIn']){
 		switch($action){
 			case "markallread":
-				$time = time();
-				$forums->db->prepare_query("UPDATE forumupdated SET readalltime = # WHERE userid = # && forumid = #", $time, $userData['userid'], $fid);
-				if($forums->db->affectedrows()==0){
-					$forums->db->prepare_query("INSERT IGNORE INTO forumupdated SET userid = #, forumid = #, time = #, readalltime = #", $userData['userid'], $fid, $time, $time);
+				if($userData['loggedIn'] && ($k = getREQval('k')) && checkKey($fid, $k)){
+					$time = time();
+					$forums->db->prepare_query("UPDATE forumupdated SET readalltime = # WHERE userid = # && forumid = #", $time, $userData['userid'], $fid);
+					if($forums->db->affectedrows()==0){
+						$forums->db->prepare_query("INSERT IGNORE INTO forumupdated SET userid = #, forumid = #, time = #, readalltime = #", $userData['userid'], $fid, $time, $time);
+					}
+					if($config['memcached'])
+						$cache->put(array($userData['userid'], "forumreadalltime-$userData[userid]-$fid"), $time, 86400);
 				}
-				if($config['memcached'])
-					$cache->put(array($userData['userid'], "forumreadalltime-$userData[userid]-$fid"), $time, 86400);
 				break;
 			case "sortbythread":
-				$db->prepare_query("UPDATE users SET forumsort='thread' WHERE userid = #", $userData['userid']);
-				$userData['forumsort'] = 'thread';
+				if($userData['loggedIn'] && ($k = getREQval('k')) && checkKey($fid, $k)){
+					$db->prepare_query("UPDATE users SET forumsort='thread' WHERE userid = #", $userData['userid']);
+					$userData['forumsort'] = 'thread';
+				}
 
 				break;
 			case "sortbypost":
-				$db->prepare_query("UPDATE users SET forumsort='post' WHERE userid = #", $userData['userid']);
-				$userData['forumsort'] = 'post';
+				if($userData['loggedIn'] && ($k = getREQval('k')) && checkKey($fid, $k)){
+					$db->prepare_query("UPDATE users SET forumsort='post' WHERE userid = #", $userData['userid']);
+					$userData['forumsort'] = 'post';
+				}
 
 				break;
 			case "delete":
@@ -98,17 +104,21 @@
 				}
 				break;
 			case "withdraw":
-				if($perms['invited'] && $userData['userid'] != $forumdata['ownerid']){
-					$forums->db->prepare_query("DELETE FROM foruminvite WHERE userid = # && forumid = #", $userData['userid'], $fid);
-					$perms['invited']=false;
-					$cache->put(array($userData['userid'], "foruminvite-$userData[userid]-$fid"), 0, 10800);
+				if($userData['loggedIn'] && ($k = getREQval('k')) && checkKey($fid, $k)){
+					if($perms['invited'] && $userData['userid'] != $forumdata['ownerid']){
+						$forums->db->prepare_query("DELETE FROM foruminvite WHERE userid = # && forumid = #", $userData['userid'], $fid);
+						$perms['invited']=false;
+						$cache->put(array($userData['userid'], "foruminvite-$userData[userid]-$fid"), 0, 10800);
+					}
 				}
 				break;
 			case "subscribe":
-				if(!$perms['invited'] && $forumdata['official']=='n'){
-					$forums->db->prepare_query("INSERT IGNORE INTO foruminvite SET userid = #, forumid = #", $userData['userid'], $fid);
-					$perms['invited']=true;
-					$cache->put(array($userData['userid'], "foruminvite-$userData[userid]-$fid"), 1, 10800);
+				if($userData['loggedIn'] && ($k = getREQval('k')) && checkKey($fid, $k)){
+					if(!$perms['invited'] && $forumdata['official']=='n'){
+						$forums->db->prepare_query("INSERT IGNORE INTO foruminvite SET userid = #, forumid = #", $userData['userid'], $fid);
+						$perms['invited']=true;
+						$cache->put(array($userData['userid'], "foruminvite-$userData[userid]-$fid"), 1, 10800);
+					}
 				}
 				break;
 		}
@@ -118,7 +128,7 @@
 		$readalltime = $cache->get(array($userData['userid'], "forumreadalltime-$userData[userid]-$fid"));
 
 		if($readalltime === false){
-			$forums->db->prepare_query("SELECT readalltime FROM forumupdated WHERE userid = ? && forumid = ?", $userData['userid'], $fid);
+			$forums->db->prepare_query("SELECT readalltime FROM forumupdated WHERE userid = # && forumid = #", $userData['userid'], $fid);
 			if($forums->db->numrows())
 				$readalltime = $forums->db->fetchfield();
 			else
@@ -127,9 +137,9 @@
 			$cache->put(array($userData['userid'], "forumreadalltime-$userData[userid]-$fid"), $readalltime, 86400);
 		}
 
-		$forums->db->prepare_query("UPDATE forumupdated SET time = ? WHERE userid = ? && forumid = ?", time(), $userData['userid'], $fid);
+		$forums->db->prepare_query("UPDATE forumupdated SET time = # WHERE userid = # && forumid = #", time(), $userData['userid'], $fid);
 		if($forums->db->affectedrows()==0)
-			$forums->db->prepare_query("INSERT IGNORE INTO forumupdated SET time = ?, userid = ?, forumid = ?", time(), $userData['userid'], $fid);
+			$forums->db->prepare_query("INSERT IGNORE INTO forumupdated SET time = #, userid = #, forumid = #", time(), $userData['userid'], $fid);
 
 		$forumsort = $userData['forumsort'];
 		$forumpostsperpage = $userData['forumpostsperpage'];
@@ -154,7 +164,7 @@
 	$select = "id, title, author, authorid, reads, posts, time, lastauthor, lastauthorid, locked, sticky, moved, announcement, flag, pollid, '0' as new, '0' as subscribe";
 
 	if($page == 0){
-		$forums->db->prepare_query("SELECT $select FROM  forumthreads USE INDEX (announcement) WHERE announcement='y' && forumid = ? ORDER BY time DESC", $fid);
+		$forums->db->prepare_query("SELECT $select FROM  forumthreads USE INDEX (announcement) WHERE announcement='y' && forumid = # ORDER BY time DESC", $fid);
 
 		while($line = $forums->db->fetchrow()){
 			$threaddata[$line['id']] = $line;
@@ -163,7 +173,7 @@
 	}
 
 
-	$forums->db->prepare_query("SELECT SQL_CALC_FOUND_ROWS $select FROM forumthreads USE INDEX (forumid) WHERE forumid = ? && time >= ? && sticky IN ('y','n') && announcement='n' ORDER BY sticky DESC," . ($forumsort=='post' ? "time" : "id") . " DESC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]", $fid, $startdate);
+	$forums->db->prepare_query("SELECT SQL_CALC_FOUND_ROWS $select FROM forumthreads USE INDEX (forumid) WHERE forumid = # && time >= # && sticky IN ('y','n') && announcement='n' ORDER BY sticky DESC," . ($forumsort=='post' ? "time" : "id") . " DESC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]", $fid, $startdate);
 
 	while($line = $forums->db->fetchrow()){
 		$threaddata[$line['id']] = $line;
@@ -177,7 +187,7 @@
 //all new: 2, some new: 1, no new: 0
 	if($userData['loggedIn'] && count($threadids)>0){
 		$subscribes = array();
-		$forums->db->prepare_query("SELECT threadid,time,subscribe FROM forumread WHERE userid='$userData[userid]' && threadid IN (?)", $threadids);
+		$forums->db->prepare_query("SELECT threadid,time,subscribe FROM forumread WHERE userid='$userData[userid]' && threadid IN (#)", $threadids);
 
 		while($line = $forums->db->fetchrow())
 			$subscribes[$line['threadid']] = $line;
@@ -201,11 +211,13 @@
 		}
 	}
 	if(count($lockids) > 0)
-		$forums->db->prepare_query("UPDATE forumthreads SET locked='y' WHERE id IN (?)", $lockids);
+		$forums->db->prepare_query("UPDATE forumthreads SET locked='y' WHERE id IN (#)", $lockids);
 
 	$numonline = $forums->forumsNumOnline($fid);
 
 	incHeader(false);
+
+	$key = makeKey($fid);
 
 	echo "<table width=100% border=0 cellpadding=3 cellspacing=1>";
 
@@ -239,11 +251,11 @@
 
 		echo "<td align=right class=header2>";
 		if($perms['invited'] && $forumdata['ownerid']!=$userData['userid'])
-			echo "<a class=header2 href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?fid=$fid&action=withdraw','withdraw from this forum?')\">Withdraw From Forum Topic</a> | ";
+			echo "<a class=header2 href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?fid=$fid&action=withdraw&k=$key','withdraw from this forum?')\">Withdraw From Forum Topic</a> | ";
 		elseif($forumdata['official'] == 'n' && $forumdata['ownerid']!=$userData['userid'])
-			echo "<a class=header2 href=$_SERVER[PHP_SELF]?fid=$fid&action=subscribe>Subscribe to Forum Topic</a> | ";
-		echo "<a class=header2 href=$_SERVER[PHP_SELF]?fid=$fid&action=markallread>Mark All as Read</a> | ";
-		echo "<a class=header2 href=$_SERVER[PHP_SELF]?fid=$fid&action=" . ($forumsort=="post" ? "sortbythread>Sort By Thread" : "sortbypost>Sort By Post") . "</a>";
+			echo "<a class=header2 href=$_SERVER[PHP_SELF]?fid=$fid&action=subscribe&k=$key>Subscribe to Forum Topic</a> | ";
+		echo "<a class=header2 href=$_SERVER[PHP_SELF]?fid=$fid&action=markallread&k=$key>Mark All as Read</a> | ";
+		echo "<a class=header2 href=$_SERVER[PHP_SELF]?fid=$fid&action=" . ($forumsort=="post" ? "sortbythread&k=$key>Sort By Thread" : "sortbypost&k=$key>Sort By Post") . "</a>";
 		echo "</td></tr></table></td></tr>\n";
 	}
 

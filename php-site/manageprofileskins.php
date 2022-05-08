@@ -35,7 +35,7 @@
 			break;
 
 		case "delete":
-			if($id = getREQval('id', 'int'))
+			if(($id = getREQval('id', 'int')) && ($k = getREQval('k')) && checkKey($id, $k))
 				deleteSkin($id);
 			break;
 	}
@@ -64,7 +64,7 @@ function listSkins(){
 	foreach($rows as $id => $name){
 		echo "<tr>";
 		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=edit&id=$id>$name</a></td>";
-		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=delete&id=$id>Delete</a></td>";
+		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=delete&id=$id&k=" . makeKey($id) . ">Delete</a></td>";
 		echo "</tr>";
 	}
 	echo "<tr><td class=header colspan=2 align=right><a class=header href=$_SERVER[PHP_SELF]?action=add>Create New Skin</a></td></tr>";

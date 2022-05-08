@@ -1,4 +1,4 @@
-#!/usr/local/php-cli/bin/php
+#!/usr/bin/php-cgi -q
 <?
 
 $forceserver=true;
@@ -11,10 +11,10 @@ $errorLogging=false;
 	$_SERVER['DOCUMENT_ROOT'] = "/home/nexopia/public_html";
 	$userid = 1;
 /*/
-//#!/usr/local/bin/php -q
+//#!/usr/bin/php-cgi -1
 	$_SERVER['SCRIPT_NAME'] = "/bannerserver.php";
-	$_SERVER['SERVER_NAME'] = $_SERVER['HTTP_HOST'] = "www.nexopia.sytes.net";
-	$_SERVER['DOCUMENT_ROOT'] = "/htdocs/nexopia/public_html";
+	$_SERVER['SERVER_NAME'] = $_SERVER['HTTP_HOST'] = "www.dev.nexopia.com";
+	$_SERVER['DOCUMENT_ROOT'] = "/home/nexopia/public_html";
 	$userid = 5;
 //*/
 	require_once($_SERVER['DOCUMENT_ROOT'] . "/include/general.lib.php");

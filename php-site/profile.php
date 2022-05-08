@@ -1157,7 +1157,7 @@ function displayUser($uid,$picid=0){ // either userid and picnum, or userid or p
 	$user['plus'] = $user['premiumexpiry'] > time();
 
 //ignored user
-	if($user['plus'] && $user['hideprofile'] =='y' && (!$userData['loggedIn'] || isIgnored($uid, $userData['userid'], '', 0, true))){
+	if($user['plus'] && $user['hideprofile'] =='y' && (!$userData['loggedIn'] || isIgnored($uid, $userData['userid'], false, 0, true))){
 		incHeader();
 
 		if($userData['loggedIn'])

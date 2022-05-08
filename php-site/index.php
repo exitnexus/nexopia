@@ -21,7 +21,7 @@
 		$news = 'out';
 	}
 
-	incHeader(false,$leftBlocks);
+	incHeader(false, $leftBlocks, $rightBlocks);
 
 
 	echo "<table width=100% cellspacing=0 cellpadding=3>";
@@ -153,10 +153,6 @@ function getArticles(){
 
 	echo "</table>";
 
-
-
-
-	incFooter($rightBlocks);
-//poll, lastest posts, new articles, thumbnail of top girl and guy, coming events
+	incFooter();
 
 

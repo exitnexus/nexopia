@@ -14,7 +14,7 @@
 	set_time_limit(0);
 //	ignore_user_abort(true);
 
-$mods->doPromotions($debuginfousers[0]);
+//$mods->doPromotions($debuginfousers[0]);
 
 /*
 //convert from single db to hash balanced db
@@ -129,7 +129,7 @@ INSERT INTO msgsnew.msgs (id, userid, folder, otheruserid , `to`, toname, `from`
 
 $db->prepare_query("UPDATE msgtext SET date = #, html = 'n', compressed = 'n'", time());
 
-
+*/
 
 
 /*
@@ -146,7 +146,7 @@ $db->prepare_query("UPDATE msgtext SET date = #, html = 'n', compressed = 'n'", 
 			$result = $dbs[$dbname]->query("SHOW CREATE TABLE `$tname`");
 			$output = $dbs[$dbname]->fetchfield(1,0,$result);
 
-			$tables[$tname] = $output;
+			$tables[$tname] = "-- $dbname.$tname\n$output";
 		}
 	}
 
@@ -155,7 +155,32 @@ $db->prepare_query("UPDATE msgtext SET date = #, html = 'n', compressed = 'n'", 
 	echo "<pre>";
 	echo implode("\n\n------------------------\n\n", $tables);
 	echo "</pre>";
-*/
+//*/
+
+//*
+//convert tables to MyISAM
+	foreach($dbs as $dbname => $optdb){
+		$tableresult = $dbs[$dbname]->listtables();
+
+		while(list($tname) = $dbs[$dbname]->fetchrow($tableresult, DB_NUM)){
+
+			echo "$dbname.$tname";
+
+			$result = $dbs[$dbname]->query("SHOW CREATE TABLE `$tname`");
+			$output = $dbs[$dbname]->fetchfield(1,0,$result);
+
+			if(strpos($output, "InnoDB") !== 0){
+				echo " ... converting ... "; zipflush();
+
+				$dbs[$dbname]->query("ALTER TABLE `$tname` TYPE = MyISAM");
+
+				echo "Done";
+			}
+
+			echo "<br>\n"; zipflush();
+		}
+	}
+//*/
 
 
 	echo "\n<br>\n<br>Update Complete<br>\n";

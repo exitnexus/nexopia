@@ -14,6 +14,7 @@
 
 	switch($action){
 		case "viewnew":
+			//if(checkKey('newmsg', getREQval('k')))
 			viewNew(); 		//exit
 
 		case "next":
@@ -99,14 +100,17 @@
 		case "Ignore List":
 		case "ignorelist":
 			ignorelist(); //exit;
-		case "ignore":
-		case "Ignore":
-			if($id = getREQval('id'))
+		case "ignore": //from a message or comment
+			if(($id = getREQval('id')) && ($k = getREQval('k')) && checkKey($id, $k))
+				ignore($id);
+			break;
+		case "Ignore": //straight from the ignore list
+			if($id = getPOSTval('id'))
 				ignore($id);
 			break;
 		case "unignore":
 		case "UnIgnore":
-			if($id = getREQval('id', 'int'))
+			if(($id = getREQval('id')) && ($k = getREQval('k')) && checkKey($id, $k))
 				unignore($id);
 			break;
 
@@ -366,7 +370,7 @@ function viewMsg($id){
 		$links[] = "<a class=body href=\"$_SERVER[PHP_SELF]?action=forward&id=$id\">Forward</a>";
 		$links[] = "<a class=body href=\"$_SERVER[PHP_SELF]?action=delete&checkID[]=$id\">Delete</a>";
 		if($msg['from'] && $msg['from'] != $uid)
-			$links[] = "<a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?action=ignore&id=$msg[from]','ignore this user')\">Ignore User</a>";
+			$links[] = "<a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?action=ignore&id=$msg[from]&k=" . makeKey($msg['from']) . "','ignore this user')\">Ignore User</a>";
 		$links[] = "<a class=body href=\"$_SERVER[PHP_SELF]?action=next&fid=$msg[folder]&id=$id\">Next</a>";
 		$links[] = "<a class=body href=\"$_SERVER[PHP_SELF]?action=prev&fid=$msg[folder]&id=$id\">Previous</a>";
 	}else{
@@ -675,7 +679,7 @@ function ignorelist(){
 
 	foreach($rows as $line){
 		echo "<tr><td class=body><a class=body href='profile.php?uid=$line[ignoreid]'>$line[username]</a></td>";
-		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=unignore&id=$line[ignoreid]" . ($uid == $userData['userid'] ? "" : "&uid=$uid") . "><img src=$config[imageloc]delete.gif border=0></a></td></tr>";
+		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=unignore&id=$line[ignoreid]&k=" . makeKey($line['ignoreid']) . ($uid == $userData['userid'] ? "" : "&uid=$uid") . "><img src=$config[imageloc]delete.gif border=0></a></td></tr>";
 	}
 	echo "</table><br>";
 

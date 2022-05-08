@@ -116,7 +116,7 @@ Thanks for using Plus, and we hope you choose to keep using it!";
 }
 
 function deletePremium($userid){
-	global $db, $config, $mods;
+	global $db, $config, $mods, $docRoot;
 
 //reset forumrank, anonymousviews
 	$db->prepare_query("UPDATE users SET forumrank = '', anonymousviews = 'n' WHERE userid = ?", $userid);
@@ -145,7 +145,7 @@ function deletePremium($userid){
 	$db->prepare_query("DELETE FROM gallerycats WHERE userid = ?", $uid);
 
 //files
-	rmdirrecursive( $masterserver . $config['basefiledir'] . floor($userid/1000) . "/" . $userid );
+	rmdirrecursive( $docRoot . $config['basefiledir'] . floor($userid/1000) . "/" . $userid );
 
 	//custom forums?
 

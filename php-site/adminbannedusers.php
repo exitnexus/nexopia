@@ -65,7 +65,7 @@ function edit($id){
 	echo "</table></form>\n";
 
 
-	incFooter(array('incAdminBlock'));
+	incFooter();
 	exit;
 }
 
@@ -111,4 +111,4 @@ function update($id,$val,$type){
 	echo "<tr><td class=body></td><td class=body><INPUT class=body TYPE=submit name=action VALUE=\"Add\"></td><td></td></tr>\n";
 	echo "</table></form>\n";
 
-	incFooter(array('incAdminBlock'));
+	incFooter();

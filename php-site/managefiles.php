@@ -4,13 +4,15 @@
 
 	require_once("include/general.lib.php");
 
-	if(!isset($uid) || !$mods->isAdmin($userData['userid'],'editfiles'))
-		$uid = $userData['userid'];
+	$isAdmin = $mods->isAdmin($userData['userid'],'editfiles');
+
+	$uid = ($isAdmin ? getREQval('uid', 'int', $userData['userid']) : $userData['userid']);
+
 
 	$db->prepare_query("SELECT * FROM files WHERE userid = # ORDER BY length(location) ASC", $uid);
 
 	if($db->numrows()==0){
-		$allperms = array( 0 => 	array(	'userid' => $userData['userid'],
+		$allperms = array( 0 => 	array(	'userid' => $uid,
 											'location' => $config['basefiledir'] . floor($uid/1000) . "/" . $uid . "/",
 											'list' => 'y',
 											'read' => 'y',
@@ -21,11 +23,11 @@
 											'filesizelimit' => $config['filesizelimit'],
 											'quota' => $config['quota'] ) );
 
-		if(!file_exists($masterserver . $config['basefiledir'] . floor($uid/1000)))
-			mkdir($masterserver . $config['basefiledir'] . floor($uid/1000) . "/");
+		if(!file_exists($docRoot . $config['basefiledir'] . floor($uid/1000)))
+			mkdir($docRoot . $config['basefiledir'] . floor($uid/1000) . "/");
 
-		if(!file_exists($masterserver . $config['basefiledir'] . floor($uid/1000) . "/" . $uid ))
-			mkdir($masterserver . $config['basefiledir'] . floor($uid/1000) . "/" . $uid);
+		if(!file_exists($docRoot . $config['basefiledir'] . floor($uid/1000) . "/" . $uid ))
+			mkdir($docRoot . $config['basefiledir'] . floor($uid/1000) . "/" . $uid);
 /*
 			if(!empty($action) && $action == 'Continue'){
 
@@ -49,7 +51,7 @@
 		while($line = $db->fetchrow())
 			$allperms[] = $line;
 
-		$urlRoot = $wwwdomain;
+		$urlRoot = "http://$wwwdomain";
 	}
 
 	$restrictedfiles = array("php", "pif", "com", "scr", "bat", "vbs");
@@ -61,16 +63,19 @@
 	if($baseuserdir === false)
 		die("no base directory. Contact the webmaster");
 
-	$basedir = $masterserver . $baseuserdir;
+	$basedir = $docRoot . $baseuserdir;
 
-	if(!isset($opendir) || @strpos(realpath($basedir . $opendir),$basedir)===false || !is_dir($basedir . $opendir))
+	if(substr($basedir, -1) == '/')
+		$basedir = substr($basedir, 0, -1);
+
+	if(!($opendir = getREQval('opendir')) || @strpos(realpath($basedir . $opendir),$basedir)===false || !is_dir($basedir . $opendir))
 		$opendir="/";
 
 
-	if(!isset($sortd) || ($sortd!="ASC" && $sortd!="DESC"))
+	if(!($sortd = getREQval('sortd')) || ($sortd!="ASC" && $sortd!="DESC"))
 		$sortd="ASC";
 
-	if(!isset($sortt) || ($sortt!="name" && $sortt!="size" && $sortt!="date"))
+	if(!($sortt = getREQval('sortt')) || ($sortt!="name" && $sortt!="size" && $sortt!="date"))
 		$sortt="name";
 
 	$opendirperms = getPerms($baseuserdir . $opendir);
@@ -80,19 +85,58 @@
 	if($opendirperms==false || $opendirperms['list']=='n')
 		die("you don't have list access to this folder");
 
-	if(!isset($action))
-		$action="";
 
 	switch($action){
-		case "Upload":				upload($userfile,$userfile_name);			break;
-		case "edit":				edit($filename);							break;
-		case "Save":				save($filename,$text);						break;
-		case "delete":				delete($filename);							break;
-		case "Create File":			createfile($filename);						break;
-		case "Create Directory":	createdir($dirname);						break;
-		case "view":				view($filename);							break;
-		case "download":			download($filename);						break;
-		case "rename":				renamefile($filename,$new);					break;
+		case "Upload":
+			$userfile = getFILEval('userfile');
+			upload($userfile['tmp_name'], $userfile['name']);
+			break;
+
+		case "edit":
+			if(($filename = getREQval('filename')) &&
+				($k = getREQval('k')) && checkKey($filename, $k))
+				edit($filename);
+			break;
+
+		case "Save":
+			if(($filename = getREQval('filename')) &&
+				($text = getPOSTval('text')) )
+				save($filename, $text);
+			break;
+
+		case "delete":
+			if(($filename = getREQval('filename')) &&
+				($k = getREQval('k')) && checkKey($filename, $k))
+				delete($filename);
+			break;
+
+		case "Create File":
+			if(($filename = getPOSTval('filename')))
+				createfile($filename);
+			break;
+
+		case "Create Directory":
+			if(($filename = getPOSTval('filename')))
+				createdir($dirname);
+			break;
+
+		case "view":
+			if(($filename = getREQval('filename')))
+				view($filename);
+			break;
+
+		case "download":
+			if(($filename = getREQval('filename')) &&
+				($k = getREQval('k')) && checkKey($filename, $k))
+				download($filename);
+			break;
+
+		case "rename":
+			if(($filename = getREQval('filename')) &&
+				($new = getREQval('new')) &&
+				($k = getREQval('k')) && checkKey($filename, $k))
+				renamefile($filename,$new);
+			break;
 	}
 
 	browse($opendir);
@@ -554,6 +598,9 @@ function browse($opendir){
 
 		foreach($listing as $file){
 			echo "<tr>";
+
+			$key = makeKey($file['filename']);
+
 //directories
 			if($file['filetype']=='directory'){
 				$perms = getPerms($baseuserdir . $opendir . $file['filename'] . "/");
@@ -561,12 +608,12 @@ function browse($opendir){
 //delete
 				echo "<td class=body>";
 				if($perms['write']=='y')
-					echo "<a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?opendir=$opendir&action=delete&filename=" . urlencode($file['filename']) . "$uidstr','delete this directory')\"><img src=$config[imageloc]delete.gif border=0 alt=Delete></a> ";
+					echo "<a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?opendir=$opendir&action=delete&k=$key&filename=" . urlencode($file['filename']) . "$uidstr','delete this directory')\"><img src=$config[imageloc]delete.gif border=0 alt=Delete></a> ";
 				echo "</td>";
 //rename
 				echo "<td class=body>";
 				if($perms['write']=='y' && $uid == $userData['userid'])
-					echo "<a class=body href=\"javascript: if(name = prompt('Rename to what?','" . urlencode($file['filename']) . "')) location.href= '$_SERVER[PHP_SELF]?opendir=$opendir&action=rename&filename=" . urlencode($file['filename']) . "$uidstr&new=' + escape(name)\"><img src=$config[imageloc]rename.gif border=0 alt=Rename></a> ";
+					echo "<a class=body href=\"javascript: if(name = prompt('Rename to what?','" . urlencode($file['filename']) . "')) location.href= '$_SERVER[PHP_SELF]?opendir=$opendir&action=rename&k=$key&filename=" . urlencode($file['filename']) . "$uidstr&new=' + escape(name)\"><img src=$config[imageloc]rename.gif border=0 alt=Rename></a> ";
 				echo "</td>";
 
 				echo "<td class=body></td>"; //download
@@ -587,22 +634,22 @@ function browse($opendir){
 //delete
 				echo "<td class=body>";
 				if($opendirperms['write']=='y')
-					echo "<a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?opendir=$opendir&action=delete$uidstr&filename=" . urlencode(urlencode($file['filename'])) . "','delete this file')\"><img src=$config[imageloc]delete.gif border=0 alt=Delete></a> ";
+					echo "<a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?opendir=$opendir&action=delete$uidstr&k=$key&filename=" . urlencode(urlencode($file['filename'])) . "','delete this file')\"><img src=$config[imageloc]delete.gif border=0 alt=Delete></a> ";
 				echo "</td>";
 //rename
 				echo "<td class=body>";
 				if($opendirperms['write']=='y' && (getFileType($file['filename'])!='php' || $opendirperms['readphp']=='y') && $uid == $userData['userid'])
-					echo "<a class=body href=\"javascript: if(name = prompt('Rename to what?','" . urlencode($file['filename']) . "')) location.href= '$_SERVER[PHP_SELF]?opendir=$opendir&action=rename&filename=" . urlencode(urlencode($file['filename'])) . "&new=' + escape(name)\"><img src=$config[imageloc]rename.gif border=0 alt=Rename></a> ";
+					echo "<a class=body href=\"javascript: if(name = prompt('Rename to what?','" . urlencode($file['filename']) . "')) location.href= '$_SERVER[PHP_SELF]?opendir=$opendir&action=rename&k=$key&filename=" . urlencode(urlencode($file['filename'])) . "&new=' + escape(name)\"><img src=$config[imageloc]rename.gif border=0 alt=Rename></a> ";
 				echo "</td>";
 //download
 				echo "<td class=body>";
 				if($opendirperms['read']=='y' && (getFileType($file['filename'])!='php' || $opendirperms['readphp']=='y'))
-					echo "<a class=body href=\"$_SERVER[PHP_SELF]?opendir=$opendir&action=download$uidstr&filename=" . urlencode($file['filename']) . "\"><img src=$config[imageloc]down.png border=0 alt=Download></a> ";
+					echo "<a class=body href=\"$_SERVER[PHP_SELF]?opendir=$opendir&action=download$uidstr&k=$key&filename=" . urlencode($file['filename']) . "\"><img src=$config[imageloc]down.png border=0 alt=Download></a> ";
 				echo "</td>";
 //edit
 				echo "<td class=body>";
 				if($opendirperms['read']=='y' && ($file['filetype']=='text' || ($file['filetype']=='php' && $opendirperms['writephp']=='y')))
-					echo "<a class=body href=\"$_SERVER[PHP_SELF]?opendir=$opendir&action=edit$uidstr&filename=" . urlencode($file['filename']) . "\"><img src=$config[imageloc]edit.gif border=0 alt=Edit></a>";
+					echo "<a class=body href=\"$_SERVER[PHP_SELF]?opendir=$opendir&action=edit$uidstr&k=$key&filename=" . urlencode($file['filename']) . "\"><img src=$config[imageloc]edit.gif border=0 alt=Edit></a>";
 				echo "</td>";
 
 
@@ -633,7 +680,7 @@ function browse($opendir){
 	echo "</table>";
 
 	if($opendirperms['write']=='y' && $userData['userid'] == $uid){
-		echo "<table><form action=$_SERVER[PHP_SELF]>";
+		echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
 		echo "<input type=hidden name=opendir value=\"$opendir\">";
 		echo "<input type=hidden name=sortt value=$sortt>";
 		echo "<input type=hidden name=sortd value=$sortd>";
@@ -643,7 +690,7 @@ function browse($opendir){
 		echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
 
 		if($opendirperms['recursive']=='y'){
-			echo "<form action=$_SERVER[PHP_SELF]>";
+			echo "<form action=$_SERVER[PHP_SELF] method=post>";
 			echo "<input type=hidden name=opendir value=\"$opendir\">";
 			echo "<input type=hidden name=sortt value=$sortt>";
 			echo "<input type=hidden name=sortd value=$sortd>";
@@ -653,7 +700,7 @@ function browse($opendir){
 			echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
 		}
 
-		echo "<form action=$_SERVER[PHP_SELF] ENCTYPE=\"multipart/form-data\" method=POST>\n";
+		echo "<form action=$_SERVER[PHP_SELF] enctype=\"multipart/form-data\" method=post>\n";
 		echo "<input type=hidden name=opendir value=\"$opendir\">";
 		echo "<input type=hidden name=sortt value=$sortt>";
 		echo "<input type=hidden name=sortd value=$sortd>";

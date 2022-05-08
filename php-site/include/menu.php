@@ -73,7 +73,7 @@
 	$menus['bottom']->addItem("Privacy Policy",	'privacy.php',		0);
 	$menus['bottom']->addItem("Contact Admin",	'contactus.php',	0);
 	$menus['bottom']->addItem("Change Skin",	'changeskin.php',	0);
-	$menus['bottom']->addItem("Advertise",		'http://advertise.nexopia.com',0);
+	$menus['bottom']->addItem("Advertise",		'http://advertise.nexopia.com',	0, 	false, '_blank');
 	$menus['bottom']->addItem("PLUS",			'pluspayg.php',		0);
 
 

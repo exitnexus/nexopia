@@ -354,5 +354,5 @@ die("error");
 	echo "</form></table>";
 
 
-	incFooter(array('incAdminBlock'));
+	incFooter();
 

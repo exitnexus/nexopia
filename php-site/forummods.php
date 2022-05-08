@@ -43,19 +43,19 @@
 		case "add":
 			addMod();
 		case "Create":
-			if(!empty($_POST['data']))
-				insertMod($_POST['data']);
+			if($data = getPOSTval('data', 'array'))
+				insertMod($data);
 			break;
 		case "edit":
-			if(!empty($_REQUEST['uid']))
-				editMod($_REQUEST['uid']);
+			if($uid = getREQval('uid', 'int'))
+				editMod($uid);
 		case "Update":
-			if(!empty($_POST['uid']) && !empty($_POST['data']))
-				updateMod($_POST['uid'], $_POST['data']);
+			if(($uid = getPOSTval('uid', 'int')) && ($data = getPOSTval('data', 'array')))
+				updateMod($uid, $data);
 			break;
 		case "delete":
-			if(!empty($_REQUEST['uid']))
-				deleteMod($_REQUEST['uid']);
+			if(($uid = getREQval('uid', 'int')) && ($k = getREQval('k')) && checkKey("$uid:$fid", $k))
+				deleteMod($uid);
 			break;
 	}
 
@@ -253,7 +253,7 @@ function listMods(){
 		echo "<td class=body nowrap><a class=body href=profile.php?uid=$line[userid]>$line[username]</a></td>";
 		echo "<td class=body nowrap>" . ($line['activetime'] ? userDate("F j, Y \\a\\t g:i a", $line['activetime']) : 'Unknown') . "</td>";
 		echo "<td class=body nowrap><a class=body href=$_SERVER[PHP_SELF]?action=edit&uid=$line[userid]&fid=$fid><img src=$config[imageloc]edit.gif border=0></a>";
-		echo "<a class=body href=$_SERVER[PHP_SELF]?action=delete&uid=$line[userid]&fid=$fid><img src=$config[imageloc]delete.gif border=0></a></td>";
+		echo "<a class=body href=$_SERVER[PHP_SELF]?action=delete&uid=$line[userid]&fid=$fid&k=" . makeKey("$line[userid]:$fid") . "><img src=$config[imageloc]delete.gif border=0></a></td>";
 //*
 		$vals = array();
 		foreach($possible as $n => $v)

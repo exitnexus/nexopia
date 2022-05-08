@@ -7,7 +7,7 @@
 
 
 	$sitebasedir = "/home/nexopia";
-	$masterserver = "$sitebasedir/public_html";
+//	$masterserver = "$sitebasedir/public_html";
 	$docRoot = "$sitebasedir/public_html";
 
 	$slowquerytime = 10*10000; // 10 secs
@@ -151,14 +151,14 @@
 
 /*/
 
-	$wwwdomain = 'www.nexopia.sytes.net';
-	$pluswwwdomain = 'lighttpd.www.nexopia.sytes.net'; //needed only to check which db server to use, when plus only db servers are possible
+	$wwwdomain = 'www.dev.nexopia.com';
+	$pluswwwdomain = 'plus.www.dev.nexopia.com'; //needed only to check which db server to use, when plus only db servers are possible
 	$emaildomain = 'nexopia.sytes.net';
 
 
-	$sitebasedir = "/htdocs/nexopia";
-	$masterserver = "$sitebasedir/master";
+	$sitebasedir = "/home/nexopia";
 	$docRoot = "$sitebasedir/public_html";
+//	$masterserver = $docRoot;
 
 	$slowquerytime = 1*10000; // 1 secs
 
@@ -166,8 +166,8 @@
 
 	$databases = array();
 
-	$dbserv = "localhost";
-//	$dbserv = "192.168.0.107";
+	$dbserv = "192.168.0.50";
+//	$dbserv = "192.168.0.8";
 
 //main db
 	$databases['main']["insert"] = array(	"host" => "$dbserv",
@@ -310,11 +310,10 @@
 									"passwd" => "Hawaii",
 									"db" => "nexopiaprofile" );
 
-	$bannerservers = array('192.168.0.8');
+	$bannerservers = array('192.168.0.50');
 
 	$memcacheoptions = 	array(
-		'servers' => array( '192.168.0.8:11211',
-							'192.168.0.8:11212'
+		'servers' => array( '192.168.0.50:11211',
 							),
 		'debug'   => false,
 		'compress_threshold' => 10240,
@@ -322,7 +321,7 @@
 		'persistant' => false);
 
 	$pagecacheoptions = array(
-		'servers' => array( '192.168.0.8:11211'		),
+		'servers' => array( '192.168.0.50:11211'		),
 		'debug'   => false,
 		'compress_threshold' => 10240,
 		"compress" => 0,
@@ -337,7 +336,10 @@
 		"Advertising" => "timo@tzc.com"
 		);
 
-	$debuginfousers = array(5,7);
+	$debuginfousers = array(5, 7, 175);
+
+    if (file_exists(__FILE__ . ".local"))
+        include_once __FILE__ . ".local";
 
 //*/
 

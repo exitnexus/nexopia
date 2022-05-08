@@ -37,7 +37,7 @@ function closeBlock(){
 	echo "<tr><td height=$skindata[cellspacing]></td></tr>\n";
 }
 
-function incHeader($incCenter=true,$incBlocks=false){
+function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false){
 	global $userData, $skindata, $config, $skindir, $siteStats, $mods, $banner, $menus;
 
 	timeline('start header');
@@ -46,8 +46,8 @@ function incHeader($incCenter=true,$incBlocks=false){
 
 	timeline('- done stats');
 
-	$skindata['incCenter']=$incCenter;
-
+	$skindata['incCenter'] = $incCenter;
+	$skindata['rightblocks'] = $incRightBlocks;
 
 	$skindata['admin']=false;
 	if($userData['loggedIn']=='y')
@@ -184,7 +184,7 @@ function incHeader($incCenter=true,$incBlocks=false){
 
 				echo "</td><td class=menu align=right>";
 
-				echo "<a href='messages.php'>Messages</a><a href=messages.php?action=viewnew> $userData[newmsgs] New</a>";
+				echo "<a href='messages.php'>Messages</a><a href=messages.php?action=viewnew> $userData[newmsgs] New</a>"; //&k=" . makekey('newmsgs') . "
 				if($userData['enablecomments'] == 'y')
 					echo " | <a href='usercomments.php'>Comments $userData[newcomments]</a>";
 				echo " &nbsp;";
@@ -205,12 +205,12 @@ function incHeader($incCenter=true,$incBlocks=false){
 				echo "<tr>";
 
 	// incBlocks
-		if($incBlocks){
+		if($incLeftBlocks){
 				echo "<td width=$skindata[sideWidth] valign=top>";
 
 					echo "<table width=100% cellpadding=0 cellspacing=0>\n";
 
-					foreach($incBlocks as $funcname)
+					foreach($incLeftBlocks as $funcname)
 						$funcname('l');
 
 					echo "</table>\n";
@@ -244,7 +244,7 @@ function incHeader($incCenter=true,$incBlocks=false){
 	echo "\n\n\n";
 }
 
-function incFooter($incBlocks=false, $showright=true){
+function incFooter(){
 	global $userData,$skindata,$skindir,$siteStats,$config, $debuginfousers, $banner, $menus;
 
 	timeline('start footer');
@@ -257,19 +257,18 @@ function incFooter($incBlocks=false, $showright=true){
 					echo "</td>";
 
 //start right bar
-						if($incBlocks || ($userData['loggedIn'] && $userData['showrightblocks']=='y')){
+						if($skindata['rightblocks'] || ($userData['loggedIn'] && $userData['showrightblocks']=='y')){
 
 
 							echo "<td width=$skindata[sideWidth] height=100% valign=top>\n";
 
 								echo "<table cellpadding=0 cellspacing=0>\n";
 
-								if($incBlocks)
-									foreach($incBlocks as $funcname)
+								if($skindata['rightblocks'])
+									foreach($skindata['rightblocks'] as $funcname)
 										$funcname('r');
 
-								if($showright)
-									blocks('r');
+								blocks('r');
 
 								echo "</table>\n";
 
@@ -281,6 +280,8 @@ function incFooter($incBlocks=false, $showright=true){
 			echo "</table>";
 		echo "</td>";
 	echo "</tr>\n";
+
+	closeAllDBs();
 
 //start admin menu
 if($skindata['admin']){
@@ -371,8 +372,6 @@ if($skindata['admin']){
 	}
 
 echo "</table>\n";
-
-$banner->updateBannerHits();
 
 	debugOutput();
 

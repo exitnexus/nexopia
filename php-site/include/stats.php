@@ -19,7 +19,7 @@ function updateStats(){
 				while($line = $db->fetchrow())
 					$online[$line['friendid']] = $line['username'];
 
-				$cache->put(array($userData['userid'], "friendsonline-$userData[userid]"), $online, 60);
+				$cache->put(array($userData['userid'], "friendsonline-$userData[userid]"), $online, 120);
 			}
 			$userData['friends'] = $online;
 			$userData['friendsonline'] = count($online);
@@ -31,7 +31,7 @@ function updateStats(){
 
 				$online = $db->fetchfield();
 
-				$cache->put(array($userData['userid'], "numfriendsonline-$userData[userid]"), $online, 60);
+				$cache->put(array($userData['userid'], "numfriendsonline-$userData[userid]"), $online, 120);
 			}
 
 			$userData['friendsonline'] = $online;

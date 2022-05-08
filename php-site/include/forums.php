@@ -795,9 +795,9 @@ class forums {
 			$this->modLog('invite',$fid,0,$uid);
 
 			$cache->put(array($uid, "foruminvite-$uid-$fid"), 1, 10800);
-		}
 
-		$messaging->deliverMsg($uids,"Forum Invite","You have been invited to join the forum [url=forumthreads.php?fid=$fid]$forumname" . "[/url]. Click [url=forumthreads.php?fid=$fid&action=withdraw]here[/url] to withdraw from the forum.");
+			$messaging->deliverMsg($uid, "Forum Invite", "You have been invited to join the forum [url=forumthreads.php?fid=$fid]$forumname" . "[/url]. Click [url=forumthreads.php?fid=$fid&action=withdraw&k=" . makeKey($fid, $uid) . "]here[/url] to withdraw from the forum.");
+		}
 	}
 
 	function unInvite($uids, $fid){

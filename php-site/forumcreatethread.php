@@ -72,11 +72,11 @@ function postThread($fid, $title, $msg, $subscribe = false, $question = "", $ans
 	$spam = spamfilter($msg);
 
 	$ntitle = trim($title);
+	$ntitle = removeHTML($ntitle);
 
 	if(!$spam || strlen($ntitle)<=3)
 		createThread($fid, $title, $msg, ($question != ""), $subscribe, true);
 
-	$ntitle = removeHTML($ntitle);
 //	$ntitle = censor($ntitle);
 
 	$nmsg = removeHTML($msg);

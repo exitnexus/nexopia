@@ -4,7 +4,10 @@
 
 	require_once("include/general.lib.php");
 
-	if(isset($register)){
+	$register = getPOSTval('register', 'bool');
+	$data = getPOSTval('data', 'array');
+
+	if($register){
 		if(newAccount($data)){
 			incHeader();
 			echo "Your account has been created. Expect an email within a few minutes. The instructions on how to activate your account are there.";
@@ -21,8 +24,7 @@
 	$year="";
 	$sex="";
 
-	if(isset($data))
-		extract($data);
+	extract($data);
 
 	$locations = & new category( $db, "locs");
 

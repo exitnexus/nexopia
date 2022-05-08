@@ -57,7 +57,7 @@
 
 			break;
 		case "delete":
-			if($uid = getREQval('uid', 'int'))
+			if(($uid = getREQval('uid', 'int')) && ($k = getREQval('k')) && checkKey("$fid:$uid", $k))
 				$forums->forumUnmuteUser($uid, $fid);
 
 			break;
@@ -146,7 +146,7 @@
 
 	foreach($rows as $line){
 		echo "<tr>";
-		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=delete&uid=$line[userid]&fid=$fid><img src=$config[imageloc]delete.gif border=0></a></td>";
+		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=delete&uid=$line[userid]&fid=$fid&k=" . makeKey("$fid:$line[userid]") . "><img src=$config[imageloc]delete.gif border=0></a></td>";
 		echo "<td class=body><a class=body href=profile.php?uid=$line[userid]>$line[username]</a></td>";
 		echo "<td class=body nowrap>" . ($line['mutetime'] ? userdate("F j, Y, g:i a", $line['mutetime']) : "Unknown") . "</td>";
 		echo "<td class=body nowrap>" . ($line['unmutetime'] ? userdate("F j, Y, g:i a", $line['unmutetime']) : "Indefinitely") . "</td>";

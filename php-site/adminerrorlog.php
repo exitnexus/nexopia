@@ -61,4 +61,4 @@
 	}else
 		echo "No error file";
 
-	incFooter(array('incAdminBlock'));
+	incFooter();

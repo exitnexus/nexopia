@@ -33,7 +33,7 @@ function closeBlock(){
 	echo "<tr><td height=$skindata[cellspacing]></td></tr>\n";
 }
 
-function incHeader($incCenter=true,$incBlocks=false){
+function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false){
 	global $userData, $skindata, $config, $skindir, $siteStats, $mods, $banner, $menus;
 
 	timeline('start header');
@@ -42,7 +42,8 @@ function incHeader($incCenter=true,$incBlocks=false){
 
 	timeline('- done stats');
 
-	$skindata['incCenter']=$incCenter;
+	$skindata['incCenter'] = $incCenter;
+	$skindata['rightblocks'] = $incRightBlocks;
 
 
 	$skindata['admin']=false;
@@ -62,12 +63,12 @@ function incHeader($incCenter=true,$incBlocks=false){
 				echo "<tr>";
 
 	// incBlocks
-		if($incBlocks){
+		if($incLeftBlocks){
 				echo "<td width=$skindata[sideWidth] valign=top>";
 
 					echo "<table width=100% cellpadding=0 cellspacing=0>\n";
 
-					foreach($incBlocks as $funcname)
+					foreach($incLeftBlocks as $funcname)
 						$funcname('l');
 
 					echo "</table>\n";
@@ -89,7 +90,7 @@ function incHeader($incCenter=true,$incBlocks=false){
 	echo "\n\n\n";
 }
 
-function incFooter($incBlocks=false, $showright=true){
+function incFooter(){
 	global $userData,$skindata,$skindir,$siteStats,$config, $debuginfousers, $banner, $menus;
 
 	echo "\n\n\n";
@@ -101,19 +102,18 @@ function incFooter($incBlocks=false, $showright=true){
 					echo "</td>";
 
 //start right bar
-						if($incBlocks || ($userData['loggedIn'] && $userData['showrightblocks']=='y')){
+						if($skindata['rightblocks'] || ($userData['loggedIn'] && $userData['showrightblocks']=='y')){
 
 
 							echo "<td width=$skindata[sideWidth] height=100% valign=top>\n";
 
 								echo "<table cellpadding=0 cellspacing=0>\n";
 
-								if($incBlocks)
+								if($skindata['rightblocks'])
 									foreach($incBlocks as $funcname)
 										$funcname('r');
 
-								if($showright)
-									blocks('r');
+								blocks('r');
 
 								echo "</table>\n";
 
@@ -125,6 +125,9 @@ function incFooter($incBlocks=false, $showright=true){
 			echo "</table>";
 		echo "</td>";
 	echo "</tr>\n";
+
+
+	closeAllDBs();
 
 //start admin menu
 if($skindata['admin']){
@@ -218,8 +221,6 @@ if($skindata['admin']){
 
 echo "</table>\n";
 
-$banner->updateBannerHits();
-
 	debugOutput();
 
 	$bodytext = ob_get_clean();
@@ -253,7 +254,12 @@ $banner->updateBannerHits();
 	echo "if(self==top){";
 		echo "s=getWindowSize();";
 		echo "h=(b&&s[0]>900&&s[1]>500?90:60);"; //show banner? if so, show big or small?
-		echo "document.write('<frameset rows=\"'+(m+h)+',*\" frameborder=0 border=0><frame src=\"header.php?bodyname=$bodyname&height='+h+'\" name=head scrolling=no noresize marginwidth=0 marginheight=0><frame src=\"" . $_SERVER['REQUEST_URI'] . (strpos($_SERVER['REQUEST_URI'], '?') ? '&' : '?') . "cachekey=$cachekey\" name=\"$bodyname\" marginwidth=0 marginheight=0></frameset>');";
+		echo "document.write('";
+			echo "<frameset rows=\"'+(m+h)+',*\" frameborder=0 border=0>";
+			echo "<frame src=\"header.php?bodyname=$bodyname&height='+h+'\" name=head scrolling=no noresize marginwidth=0 marginheight=0>";
+			echo "<frame src=\"" . $_SERVER['REQUEST_URI'] . (strpos($_SERVER['REQUEST_URI'], '?') ? '&' : '?') . "cachekey=$cachekey\" name=\"$bodyname\" marginwidth=0 marginheight=0>";
+			echo "</frameset>";
+		echo "');";
 	echo "}else{";
 		echo "top.head.updateStats(" . ($userData['loggedIn'] ? "$userData[friendsonline]" : '-1') . ",$siteStats[online],$siteStats[guests]," . ($userData['loggedIn'] ? "$userData[newmsgs]," . ($userData['enablecomments'] == 'y' ? $userData['newcomments'] : '-1') : '-1,-1') . ");";
 	echo "}";
@@ -271,6 +277,8 @@ function createHeader($size, $bodyname){
 	global $skindir, $skindata, $config, $siteStats, $userData, $banner, $menus;
 
 	updateStats();
+
+	closeAllDBs();
 
 	echo "<html><head><title>$config[title]</title><script src=$config[imgserver]/skins/general.js></script>";
 	echo "<link rel=stylesheet href='$skindir/default.css'>";
@@ -368,7 +376,7 @@ function createHeader($size, $bodyname){
 
 				echo "</td><td class=menu align=right>";
 
-				echo "<a href='messages.php' target='$bodyname'>Messages</a><a href=messages.php?action=viewnew target='$bodyname'> <span id=msgs>$userData[newmsgs]</span> New</a>";
+				echo "<a href='messages.php' target='$bodyname'>Messages</a><a href=messages.php?action=viewnew target='$bodyname'> <span id=msgs>$userData[newmsgs]</span> New</a>"; //&k=" . makekey('newmsgs') . "
 				if($userData['enablecomments'] == 'y')
 					echo " | <a href='usercomments.php' target='$bodyname'>Comments <span id=comments>$userData[newcomments]</span></a>";
 				echo " &nbsp;";

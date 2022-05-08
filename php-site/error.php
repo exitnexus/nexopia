@@ -42,7 +42,7 @@ if(0){ //enable mirroring
 		foreach($mirroring as $item){
 			if(substr($REDIRECT_URL, 0, strlen($config[$item])) == $config[$item]){ //starts with one of the dirs
 
-				if(file_exists($masterserver . $url)){
+				if(file_exists($docRoot . $url)){
 					$dirs = explode("/", dirname($url));
 
 					umask(0);

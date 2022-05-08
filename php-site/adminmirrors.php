@@ -80,7 +80,7 @@ function editMirror($id){
 	echo "<tr><td class=body>Type</td><td class=body><select class=body name=type>" . make_select_list($mirrortypes, $line['type']) . "</select></td></tr>";
 	echo "<tr><td class=body>Plus</td><td class=body><input type=checkbox name=plus" . ($line['plus']=='y' ? ' checked' : '') . "></td></tr>";
 	echo "<tr><td class=body>Domain</td><td class=body><input class=body type=text size=30 name=domain value='$line[domain]'></td></tr>";
-	echo "<tr><td class=body>Cookie</td><td class=body><input class=body type=text size=30 name=control value='$line[cookie]'></td></tr>";
+	echo "<tr><td class=body>Cookie</td><td class=body><input class=body type=text size=30 name=cookie value='$line[cookie]'></td></tr>";
 	echo "<tr><td class=body>Status</td><td class=body><input class=body type=text size=30 name=status value='$line[status]'></td></tr>";
 	echo "<tr><td class=body>Weight</td><td class=body><input class=body type=text name=weight value='$line[weight]' size=3></td></tr>";
 	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value=Update><input class=body type=submit name=action value=Cancel><input class=body type=submit name=action value=Delete></td></tr>";

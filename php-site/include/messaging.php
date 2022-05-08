@@ -319,7 +319,7 @@ problems balancing msgtext:
 
 		if($ignorable && $fromid){
 			foreach($tousers as $to => $line){
-				if(isIgnored($to, $fromid, 'msgs', $age, ($replyto > 0) )){
+				if(isIgnored($to, $fromid, 'msgs', $age, ($replyto > 0) )){ //if ignored by age group or friends list, allow if it is a reply
 					$msgs->addMsg("Message Ignored");
 					unset($tousers[$to]);
 				}

@@ -34,7 +34,7 @@
 				echo "</table></form>\n";
 
 
-				incFooter(array('incAdminBlock'));
+				incFooter();
 				exit();
 			}
 			break;

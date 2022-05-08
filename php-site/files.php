@@ -21,7 +21,7 @@
 	if($baseuserdir === false)
 		die("no base directory. Contact the webmaster");
 
-	$basedir = $masterserver . $baseuserdir;
+	$basedir = $docRoot . $baseuserdir;
 
 	if(!isset($opendir) || @strpos(realpath($basedir . $opendir),$basedir)===false || !is_dir($basedir . $opendir))
 		$opendir="/";

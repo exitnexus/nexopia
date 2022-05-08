@@ -107,5 +107,5 @@
 
 	echo "</table>";
 
-	incFooter(false);
+	incFooter();
 

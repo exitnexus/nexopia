@@ -35,6 +35,31 @@ exit;
 ///////////// Old Stuff //////////////////
 /////////////////////////////////////////
 
+//get table list
+	$tables = array();
+
+	foreach($dbs as $dbname => $optdb){
+		$tableresult = $dbs[$dbname]->listtables();
+
+		while(list($tname) = $dbs[$dbname]->fetchrow($tableresult, DB_NUM)){
+
+			echo "$dbname.$tname<br>";
+
+			$result = $dbs[$dbname]->query("SHOW CREATE TABLE `$tname`");
+			$output = $dbs[$dbname]->fetchfield(1,0,$result);
+
+			$tables[$tname] = "-- $dbname.$tname\n$output";
+		}
+	}
+
+	ksort($tables);
+
+	echo "<pre>";
+	echo implode("\n\n------------------------\n\n", $tables);
+	echo "</pre>";
+
+
+
 //fix poll moditems
 
 	$mods->db->prepare_query("DELETE FROM moditems WHERE type = #", MOD_POLL);

@@ -14,14 +14,28 @@
 		$isFriend = true;
 		$isAdmin = true;
 	}else{
-		$db->prepare_query("SELECT username, enablecomments, journalentries, gallery FROM users WHERE userid = ?", $uid);
+		$db->prepare_query("SELECT username, enablecomments, journalentries, gallery, hideprofile, premiumexpiry, frozen FROM users WHERE userid = #", $uid);
 
 		if($db->numrows() == 0)
 			die("Bad user");
 
 		$user = $db->fetchrow();
 
+		if($user['frozen'] == 'y' && !$mods->isAdmin($userData['userid'], 'listusers'))
+			die("Bad user");
+
 		$isAdmin = $userData['loggedIn'] && $mods->isAdmin($userData['userid'], 'editjournal');
+
+		$user['plus'] = $user['premiumexpiry'] > time();
+
+		if($user['plus'] && $user['hideprofile'] == 'y' && isIgnored($uid, $userData['userid'], false, 0, true)){
+			incHeader();
+
+			echo "This user is ignoring you.";
+
+			incFooter();
+			exit;
+		}
 
 		$isFriend = $isAdmin || ($userData['loggedIn'] && isFriend($userData['userid'], $uid));
 	}
@@ -113,13 +127,16 @@ function listEntries($uid){
 	}
 	echo "<tr><td class=header colspan=2 align=right>";
 
-	if($page)
+	if($page){
+		if($page - 1 > 0)
+			echo "<a class=header href=$_SERVER[PHP_SELF]?uid=$uid&page=0>First</a> | ";
 		echo "<a class=header href=$_SERVER[PHP_SELF]?uid=$uid&page=" . ($page - 1) . ">Prev</a> | ";
+	}
 
 	echo "Page " . ($page + 1);
 
 	if(!$lastpage)
-		echo "<a class=header href=$_SERVER[PHP_SELF]?uid=$uid&page=" . ($page + 1) . ">Next</a> | ";
+		echo " | <a class=header href=$_SERVER[PHP_SELF]?uid=$uid&page=" . ($page + 1) . ">Next</a>";
 
 	echo "</td></tr>";
 
@@ -138,7 +155,7 @@ function showEntry($uid, $id){
 	if(!$entry || $entry['scope'] > $scope || $entry['userid'] != $uid)
 		die("Bad Entry");
 
-	if(($action == 'Post' || $action == 'Preview') && ($msg = getPOSTval('msg')) && !isIgnored($uid, $userData['userid'],'comments', $userData['age']))
+	if(($action == 'Post' || $action == 'Preview') && ($msg = getPOSTval('msg')) && !isIgnored($uid, $userData['userid'], 'comments', $userData['age']))
 		$weblog->addComment($id, $userData['userid'], $userData['username'], $msg);
 
 
@@ -151,7 +168,7 @@ function showEntry($uid, $id){
 		foreach($comments as $line)
 			$authorids[$line['userid']] = $line['userid'];
 
-		$db->prepare_query("SELECT userid, age, firstpic, online FROM users WHERE userid IN (?)", $authorids);
+		$db->prepare_query("SELECT userid, age, firstpic, online FROM users WHERE userid IN (#)", $authorids);
 
 		while($line = $db->fetchrow())
 			$authors[$line['userid']] = $line;
@@ -294,7 +311,7 @@ function showEntry($uid, $id){
 
 		if(!$userData['loggedIn']){
 			echo "<tr><td colspan=2 class=header2>You have to be logged in to leave a comment.</td></tr>";
-		}elseif(isIgnored($uid,$userData['userid'],'comments', $userData['age'])){
+		}elseif(isIgnored($uid, $userData['userid'], 'comments', $userData['age'])){
 			echo "<tr><td colspan=2 class=header2>You are ignored, so can't leave a comment.</td></tr>";
 		}else{
 			echo "<tr><td colspan=2 class=header2>";

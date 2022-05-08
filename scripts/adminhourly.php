@@ -308,7 +308,8 @@ echo $timer->lap("delete old messages");
 echo $timer->lap("delete old user comments (1 month)");
 		$usercomments->prune();
 
-
+echo $timer->lap("triggering user notifications");
+		$usernotify->triggerNotifications();
 
 //backups and optimizations
 

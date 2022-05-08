@@ -201,6 +201,7 @@ include_once("include/rating.php");
 include_once("include/shoppingcart.php");
 include_once("include/payg.php");
 include_once("include/messaging.php");
+include_once("include/usernotify.php");
 include_once("include/usercomments.php");
 include_once("include/date.php");
 include_once("include/priorities.php");
@@ -224,6 +225,7 @@ include_once("include/weblog.php");
 	$shoppingcart = & new shoppingcart( $shopdb );
 	$payg = 		& new paygcards( $shopdb );
 	$messaging = 	& new messaging( $msgsdb, $archivedb );
+	$usernotify =   & new usernotify( $db );
 	$usercomments = & new usercomments( $commentsdb, $archivedb );
 	$filesystem = 	& new filesystem($filesdb, $THIS_IMG_SERVER);
 	$contests =		& new contests( $contestdb );
@@ -403,6 +405,16 @@ function debugOutput(){
 
 		echo "<!-- Creation time: " . number_format($total,4) . " ms -->";
 	}
+}
+
+function closeAllDBs(){
+	global $dbs;
+
+//would use a foreach($dbs as & $db), but that's php5 only. Not calling by reference fails.
+	$names = array_keys($dbs);
+
+	foreach($names as $name)
+		$dbs[$name]->close();
 }
 
 function blank(){ //multi arg version of empty
@@ -1182,7 +1194,7 @@ function make_radio_key($name, $list, $sel = "", $class = 'body' ){
 	return $str;
 }
 
-function makeCatSelect(&$branch, $category = null){
+function makeCatSelect($branch, $category = null){
 	$str="";
 
 	foreach($branch as $cat){
@@ -1195,7 +1207,7 @@ function makeCatSelect(&$branch, $category = null){
 	return $str;
 }
 
-function makeCatSelect_multiple(&$branch, $category = array()){
+function makeCatSelect_multiple($branch, $category = array()){
 	$str="";
 
 	foreach($branch as $cat){
@@ -1366,14 +1378,18 @@ function isIgnored($to, $from, $scope, $age = 0, $ignorelistonly = false){ //$fr
 	if($mods->isAdmin($from))
 		return false;
 
-	if(!$ignorelistonly){
-		$db->prepare_query("SELECT onlyfriends,ignorebyage, defaultminage, defaultmaxage FROM users WHERE userid = ?", $to);
-		$line = $db->fetchrow();
+	if($scope && !$ignorelistonly){
+		$line = $cache->get(array($to, "userprefs-$to")); //only available when the user is online. Don't $cache->put the value from below
+
+		if(!$line || !isset($line['onlyfriends'])){
+			$db->prepare_query("SELECT onlyfriends, ignorebyage, defaultminage, defaultmaxage FROM users WHERE userid = #", $to);
+			$line = $db->fetchrow();
+		}
 
 		if(($line['onlyfriends'] == 'both' || $line['onlyfriends']  == $scope) && !isFriend($from,$to))
 			return true;
 
-		if(($line['ignorebyage'] == 'both' || $line['ignorebyage'] == $scope) && $age && ($age < $line['defaultminage'] || $age > $line['defaultmaxage']) && !isFriend($from,$to))
+		if(($line['ignorebyage'] == 'both' || $line['ignorebyage'] == $scope) && $age && ($age < $line['defaultminage'] || $age > $line['defaultmaxage']) && !isFriend($from, $to))
 			return true;
 	}
 
@@ -1761,10 +1777,7 @@ function uploadPic($uploadFile,$picID){
 }
 
 function addPic($userfile,$vote,$description, $signpic){
-	global $userData,$msgs,$db,$config, $docRoot, $masterserver, $mods;
-
-	if(!isset($userfile) || $userfile== "none")
-		return false;
+	global $userData,$msgs,$db,$config, $docRoot, $mods;
 
 	if(!file_exists($userfile)){
 		$msgs->addMsg("You must upload a file. If you tried, the file might be too big (1mb max).");
@@ -1856,7 +1869,7 @@ function removePic($id){
 
 
 function removePicPending($ids, $deletemoditem = true){
-	global $masterserver,$msgs,$config,$db,$mods, $filesystem, $docRoot;
+	global $msgs,$config,$db,$mods, $filesystem, $docRoot;
 
 	if(!is_array($ids))
 		$ids = array($ids);
@@ -1888,7 +1901,7 @@ function removePicPending($ids, $deletemoditem = true){
 function setFirstPic($uids){
 	global $db, $cache;
 
-	$db->prepare_query("UPDATE users LEFT JOIN pics ON users.userid=pics.itemid && pics.priority=1 SET users.firstpic = pics.id WHERE users.userid IN (?)", $uids);
+	$db->prepare_query("UPDATE users LEFT JOIN pics ON users.userid=pics.itemid && pics.priority=1 SET users.firstpic = pics.id WHERE users.userid IN (#)", $uids);
 
 	if(is_array($uids))
 		foreach($uids as $uid)
@@ -1903,7 +1916,7 @@ function setFirstPic($uids){
 /////////////////////////////////////////////////////
 
 function uploadGalleryPic($uploadFile,$picID){
-	global $config, $docRoot, $masterserver, $msgs, $userData, $filesystem;
+	global $config, $docRoot, $msgs, $userData, $filesystem;
 
 	$picName = $config['gallerypicdir'] . floor($picID/1000) . "/" . $picID . ".jpg";
 	$thumbName = $config['gallerythumbdir'] . floor($picID/1000) . "/" . $picID . ".jpg";
@@ -2046,11 +2059,8 @@ function uploadGalleryPic($uploadFile,$picID){
 	return true;
 }
 
-function addGalleryPic($userfile,$cat,$description){
-	global $userData, $msgs, $db, $config, $masterserver, $docRoot, $mods;
-
-	if(!isset($userfile) || $userfile== "none")
-		return false;
+function addGalleryPic($userfile, $cat, $description){
+	global $userData, $msgs, $db, $config, $docRoot, $mods;
 
 	if(!file_exists($userfile)){
 		$msgs->addMsg("You must upload a file. If you tried, the file might be too big (1mb max).");
@@ -2078,7 +2088,7 @@ function addGalleryPic($userfile,$cat,$description){
 }
 
 function removeGalleryPic($id){
-	global $masterserver, $msgs, $config, $db, $mods, $filesystem, $docRoot;
+	global $msgs, $config, $db, $mods, $filesystem, $docRoot;
 
 //	$db->query("LOCK TABLES gallery WRITE");
 	$db->begin();

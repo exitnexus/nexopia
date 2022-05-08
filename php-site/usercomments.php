@@ -36,7 +36,7 @@
 
 	$data['plus'] = $data['premiumexpiry'] > time();
 
-	if($data['plus'] && $data['hideprofile'] && isIgnored($uid, $userData['userid'], '', 0, true)){
+	if($data['plus'] && $data['hideprofile'] == 'y' && isIgnored($uid, $userData['userid'], false, 0, true)){
 		incHeader();
 
 		echo "This user is ignoring you.";
@@ -66,7 +66,7 @@
 				$msg = getPOSTval('msg');
 
 				if(!empty($msg)){
-					if(isIgnored($uid, $userData['userid'],'comments', $userData['age'])){
+					if(isIgnored($uid, $userData['userid'], 'comments', $userData['age'])){
 						$msgs->addMsg("This user is ignoring you. You cannot leave a comment");
 					}else{
 						if(!$usercomments->postUserComment($uid, $msg, $userData['userid'], $userData['username']))
@@ -177,6 +177,8 @@ function listComments(){
 			echo "<input type=hidden name=id value='$uid'>";
 		}
 
+		$keys = array();
+
 		foreach($comments as $line){
 			echo "<tr>";
 
@@ -222,8 +224,11 @@ function listComments(){
 
 			if($userData['loggedIn'] && $line['authorid']){
 				$links[] = "<a class=small href=\"profile.php?uid=$line[authorid]\">Profile</a>";
-				if($userData['userid'] == $uid)
-					$links[] = "<a class=small href=\"javascript:confirmLink('/messages.php?action=ignore&id=$line[authorid]','ignore this user')\">Ignore User</a>";
+				if($userData['userid'] == $uid){
+					if(!isset($keys[$line['authorid']]))
+						$keys[$line['authorid']] = makeKey($line['authorid']);
+					$links[] = "<a class=small href=\"javascript:confirmLink('/messages.php?action=ignore&id=$line[authorid]&k=" . $keys[$line['authorid']] . "','ignore this user')\">Ignore User</a>";
+				}
 				$links[] = "<a class=small href=\"messages.php?action=write&to=$line[authorid]\">Message</a>";
 				$links[] = "<a class=small href=\"usercomments.php?id=$line[authorid]\">" . ($userData['userid'] == $uid ? "Reply" : "Comments" ) . "</a>";
 //				$links[] =  "<a class=small href=reportabuse.php?type=comment&id=$line[id]>Report</a>";

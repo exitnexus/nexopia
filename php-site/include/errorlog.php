@@ -20,7 +20,9 @@ if($errorLogging){
 									128 => "Compile Warning",
 									256 => "User Error",
 									512 => "User Warning",
-									1024=> "User Notice");
+									1024=> "User Notice",
+									2048=> "PHP Strict",
+								);
 		$errlevel=$errortype[$errno];
 
 	//Write error to log file (CSV format)
@@ -38,7 +40,7 @@ if($errorLogging){
 		fclose($errfile);
 
 	//Terminate script if fatal error
-		if($errno != 2 && $errno != 8 && $errno != 512 && $errno != 1024){
+		if($errno != 2 && $errno != 8 && $errno != 512 && $errno != 1024 && $errno != 2048){
 			if($errorLogging >= 2 || ($userData['loggedIn'] && in_array($userData['userid'], $debuginfousers)))
 				die("A fatal error has occured. Script execution has been aborted:<br>\n$str");
 			else

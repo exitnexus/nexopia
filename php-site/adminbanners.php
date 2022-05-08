@@ -682,7 +682,7 @@ function bannerStats($id, $start){
 
 	$end = $start + 86400;
 
-	$banner->db->prepare_query("SELECT time, views, clicks FROM bannerstats WHERE bannerid = ? && time >= ? && time <= ? ORDER BY time", $id, $start, $end);
+	$banner->db->prepare_query("SELECT time, views, clicks, passbacks FROM bannerstats WHERE bannerid = ? && time >= ? && time <= ? ORDER BY time", $id, $start, $end);
 
 	$stats = array();
 	while($line = $banner->db->fetchrow())

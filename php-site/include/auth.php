@@ -237,14 +237,36 @@ function auth($userid, $key, $kill = true, $simple = false, $userprefs = array()
 	if($prefs === false){
 		$cols = array("username", "frozen", "online", "sex", "age", "loc", "premiumexpiry", 'email', 'activetime',
 				"posts", "newmsgs", "newcomments",
-				"showrightblocks", "timeoffset", "enablecomments", "defaultminage", "defaultmaxage", "defaultsex", "skin", "limitads",
+				"showrightblocks", "timeoffset", "enablecomments", "defaultminage", "defaultmaxage", "defaultsex", "skin", "limitads", 'onlyfriends', 'ignorebyage',
 				'replyjump','autosubscribe', 'forumsort', 'forumpostsperpage', 'showsigs', 'friendslistthumbs', 'enablecomments', 'journalentries' ,'gallery', 'hideprofile'
 				);
 
 //		$cols = array_merge($cols, $userprefs);
 
+/*
+//original, and obvious way when the db can keep up
 		$db->prepare_query("SELECT " . implode(", ", $cols) . " FROM users WHERE userid = #", $userid);
 		$prefs = $db->fetchrow();
+/* /
+//pull from the backup db. Only pull this query, and disconnect ASAP
+		$db->backupdb->prepare_query("SELECT " . implode(", ", $cols) . " FROM users WHERE userid = #", $userid);
+		$prefs = $db->backupdb->fetchrow();
+		$db->backupdb->close();
+//*/
+
+
+		$query = $db->prepare("SELECT " . implode(", ", $cols) . " FROM users WHERE userid = #", $userid);
+
+		$hour = gmdate("H");
+		if(isset($db->backupdb) && ($hour < 9 || $hour > 14)){ //don't use between 3am - 8am
+			$db->backupdb->query($query);
+			$prefs = $db->backupdb->fetchrow();
+			$db->backupdb->close();
+		}else{
+			$db->query($query);
+			$prefs = $db->fetchrow();
+		}
+
 
 		if(!$prefs)
 			die("That account doesn't exist");
@@ -300,6 +322,8 @@ function auth($userid, $key, $kill = true, $simple = false, $userprefs = array()
 	$userData['defaultsex']=$prefs['defaultsex'];
 	$userData['skin']=$prefs['skin'];
 	$userData['limitads']=($prefs['limitads'] == 'y' && $userData['premium']);
+	$userData['ignorebyage']=$prefs['ignorebyage'];
+	$userData['onlyfriends']=$prefs['onlyfriends'];
 	$userData['forumpostsperpage']=$prefs['forumpostsperpage'];
 	$userData['debug'] = in_array($userid, $debuginfousers);
 

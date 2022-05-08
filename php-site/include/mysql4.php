@@ -1331,12 +1331,13 @@ class multiple_sql_db{ //equiv to raid 1
 			$this->selectdb->outputQueries("$name");
 			echo "</td></tr>";
 		}
-/*		if($this->insertdb !== $this->backupdb){
+//*
+		if($this->insertdb !== $this->backupdb){
 			echo "<tr><td class=body valign=top>bak</td><td class=body>";
 			$this->backupdb->outputQueries("$name");
 			echo "</td></tr>";
 		}
-*/
+//*/
 		echo "</table>";
 	}
 

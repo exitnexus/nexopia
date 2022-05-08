@@ -49,7 +49,15 @@ function censor($text){
 
 
 function removeHTML($str){
-	return str_replace("<", "&lt;", $str);
+	$str = str_replace("<", "&lt;", $str);
+
+	for($i = 0; $i <= 32; $i++)
+		$str = str_replace("&#$i;", "", $str);
+
+	$str = str_replace("&nbsp;", " ", $str);
+
+	return $str;
+
 //	return str_replace("&amp;", "&", htmlentities($str));
 }
 
@@ -180,12 +188,12 @@ function spamfilter($msg){
 		}else
 			$wordlen++;
 
-		$charval = ord($msgs['i']);
+		$charval = ord($msg[$i]);
 		if($charval >= ord('A') && $charval <= ord('Z'))
 			$upper++;
 		elseif($charval >= ord('a') && $charval <= ord('z'))
 			$lower++;
-		elseif(in_array($msgs['i'], array(' ', "\t", "\n", "\r")))
+		elseif(in_array($msg[$i], array(' ', "\t", "\n", "\r")))
 			$whitespace++;
 		else
 			$char++;
@@ -201,8 +209,8 @@ function spamfilter($msg){
 		return false;
 	}
 
-	if($length > 20){
-		if($whitespace > $length / 4){
+	if($length > 300){
+		if($whitespace > $length / 2){
 			$msgs->addMsg("Too much white space.");
 			return false;
 		}

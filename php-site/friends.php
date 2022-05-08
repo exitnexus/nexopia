@@ -72,7 +72,7 @@
 					$msgs->addMsg("Friend has been added to your friends list.");
 
 					if($line['premiumexpiry'] > time() && $line['friendsauthorization'] == 'y')
-						$messaging->deliverMsg($id, "Friends List Notification", "[user]$userData[username]" . "[/user] has added you to " . ($userData['sex'] == 'Male' ? "his" : "her") . " friends list. You may remove yourself by clicking [url=/friends.php?action=delete&mode=2&id=$userData[userid]]here[/url], or add " . ($userData['sex'] == 'Male' ? "him" : "her") . " to yours by clicking [url=/friends.php?action=add&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]here[/url].");
+						$messaging->deliverMsg($id, "Friends List Notification", "[user]$userData[username]" . "[/user] has added you to " . ($userData['sex'] == 'Male' ? "his" : "her") . " friends list. You may remove yourself by clicking [url=/friends.php?action=delete&mode=2&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]here[/url], or add " . ($userData['sex'] == 'Male' ? "him" : "her") . " to yours by clicking [url=/friends.php?action=add&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]here[/url].");
 				}
 
 				$cache->remove(array($userData['userid'], "friends-$userData[userid]"));
@@ -89,7 +89,7 @@
 							$line = $db->fetchrow();
 
 							if($line['premiumexpiry'] > time() && $line['friendsauthorization'] == 'y')
-								$messaging->deliverMsg($id, "Friends List Notification", "[user]$userData[username]" . "[/user] has removed you from " . ($userData['sex'] == 'Male' ? "his" : "her") . " friends list. You may remove " . ($userData['sex'] == 'Male' ? "him" : "her") . " from yours by clicking [url=/friends.php?action=delete&id=$userData[userid]]Here[/url]");
+								$messaging->deliverMsg($id, "Friends List Notification", "[user]$userData[username]" . "[/user] has removed you from " . ($userData['sex'] == 'Male' ? "his" : "her") . " friends list. You may remove " . ($userData['sex'] == 'Male' ? "him" : "her") . " from yours by clicking [url=/friends.php?action=delete&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]Here[/url]");
 						}
 
 						$cache->remove(array($userData['userid'], "friends-$userData[userid]"));
@@ -111,7 +111,7 @@
 				}
 				break;
 			case "update":
-				if(($id = getREQval('id', 'int')) && getREQval('comment', 'bool') && $mode==1){ //bool to check that it exists, so that updating to '' works
+				if(($id = getREQval('id', 'int')) && getREQval('comment', 'bool') && $mode==1 && checkKey($id, getREQval('k'))){ //bool to check that it exists, so that updating to '' works
 					$comment = getREQval('comment');
 					$db->prepare_query("SELECT id FROM friends WHERE userid = # && friendid = #", $userData['userid'], $id);
 					if($db->numrows() == 0)
@@ -146,7 +146,7 @@
 
 	$user['plus'] = $user['premiumexpiry'] > time();
 
-	if($user['plus'] && $user['hideprofile'] && isIgnored($uid, $userData['userid'], '', 0, true)){
+	if($user['plus'] && $user['hideprofile'] == 'y' && isIgnored($uid, $userData['userid'], false, 0, true)){
 		incHeader();
 
 		echo "This user is ignoring you.";
@@ -252,7 +252,7 @@
 			echo "<td class=header>&nbsp;</td>";
 	echo "</tr>\n";
 
-	echo "<script>function editcomment(str,id){comment = prompt('New comment:',str); if(comment != null){ location.href='$_SERVER[PHP_SELF]?id='+ id + '&action=update&comment=' + comment;} }</script>";
+	echo "<script>function editcomment(str,id,k){comment = prompt('New comment:',str); if(comment != null){ location.href='$_SERVER[PHP_SELF]?id='+ id + '&action=update&k=' + k + '&comment=' + comment;} }</script>";
 
 	foreach($rows as $line){
 		echo "<tr>";
@@ -271,10 +271,12 @@
 			if($userData['loggedIn'] && $userData['userid']==$uid){
 				echo "<td class=body align=center>";
 
+				$key = makekey($line['userid']);
+
 				if($mode==1)
-					echo "<a class=body href=\"javascript: editcomment('" . (strpos($line['comment'],"'")===false && strpos($line['comment'],'"')===false ? $line['comment'] : ""  ) . "',$line[userid]); \"><img src=$config[imageloc]edit.gif border=0></a>";
+					echo "<a class=body href=\"javascript: editcomment('" . (strpos($line['comment'],"'")===false && strpos($line['comment'],'"')===false ? $line['comment'] : ""  ) . "',$line[userid],'$key'); \"><img src=$config[imageloc]edit.gif border=0></a>";
 				if($mode==1 || ($userData['loggedIn'] && $userData['premium']))
-					echo "<a class=body href='$_SERVER[PHP_SELF]?id=$line[userid]&action=delete&mode=$mode&k=" . makekey($line['userid']) . "'><img src=$config[imageloc]delete.gif border=0></a>";
+					echo "<a class=body href='$_SERVER[PHP_SELF]?id=$line[userid]&action=delete&mode=$mode&k=$key'><img src=$config[imageloc]delete.gif border=0></a>";
 				echo "</td>";
 			}
 		echo "</tr>";

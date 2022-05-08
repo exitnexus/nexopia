@@ -798,7 +798,7 @@ function modpolls($polls, $votes)
 			foreach($ids as $id)
 				removePic($id);
 
-			$db->prepare_query("UPDATE users LEFT JOIN pics ON users.userid=pics.itemid && pics.priority=1 SET users.firstpic = pics.id WHERE users.userid IN (#)",$uids);
+			setFirstPic($uids);
 		}
 	}
 

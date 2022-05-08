@@ -8,33 +8,36 @@
 
 	$isAdmin = $mods->isAdmin($userData['userid'],'editgallery');
 
-	if(!isset($uid) || !$isAdmin)
-		$uid = $userData['userid'];
+	$uid = ($isAdmin ? getREQval('uid', 'int', $userData['userid']) : $userData['userid']);
 
+	$cat = getREQval('cat', 'int');
+	$id = getREQval('id', 'int');
 
 	switch($action){
 		case "moveup":
-			if($userData['userid']==$uid && isset($cat)){
+			if( $userData['userid']==$uid && $cat && $id &&
+				($k = getREQval('k')) && checkkey($id, $k) ){
 				increasepriority($db, "gallery", $id, $db->prepare("userid = # && category = #", $uid, $cat), true);
 				setFirstGalleryPic($uid, $cat);
 			}
 			break;
 		case "movedown":
-			if($userData['userid']==$uid && isset($cat)){
+			if($userData['userid']==$uid && $cat && $id &&
+				($k = getREQval('k')) && checkkey($id, $k) ){
 				decreasepriority($db, "gallery", $id, $db->prepare("userid = # && category = #", $uid, $cat), true);
 				setFirstGalleryPic($uid, $cat);
 			}
 			break;
 		case "deletepic":
-			$db->prepare_query("SELECT userid FROM gallery WHERE id = #", $id);
-			if($db->numrows()){
-				$line = $db->fetchrow();
+			if($id && ($k = getREQval('k')) && checkkey($id, $k) ){
+				$db->prepare_query("SELECT userid FROM gallery WHERE id = # && userid = #", $id, $uid);
+				if($db->numrows()){
+					removeGalleryPic($id);
 
-				removeGalleryPic($id);
-
-				setFirstGalleryPic($uid,$cat);
-				if($uid != $userData['userid'])
-					$mods->adminlog("delete gallery picture", "Delete Gallery picture: userid $uid, gallery $cat");
+					setFirstGalleryPic($uid, $cat);
+					if($uid != $userData['userid'])
+						$mods->adminlog("delete gallery picture", "Delete Gallery picture: userid $uid, gallery $cat");
+				}
 			}
 			break;
 		case "Upload":
@@ -42,52 +45,81 @@
 				$db->prepare_query("SELECT count(*) FROM gallery WHERE userid = #", $uid);
 				$numpics = $db->fetchfield();
 
+				$userfiles = getFILEval('userfile');
+				$description = getPOSTval('description', 'array');
+
 				for($i=0; $i<5; $i++){
-					if(empty($userfile[$i]))
+					if(empty($userfiles['name'][$i]))
 						continue;
-					if(!isset($description[$i]))
+					if(empty($description[$i]))
 						$description[$i]="";
+
 					if($numpics++ < $config['maxgallerypics'])
-						addGalleryPic($userfile[$i], $cat, $description[$i]);
+						addGalleryPic($userfiles['tmp_name'][$i], $cat, $description[$i]);
 				}
 				setFirstGalleryPic($uid,$cat);
 			}
 			break;
 		case "editpic":
-			if($uid != $userData['userid'])
-				$mods->adminlog("edit gallery picture", "Edit user Gallery: userid $uid");
-			editpic($id); //exit
+			if($id){
+				if($uid != $userData['userid'])
+					$mods->adminlog("edit gallery picture", "Edit user Gallery: userid $uid");
+
+				editpic($id); //exit
+			}
 		case "Update Picture":
-			if($uid != $userData['userid'])
-				$mods->adminlog("update gallery picture", "Update user Gallery: userid $uid");
-			updatepic($id,$description);
+			if($id && ($description = getPOSTval('description')) ){
+				if($uid != $userData['userid'])
+					$mods->adminlog("update gallery picture", "Update user Gallery: userid $uid");
+
+				updatepic($id, $description);
+			}
 			break;
 
 		case "Create Gallery":
-			if($uid == $userData['userid'])
-			createGalleryCat($name, $description, $permission);
-			setGalleryVisibility($uid);
+			if(	($name = getPOSTval('name')) &&
+				($description = getPOSTval('description')) &&
+				($permission = getPOSTval('permission')) ){
+
+				if($uid == $userData['userid'])
+					createGalleryCat($name, $description, $permission);
+
+				setGalleryVisibility($uid);
+			}
 			break;
 		case "editcat":
-			if($uid != $userData['userid'])
-				$mods->adminlog("edit gallery category", "Update user Gallery: userid $uid");
-			editgallery($id);
+			if($id){
+				if($uid != $userData['userid'])
+					$mods->adminlog("edit gallery category", "Update user Gallery: userid $uid");
+
+				editgallery($id);
+			}
 			break;
 		case "Update Gallery":
-			if($uid != $userData['userid'])
-				$mods->adminlog("update gallery category", "Update user Gallery: userid $uid");
-			updategallery($id, $name, $description, $permission);
-			setGalleryVisibility($uid);
+			if(	$id &&
+				($name = getPOSTval('name')) &&
+				($description = getPOSTval('description')) &&
+				($permission = getPOSTval('permission')) ){
+
+				if($uid != $userData['userid'])
+					$mods->adminlog("update gallery category", "Update user Gallery: userid $uid");
+
+				updategallery($id, $name, $description, $permission);
+				setGalleryVisibility($uid);
+			}
 			break;
 		case "deletecat":
-			if($uid != $userData['userid'])
-				$mods->adminlog("delete gallery category", "Delete user Gallery: userid $uid");
-			deletegallery($id);
-			setGalleryVisibility($uid);
+			if(	$id && ($k = getREQval('k')) && (checkkey($id, $k)) ){
+				if($uid != $userData['userid'])
+					$mods->adminlog("delete gallery category", "Delete user Gallery: userid $uid");
+
+				deletegallery($id);
+				setGalleryVisibility($uid);
+			}
 			break;
 	}
 
-	if(!empty($cat))
+	if($cat)
 		listPictures($cat); //exit
 
 	listCategories(); //exit
@@ -126,7 +158,7 @@ function listCategories(){
 		echo "<td class=body valign=top><a class=body href=managegallery.php?uid=$uid&cat=$line[id]><b>$line[name]</b></a> - " . $perms[$line['permission']] . "<br>$line[description]</td>";
 
 		echo "<td class=body><a class=body href=\"$_SERVER[PHP_SELF]?uid=$uid&action=editcat&id=$line[id]\"><img src=$config[imageloc]edit.gif border=0 alt='Edit'></a>";
-		echo " <a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?uid=$uid&action=deletecat&id=$line[id]','delete this gallery')\"><img src=$config[imageloc]delete.gif border=0 alt='Delete'></a></td>";
+		echo " <a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?uid=$uid&action=deletecat&id=$line[id]&k=" . makekey($line['id']) . "','delete this gallery')\"><img src=$config[imageloc]delete.gif border=0 alt='Delete'></a></td>";
 
 		echo "</tr>";
 	}
@@ -134,14 +166,16 @@ function listCategories(){
 
 	echo "<table align=center>";
 
-	echo "<tr><td class=header colspan=2>Create a New Gallery</td></tr>";
+	if($userData['userid'] == $uid){
+		echo "<tr><td class=header colspan=2>Create a New Gallery</td></tr>";
 
-	echo "<form action=$_SERVER[PHP_SELF] method=post enctype=\"multipart/form-data\">\n";
-	echo "<tr><td class=body>Gallery Name:</td><td class=body><input class=body type=test name=name maxlenght=32 size=30></td></tr>";
-	echo "<tr><td class=body>Description:</td><td class=body><input class=body type=text name=description maxlength=255 size=40></td></tr>";
-	echo "<tr><td class=body>Permissions:</td><td class=body><select class=body name=permission>" . make_select_list_key($perms) . "</select></td></tr>";
-	echo "<tr><td class=body></td><td><input class=body type=submit name=action value=\"Create Gallery\"></td></tr>\n";
-	echo "</form>";
+		echo "<form action=$_SERVER[PHP_SELF] method=post enctype=\"multipart/form-data\">\n";
+		echo "<tr><td class=body>Gallery Name:</td><td class=body><input class=body type=test name=name maxlenght=32 size=30></td></tr>";
+		echo "<tr><td class=body>Description:</td><td class=body><input class=body type=text name=description maxlength=255 size=40></td></tr>";
+		echo "<tr><td class=body>Permissions:</td><td class=body><select class=body name=permission>" . make_select_list_key($perms) . "</select></td></tr>";
+		echo "<tr><td class=body></td><td><input class=body type=submit name=action value=\"Create Gallery\"></td></tr>\n";
+		echo "</form>";
+	}
 
 	echo "</table>";
 
@@ -153,15 +187,15 @@ function listCategories(){
 function listPictures($cat){
 	global $db, $uid, $userData, $config;
 
-	$db->prepare_query("SELECT name FROM gallerycats WHERE id = ? && userid = ?", $cat, $uid);
+	$db->prepare_query("SELECT name FROM gallerycats WHERE id = # && userid = #", $cat, $uid);
 	if($db->numrows() == 0)
 		return;
 	$galleryname = $db->fetchfield();
 
-	$db->prepare_query("SELECT count(*) FROM gallery WHERE userid = ?", $uid);
+	$db->prepare_query("SELECT count(*) FROM gallery WHERE userid = #", $uid);
 	$numpics = $db->fetchfield();
 
-	$db->prepare_query("SELECT id,description,priority FROM gallery WHERE userid = ? && category = ? ORDER BY priority", $uid, $cat);
+	$db->prepare_query("SELECT id,description,priority FROM gallery WHERE userid = # && category = # ORDER BY priority", $uid, $cat);
 
 	$rows = array();
 	while($line = $db->fetchrow())
@@ -193,11 +227,12 @@ function listPictures($cat){
 		echo "<td class=body>$line[description]</td>";
 
 		echo "<td class=body><a class=body href=\"$_SERVER[PHP_SELF]?uid=$uid&action=editpic&cat=$cat&id=$line[id]\"><img src=$config[imageloc]edit.gif border=0 alt='Edit'></a>";
+		$k = makekey($line['id']);
 		if($userData['userid']==$uid){
-			echo " <a class=body href=\"$_SERVER[PHP_SELF]?action=moveup&cat=$cat&id=$line[id]\"><img src=$config[imageloc]up.png border=0 alt='Move Up'></a>";
-			echo " <a class=body href=\"$_SERVER[PHP_SELF]?action=movedown&cat=$cat&id=$line[id]\"><img src=$config[imageloc]down.png border=0 alt='Move Down'></a>";
+			echo " <a class=body href=\"$_SERVER[PHP_SELF]?action=moveup&cat=$cat&id=$line[id]&k=$k\"><img src=$config[imageloc]up.png border=0 alt='Move Up'></a>";
+			echo " <a class=body href=\"$_SERVER[PHP_SELF]?action=movedown&cat=$cat&id=$line[id]&k=$k\"><img src=$config[imageloc]down.png border=0 alt='Move Down'></a>";
 		}
-		echo " <a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?uid=$uid&cat=$cat&action=deletepic&id=$line[id]','delete this picture')\"><img src=$config[imageloc]delete.gif border=0 alt='Delete'></a></td>";
+		echo " <a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?uid=$uid&cat=$cat&action=deletepic&id=$line[id]&k=$k','delete this picture')\"><img src=$config[imageloc]delete.gif border=0 alt='Delete'></a></td>";
 
 		echo "</tr>";
 	}
@@ -205,7 +240,7 @@ function listPictures($cat){
 
 	if(count($ids)){
 		foreach($ids as $id => $i)
-			$db->prepare_query("UPDATE gallery SET priority = ? WHERE id = ?", $i, $id);
+			$db->prepare_query("UPDATE gallery SET priority = # WHERE id = #", $i, $id);
 	}
 
 	if($userData['userid']==$uid && $numpics < $config['maxgallerypics']){
@@ -236,7 +271,7 @@ function listPictures($cat){
 function createGalleryCat($name, $description, $permission){
 	global $db, $msgs, $uid;
 
-	$db->prepare_query("INSERT INTO gallerycats SET name = ?, description = ?, permission = ?, userid = ?", removeHTML($name), removeHTML($description), $permission, $uid);
+	$db->prepare_query("INSERT INTO gallerycats SET name = ?, description = ?, permission = ?, userid = #", removeHTML($name), removeHTML($description), $permission, $uid);
 
 	$msgs->addMsg("Gallery Created");
 }
@@ -277,7 +312,7 @@ function editpic($id){
 function updatepic($id,$description){
 	global $uid,$msgs,$isAdmin, $db;
 
-	$db->prepare_query("UPDATE gallery SET description = ? WHERE id = ? && userid = ?", removeHTML($description), $id, $uid);
+	$db->prepare_query("UPDATE gallery SET description = ? WHERE id = # && userid = #", removeHTML($description), $id, $uid);
 
 	$msgs->addMsg("Update Complete");
 }
@@ -286,7 +321,7 @@ function updatepic($id,$description){
 function editgallery($id){
 	global $uid, $db, $perms;
 
-	$db->prepare_query("SELECT name,description, permission FROM gallerycats WHERE id = ? && userid = ?", $id, $uid);
+	$db->prepare_query("SELECT name,description, permission FROM gallerycats WHERE id = # && userid = #", $id, $uid);
 	$data = $db->fetchrow();
 
 	if(!$data)
@@ -317,21 +352,21 @@ function editgallery($id){
 function updategallery($id, $name, $description, $permission){
 	global $uid,$msgs,$isAdmin, $db;
 
-	$db->prepare_query("UPDATE gallerycats SET name = ?, description = ?, permission = ? WHERE id = ? && userid = ?", removeHTML($name), removeHTML($description), $permission, $id, $uid);
+	$db->prepare_query("UPDATE gallerycats SET name = ?, description = ?, permission = ? WHERE id = # && userid = #", removeHTML($name), removeHTML($description), $permission, $id, $uid);
 
 	$msgs->addMsg("Update Complete");
 }
 
 function deletegallery($id){
 	global $uid,$msgs,$isAdmin, $db;
-/*
-	$result = $db->prepare_query("SELECT id FROM gallery WHERE userid = ? && category = ?", $uid, $id);
+//*
+	$result = $db->prepare_query("SELECT id FROM gallery WHERE userid = # && category = #", $uid, $id);
 
 	while($line = $db->fetchrow($result))
 		removeGalleryPic($id);
-*/
-	$db->prepare_query("DELETE FROM gallery WHERE userid = ? && category = ?", $uid, $id);
-	$db->prepare_query("DELETE FROM gallerycats WHERE userid = ? && id = ?", $uid, $id);
+//*/
+	$db->prepare_query("DELETE FROM gallery WHERE userid = # && category = #", $uid, $id);
+	$db->prepare_query("DELETE FROM gallerycats WHERE userid = # && id = #", $uid, $id);
 
 	$msgs->addMsg("Gallery Deleted");
 }
@@ -341,7 +376,7 @@ function setGalleryVisibility($uid){
 
 	$db->begin();
 
-	$db->prepare_query("SELECT permission FROM gallerycats WHERE userid = ?", $uid);
+	$db->prepare_query("SELECT permission FROM gallerycats WHERE userid = #", $uid);
 
 	$permission = "none";
 	while($line = $db->fetchrow()){
@@ -358,7 +393,7 @@ function setGalleryVisibility($uid){
 		}
 	}
 
-	$db->prepare_query("UPDATE users SET gallery = ? WHERE userid = ?", $permission, $uid);
+	$db->prepare_query("UPDATE users SET gallery = ? WHERE userid = #", $permission, $uid);
 	$db->commit();
 }
 

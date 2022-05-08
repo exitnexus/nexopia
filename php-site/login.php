@@ -40,7 +40,7 @@
 	echo "<tr><td class=body>Password:</td><td class=body><input type=password name=password size=10 style=\"width:93px\"></td></tr>";
 	echo "<tr><td class=body colspan=2>" . makeCheckBox('lockip', " Secure this Session", false) . " &nbsp; (<a class=body href=faq.php?q=68> ? </a>)</td></tr>";
 	echo "<tr><td class=body colspan=2><table cellspacing=0 cellpadding=0 width=100%><tr><td class=body>" . makeCheckBox('cachedlogin', " Remember Me", false) . "</td>";
-	echo "<td class=body align=right><input type=submit value=Login style=\"width=60px\"></td></tr></table></td></tr>";
+	echo "<td class=body align=right><input class=body type=submit value=Login style=\"width=60px\"></td></tr></table></td></tr>";
 	echo "</table><table align=center>";
 	echo "<tr><td class=body>&nbsp;</td></tr>";
 	echo "<tr><td class=body align=center>";

@@ -1,8 +1,5 @@
 <?
 
-function incAdminBlock($side){
-}
-
 function incPollBlock($side){
 	global $userData, $config, $db, $cache, $polls;
 

@@ -523,7 +523,23 @@ class bannerserver{
 		$this->db->freeresult();
 
 		if($banner){
-			$this->banners[$banner['bannersize']][$banner['id']]->update($banner, $this->numservers);
+			if(isset($this->banners[$banner['bannersize']][$banner['id']])){ //exists where expected
+				$this->banners[$banner['bannersize']][$banner['id']]->update($banner, $this->numservers);
+			}else{
+				if(isset($this->bannerids[$banner['id']]) && isset($this->banners[$this->bannerids[$banner['id']]][$banner['id']])){  //changed sizes
+					$this->banners[$banner['bannersize']][$banner['id']] = & $this->banners[$this->bannerids[$banner['id']]][$banner['id']];
+
+					unset($this->banners[$this->bannerids[$banner['id']]][$banner['id']]);
+					unset($this->bannersizes[$this->bannerids[$banner['id']]][$banner['id']]);
+
+					$this->bannerids[$banner['id']] = $banner['bannersize'];
+					$this->bannersizes[$banner['bannersize']][$banner['id']] = $banner['id'];
+
+					$this->banners[$banner['bannersize']][$banner['id']]->update($banner, $this->numservers);
+				}else{ //doesn't exist, add it instead of updating it.
+					$this->addBanner($banner['id']);
+				}
+			}
 			return true;
 		}else
 			return false;
@@ -567,7 +583,7 @@ class bannerserver{
 
 			/*
 				weighting based on
-					(1 + priority) * //^2/4) *
+					(1 + priority) *
 					(2 - ((views by this user today)/(views per user per day))) *
 					(3 - ((views today)/(max views per day))) *
 					(3 - ((clicks today)/(max clicks per day)))
@@ -859,8 +875,6 @@ class bannerclient{
 		$this->db->prepare_query("SELECT link FROM banners WHERE id = ?", $id);
 		return $this->db->fetchfield();
 	}
-
-	function updateBannerHits($id = false){ } //from old system.
 
 	function addBanner($id){
 		foreach($this->hosts as $host){
