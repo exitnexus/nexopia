@@ -26,15 +26,15 @@
 
 		case "delete":
 			$mods->adminlog("delete forum", "Delete forum $id");
-			deleteForum($id);
+			$forums->deleteForum($id);
 			break;
 		case "moveup":
 			$mods->adminlog("moveup forum", "Move up forum $id");
-			$db->prepare_query("SELECT parent FROM forums WHERE id = ?", $id);
+			$forums->db->prepare_query("SELECT parent FROM forums WHERE id = ?", $id);
 
-			if($db->numrows() > 0){
-				$parent = $db->fetchfield();
-				increasepriority($id,"forums",$db->prepare("parent = ? && official='y'", $parent));
+			if($forums->db->numrows() > 0){
+				$parent = $forums->db->fetchfield();
+				increasepriority($forums->db, "forums", $id, $forums->db->prepare("parent = ? && official='y'", $parent));
 
 				$childdata = getForumData();
 //				$parentdata = getForumParentData();
@@ -42,11 +42,11 @@
 			break;
 		case "movedown":
 			$mods->adminlog("movedown forum", "Move down forum $id");
-			$db->prepare_query("SELECT parent FROM forums WHERE id = ?", $id);
+			$forums->db->prepare_query("SELECT parent FROM forums WHERE id = ?", $id);
 
-			if($db->numrows() > 0){
-				$parent = $db->fetchfield();
-				decreasepriority($id,"forums",$db->prepare("parent = ? && official='y'", $parent));
+			if($forums->db->numrows() > 0){
+				$parent = $forums->db->fetchfield();
+				decreasepriority($forums->db, "forums", $id, $forums->db->prepare("parent = ? && official='y'", $parent));
 
 				$childdata = getForumData();
 //				$parentdata = getForumParentData();
@@ -58,7 +58,7 @@
 
 
 function addForum($data = array()){
-	global $PHP_SELF,$childdata,$sorttimes;
+	global $childdata, $forums;
 
 	$name="";
 	$description="";
@@ -74,7 +74,7 @@ function addForum($data = array()){
 
 	incHeader();
 
-	echo "<table><form action=$PHP_SELF method=post>";
+	echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
 
 	echo "<tr><td class=header colspan=2 align=center>Add Forum</td></tr>";
 
@@ -87,7 +87,7 @@ function addForum($data = array()){
 	echo "<tr><td class=body>Allow Post Editing:</td><td class=body>" . make_radio_key("data[edit]", array('y'=>"Yes", 'n'=>"No"),$edit) . "</td></tr>";
 //	echo "<tr><td class=body>Public:</td><td class=body>" . make_radio_key("data[public]", array('y'=>"Yes", 'n'=>"No"),$public) . "&nbsp; Only invited users can enter a private forum.</td></tr>";
 	echo "<tr><td class=body>Mute:</td><td class=body>" . make_radio_key("data[mute]", array('y'=>"Yes", 'n'=>"No"),$mute) . "&nbsp; Only mods can post in a mute forum.</td></tr>";
-	echo "<tr><td class=body>Show threads from last</td><td class=body><select class=body name=sorttime>" . make_select_list_key($sorttimes,$sorttime) . "</select></td></tr>";
+	echo "<tr><td class=body>Show threads from last</td><td class=body><select class=body name=sorttime>" . make_select_list_key($forums->sorttimes,$sorttime) . "</select></td></tr>";
 
 	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value='Create Forum'><input class=body type=submit value=Cancel></td></tr>";
 	echo "</form></table>";
@@ -97,7 +97,7 @@ function addForum($data = array()){
 }
 
 function insertForum($data){
-	global $msgs,$userData,$db,$sorttimes, $mods;
+	global $msgs, $userData, $forums, $sorttimes, $mods;
 
 	$name="";
 	$description="";
@@ -121,19 +121,19 @@ function insertForum($data){
 		$error=true;
 	}
 
-	$db->prepare_query("SELECT id FROM forums WHERE name = ?", $name);
-	if($db->numrows() > 0){
+	$forums->db->prepare_query("SELECT id FROM forums WHERE name = ?", $name);
+	if($forums->db->numrows() > 0){
 		$msgs->addMsg("A forum already exists with that name");
 		$error=true;
 	}
 
 
-	$db->prepare_query("SELECT id,parent FROM forums WHERE id = ?", $parent);
-	if($db->numrows()==0){
+	$forums->db->prepare_query("SELECT id,parent FROM forums WHERE id = ?", $parent);
+	if($forums->db->numrows()==0){
 		$msgs->addMsg("Must have a valid parent forum");
 		$error=true;
 	}else{
-		$line = $db->fetchrow();
+		$line = $forums->db->fetchrow();
 		if($line['parent']!='0'){
 			$msgs->addMsg("Parent must be a realm");
 			$error=true;
@@ -145,7 +145,7 @@ function insertForum($data){
 
 	$mods->adminlog('create forum',"Create Forum: $name");
 
-	$priority = getMaxPriority("forums",$db->prepare("parent = ?", $parent));
+	$priority = getMaxPriority($forums->db, "forums", $forums->db->prepare("parent = ?", $parent));
 
 	$commands = array(); 				$params = array();
 	$commands[] = "name = ?"; 			$params[] = $name;
@@ -162,7 +162,7 @@ function insertForum($data){
 	$commands[] = "sorttime = ?";		$params[] = $sorttime;
 
 	$query = "INSERT INTO forums SET " . implode(", ",$commands);
-	$db->prepare_array_query($query, $params);
+	$forums->db->prepare_array_query($query, $params);
 
 
 
@@ -175,16 +175,16 @@ function insertForum($data){
 }
 
 function editForum($id){
-	global $PHP_SELF,$childdata,$db,$sorttimes;
+	global $childdata, $sorttimes, $forums;
 
-	$db->prepare_query("SELECT * FROM forums WHERE id = ? && official='y'", $id);
-	$data = $db->fetchrow();
+	$forums->db->prepare_query("SELECT * FROM forums WHERE id = ? && official='y'", $id);
+	$data = $forums->db->fetchrow();
 
 	extract($data);
 
 	incHeader();
 
-	echo "<table><form action=$PHP_SELF method=post>";
+	echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
 
 	echo "<input type=hidden name=id value='$id'";
 	echo "<tr><td class=header colspan=2 align=center>Add Forum</td></tr>";
@@ -208,7 +208,7 @@ function editForum($id){
 }
 
 function updateForum($data,$id){
-	global $msgs,$userData,$db,$sorttimes, $mods;
+	global $msgs, $userData, $sorttimes, $forums, $mods;
 
 	$name="";
 	$description="";
@@ -228,8 +228,8 @@ function updateForum($data,$id){
 		$error=true;
 	}
 
-	$db->prepare_query("SELECT id FROM forums WHERE name = ? && id != ?", $name, $id);
-	if($db->numrows() > 0){
+	$forums->db->prepare_query("SELECT id FROM forums WHERE name = ? && id != ?", $name, $id);
+	if($forums->db->numrows() > 0){
 		$msgs->addMsg("A forum already exists with that name");
 		$error=true;
 	}
@@ -239,11 +239,11 @@ function updateForum($data,$id){
 		$error=true;
 	}
 	if($parent!=0){
-		$db->prepare_query("SELECT id,parent FROM forums WHERE id = ?", $parent);
-		if($db->numrows()==0){
+		$forums->db->prepare_query("SELECT id, parent FROM forums WHERE id = ?", $parent);
+		if($forums->db->numrows()==0){
 			$msgs->addMsg("Must have a valid parent forum");
 			$error=true;
-		}elseif($db->fetchfield(2,0)!=0){
+		}elseif($forums->db->fetchfield(2,0)!=0){
 			$msgs->addMsg("Parent must be a realm");
 			$error=true;
 		}
@@ -271,7 +271,7 @@ function updateForum($data,$id){
 
 	$params[] = $id;
 
-	$db->prepare_array_query("UPDATE forums SET " . implode(", ",$commands) . " WHERE id = ? && official='y'", $params);
+	$forums->db->prepare_array_query("UPDATE forums SET " . implode(", ",$commands) . " WHERE id = ? && official='y'", $params);
 
 	global $childdata,$parentdata; //update page
 
@@ -282,7 +282,7 @@ function updateForum($data,$id){
 }
 
 function addRealm($data = array()){
-	global $PHP_SELF,$childdata;
+	global $childdata;
 
 	$name="";
 
@@ -290,7 +290,7 @@ function addRealm($data = array()){
 
 	incHeader();
 
-	echo "<table><form action=$PHP_SELF method=post>";
+	echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
 
 	echo "<tr><td class=header colspan=2 align=center>Add Realm</td></tr>";
 
@@ -304,7 +304,7 @@ function addRealm($data = array()){
 }
 
 function insertRealm($data){
-	global $msgs, $db, $mods;
+	global $msgs, $forums, $mods;
 
 	$name="";
 
@@ -324,7 +324,7 @@ function insertRealm($data){
 
 	$mods->adminlog('create forum realm',"Create Forum Realm: $name");
 
-	$priority = getMaxPriority("forums",$db->prepare("parent = ?",$parent);
+	$priority = getMaxPriority($forums->db, "forums", $forums->db->prepare("parent = ?",$parent));
 
 	$commands = array();			$params = array();
 	$commands[] = "name = ?";		$params[] = $name;
@@ -334,9 +334,9 @@ function insertRealm($data){
 	$commands[] = "priority = ?";	$params[] = $priority;
 
 	$query = "INSERT INTO forums SET " . implode(", ",$commands);
-	$db->prepare_array_query($query, $params);
+	$forums->db->prepare_array_query($query, $params);
 
-	global $childdata,$parentdata; //update page
+	global $childdata, $parentdata; //update page
 
 	$childdata = getForumData();
 //	$parentdata = getForumParentData();
@@ -345,16 +345,16 @@ function insertRealm($data){
 }
 
 function editRealm($id){
-	global $PHP_SELF,$childdata,$db;
+	global $childdata;
 
-	$db->prepare_query("SELECT name FROM forums WHERE id = ? && official='y'", $id);
-	$data = $db->fetchrow();
+	$forums->db->prepare_query("SELECT name FROM forums WHERE id = ? && official='y'", $id);
+	$data = $forums->db->fetchrow();
 
 	extract($data);
 
 	incHeader();
 
-	echo "<table><form action=$PHP_SELF method=post>";
+	echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
 
 	echo "<input type=hidden name=id value='$id'>";
 
@@ -370,7 +370,7 @@ function editRealm($id){
 }
 
 function updateRealm($data,$id){
-	global $msgs,$db, $mods;
+	global $msgs, $forums, $mods;
 
 	$name="";
 
@@ -386,8 +386,8 @@ function updateRealm($data,$id){
 	}
 /*	if($parent!=0){
 		$query = "SELECT id FROM forums WHERE id='$parent'";
-		$result = $db->query($query);
-		if($db->numrows($result)==0){
+		$result = $forums->db->query($query);
+		if($forums->db->numrows($result)==0){
 			$msgs->addMsg("Must have a valid parent forum");
 			$error=true;
 		}
@@ -407,7 +407,7 @@ function updateRealm($data,$id){
 	$params[] = $id;
 
 	$query = "UPDATE forums SET " . implode(", ",$commands) . " WHERE id = ? && official='y'";
-	$db->prepare_array_query($query, $params);
+	$forums->db->prepare_array_query($query, $params);
 
 	global $childdata,$parentdata; //update page
 
@@ -419,21 +419,21 @@ function updateRealm($data,$id){
 
 
 function listForums(){
-	global $PHP_SELF, $childdata, $mods;
+	global $childdata, $mods, $config;
 
 	$mods->adminlog('list forums',"List Forums");
 
 	incHeader();
 
-	echo "<table width=100%><form action=\"$PHP_SELF\" method=post>\n";
+	echo "<table width=100%><form action=$_SERVER[PHP_SELF] method=post>\n";
 	echo "<tr>\n";
 	echo "  <td class=header>Category Name</td>";
 	echo "  <td class=header>Threads</td>";
 	echo "  <td class=header>Posts</td>";
-	echo "  <td class=header width=16><img src=/images/edit.gif border=0></td>";
-	echo "  <td class=header width=16><img src=/images/up.png border=0></td>";
-	echo "  <td class=header width=16><img src=/images/down.png border=0></td>";
-	echo "  <td class=header width=16><img src=/images/delete.gif border=0></td>";
+	echo "  <td class=header width=16><img src=$config[imageloc]edit.gif border=0></td>";
+	echo "  <td class=header width=16><img src=$config[imageloc]up.png border=0></td>";
+	echo "  <td class=header width=16><img src=$config[imageloc]down.png border=0></td>";
+	echo "  <td class=header width=16><img src=$config[imageloc]delete.gif border=0></td>";
 	echo "</tr>\n";
 
 
@@ -449,27 +449,27 @@ function listForums(){
 		echo "<td class=body>" . ($line['parent']==0 ? "N/A" : $line['info']['posts']) . "</td>";
 
 		echo "<td class=body>";
-		echo "<a class=body href=\"$PHP_SELF?action=edit" . ($line['parent']==0 ? "realm" : "forum" ) . "&id=$line[id]\"><img src=/images/edit.gif border=0></a>";
+		echo "<a class=body href=\"$_SERVER[PHP_SELF]?action=edit" . ($line['parent']==0 ? "realm" : "forum" ) . "&id=$line[id]\"><img src=$config[imageloc]edit.gif border=0></a>";
 		echo "</td>";
 
 		echo "<td class=body>";
 		if($line['info']['priority'] > 1)
-			echo "<a class=body href=\"$PHP_SELF?action=moveup&id=$line[id]\"><img src=/images/up.png border=0></a>";
+			echo "<a class=body href=\"$_SERVER[PHP_SELF]?action=moveup&id=$line[id]\"><img src=$config[imageloc]up.png border=0></a>";
 		echo "</td>";
 		echo "<td class=body>";
 		if($line['info']['priority'] < count($childdata[$line['parent']]) )
-			echo "<a class=body href=\"$PHP_SELF?action=movedown&id=$line[id]\"><img src=/images/down.png border=0></a>";
+			echo "<a class=body href=\"$_SERVER[PHP_SELF]?action=movedown&id=$line[id]\"><img src=$config[imageloc]down.png border=0></a>";
 		echo "</td>";
 		echo "<td class=body>";
 		if(!$line['isparent'])
-			echo "<a class=body href=\"javascript:confirmLink('$PHP_SELF?action=delete&id=$line[id]','delete this " . ($line['parent']==0 ? "realm" : "forum" ) . "?')\"><img src=/images/delete.gif border=0></a>";
+			echo "<a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?action=delete&id=$line[id]','delete this " . ($line['parent']==0 ? "realm" : "forum" ) . "?')\"><img src=$config[imageloc]delete.gif border=0></a>";
 		echo "</td>";
 		echo "</tr>\n";
 	}
 
 
 
-	echo "<tr><td class=header colspan=7><a class=header href=$PHP_SELF?action=addforum>Create Forum</a> | <a class=header href=$PHP_SELF?action=addrealm>Create Realm</a></td></tr>";
+	echo "<tr><td class=header colspan=7><a class=header href=$_SERVER[PHP_SELF]?action=addforum>Create Forum</a> | <a class=header href=$_SERVER[PHP_SELF]?action=addrealm>Create Realm</a></td></tr>";
 	echo "</form></table>\n";
 
 	incFooter();
@@ -482,19 +482,19 @@ function listForums(){
 ///////////////////////////////////
 
 function dispBranch(&$data,$basedepth=0){
-	global $PHP_SELF,$table;
+	global $table;
 	foreach($data as $line){
 		echo "<tr><td class=body>";
 		echo "<input class=body type=checkbox name=checkID[] value=$line[id]>";
 		for($i=0;$i<$line['depth']+$basedepth-1;$i++)
 			echo "&nbsp;- ";
-		echo "<a href=$PHP_SELF?catid=$line[id]&table=$table>" . $line['name'] . "</a> ($line[depth])";
+		echo "<a class=body href=$_SERVER[PHP_SELF]?catid=$line[id]&table=$table>" . $line['name'] . "</a> ($line[depth])";
 		echo "</td></tr>\n";
 	}
 }
 
 function dispRoot(&$data){
-	global $PHP_SELF,$table;
+	global $table;
 
 	$depth=0;
 	$maxdepth=count($data)-1;
@@ -506,7 +506,7 @@ function dispRoot(&$data){
 		echo "<input class=body type=checkbox name=checkID[] value=$line[id]>";
 		for($i=0;$i<$depth;$i++)
 			echo "&nbsp;- ";
-		echo "<a href=$PHP_SELF?catid=$line[id]&table=$table>" . $line['name'] . "</a> ($line[depth])";
+		echo "<a class=body href=$_SERVER[PHP_SELF]?catid=$line[id]&table=$table>" . $line['name'] . "</a> ($line[depth])";
 		echo "</td></tr>\n";
 		$depth++;
 	}
@@ -514,22 +514,22 @@ function dispRoot(&$data){
 
 
 function & getForumData(){	//table of type id,parent,name
-	global $db;
-	$db->query("SELECT * FROM forums WHERE official='y' ORDER BY priority ASC");
+	global $forums;
+	$forums->db->query("SELECT * FROM forums WHERE official='y' ORDER BY priority ASC");
 
 	$data = array();
-	while($line = $db->fetchrow())
+	while($line = $forums->db->fetchrow())
 		$data[$line['parent']][$line['id']]=$line;
 
 	return $data;
 }
 
 function & getForumParentData(){	//table of type id,parent,name
-	global $db;
-	$db->query("SELECT * FROM forums WHERE official='y' ORDER BY priority ASC");
+	global $forums;
+	$forums->db->query("SELECT * FROM forums WHERE official='y' ORDER BY priority ASC");
 
 	$data = array();
-	while($line = $db->fetchrow())
+	while($line = $forums->db->fetchrow())
 		$data[$line['id']][$line['parent']]=$line;
  	return $data;
 }

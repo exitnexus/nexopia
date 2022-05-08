@@ -1,9 +1,11 @@
 <?
 
+//use debug_backtrace()
+
 if($errorLogging){
 
 	function userErrorHandler($errno, $errmsg, $filename, $linenum, $vars) {
-		global $sitebasedir,$PHP_SELF, $userData, $debuginfousers;
+		global $sitebasedir, $userData, $debuginfousers, $errorLogging;
 
 		$time = gmdate("d M Y H:i:s");
 
@@ -29,15 +31,15 @@ if($errorLogging){
 		else
 			$file = "$sitebasedir/logs/site/userwarnings.csv";
 
-		$str = "\"$time\",\"$filename: $linenum\",\"($errlevel)\",\"$errmsg\",\"" . getip() . "\",\"$PHP_SELF\"\r\n";
+		$str = "\"$time\",\"$filename: $linenum\",\"($errlevel)\",\"$errmsg\",\"" . getip() . "\",\"$_SERVER[PHP_SELF]\"\r\n";
 
 		$errfile=fopen($file,"a");
 		fputs($errfile,$str);
 		fclose($errfile);
 
 	//Terminate script if fatal error
-		if($errno!=2 && $errno!=8 && $errno!=512 && $errno!=1024){
-			if($userData['loggedIn'] && in_array($userData['userid'],$debuginfousers))
+		if($errno != 2 && $errno != 8 && $errno != 512 && $errno != 1024){
+			if($errorLogging >= 2 || ($userData['loggedIn'] && in_array($userData['userid'], $debuginfousers)))
 				die("A fatal error has occured. Script execution has been aborted:<br>\n$str");
 			else
 				die("A fatal error has occured. Script execution has been aborted");

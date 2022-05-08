@@ -8,35 +8,24 @@
 
 	switch($action){
 		case "Add to Cart":
-			if(empty($id))
+			if(!($id = getPOSTval('id', 'int')))
 				break;
 
-			if(empty($quantity))
-				$quantity = 1;
+			$quantity = getPOSTval('quantity', 'int', 1);
 
-			$db->prepare_query("SELECT unitprice,bulkpricing FROM products WHERE id = ?", $id);
-			$line = $db->fetchrow();
+			if($quantity <= 0)
+				break;
 
-			$price = $line['unitprice'];
+			$choice = getPOSTval('choice');
 
-			if($line['bulkpricing'] == 'y' && $quantity > 1){
-				$db->prepare_query("SELECT price FROM productprices WHERE productid = ? && minimum <= ? ORDER BY minimum DESC LIMIT 1",$id, $quantity);
-
-				if($db->numrows())
-					$price = $db->fetchfield();
-			}
-
-			$db->prepare_query("INSERT INTO shoppingcart SET userid = ?, productid = ?, quantity = ?, price = ?, input = ?", $userData['userid'], $id, $quantity, $price, $choice);
-
-			$msgs->addMsg("Item Added");
+			if($shoppingcart->addtoCart($id, $quantity, $choice))
+				$msgs->addMsg("Item Added");
 			break;
+
 		case "Update":
-			if(empty($quantity))
-				$quantity = array();
-			if(empty($inputs))
-				$inputs = array();
-			if(empty($remove))
-				$remove = array();
+			$quantity = getPOSTval('quantity', 'array');
+			$inputs = getPOSTval('inputs', 'array');
+			$remove = getPOSTval('remove', 'array');
 
 			$itemds = array();
 
@@ -48,37 +37,37 @@
 				$items[$id]['remove'] = true;
 
 			foreach($items as $id => $val){
+
+				$shoppingcart->db->prepare_query("SELECT products.id, unitprice, bulkpricing, validinput FROM products, shoppingcart WHERE products.id = shoppingcart.productid && shoppingcart.id = #", $id);
+				$line = $shoppingcart->db->fetchrow();
+
 				$set = array();
 				if(isset($val['quantity'])){
 					if($val['quantity'] == 0)
 						$val['remove'] = true;
 					else{
-						$set[] = $db->prepare("quantity = ?", $val['quantity']);
-
-
-						$db->prepare_query("SELECT products.id,unitprice,bulkpricing FROM products,shoppingcart WHERE products.id=shoppingcart.productid && shoppingcart.id = ?", $id);
-						$line = $db->fetchrow();
+						$set[] = $shoppingcart->db->prepare("quantity = #", $val['quantity']);
 
 						$price = $line['unitprice'];
 
 						if($line['bulkpricing'] == 'y' && $val['quantity'] > 1){
-							$db->prepare_query("SELECT price FROM productprices WHERE productid = ? && minimum <= ? ORDER BY minimum DESC LIMIT 1",$line['id'], $val['quantity']);
+							$shoppingcart->db->prepare_query("SELECT price FROM productprices WHERE productid = # && minimum <= # ORDER BY minimum DESC LIMIT 1", $line['id'], $val['quantity']);
 
-							if($db->numrows())
-								$price = $db->fetchfield();
+							if($shoppingcart->db->numrows())
+								$price = $shoppingcart->db->fetchfield();
 						}
 
-						$set[] = $db->prepare("price = ?", $price);
+						$set[] = $shoppingcart->db->prepare("price = ?", $price);
 					}
 				}
 				if(isset($val['remove'])){
-						$db->prepare_query("DELETE FROM shoppingcart WHERE id = ? && userid = ?", $id, $userData['userid']);
+						$shoppingcart->db->prepare_query("DELETE FROM shoppingcart WHERE id = # && userid = #", $id, $userData['userid']);
 						continue;
 				}
-				if(isset($val['input']))
-					$set[] = $db->prepare("input = ?", $val['input']);
+				if(isset($val['input']) && (!$line['validinput'] || $line['validinput']($val['input'])))
+					$set[] = $shoppingcart->db->prepare("input = ?", $val['input']);
 
-				$db->query("UPDATE shoppingcart SET " . implode(", ", $set) . " WHERE " . $db->prepare("id = ? && userid = ?", $id, $userData['userid']));
+				$shoppingcart->db->query("UPDATE shoppingcart SET " . implode(", ", $set) . " WHERE " . $shoppingcart->db->prepare("id = # && userid = #", $id, $userData['userid']));
 			}
 
 			$msgs->addMsg("Update complete");
@@ -87,13 +76,13 @@
 
 
 
-	$db->prepare_query("SELECT shoppingcart.id,productid,quantity,price,name,unitprice,products.input as inputtype, shoppingcart.input FROM shoppingcart,products WHERE shoppingcart.productid = products.id && shoppingcart.userid = ? ORDER BY id", $userData['userid']);
+	$shoppingcart->db->prepare_query("SELECT shoppingcart.id, productid, quantity, price, name, unitprice, products.input as inputtype, shoppingcart.input FROM shoppingcart,products WHERE shoppingcart.productid = products.id && shoppingcart.userid = # ORDER BY id", $userData['userid']);
 
 	$rows = array();
 
 	$mcids = array();
 
-	while($line = $db->fetchrow()){
+	while($line = $shoppingcart->db->fetchrow()){
 		$rows[] = $line;
 		if($line['inputtype']=='mc')
 			$mcids[] = $line['productid'];
@@ -101,16 +90,18 @@
 
 	$mcs = array();
 
-	$db->prepare_query("SELECT id,productid,name FROM productinputchoices WHERE productid IN (?)", $mcids);
+	if(count($mcids)){
+		$shoppingcart->db->prepare_query("SELECT id,productid,name FROM productinputchoices WHERE productid IN (?)", $mcids);
 
-	while($line = $db->fetchrow())
-		$mcs[$line['productid']][$line['id']] = $line['name'];
+		while($line = $shoppingcart->db->fetchrow())
+			$mcs[$line['productid']][$line['id']] = $line['name'];
+	}
 
 
 	incHeader(true,array('incShoppingCartMenu'));
 
 	echo "<table width=100%>";
-	echo "<form action=$PHP_SELF method=post>";
+	echo "<form action=$_SERVER[PHP_SELF] method=post>";
 
 	echo "<tr>";
 	echo "<td class=header>Remove</td>";
@@ -147,7 +138,7 @@
 		$total += round($row['price']  * $row['quantity'],2);
 	}
 
-	echo "<tr><td class=body colspan=3></td><td class=body><input class=body type=submit name=action value=Update></td><td class=body></td>";
+	echo "<tr><td class=body colspan=2></td><td class=body><input class=body type=submit name=action value=Update></td><td class=body colspan=2></td>";
 	echo "<td class=body>Total:</td><td class=body align=right>\$" . number_format($total,2) . "</td></tr>";
 
 	echo "</form>";

@@ -7,25 +7,23 @@
 	if(!$mods->isadmin($userData['userid'], "adminlog"))
 		die("Permission denied");
 
-	if(empty($page)) $page=0;
-
-	if(empty($uid))
-		$uid = "";
+	$uid = getREQval('uid', 'int');
+	$page = getREQval('page','int');
 
 //	$mods->adminlog("admin log","Admin log, user: $uid");
 
-	$query = "SELECT SQL_CALC_FOUND_ROWS username,adminlog.* FROM adminlog LEFT JOIN users ON adminlog.userid=users.userid";
-	if($uid != "")
-		$query .= " WHERE " . $db->prepare("adminlog.userid = ?", getUserID($uid));
+	$query = "SELECT SQL_CALC_FOUND_ROWS username, adminlog.* FROM adminlog LEFT JOIN admin ON adminlog.userid=admin.userid";
+	if($uid)
+		$query .= " WHERE " . $mods->db->prepare("adminlog.userid = ?", getUserID($uid));
 	$query .=" ORDER BY id DESC LIMIT " . $page*$config['linesPerPage'] . ", $config[linesPerPage]";
-	$db->query($query);
+	$mods->db->query($query);
 
 	$rows = array();
-	while($line = $db->fetchrow())
+	while($line = $mods->db->fetchrow())
 		$rows[] = $line;
 
-	$rowresult = $db->query("SELECT FOUND_ROWS()");
-	$numrows = $db->fetchfield();
+	$rowresult = $mods->db->query("SELECT FOUND_ROWS()");
+	$numrows = $mods->db->fetchfield();
 	$numpages =  ceil($numrows / $config['linesPerPage']);
 
 	incHeader();
@@ -54,14 +52,14 @@
 	echo "<tr><td class=header colspan=6>";
 
 	echo "<table width=100%><tr>";
-	echo "<form action=$PHP_SELF>";
+	echo "<form action=$_SERVER[PHP_SELF]>";
 	echo "<td class=header>";
 	echo "Admin Name: <input class=body type=text name=uid value='$uid'><input class=body type=submit value=Go>";
 	echo "</td>";
 	echo "</form>";
 
 	echo "<td class=header align=right>";
-	echo "Page: " . pageList("$PHP_SELF?uid=$uid",$page,$numpages,'header');
+	echo "Page: " . pageList("$_SERVER[PHP_SELF]?uid=$uid",$page,$numpages,'header');
 	echo "</td>";
 	echo "</tr></table>";
 	echo "</td></tr>";
@@ -69,3 +67,4 @@
 	echo "</table>";
 
 	incFooter();
+

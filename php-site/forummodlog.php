@@ -8,7 +8,7 @@
 		die("Bad Forum id");
 
 	if($fid){
-		$perms = getForumPerms($fid,array('name','official'));	//checks it's a forum, not a realm
+		$perms = $forums->getForumPerms($fid);	//checks it's a forum, not a realm
 
 		if(!$perms['modlog'])
 			die("You don't have permission to mute people in this forum");
@@ -16,9 +16,9 @@
 		$forumdata = $perms['cols'];
 	}else{ //fid = 0
 		if(!$mods->isAdmin($userData['userid'],'forums')){
-			$db->prepare_query("SELECT modlog FROM forummods WHERE userid = ? && forumid = 0", $userData['userid']);
+			$forums->db->prepare_query("SELECT modlog FROM forummods WHERE userid = ? && forumid = 0", $userData['userid']);
 
-			if($db->numrows() == 0 || $db->fetchfield() == 'n')
+			if($forums->db->numrows() == 0 || $forums->db->fetchfield() == 'n')
 				die("You don't have permission to see the global mod log");
 		}
 
@@ -26,17 +26,17 @@
 	}
 
 
-	if(!isset($page) || $page<0) $page=0;
+	$page = getREQval('page', 'int');
 
-	$db->prepare_query("SELECT SQL_CALC_FOUND_ROWS action,threadid,var1,var2,time,username,forummodlog.userid FROM forummodlog LEFT JOIN users ON users.userid=forummodlog.userid WHERE forummodlog.forumid = ? ORDER BY time DESC LIMIT " . $page*$config['linesPerPage'].", $config[linesPerPage]", $fid);
+	$forums->db->prepare_query("SELECT SQL_CALC_FOUND_ROWS action,threadid,var1,var2,time,forummodlog.userid FROM forummodlog WHERE forummodlog.forumid = ? ORDER BY time DESC LIMIT " . $page*$config['linesPerPage'].", $config[linesPerPage]", $fid);
 
 	$rows = array();
-	while($line = $db->fetchrow())
+	while($line = $forums->db->fetchrow())
 		$rows[] = $line;
 
 
-	$db->query("SELECT FOUND_ROWS()");
-	$numrows = $db->fetchfield();
+	$forums->db->query("SELECT FOUND_ROWS()");
+	$numrows = $forums->db->fetchfield();
 	$numpages =  ceil($numrows / $config['linesPerPage']);
 
 
@@ -54,110 +54,96 @@
 
 	if($fid != 0)
 		echo "<a class=header href=forumthreads.php?fid=$fid>$forumdata[name]</a> > ";
-	echo "<a class=header href=$PHP_SELF?fid=$fid>Mod Log</a>";
+	echo "<a class=header href=$_SERVER[PHP_SELF]?fid=$fid>Mod Log</a>";
 
 	echo "</td><td class=header align=right>";
-	echo "Page: " . pageList("$PHP_SELF?fid=$fid",$page,$numpages,'header');
+	echo "Page: " . pageList("$_SERVER[PHP_SELF]?fid=$fid",$page,$numpages,'header');
 	echo "</td></tr></table>";
 	echo "</td></tr>";
 
 	echo "<tr><td class=header>Who</td><td class=header>Action</td><td class=header>Time</td><td class=header>Threadid</td><td class=header>More Info</td></tr>";
 
+	$threadnames = array();
+	$threadnames2 = array();
+	$forumnames = array();
 	foreach($rows as $line){
 		echo "<tr>";
 
-		echo "<td class=body>" . ($line['userid']==0 ? 'auto' : "<a class=body href=profile.php?uid=$line[userid]>$line[username]</a>" ) . "</td>";
+		echo "<td class=body>" . ($line['userid']==0 ? 'auto' : "<a class=body href=profile.php?uid=$line[userid]>" . getUserName($line['userid']) . "</a>" ) . "</td>";
 		echo "<td class=body>$line[action]</td>";
 		echo "<td class=body nowrap>" . userdate("F j, Y, g:i a", $line['time']) . "</td>";
 
 		echo "<td class=body>";
-		if($line['threadid'] > 0){
-			$db->prepare_query("SELECT title FROM forumthreads WHERE id = ?", $line['threadid']);
+		if($line['threadid']){
+			if(!isset($threadnames[$line['threadid']])){
+				$forums->db->prepare_query("SELECT title FROM forumthreads WHERE id = ?", $line['threadid']);
 
-			if($db->numrows() == 1){
-				$title = $db->fetchfield();
-				echo "<a class=body href=forumviewthread.php?tid=$line[threadid]>$title</a>";
-				$deleted = false;
-			}else{
-				$db->prepare_query("SELECT title FROM forumthreadsdel WHERE id = ?", $line['threadid']);
-				$title = $db->fetchfield();
-				echo "$title";
-				$deleted = true;
+				if($forums->db->numrows()){
+					$threadnames[$line['threadid']] = $forums->db->fetchfield();
+				}else{
+					$forums->db->prepare_query("SELECT title FROM forumthreadsdel WHERE id = ?", $line['threadid']);
+					$threadnames[$line['threadid']] = $threadnames2[$line['threadid']] = $forums->db->fetchfield();
+				}
 			}
+			if(isset($threadnames2[$line['threadid']]))
+				echo $threadnames[$line['threadid']];
+			else
+				echo "<a class=body href=forumviewthread.php?tid=$line[threadid]>" . $threadnames[$line['threadid']] . "</a>";
 		}
 		echo "</td><td class=body>";
 
 		switch($line['action']){
 			case "lock":
-				echo "Thread by: ";
-				$db->prepare_query("SELECT username FROM users WHERE userid = ?", $line['var1']);
-				if($db->numrows() == 0)
-					echo "(user deleted)";
-				else
-					echo "'" . $db->fetchfield() . "'";
-
-				echo ", Last Post by: ";
-				$db->prepare_query("SELECT username FROM users WHERE userid = ?", $line['var2']);
-				if($db->numrows() == 0)
-					echo "(user deleted)";
-				else
-					echo "'" . $db->fetchfield() . "'";
-				break;
 			case "unlock":
 			case "stick":
 			case "unstick":
 			case "announce":
 			case "unannounce":
-				break;
+			case "flag":
+			case "unflag":
 			case "deletethread":
-				echo "Thread by " . getUserName($line['var1']);
+				if($line['var1'])
+					echo "Thread by: " . (($uname = getUserName($line['var1'])) ? "'<a class=body href=profile.php?uid=$line[var1]>$uname</a>'" : "(user deleted)");
+				if($line['var2'])
+					echo ", Last Post by: " . (($uname = getUserName($line['var2'])) ? "'<a class=body href=profile.php?uid=$line[var2]>$uname</a>'" : "(user deleted)");
 				break;
 			case "deletepost":
-				echo "Post by " . getUserName($line['var2']);
+				echo "Post by " . (($uname = getUserName($line['var2'])) ? "'<a class=body href=profile.php?uid=$line[var2]>$uname</a>'" : "(user deleted)");
 				break;
 			case "move":
 				if($fid == $line['var1']){
-					$db->prepare_query("SELECT name FROM forums WHERE id = ?", $line['var2']);
+					if(!isset($forumnames[$line['var2']])){
+						$forums->db->prepare_query("SELECT name FROM forums WHERE id = ?", $line['var2']);
+						$forumnames[$line['var2']] = $forums->db->fetchfield();
+					}
 
-					echo "Moved to <a class=body href=forumthreads.php?fid=$line[var2]>" . $db->fetchfield() . "</a>";
+					echo "Moved to <a class=body href=forumthreads.php?fid=$line[var2]>" . $forumnames[$line['var2']] . "</a>";
 				}else{
-					$db->prepare_query("SELECT name FROM forums WHERE id = ?", $line['var1']);
+					if(!isset($forumnames[$line['var1']])){
+						$forums->db->prepare_query("SELECT name FROM forums WHERE id = ?", $line['var1']);
+						$forumnames[$line['var1']] = $forums->db->fetchfield();
+					}
 
-					echo "Moved from <a class=body href=forumthreads.php?fid=$line[var1]>" . $db->fetchfield() . "</a>";
+					echo "Moved from <a class=body href=forumthreads.php?fid=$line[var1]>" . $forumnames[$line['var1']] . "</a>";
 				}
 				break;
 			case "mute":
 			case "unmute":
-				$db->prepare_query("SELECT username FROM users WHERE userid = ?", $line['var1']);
-				if($db->numrows() == 0)
-					echo "(user deleted)";
-				else
-					echo $db->fetchfield();
-				echo " muted ";
+				echo (($uname = getUserName($line['var1'])) ? "'<a class=body href=profile.php?uid=$line[var1]>$uname</a>'" : "(user deleted)") . " muted ";
 				if($line['var2']==0)
-					echo "indefinately";
+					echo "indefinitely";
 				else
 					echo "till " . userdate("F j, Y, g:i a", $line['var2']);
 
 				break;
 			case "editpost":
-				echo "Post id $line[var1] by: ";
-				$db->prepare_query("SELECT username FROM users WHERE userid = ?", $line['var2']);
-				if($db->numrows() == 0)
-					echo "(user deleted)";
-				else
-					echo $db->fetchfield();
-
+				echo "Post id $line[var1] by: " . (($uname = getUserName($line['var1'])) ? "'<a class=body href=profile.php?uid=$line[var1]>$uname</a>'" : "(user deleted)");
 				break;
 			case "addmod":
 			case "editmod":
 			case "removemod":
 				echo "Mod: ";
-				$db->prepare_query("SELECT username FROM users WHERE userid = ?", $line['var1']);
-				if($db->numrows() == 0)
-					echo "(user deleted)";
-				else
-					echo $db->fetchfield();
+				echo (($uname = getUserName($line['var1'])) ? "'<a class=body href=profile.php?uid=$line[var1]>$uname</a>'" : "(user deleted)");
 
 				break;
 		}

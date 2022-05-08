@@ -10,35 +10,34 @@
 
 	$isAdmin = $mods->isAdmin($userData['userid'],'viewinvoice');
 
-	$db->prepare_query("SELECT userid,username,creationdate,total,paymentdate,amountpaid,completed,paymentmethod,paypaltxnid FROM invoice WHERE id = ?", $id);
+	$shoppingcart->db->prepare_query("SELECT userid,username,creationdate,total,paymentdate,amountpaid,completed,paymentmethod FROM invoice WHERE id = ?", $id);
 
-	if($db->numrows() == 0)
+	if($shoppingcart->db->numrows() == 0)
 		die("Bad invoice id");
 
-	$invoice = $db->fetchrow();
+	$invoice = $shoppingcart->db->fetchrow();
 
 	if(!$isAdmin && $invoice['userid'] != $userData['userid'])
 		die("Bad invoice id");
 
-	$db->prepare_query("SELECT productid,quantity,price,name,products.input as inputtype, invoiceitems.input FROM invoiceitems,products WHERE invoiceitems.productid = products.id && invoiceitems.invoiceid = ?", $id);
+	$shoppingcart->db->prepare_query("SELECT productid,quantity,price,name,products.input as inputtype, invoiceitems.input FROM invoiceitems,products WHERE invoiceitems.productid = products.id && invoiceitems.invoiceid = ?", $id);
 
 	$rows = array();
-
 	$mcids = array();
+	$mcs = array();
 
-	while($line = $db->fetchrow()){
+	while($line = $shoppingcart->db->fetchrow()){
 		$rows[] = $line;
 		if($line['inputtype']=='mc')
 			$mcids[] = $line['input'];
 	}
 
-	$mcs = array();
+	if(count($mcids)){
+		$shoppingcart->db->prepare_query("SELECT id,name FROM productinputchoices WHERE id IN (?)", $mcids);
 
-	$db->prepare_query("SELECT id,name FROM productinputchoices WHERE id IN (?)", $mcids);
-
-	while($line = $db->fetchrow())
-		$mcs[$line['id']] = $line['name'];
-
+		while($line = $shoppingcart->db->fetchrow())
+			$mcs[$line['id']] = $line['name'];
+	}
 
 	echo "<html><head><title>$config[title]</title></head><body>";
 

@@ -45,7 +45,7 @@ function delete($check){
 }
 
 function edit($id){
-	global $PHP_SELF, $db;
+	global $db;
 	if(!isset($id)) return false;
 
 	$db->prepare_query("SELECT * FROM bannedusers WHERE id = ?", $id);
@@ -56,11 +56,11 @@ function edit($id){
 
 	incHeader();
 
-	echo "<form action=\"$PHP_SELF\" method=POST>\n";
+	echo "<form action=$_SERVER[PHP_SELF] method=POST>\n";
 	echo "<input type=hidden name=id value=\"$id\">";
 	echo "<table>";
 	echo "<tr><td class=body>User: </td><td class=body><input class=body type=text name=\"val\" value=\"" . ($line['type']=='ip' ? $line['ip'] : $line['email'] ) . "\"></td></tr>\n";
-	echo "<tr><td class=body>Type: </td><td class=body><select name=type class=body>" . make_select_list(getEnumValues("bannedusers","type"),$line['type']) . "</select></td></tr>\n";
+	echo "<tr><td class=body>Type: </td><td class=body><select name=type class=body>" . make_select_list(getEnumValues($db, "bannedusers","type"),$line['type']) . "</select></td></tr>\n";
 	echo "<tr><td class=body></td><td class=body><INPUT class=body TYPE=submit name=action VALUE=\"Update\"><input class=body type=submit value=Cancel></td></tr>\n";
 	echo "</table></form>\n";
 
@@ -91,20 +91,20 @@ function update($id,$val,$type){
 
 	incHeader();
 
-	echo "<table width=100%><form action=\"$PHP_SELF\" method=post>\n";
+	echo "<table width=100%><form action=$_SERVER[PHP_SELF] method=post>\n";
 	echo "<tr>\n";
 	echo "  <td class=header></td>\n";
 	echo "  <td class=header>User</td>\n";
 	echo "  <td class=header>Type</td>\n";
 	echo "</tr>\n";
 	while($line = $db->fetchrow($result))
-		echo "<tr><td class=body><input type=checkbox name=check[] value=\"$line[id]\"></td><td class=body><a class=body href=\"$PHP_SELF?id=$line[id]&action=edit\">" . ($line['type']=='ip' ? long2ip($line['ip']) : $line['email'] ) . "</a></td><td class=body>$line[type]</td></tr>\n";
+		echo "<tr><td class=body><input type=checkbox name=check[] value=\"$line[id]\"></td><td class=body><a class=body href=\"$_SERVER[PHP_SELF]?id=$line[id]&action=edit\">" . ($line['type']=='ip' ? long2ip($line['ip']) : $line['email'] ) . "</a></td><td class=body>$line[type]</td></tr>\n";
 	echo "<tr><td class=header colspan=3>";
 	echo "<input class=body type=submit name=action value=Delete></td></tr>\n";
 	echo "</form></table>\n";
 
 
-	echo "<form action=\"$PHP_SELF\" method=POST>\n";
+	echo "<form action=$_SERVER[PHP_SELF] method=POST>\n";
 	echo "<table>";
 	echo "<tr><td class=body>User: </td><td class=body><input class=body type=text name=\"val\"></td></tr>\n";
 	echo "<tr><td class=body>Type: </td><td class=body><select name=type class=body>" . make_select_list(array("ip","email"),$line['type']) . "</select></td></tr>\n";

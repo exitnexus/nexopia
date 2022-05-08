@@ -39,15 +39,15 @@
 
 		echo "<table width=100%>";
 		echo "<tr><td class=header colspan=4>";
-		echo "<table><form action=$PHP_SELF><tr>";
+		echo "<table><form action=$_SERVER[PHP_SELF]><tr>";
 		echo "<td class=header>";
-		echo "<input class=body type=button onClick=\"location.href='$PHP_SELF?num=$num&offset=0'\" value=First>";
-		echo "<input class=body type=button onClick=\"location.href='$PHP_SELF?num=$num&offset=" . ($offset-$num) . "'\" value=Prev>";
+		echo "<input class=body type=button onClick=\"location.href='$_SERVER[PHP_SELF]?num=$num&offset=0'\" value=First>";
+		echo "<input class=body type=button onClick=\"location.href='$_SERVER[PHP_SELF]?num=$num&offset=" . ($offset-$num) . "'\" value=Prev>";
 		echo "</td><td class=header>";
 		echo "Show <input class=body type=text name=num value=$num size=5> rows starting at <input class=body type=text name=offset value=$offset size=5> of $total rows<input class=body type=submit value=Go>";
 		echo "</td><td class=header>";
-		echo "<input class=body type=button onClick=\"location.href='$PHP_SELF?num=$num&offset=" . ($offset+$num) . "'\" value=Next>";
-		echo "<input class=body type=button onClick=\"location.href='$PHP_SELF?num=$num&offset=" . ($total-$num) . "'\" value=Last>";
+		echo "<input class=body type=button onClick=\"location.href='$_SERVER[PHP_SELF]?num=$num&offset=" . ($offset+$num) . "'\" value=Next>";
+		echo "<input class=body type=button onClick=\"location.href='$_SERVER[PHP_SELF]?num=$num&offset=" . ($total-$num) . "'\" value=Last>";
 		echo "</td>";
 		echo "</tr></form></table>";
 		echo "</td></tr>";

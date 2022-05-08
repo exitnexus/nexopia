@@ -1,13 +1,25 @@
 <?
 
-	$login=0;
+	$login = 1;
 
 	require_once("include/general.lib.php");
 
-	destroySession($userid,$key);
+	$k = getREQval('k');
 
-	$db->prepare_query("UPDATE users SET online = 'n' WHERE userid = ?", $userid);
+	if(checkKey($userData['userid'], $k)){
 
-	header("location: /");
+		destroySession($userData['userid'], $userData['sessionkey']);
+
+		logout($userData['userid']);
+
+		header("location: /");
+	}else{
+
+		incHeader();
+
+		echo "<a class=body href=logout.php?k=" . makekey($userData['userid']) . ">Click here to logout</a>";
+
+		incFooter();
+	}
 
 

@@ -1,9 +1,7 @@
 <?
 
-
-
 class category{
-	var $catdb;
+	var $db;
 
 	var $name;
 	var $where;
@@ -12,27 +10,17 @@ class category{
 	var $child = array();
 	var $parent = array();
 
-	function category($name, $where = ""){ //table of type id,parent,name
-		global $db, $cache;
+	function category( & $db, $name, $where = ""){ //table of type id,parent,name
+		global $cache;
 
 		$this->name = $name;
 		$this->where = $where;
 
-		$this->catdb = & $db;
+		$this->db = & $db;
 
-		$this->data = $cache->hdget($name . "d", array('function' => array($this, 'dumpData'), 'params' => array('data')));
-		$this->child = $cache->hdget($name . "c", array('function' => array($this, 'dumpData'), 'params' => array('child')));
-		$this->parent = $cache->hdget($name . "p", array('function' => array($this, 'dumpData'), 'params' => array('parent')));
-
-/*
-		if(!$this->data || !$this->child || !$this->parent){
-			$this->dumpData();
-
-			$cache->hdput($name . "data", $this->data, false);
-			$cache->hdput($name . "child", $this->child, false);
-			$cache->hdput($name . "parent", $this->parent, false);
-		}
-*/
+		$this->data = $cache->hdget($name . "d", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('data')));
+		$this->child = $cache->hdget($name . "c", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('child')));
+		$this->parent = $cache->hdget($name . "p", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('parent')));
 	}
 
 	function dumpData($ret = false){
@@ -41,9 +29,9 @@ class category{
 		if($this->where)
 			$query .= " WHERE " . $this->where;
 
-		$this->catdb->query($query);
+		$this->db->query($query);
 
-		while($line = $this->catdb->fetchrow()){
+		while($line = $this->db->fetchrow()){
 			$this->data[$line['id']] = $line['name'];
 			$this->child[$line['parent']][$line['id']]=$line['name'];
 			$this->parent[$line['id']][$line['parent']]=$line['name'];
@@ -52,7 +40,7 @@ class category{
 			return $this->$ret;
 	}
 
-	function makebranch($parent=0,$maxdepth=0,$depth=1, $sort=true){
+	function makebranch($parent=0, $maxdepth=0, $depth=1, $sort=true){
 		if(!isset($this->child[$parent]))
 			return array();
 		$list=$this->child[$parent];
@@ -81,12 +69,12 @@ class category{
 		$val = current($list);
 
 		$ret = $this->makeroot($key,$defname,$depth-1);
-		$ret[] = array('id' => $catid, 'parent' => $key, 'depth'=>$depth,'name' => $val);
+		$ret[] = array('id' => $catid, 'parent' => $key, 'depth'=>$depth, 'name' => $val);
 		return $ret;
 	}
 
 	function deleteBranch($id){
-		global $db, $cache;
+		global $cache;
 
 		$branch = $this->makebranch($this->child,$id);
 
@@ -95,7 +83,7 @@ class category{
 			$ids[] = $item['id'];
 		$ids[] = $id;
 
-		$this->catdb->prepare_query("DELETE FROM " . $this->name . " WHERE id IN (?)", $ids);
+		$this->db->prepare_query("DELETE FROM " . $this->name . " WHERE id IN (?)", $ids);
 
 	}
 

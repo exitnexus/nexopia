@@ -6,65 +6,62 @@
 
 	$isAdmin = $mods->isAdmin($userData['userid'],'editpreferences');
 
-	if(!isset($uid) || !$isAdmin)
-		$uid = $userData['userid'];
+	$uid = ($isAdmin && isset($_REQUEST['uid']) ? $_REQUEST['uid'] : $userData['userid']);
 
 	switch($action){
 		case "Update Preferences":
-			update($data);
+			if(isset($_POST['data']))
+				update($_POST['data']);
 			break;
 		case "Change Password":
-			changepass($data);
+			if(isset($_POST['data']))
+				changepass($_POST['data']);
 			break;
 		case "Change Email":
-			changeemail($data);
+			if(isset($_POST['data']))
+				changeemail($_POST['data']);
 			break;
 		case "Delete":
-			delete($delpass,$reason);
+			if($userData['userid'] == $uid && isset($_POST['delpass']) && isset($_POST['reason']))
+				delete($_POST['delpass'], $_POST['reason']);
 			break;
 	}
 
 
 function delete($delpass,$reason){
-	global $userData,$msgs,$userid,$key,$uid,$db, $mods;
+	global $userData, $msgs, $db;
 
-	if($userData['userid'] != $uid && !$mods->isAdmin($userData['userid'],'deleteusers'))
-		return;
+	$db->prepare_query("SELECT (password = PASSWORD(?)) as passmatch FROM users WHERE userid = ?", $delpass, $userData['userid']);
+	$passmatch = $db->fetchfield();
 
-	$db->prepare_query("SELECT password FROM users WHERE userid = ?", $uid);
-	$pass = $db->fetchfield();
-
-
-	$db->prepare_query("SELECT PASSWORD(?)", $delpass);
-	$delpass = $db->fetchfield();
-
-
-	if($pass==$delpass || $userData['userid']!=$uid){
-		deleteAccount($uid,$reason);
-		if($userData['userid']!=$uid)
-			destroySession($userid,$key);
+	if($passmatch){
+		deleteAccount($userData['userid'], $reason);
+		destroySession($userData['userid'], getCOOKIEval('key'));
 		header("location: /");
-		exit(0);
+		exit;
 	}else{
 		$msgs->addMsg("Wrong password. Account not deleted");
 	}
 }
 
 function changepass($data){
-	global $userData,$msgs,$uid,$db,$fastdb, $mods;
+	global $userData, $msgs, $uid, $db, $mods, $cache, $sessiondb;
 
 	if($userData['userid'] != $uid && !$mods->isAdmin($userData['userid'],'editpassword'))
-		return;
+		return false;
 
-	$db->prepare_query("SELECT username,jointime,password,loginnum FROM users WHERE userid = ?", $uid);
-	$line = $db->fetchrow();
-
+	if(!isset($data['newpass1'], $data['newpass2'], $data['oldpass'])){
+		$msgs->addMsg("Your input was incomplete");
+		return false;
+	}
 
 	if(strlen($data['newpass1'])>1 || strlen($data['newpass2'])>1){
-		$db->prepare_query("SELECT PASSWORD(?)", $data['oldpass']);
-		$password = $db->fetchfield();
+		if($userData['userid'] == $uid){
+			$db->prepare_query("SELECT PASSWORD(?) = password as passmatch FROM users WHERE userid = ?", $data['oldpass'], $uid);
+			$passmatch = $db->fetchfield();
+		}
 
-		if($password==$line['password'] || $userData['userid']!=$uid){
+		if($userData['userid']!=$uid || $passmatch ){
 			if($data['newpass1']!=$data['newpass2'])
 				$msgs->addMsg("New passwords don't match. Password not changed");
 			elseif(strlen($data['newpass1'])<4)
@@ -74,7 +71,15 @@ function changepass($data){
 			else{
 				$db->prepare_query("UPDATE users SET password = PASSWORD(?) WHERE userid = ?", $data['newpass1'], $uid);
 
-				$fastdb->prepare_query("DELETE FROM sessions WHERE userid = ? && sessionid != ?", $userData['userid'], $userData['sessionkey']);//log out all other of your sessions
+				$sessiondb->prepare_query($uid, "SELECT id, sessionid FROM sessions WHERE userid = # && sessionid != ?", $uid, $userData['sessionkey']);//log out all other of your sessions
+
+				$ids = array();
+				while($line = $sessiondb->fetchrow()){
+					$cache->remove(array($uid, "session-$uid-$line[sessionid]"));
+					$ids[] = $line['id'];
+				}
+				if(count($ids))
+					$sessiondb->prepare_query($uid, "DELETE FROM sessions WHERE id IN (#)", $ids);
 
 				$msgs->addMsg("Password Changed");
 			}
@@ -85,25 +90,25 @@ function changepass($data){
 }
 
 function changeemail($data){
-	global $PHP_SELF,$userData,$msgs,$config,$uid,$db, $mods;
+	global $userData,$msgs,$config,$uid,$db, $mods;
 
 	if($userData['userid'] != $uid && !$mods->isAdmin($userData['userid'],'editemail'))
-		return;
+		return false;
 
-	$db->prepare_query("SELECT username,jointime,password,email,loginnum FROM users WHERE userid = ?", $uid);
-	$line = $db->fetchrow();
-
-	if($userData['userid']==$uid){
-		$db->prepare_query("SELECT PASSWORD(?)", $data['oldpass']);
-		$password = $db->fetchfield();
-
-		if($password!=$line['password']){
-			$msgs->addMsg("Password doesn't match");
-			return;
-		}
+	if(!isset($data['oldpass'], $data['email'], $data['oldpass'])){
+		$msgs->addMsg("Your input was incomplete");
+		return false;
 	}
 
-	if($data['email']!=$line['email'] && $data['email']!=""){
+	$db->prepare_query("SELECT (password = PASSWORD(?)) as passmatch, email FROM users WHERE userid = ?", $data['oldpass'], $uid);
+	$line = $db->fetchrow();
+
+	if($userData['userid']==$uid && !$line['passmatch']){
+		$msgs->addMsg("Password doesn't match");
+		return false;
+	}
+
+	if($data['email']!=$line['email'] && $data['email']){
 		if(isValidEmail($data['email'])){
 			$db->prepare_query("SELECT userid FROM users WHERE email = ?", $data['email']);
 	    	if($db->numrows()>0){
@@ -124,7 +129,7 @@ function changeemail($data){
 }
 
 function update($data){
-	global $PHP_SELF,$userData,$msgs,$config,$uid,$timezones,$db;
+	global $userData, $msgs, $config, $uid, $db, $cache;
 
 	$db->prepare_query("SELECT premiumexpiry FROM users WHERE userid = ?", $uid);
 	$line = $db->fetchrow();
@@ -138,6 +143,7 @@ function update($data){
 	$commands[]= "showjointime = " . (isset($data['showjointime'])? "'y'" : "'n'");
 
 	$commands[]= "showbday = " . (isset($data['showbday'])? "'y'" : "'n'");
+
 
 	if(isset($data['onlyfriendsmsgs']) && isset($data['onlyfriendscomments']))
 		$commands[]= "onlyfriends = 'both'";
@@ -164,21 +170,21 @@ function update($data){
 	$commands[]= "showrightblocks = " . (isset($data['showrightblocks'])? "'y'" : "'n'");
 	$commands[]= "showpostcount = " . (isset($data['showpostcount'])? "'y'" : "'n'");
 	$commands[]= "showsigs = " . (isset($data['showsigs'])? "'y'" : "'n'");
-	$userData['showrightblocks']= (isset($data['showrightblocks'])? "y" : "n");				//update current page
+	$userData['showrightblocks'] = (isset($data['showrightblocks'])? "y" : "n");				//update current page
 
 	if($config['allowThreadUpdateEmails'])
 		$commands[] = "threadupdates = " . (isset($data['threadupdates'])? "'y'" : "'n'");
 
 	$commands[] = "replyjump = " . (isset($data['replyjump'])? "'forum'" : "'thread'");
 	$commands[] = "autosubscribe = " . (isset($data['autosubscribe'])? "'y'" : "'n'");
-	$commands[] = "friendsauthorization = " . (isset($data['friendsauthorization'])? "'y'" : "'n'");
+	$commands[] = "friendslistthumbs = " . (isset($data['friendslistthumbs'])? "'y'" : "'n'");
 
-	if(in_array($data['defaultsex'], array("Male","Female")))
+	if(isset($data['defaultsex']) && in_array($data['defaultsex'], array("Male","Female")))
 		$commands[] = "defaultsex = '$data[defaultsex]'";
 
-	if($data['defaultminage'] < $config['minAge'])
+	if(!isset($data['defaultminage']) || $data['defaultminage'] < $config['minAge'])
 		$data['defaultminage'] = $config['minAge'];
-	if($data['defaultmaxage'] > $config['maxAge'])
+	if(!isset($data['defaultmaxage']) || $data['defaultmaxage'] > $config['maxAge'])
 		$data['defaultmaxage'] = $config['maxAge'];
 	if($data['defaultminage'] > $data['defaultmaxage']){
 		$temp = $data['defaultmaxage'];
@@ -191,18 +197,28 @@ function update($data){
 
 	if($line['premiumexpiry'] > time()){
 		$commands[] = "anonymousviews = " . (!isset($data['anonymousviews'])? "'y'" : "'n'");
+		$commands[] = "friendsauthorization = " . (isset($data['friendsauthorization'])? "'y'" : "'n'");
 		$commands[] = "showpremium = " . (isset($data['showpremium']) ? "'y'" : "'n'");
+		$commands[] = "limitads = " . (isset($data['limitads']) ? "'y'" : "'n'");
+		$userData['limitads'] = isset($data['limitads']);
+		$commands[] = "spotlight = " . (isset($data['spotlight']) ? "'y'" : "'n'");
+		$commands[]= "hideprofile = " . (isset($data['hideprofile'])? "'y'" : "'n'");
 	}
 
-	if($data['timezone']>=0 && $data['timezone'] < count($timezones))
-		$commands[] = "timeoffset = '$data[timezone]'";
+	if(isset($data['timezone']) && gettimezones($data['timezone']) !== false){
+		$commands[] = $db->prepare("timeoffset = ?", $data['timezone']);
+		$userData['timeoffset'] = $data['timezone'];
+	}
 
 	$query = "UPDATE users SET " . implode(", ", $commands) . $db->prepare(" WHERE userid = ?", $uid);
 	$db->query($query);
 
+	$cache->remove(array($uid, "userprefs-$uid"));
+
 	$msgs->addMsg("Update complete");
 	return true;
 }
+
 
 	incHeader();
 
@@ -217,7 +233,7 @@ function update($data){
 
 	echo "<table align=center>";
 
-	echo "<form action=\"$PHP_SELF\" method=POST>";
+	echo "<form action=$_SERVER[PHP_SELF] method=POST target=_top>";
 	echo "<input type=hidden name=uid value=$uid>";
 	echo "<tr><td class=header colspan=2 align=center>Preferences</td></tr>\n";
 
@@ -233,14 +249,16 @@ function update($data){
 	if($plus){
 		echo "<tr><td class=body>Allow plus members to see that you visited their profile:</td><td class=body><input class=body type=checkbox name=data[anonymousviews]" . ($line['anonymousviews']=='n' ? " checked" : "" ) . "></td></tr>";
 		echo "<tr><td class=body>Show that you are a plus member:</td><td class=body><input class=body type=checkbox name=data[showpremium]" . ($line['showpremium']=='y' ? " checked" : "" ) . "></td></tr>";
+		echo "<tr><td class=body>Eligible for Spotlight:</td><td class=body><input class=body type=checkbox name=data[spotlight]" . ($line['spotlight']=='y' ? " checked" : "" ) . "></td></tr>";
+		echo "<tr><td class=body>Hide Profile from guests and ignored users:</td><td class=body><input class=body type=checkbox name=data[hideprofile]" . ($line['hideprofile']=='y' ? " checked" : "" ) . "></td></tr>";
 	}
 	echo "<tr><td class=body>Show your Birthday on your profile:</td><td class=body><input class=body type=checkbox name=data[showbday]" . ($line['showbday']=='y' ? " checked" : "" ) . "></td></tr>";
 
 //friends
-	if($plus){
-		echo "<tr><td class=header colspan=2>Friends</td></tr>\n";
+	echo "<tr><td class=header colspan=2>Friends</td></tr>\n";
+	if($plus)
 		echo "<tr><td class=body>Notify you when someone adds you to their friends list:</td><td class=body><input class=body type=checkbox name=data[friendsauthorization]" . ($line['friendsauthorization']=='y' ? " checked" : "" ) . "></td></tr>";
-	}
+	echo "<tr><td class=body>Show thumbnails on your friends list:</td><td class=body><input class=body type=checkbox name=data[friendslistthumbs]" . ($line['friendslistthumbs']=='y' ? " checked" : "" ) . "></td></tr>";
 
 //messaging
 	echo "<tr><td class=header colspan=2>Messaging</td></tr>\n";
@@ -265,14 +283,18 @@ function update($data){
 //general
 	echo "<tr><td class=header colspan=2>General</td></tr>\n";
 	echo "<tr><td class=body>Show status bar (right side, not suggested for 800x600 users):</td><td class=body><input class=body type=checkbox name=data[showrightblocks]" . ($line['showrightblocks']=='y' ? " checked" : "" ) . "></td></tr>";
+	if($plus)
+		echo "<tr><td class=body>Show fewer ads:</td><td class=body><input class=body type=checkbox name=data[limitads]" . ($line['limitads']=='y' ? " checked" : "" ) . "></td></tr>";
 	echo "<tr><td class=body>Timezone:</td><td class=body><select class=body name=data[timezone]>";
+		$timezones = gettimezones();
 		foreach($timezones as $id => $val){
 			echo "<option value=$id";
 			if($line['timeoffset'] == $id)
 				echo " selected";
 			echo ">$val[0]";
 		}
-		echo "</select></td></tr>";
+	echo "</select></td></tr>";
+	echo "<tr><td class=body>Date and Time in Currently Selected Timezone:</td><td class=body>" . userDate("F j, Y, g:i a") . "</td></tr>";;
 
 	echo "<tr><td class=body>Choose a skin: </td><td class=body><select class=body name=newskin>";
 	echo make_select_list_col_key($skins,'name',$skin);
@@ -292,8 +314,9 @@ function update($data){
 	}
 
 	if($userData['userid'] == $uid || $mods->isAdmin($userData['userid'],'editemail')){
-		echo "<form action=\"$PHP_SELF\" method=post>\n";
-		echo "<input type=hidden name=uid value=$uid>";
+		echo "<form action=$_SERVER[PHP_SELF] method=post>\n";
+		if($userData['userid'] != $uid)
+			echo "<input type=hidden name=uid value=$uid>";
 		echo "<tr><td class=header colspan=2>Change your email:</td></tr>\n";
 		echo "<tr><td class=body>Email:</td><td class=body><input class=body size=30 type=text name=\"data[email]\" value=\"$line[email]\"></td></tr>";
 		echo "<tr><td class=body>Current Password:</td><td class=body><input class=body type=password name=\"data[oldpass]\"></td></tr>";
@@ -305,8 +328,9 @@ function update($data){
 	}
 
 	if($userData['userid'] == $uid || $mods->isAdmin($userData['userid'],'editpassword')){
-		echo "<form action=\"$PHP_SELF\" method=post>\n";
-		echo "<input type=hidden name=uid value=$uid>";
+		echo "<form action=$_SERVER[PHP_SELF] method=post>\n";
+		if($userData['userid'] != $uid)
+			echo "<input type=hidden name=uid value=$uid>";
 		echo "<tr><td class=header colspan=2>Change your password:</td></tr>\n";
 		echo "<tr><td class=body>Current Password:</td><td class=body><input class=body type=password name=\"data[oldpass]\"></td></tr>";
 		echo "<tr><td class=body>New Password:</td><td class=body><input class=body type=password name=\"data[newpass1]\"></td></tr>";
@@ -317,9 +341,8 @@ function update($data){
 		echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
 	}
 
-	if($userData['userid'] == $uid || $mods->isAdmin($userData['userid'],'deleteusers')){
-		echo "<form action=\"$PHP_SELF\" method=post>\n";
-		echo "<input type=hidden name=uid value=$uid>";
+	if($userData['userid'] == $uid){
+		echo "<form action=$_SERVER[PHP_SELF] method=post>\n";
 		echo "<tr><td class=header colspan=2>Delete your account:</td></tr>\n";
 		echo "<tr><td class=body>Password:</td><td class=body><input class=body type=password name=delpass></td></tr>";
 		echo "<tr><td class=body>Reason:</td><td class=body><input class=body size=30 maxlength=255 type=text name=reason></td></tr>";
@@ -331,3 +354,4 @@ function update($data){
 	echo "</table>";
 
 	incFooter();
+

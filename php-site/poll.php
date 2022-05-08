@@ -10,7 +10,7 @@
 	switch($action){
 		case "Vote":
 			if(isset($ans))
-				votePoll($pollid,$ans);
+				$polls->votePoll($pollid,$ans);
 			break;
 		case "list":
 			viewPollList();
@@ -22,7 +22,7 @@
 			suggestPoll($question, $answers, $numAnswers); //exit
 
 		case "Suggest Poll":
-			if(addPoll($question, $answers, true)){
+			if($polls->addPoll($question, $answers, true)){
 				incHeader();
 				echo "Thanks for submitting your poll. It will be checked and might go up in the near future";
 				incFooter();
@@ -35,22 +35,20 @@
 
 
 function dispPoll($pollid){
-	global $PHP_SELF,$config,$db,$userData;
+	global $config, $userData, $polls;
 
-	$poll = getPoll($pollid, true);
+	$poll = $polls->getPoll($pollid, true);
 
 	if(!$poll)
 		die("Bad Poll id");
 
-	if($userData['loggedIn']){
-		$query = "SELECT id FROM pollvotes WHERE userid='$userData[userid]' && pollid='$poll[id]'";
-		$result = $db->query($query);
-	}
+	if($userData['loggedIn'])
+		$voted = $polls->pollVoted($poll['id']);
 
 	incHeader();
 
-	if(!$userData['loggedIn'] || $db->numrows($result)==0){
-		echo "<table><form action=$PHP_SELF method=get>";
+	if(!$userData['loggedIn'] || !$voted){
+		echo "<table><form action=$_SERVER[PHP_SELF] method=get>";
 		echo "<input type=hidden name=pollid value=$poll[id]>";
 		echo "<tr><td colspan=2 class=header>$poll[question]</td></tr>";
 		foreach($poll['answers'] as $ans){
@@ -60,8 +58,8 @@ function dispPoll($pollid){
 			echo "<td class=body><label for='ans$ans[id]'>$ans[answer]</label></td></tr>";
 		}
 		echo "<tr><td></td><td class=body><input class=body type=submit name=action value='Vote'></td></tr>";
-		echo "<tr><td colspan=2 class=body><a class=body href=$PHP_SELF?pollid=$poll[id]&ans=0&action=Vote>View Results</a></td></tr>";
-		echo "<tr><td colspan=2 class=body><a class=body href=$PHP_SELF?action=list>List of polls</a></td></tr>";
+		echo "<tr><td colspan=2 class=body><a class=body href=$_SERVER[PHP_SELF]?pollid=$poll[id]&ans=0&action=Vote>View Results</a></td></tr>";
+		echo "<tr><td colspan=2 class=body><a class=body href=$_SERVER[PHP_SELF]?action=list>List of polls</a></td></tr>";
 		echo "</form></table>";
 	}else{
 		echo "<table align=center>";
@@ -75,30 +73,29 @@ function dispPoll($pollid){
 		foreach($poll['answers'] as $ans){
 			$width = $poll['tvotes']==0 ? 0 : (int)$ans["votes"]*$config['maxpollwidth']/$maxval;
 			$percent = number_format($poll['tvotes']==0 ? 1 : $ans["votes"]/$poll['tvotes']*100,1);
-			echo "<tr><td class=body>$ans[answer]</td><td class=body><img src='/images/red.png' width='$width' height=10> $ans[votes] / $percent %</td></tr>";
+			echo "<tr><td class=body>$ans[answer]</td><td class=body><img src='$config[imageloc]red.png' width='$width' height=10> $ans[votes] / $percent %</td></tr>";
 		}
 		echo "<tr><td class=body></td><td class=body>Total: $poll[tvotes] votes</td></tr>";
 		echo "</table>";
-		echo "<a class=body href=$PHP_SELF?action=list>List of polls</a>";
+		echo "<a class=body href=$_SERVER[PHP_SELF]?action=list>List of polls</a>";
 	}
 	incFooter();
 	exit;
 }
 
 function viewPollList(){
-	global $PHP_SELF,$db,$config,$page;
+	global $config, $polls;
 
-	if(empty($page))
-		$page=0;
+	$page = getREQval('page', 'int');
 
-	$db->query("SELECT SQL_CALC_FOUND_ROWS id,question, tvotes FROM polls WHERE official='y' && moded = 'y' ORDER BY date DESC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]");
+	$polls->db->query("SELECT SQL_CALC_FOUND_ROWS id,question, tvotes FROM polls WHERE official='y' && moded = 'y' ORDER BY date DESC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]");
 
 	$rows = array();
-	while($line = $db->fetchrow())
+	while($line = $polls->db->fetchrow())
 		$rows[] = $line;
 
-	$rowresult = $db->query("SELECT FOUND_ROWS()");
-	$numrows = $db->fetchfield();
+	$rowresult = $polls->db->query("SELECT FOUND_ROWS()");
+	$numrows = $polls->db->fetchfield();
 	$numpages =  ceil($numrows / $config['linesPerPage']);
 
 
@@ -108,10 +105,10 @@ function viewPollList(){
 	echo "<tr><td class=header>Recent Polls</td><td class=header>Votes</td></tr>";
 
 	foreach($rows as $line)
-		echo "<tr><td><a class=body href=$PHP_SELF?pollid=$line[id]>$line[question]</a></td><td class=body align=right>$line[tvotes]</td></tr>";
+		echo "<tr><td><a class=body href=$_SERVER[PHP_SELF]?pollid=$line[id]>$line[question]</a></td><td class=body align=right>$line[tvotes]</td></tr>";
 
 	echo "<tr><td class=header colspan=2 align=right>";
-	echo "Page: " . pageList("$PHP_SELF?action=list",$page,$numpages,'header');
+	echo "Page: " . pageList("$_SERVER[PHP_SELF]?action=list",$page,$numpages,'header');
 	echo "</td></tr>";
 	echo "</table>";
 
@@ -120,7 +117,6 @@ function viewPollList(){
 }
 
 function suggestPoll($question = "", $answers = array(), $numAnswers = 4){
-	global $PHP_SELF, $db;
 
 	incHeader();
 
@@ -131,7 +127,7 @@ function suggestPoll($question = "", $answers = array(), $numAnswers = 4){
 	if($numAnswers > 10)
 		$numAnswers = 10;
 
-	echo "<table align=center><form action=$PHP_SELF method=post>";
+	echo "<table align=center><form action=$_SERVER[PHP_SELF] method=post>";
 	echo "<tr><td colspan=2 class=header align=center>Add Poll</td></tr>";
 	echo "<tr><td class=body align=right>Question:</td><td class=body><input class=body type=text size=40 name=question value=\"" . htmlentities($question) . "\"></td></tr>";
 

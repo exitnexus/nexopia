@@ -8,14 +8,13 @@
 	if(!$mods->isAdmin($userData['userid'],"articles"))
 		die("You do not have permission to see this page");
 
-	if(empty($page))
-		$page = 0;
+	$page = getREQval('page', 'int');
 
 
 	$params = array();
 	$query = "SELECT SQL_CALC_FOUND_ROWS premiumlog.userid, username, duration, time FROM premiumlog LEFT JOIN users ON premiumlog.userid = users.userid ";
 
-	if(!empty($uid)){
+	if($uid = getREQval('uid')){
 		if(is_numeric($uid))
 			$query .= "WHERE premiumlog.userid = ?";
 		else
@@ -40,7 +39,7 @@
 
 	echo "<table align=center>";
 
-	echo "<form action=$PHP_SELF><tr><td class=header colspan=4 align=center>";
+	echo "<form action=$_SERVER[PHP_SELF]><tr><td class=header colspan=4 align=center>";
 	echo "<input class=body type=text name=uid value=\"$uid\"><input class=body type=submit name=action value=Go>";
 	echo "</td></tr></form>";
 
@@ -60,7 +59,7 @@
 		echo "</tr>";
 	}
 
-	echo "<tr><td class=header colspan=4 align=right>Page: " . pageList("$PHP_SELF",$page,$numpages,'header') . "</td></tr>";
+	echo "<tr><td class=header colspan=4 align=right>Page: " . pageList("$_SERVER[PHP_SELF]",$page,$numpages,'header') . "</td></tr>";
 
 	echo "</table>";
 

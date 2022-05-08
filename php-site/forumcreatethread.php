@@ -1,12 +1,13 @@
 <?
 	$login = 1;
+	$userprefs = array('replyjump','autosubscribe');
 
 	require_once("include/general.lib.php");
 
 	if(empty($fid))
 		die("Bad Forum id");
 
-	$perms = getForumPerms($fid, array('name', 'official'));	//checks it's a forum, not a realm
+	$perms = $forums->getForumPerms($fid);	//checks it's a forum, not a realm
 
 	if(!$perms['view'])
 		die("You don't have permission to view this forum");
@@ -16,32 +17,43 @@
 
 	$forum = $perms['cols'];
 
-
-	if(!isset($subscribe) || $action == "Post" || $action == "Add"){
-		$db->prepare_query("SELECT replyjump,autosubscribe FROM users WHERE userid = ?", $userData['userid']);
-		$user = $db->fetchrow();
-
-		if(!isset($subscribe))
-			$subscribe = $user['autosubscribe'];
-	}
+	if(!isset($subscribe))
+		$subscribe = $userData['autosubscribe'];
 
 	switch($action){
 		case "Preview":
+			if(empty($fid))		$fid = "";
+			if(empty($title))	$title = "";
+			if(empty($msg))		$msg = "";
 			createThread($fid, $title, $msg, isset($poll), ($subscribe == 'y'), true); //exit
 
 		case "Update":
+			if(empty($question))	$question = "";
+			if(empty($answers))		$answers = array();
+			if(empty($fid))			$fid = "";
+			if(empty($subscribe))	$subscribe = "";
+			if(empty($title))		$title = "";
+			if(empty($msg))			$msg = "";
 			createThreadPoll($fid, $title, $msg, $subscribe, $question, $numAnswers, $answers); //exit
 
 		case "Post":
 			$question = "";
 			$answers = array();
+			if(empty($fid))		$fid = "";
+			if(empty($title))	$title = "";
+			if(empty($msg))		$msg = "";
 			if(isset($poll))
-				createThreadPoll($fid, $title, $msg, $subscribe, $question, 2, $answers); //exit
+				createThreadPoll($fid, $title, $msg, $subscribe, $question, 4, $answers); //exit
 
 		case "Add":
+			if(empty($question))	$question = "";
+			if(empty($answers))		$answers = array();
+			if(empty($fid))			$fid = "";
+			if(empty($title))		$title = "";
+			if(empty($msg))			$msg = "";
 			$tid = postThread($fid, $title, $msg, ($subscribe == 'y'), $question, $answers);
 
-			if($user['replyjump']=='forum')
+			if($userData['replyjump']=='forum')
 				header("location: forumthreads.php?fid=$fid");
 			else
 				header("location: forumviewthread.php?tid=$tid");
@@ -53,7 +65,7 @@
 ////////////////////////////////
 
 function postThread($fid, $title, $msg, $subscribe = false, $question = "", $answers = array()){
-	global $db, $userData;
+	global $userData, $polls, $db, $forums;
 
 	$msg = trim($msg);
 
@@ -65,7 +77,7 @@ function postThread($fid, $title, $msg, $subscribe = false, $question = "", $ans
 		createThread($fid, $title, $msg, ($question != ""), $subscribe, true);
 
 	$ntitle = removeHTML($ntitle);
-	$ntitle = censor($ntitle);
+//	$ntitle = censor($ntitle);
 
 	$nmsg = removeHTML($msg);
 	$nmsg2 = parseHTML($nmsg);
@@ -75,9 +87,9 @@ function postThread($fid, $title, $msg, $subscribe = false, $question = "", $ans
 
 	$time = time();
 
-	$db->prepare_query("SELECT id FROM forumthreads WHERE authorid = ? && title = ? && time >= ?", $userData['userid'], $ntitle, $time-60);
-	if($db->numrows() > 0){	 //1 min dupe detection
-		$tid = $db->fetchfield();
+	$forums->db->prepare_query("SELECT id FROM forumthreads WHERE authorid = ? && title = ? && time >= ?", $userData['userid'], $ntitle, $time-60);
+	if($forums->db->numrows() > 0){	 //1 min dupe detection
+		$tid = $forums->db->fetchfield();
 		return $tid;
 	}
 
@@ -87,21 +99,21 @@ function postThread($fid, $title, $msg, $subscribe = false, $question = "", $ans
 	if(!empty($question) && strlen($question) >= 5){
 		$answers = array_filter($answers);
 		if(count($answers))
-			$pollid = addPoll($question,$answers,false);
+			$pollid = $polls->addPoll($question,$answers,false);
 	}
 
-	$db->prepare_query("INSERT INTO forumthreads SET forumid = ?, title = ?, authorid = ?, author = ?, time = ?, lastauthorid = ?, lastauthor = ?, pollid = ?",
+	$forums->db->prepare_query("INSERT INTO forumthreads SET forumid = ?, title = ?, authorid = ?, author = ?, time = ?, lastauthorid = ?, lastauthor = ?, pollid = ?",
 						$fid, $ntitle, $userData['userid'], $userData['username'], $time, $userData['userid'], $userData['username'], $pollid);
 
-	$tid = $db->insertid();
+	$tid = $forums->db->insertid();
 
-	$db->prepare_query("INSERT INTO forumposts SET threadid = ?, author = ?, authorid = ?, msg = ?, nmsg = ?, time = ?",
+	$forums->db->prepare_query("INSERT INTO forumposts SET threadid = ?, author = ?, authorid = ?, msg = ?, nmsg = ?, time = ?",
 						$tid, $userData['username'], $userData['userid'], $nmsg, $nmsg3, $time);
 
-	$db->prepare_query("INSERT INTO forumread SET threadid = ?, userid = ?, readtime = ?, time = ?, subscribe = ?",
+	$forums->db->prepare_query("INSERT INTO forumread SET threadid = ?, userid = ?, readtime = ?, time = ?, subscribe = ?",
 						$tid, $userData['userid'], $time, $time, ($subscribe ? 'y' : 'n') );
 
-	$db->prepare_query("UPDATE forums SET posts = posts+1, threads = threads+1, time = ? WHERE id = ?", $time, $fid);
+	$forums->db->prepare_query("UPDATE forums SET posts = posts+1, threads = threads+1, time = ? WHERE id = ?", $time, $fid);
 
 	$db->prepare_query("UPDATE users SET posts = posts+1 WHERE userid = ?", $userData['userid']);
 
@@ -111,7 +123,6 @@ function postThread($fid, $title, $msg, $subscribe = false, $question = "", $ans
 }
 
 function createThreadPoll($fid, $title, $msg, $subscribe, $question, $numAnswers, $answers){
-	global $PHP_SELF;
 
 	if(!isset($question))		$question = "";
 	if(empty($numAnswers))		$numAnswers=2;
@@ -124,7 +135,7 @@ function createThreadPoll($fid, $title, $msg, $subscribe, $question, $numAnswers
 
 	incHeader();
 
-	echo "<table align=center><form action=$PHP_SELF method=post>";
+	echo "<table align=center><form action=$_SERVER[PHP_SELF] method=post>";
 
 	echo "<input type=hidden name='fid' value='$fid'>\n";
 	echo "<input type=hidden name=title value=\"" . htmlentities($title) . "\">";
@@ -149,7 +160,7 @@ function createThreadPoll($fid, $title, $msg, $subscribe, $question, $numAnswers
 }
 
 function createThread($fid, $title, $msg, $poll, $subscribe, $preview){
-	global $PHP_SELF, $forum;
+	global $forum;
 
 	incHeader();
 
@@ -166,7 +177,7 @@ function createThread($fid, $title, $msg, $poll, $subscribe, $preview){
 	if($preview){
 		$ntitle = trim($title);
 		$ntitle = removeHTML($ntitle);
-		$ntitle = censor($ntitle);
+//		$ntitle = censor($ntitle);
 
 		$msg = trim($msg);
 		$nmsg = removeHTML($msg);
@@ -185,16 +196,20 @@ function createThread($fid, $title, $msg, $poll, $subscribe, $preview){
 		echo "</td></tr>";
 	}
 
-	echo "<form action=\"$PHP_SELF\" method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
+	echo "<tr><td class=body>";
+	echo "<table align=center>";
+	echo "<form action=$_SERVER[PHP_SELF] method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
 	echo "<input type=hidden name='fid' value='$fid'>\n";
 	echo "<tr><td class=body>Subject:<input class=body type=text size=50 name=title value=\"". htmlentities($title) ."\" maxlength=64></td></tr>";
 	echo "<tr><td class=body>";
 	editBox($msg,true);
 	echo "</td></tr>";
-	echo "<tr><td class=body align=left>" . makeCheckBox('poll', "Add a Poll", 'body', $poll) . " ";
+	echo "<tr><td class=body align=left>" . makeCheckBox('poll', "Add a Poll", $poll) . " ";
 	echo "<select class=body name=subscribe><option value=n>Don't Subscribe<option value=y" . ($subscribe ? ' selected' : '') . ">Subscribe</select>";
 	echo "<input class=body name=action type=submit value='Preview'><input class=body name=action type=submit value='Post' accesskey='s' onClick='checksubmit()'>";
 	echo "</td></tr>\n";
+	echo "</table>";
+	echo "</td></tr>";
 	echo "</form>";
 	echo "</table>";
 

@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /banners/
+Disallow: /gallery/
+Disallow: /images/
+Disallow: /skins/
+Disallow: /uploads/
+Disallow: /users/

@@ -4,7 +4,7 @@
 
 	require_once("include/general.lib.php");
 
-	$perms = getForumPerms(26); // must specify a forum, choose admin forum
+	$perms = $forums->getForumPerms(26); // must specify a forum, choose admin forum
 
 	if(!$perms['view'])
 		die("You don't have permission to see this");
@@ -13,27 +13,35 @@
 
 	if($isAdmin && $action == 'Delete' && !empty($checkid) && is_array($checkid)){
 		foreach($checkid as $id)
-			deleteForum($id);
+			$forums->deleteForum($id);
 	}
 
-	$db->query("SELECT id,name,description,threads,forums.posts,time,ownerid,username, 0 as invited,public FROM forums LEFT JOIN users ON forums.ownerid=users.userid WHERE official='n' ORDER BY public, posts DESC, id ASC");
+	$forums->db->query("SELECT id, name, description, threads, forums.posts, time, ownerid, 0 as invited,public FROM forums WHERE official='n' ORDER BY public, posts DESC, id ASC");
 
-	$forums = array();
+	$uids = array();
+	$forumdata = array();
 	$forumids = array();
-	while($line = $db->fetchrow()){
-		$forums[$line['id']] = $line;
+	while($line = $forums->db->fetchrow()){
+		$forumdata[$line['id']] = $line;
 		$forumids[] = $line['id'];
+		$uids[] = $line['ownerid'];
 	}
 
-	$db->prepare_query("SELECT forumid,count(*) as count FROM foruminvite WHERE forumid IN (?) GROUP BY forumid", $forumids);
+	$db->prepare_query("SELECT userid, username FROM users WHERE userid IN (?)", $uids);
 
+	$users = array();
 	while($line = $db->fetchrow())
-		$forums[$line['forumid']]['invited'] = $line['count'];
+		$users[$line['userid']] = $line['username'];
+
+	$forums->db->prepare_query("SELECT forumid,count(*) as count FROM foruminvite WHERE forumid IN (?) GROUP BY forumid", $forumids);
+
+	while($line = $forums->db->fetchrow())
+		$forumdata[$line['forumid']]['invited'] = $line['count'];
 
 	incHeader();
 
 	echo "<table>";
-	echo "<form action=$PHP_SELF>";
+	echo "<form action=$_SERVER[PHP_SELF]>";
 	echo "<tr>";
 		if($isAdmin)
 			echo "<td class=header></td>";
@@ -47,7 +55,7 @@
 		echo "<td class=header>Public</td>";
 	echo "</tr>\n";
 
-	foreach($forums as $forum){
+	foreach($forumdata as $forum){
 		echo "<tr>";
 			if($isAdmin)
 				echo "<td class=body><input class=body type=checkbox name=checkid[] value=$forum[id]></td>";
@@ -56,7 +64,7 @@
 			echo "<td class=body align=right>$forum[threads]</td>";
 			echo "<td class=body align=right>$forum[posts]</td>";
 			echo "<td class=body nowrap>" . ($forum['time']==0 ? "Never" : userdate("M j, y g:i a",$forum['time']) ) . "</td>";
-			echo "<td class=body><a class=body href=profile.php?uid=$forum[ownerid]>$forum[username]</a></td>";
+			echo "<td class=body>" . (isset($users[$forum['ownerid']]) ? "<a class=body href=profile.php?uid=$forum[ownerid]>" . $users[$forum['ownerid']] . "</a>" : '(deleted)') . "</td>";
 			echo "<td class=body align=right>$forum[invited]</td>";
 			echo "<td class=body align=right>" . ($forum['public']=='y' ? "Yes" : "No") . "</td>";
 		echo "</tr>\n";

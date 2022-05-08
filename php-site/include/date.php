@@ -3,12 +3,12 @@
 
 
 function userDate($format, $time = false){
-	global $userData,$timezones;
+	global $userData;
 	if($time === false)
 		$time = time();
 	$offset = 0;
 	if(isset($userData['timeoffset']) && $userData['timeoffset'] >= 0)
-		$offset = $timezones[$userData['timeoffset']][1] *60;
+		$offset = gettimezones($userData['timeoffset'])*60;
 	$time += $offset;
 	return gmdate($format, $time);
 //	return date($format, $time);
@@ -16,10 +16,10 @@ function userDate($format, $time = false){
 
 function userMkTime($hr,$min,$sec,$mon,$day,$year){
 
-//	return my_mktime($hr,$min,$sec,$mon,$day,$year);
+//	return my_mktime($hr, $min, $sec, $mon, $day, $year);
 
-	global $userData,$timezones;
-	return my_mktime($hr,$min,$sec,$mon,$day,$year,$timezones[$userData['timeoffset']][0]*60);
+	global $userData, $timezones;
+	return my_mktime($hr, $min, $sec, $mon, $day, $year, 0 - gettimezones($userData['timeoffset'])*60);
 }
 
 
@@ -59,7 +59,7 @@ function my_gmmktime($hr,$min,$sec,$mon,$day,$year){
 	return my_mktime($hr,$min,$sec,$mon,$day,$year,0);
 }
 
-function my_mktime($hr,$min,$sec,$mon,$day,$year,$offset=false){
+function my_mktime($hr, $min, $sec, $mon, $day, $year, $offset = false){
     if($offset===false)
     	$gmt_different = get_gmt_different();
     else

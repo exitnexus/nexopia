@@ -4,18 +4,24 @@
 
 	require_once("include/general.lib.php");
 
-	if(!isset($id)){
+	$id = getREQval('id', 'int');
+
+	if(!$id){
 		header("location: /");
 		exit();
 	}
 
-	$fastdb->prepare_query("SELECT link FROM banners WHERE id = ?", $id);
+	$page = (isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '');
 
-	$link = $fastdb->fetchfield();
+//trim http://
+	if(substr($page, 0, 7) == 'http://')
+		$page = substr($page, 7);
 
-	$fastdb->prepare_query("UPDATE banners SET clicks = clicks+1 WHERE id = ?", $id);
+//trim domain and end
+	$pos = strpos($page, '/');
+	$page = substr($page, $pos+1, strpos($page, '.', $pos)-$pos-1);
 
-
+	$link = $banner->click($id, $page);
 
 	header("location: $link");
-	exit(0);
+	exit;

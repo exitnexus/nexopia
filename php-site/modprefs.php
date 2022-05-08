@@ -19,15 +19,14 @@
 	$prefs = $mods->getModPrefs($userData['userid'], $type);
 
 	if(!empty($action)){
-		if(isset($autoscroll))	$autoscroll = 'y';
-		else					$autoscroll = 'n';
+		$autoscroll = (getREQval('autoscroll', 'bool') ? 'y' : 'n');
 
-		if(empty($picsperpage))			$picsperpage = 35;
-		if($picsperpage > 60)			$picsperpage = 60;
-		if($picsperpage < 10)			$picsperpage = 10;
+		$picsperpage = getREQval('picsperpage', 'int', 35);
+		if($picsperpage > 100)		$picsperpage = 100;
+		if($picsperpage < 10)		$picsperpage = 10;
 
 
-		$mods->setModPrefs($userid, $type, $autoscroll, $picsperpage);
+		$mods->setModPrefs($userData['userid'], $type, $autoscroll, $picsperpage);
 
 		$prefs['picsperpage'] = $picsperpage;
 		$prefs['autoscroll'] = $autoscroll;
@@ -40,13 +39,14 @@
 	echo "<table align=center>";
 
 	if(count($types) > 1){
-		echo "<form action=$PHP_SELF>";
+		echo "<form action=$_SERVER[PHP_SELF]>";
 		echo "<tr><td class=header colspan=2 align=center>Mod Type: <select class=body name=type>" . make_select_list_key($types,$type) . "</select><input class=body type=submit name=selecttype value=Go></td></tr>";
 		echo "</form>";
 	}
 
-/*	$total = $data['right'] + $data['wrong'];
 	echo "<tr><td class=header colspan=2 align=center>Stats</td></tr>";
+
+/*	$total = $data['right'] + $data['wrong'];
 	echo "<tr><td class=body>Level:</td><td class=body>$data[level]</td></tr>";
 	echo "<tr><td class=body>Total:</td><td class=body>$total</td></tr>";
 	echo "<tr><td class=body>Right:</td><td class=body>$data[right]</td></tr>";
@@ -57,12 +57,11 @@
 	echo "<tr><td class=body>Active Time:</td><td class=body>" . ($data['time'] == 0 ? "Never" : userDate("D M j, Y G:i:s", $data['time']) ) . "</td></tr>";
 */
 
-	echo "<tr><td class=header colspan=2 align=center>Stats</td></tr>";
 	echo "<tr><td class=body>Level:</td><td class=body>$prefs[level]</td></tr>";
 	echo "<tr><td class=body>Total:</td><td class=body>$prefs[total]</td></tr>";
 	echo "<tr><td class=body>Active Time:</td><td class=body>" . ($prefs['time'] == 0 ? "Never" : userDate("D M j, Y G:i:s", $prefs['time']) ) . "</td></tr>";
 
-	echo "<form action=$PHP_SELF>";
+	echo "<form action=$_SERVER[PHP_SELF]>";
 	echo "<input type=hidden name=type value=$type>";
 	echo "<tr><td class=header colspan=2 align=center>Prefs</td></tr>";
 	echo "<tr><td class=body>Auto-Scroll:</td><td class=body><input type=checkbox name=autoscroll" . ($prefs['autoscroll'] == 'y' ? " checked" : "") . "></td></tr>";
@@ -71,7 +70,7 @@
 	echo "</form>";
 
 	echo "<tr><td class=header align=center colspan=2>Links:</td></tr>";
-	echo "<tr><td class=body><a class=body href=/mod/>Mod Training</td></tr>";
+	echo "<tr><td class=body><a class=body href=pages.php?id=13>Mod Training</td></tr>";
 	echo "</table>";
 
 	incFooter();

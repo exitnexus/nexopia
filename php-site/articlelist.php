@@ -11,7 +11,7 @@
 
 	$where[] = "moded='y'";
 
-	$categories = & new category("cats");
+	$categories = & new category( $db, "cats");
 
 	if($cat!=0){
 		$catbranch = $categories->makebranch($cat);
@@ -22,38 +22,45 @@
 		$where[] = $db->prepare("category  IN (?)", $cats);
 	}
 
-	if(!empty($search)){
-		$where[] = "(title REGEXP '(^|^.* )" . $db->escape($search) . "(\$| .*\$)')";
-	}else
-		$search='';
+	if(!isset($day))
+		$day = userdate("j");
+	if(!isset($month))
+		$month = userdate("n");
+	if(!isset($year))
+		$year = userdate("Y");
 
-	$query = "SELECT * FROM articles WHERE " . implode(" && ",$where) . " ORDER BY time DESC LIMIT 10";
-	$result = $db->query($query);
+	if(!empty($day) && !empty($month) && !empty($year)){
+		$date = userMkTime(0,0,0, $month, $day, $year);
+		$where[] = $db->prepare("time >= ? && time <= ?", $date - 86400, $date + 86400);
+	}
 
+
+	$db->query("SELECT * FROM articles WHERE " . implode(" && ",$where) . " ORDER BY time DESC LIMIT 25");
+
+	$articledata = array();
+	while($line = $db->fetchrow())
+		$articledata[$line['id']] = $line;
+
+	for($i=1;$i<=12;$i++)
+		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
 
 
 	incHeader(false);
 
 	echo "<table width=100% cellspacing=0 cellpadding=3>";
 
-
 	$branch = $categories->makebranch(0);
 
-	echo "<form action=$PHP_SELF>";
+	echo "<form action=$_SERVER[PHP_SELF]>";
 	echo "<tr><td class=header>";
-	echo "<select class=body name=cat onChange=\"location.href='$PHP_SELF?cat='+(this.options[this.selectedIndex].value)\"><option value=0>Choose a Category<option value=0>Home". makeCatSelect($branch,$cat) . "</select> ";
-	echo "Search: <input class=body type=text name=search><input class=body type=submit name=action value=Go>";
+	echo "<select class=body name=cat><option value=0>Choose a Category<option value=0>Home". makeCatSelect($branch,$cat) . "</select> ";
+	echo "<select class=body name=\"month\"><option value=0>Month" . make_select_list_key($months, $month) . "</select>";
+	echo "<select class=body name=\"day\"><option value=0>Day" . make_select_list(range(1,31), $day) . "</select>";
+	echo "<select class=body name=\"year\"><option value=0>Year" . make_select_list(range(2003,userdate("Y")), $year) . "</select>";
+	echo " <input class=body type=submit name=action value=Go>";
 	echo "</td></form>";
 	echo "<td class=header align=right><a class=header href=addarticle.php>Submit an article</a></td></tr>";
 	echo "<tr><td class=header2 colspan=2>&nbsp;</td></tr>";
-
-	$articledata = array();
-	$articleids = array();
-
-	while($line = $db->fetchrow($result)){
-		$articledata[$line['id']] = $line;
-		$articleids[$line['id']] = "itemid='$line[id]'";
-	}
 
 	foreach($articledata as $line){
 		echo "<tr><td class=header><font size=4><b>$line[title]</b></font></td><td class=header align=right>" . userdate("F j, Y, g:i a",$line['time']) . "</td></tr>";
@@ -76,11 +83,8 @@
 		echo "</td></tr>";
 		echo "<tr><td colspan=2 class=body>";
 
-
-
-//		echo truncate(nl2br(parseHTML(smilies($line['text']))),1000);
-		echo truncate($line['ntext'],1000);
-
+		echo truncate(nl2br(smilies(parseHTML($line['text']))), 1000) . "&nbsp;";
+//		echo truncate($line['ntext'],1000);
 
 		echo "</td></tr>";
 		echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
@@ -90,14 +94,6 @@
 		echo "<tr><td class=header2 colspan=2>&nbsp;</td></tr>";
 	}
 
-
-	echo "<form action=$PHP_SELF>";
-	echo "<tr><td class=header>";
-	echo "<select class=body name=cat onChange=\"location.href='$PHP_SELF?cat='+(this.options[this.selectedIndex].value)\"><option value=0>Choose a Category<option value=0>Home". makeCatSelect($branch,$cat) . "</select> ";
-	echo "Search: <input class=body type=text name=search><input class=body type=submit name=action value=Go>";
-	echo "</td></form>";
-	echo "<td class=header align=right><a class=header href=addarticle.php>Submit an article</a></td></tr>";
-	echo "<tr><td class=header2 colspan=2>&nbsp;</td></tr>";
 	echo "</table>";
 
 	incFooter(false);

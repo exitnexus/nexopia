@@ -1,5 +1,8 @@
 <?
 
+die("error");
+//need to use $_POST instead of globals
+
 	$login=1;
 
 	require_once("include/general.lib.php");
@@ -32,7 +35,7 @@
 	for($i=1;$i<=12;$i++)
 		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
 
-	$locations = & new category("locs");
+	$locations = & new category( $db, "locs");
 
 
 	switch($action){
@@ -173,8 +176,7 @@
 
 		}
 
-		if(empty($page))
-			$page=0;
+		$page = getREQval('page', 'int');
 
 		$query = "SELECT SQL_CALC_FOUND_ROWS users.userid," . implode(', ',$selects) . " FROM users";
 		if(count($commands))
@@ -192,7 +194,7 @@
 
 
 	if(isset($search)){
-		echo "<table border=1 cellspacing=0 cellpadding=2><form action=$PHP_SELF name=users>";
+		echo "<table border=1 cellspacing=0 cellpadding=2><form action=$_SERVER[PHP_SELF] name=users>";
 		echo "<tr><td class=header width=22>&nbsp;</td>";
 		echo "<td class=header>&nbsp;</td>";
 		echo "<td class=header>&nbsp;</td>";
@@ -277,7 +279,7 @@
 		echo "Page:";
 		$start = $page+1>$config['pagesInList'] ? $page-$config['pagesInList'] : 1;
 		$finish = $page+$config['pagesInList']<$numpages ? $page+$config['pagesInList']-1 : $numpages;
-		echo "<select class=body onChange=\"location.href='$PHP_SELF?sortt=$sortt&sortd=$sortd&";
+		echo "<select class=body onChange=\"location.href='$_SERVER[PHP_SELF]?sortt=$sortt&sortd=$sortd&";
 		foreach($varlist as $n => $v)
 			echo "$n=$v&";
 		echo "page='+(this.selectedIndex+$start-1)\">" . make_select_list(range($start,$finish),$page+1) . "</select>";
@@ -295,7 +297,7 @@
 	if(!isset($where))
 		$where = array('username'=>'','userid'=>'','joinmonth'=>'','joinday'=>'','joinyear'=>'','activemonth'=>'','activeday'=>'','activeyear'=>'','ip'=>'','activated'=>'','hits'=>'','loc'=>'','email'=>'');
 
-	echo "<table><form action=$PHP_SELF>";
+	echo "<table><form action=$_SERVER[PHP_SELF]>";
 	echo "<tr><td class=header>Select</td><td class=header>Where</td></tr>";
 	echo "<tr>";
 

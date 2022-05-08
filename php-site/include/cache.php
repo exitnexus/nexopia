@@ -10,6 +10,8 @@ public:
 
 - get($name, $refresh, $callback, $default) - get $name and all primed values, and check flags
 - put($name, $value, $refresh) - put $value in cache under $name for $refresh seconds
+- incr($name, $value) - increments the value of $name by $value, only works with numbers, returns the result
+- decr($name, $value) - decrements the value of $name by $value, only works with numbers, returns the result
 - remove($name) - remove $name from cache
 - cleanup() - remove all expired caches, leave flags
 
@@ -32,6 +34,8 @@ class cache{
 	var $fetch;
 	var $values;
 	var $flags;
+
+	var $actions = array();
 
 	function cache($basedir){
 		$this->fetch = array();
@@ -57,15 +61,21 @@ class cache{
 //					echo "mmcache_get: $expected<br>\n";
 				}
 			}
-			if(!isset($this->values[$expected]))
-*/				$this->fetch[$expected] = $expected;
+*/			if(!isset($this->values[$expected]))
+				$this->fetch[$expected] = $expected;
+
 		}
 	}
 
 	function get($name, $refresh = 0, $callback = false, $default = array()){
+		$this->actions[] = "get $name";
 
-		if(strlen($name) > 12)
+		if(strlen($name) > 128)
 			trigger_error("cache name: '$name' is too long", E_USER_ERROR);
+
+		if(strpos($name, ' ') !== false)
+			trigger_error("cache name: '$name' has a space", E_USER_ERROR);
+
 
 		$this->prime($name);
 
@@ -78,13 +88,8 @@ class cache{
 
 			while($line = $this->cachedb->fetchrow($result)){
 				if(isset($this->flags[$line['name']])){ //flags
-					if($this->flags[$line['name']]['time'] < $line['time']){
+					if($this->flags[$line['name']]['time'] < $line['time'])
 						$this->doFlag($line['name']);
-/*						if(is_array($this->flags[$line['name']]['callback']))
-							call_user_func_array($this->flags[$line['name']]['callback']['function'],$this->flags[$line['name']]['callback']['params']);
-						else
-							$this->flags[$line['name']]['callback']();
-*/					}
 				}else{ //caches
 					$this->values[$line['name']] = $line;
 /*					if(function_exists('mmcache_put')){
@@ -109,7 +114,6 @@ class cache{
 			if($callback && $refresh){
 				$this->cachedb->query("SELECT GET_LOCK('$name',0)");
 				if($this->cachedb->fetchfield() == 1){
-
 					if(is_array($callback))
 						$rows = call_user_func_array($callback['function'],$callback['params']);
 					else
@@ -128,6 +132,7 @@ class cache{
 	}
 
 	function put($name, $value, $refresh){
+		$this->actions[] = "put $name";
 		$expiry = time() + $refresh;
 
 		$serialized = serialize($value);
@@ -144,7 +149,16 @@ class cache{
 */
 	}
 
+	function incr($name, $value = 1){
+		trigger_error("cache->incr not done", E_USER_ERROR);
+	}
+
+	function decr($name, $value = 1){
+		trigger_error("cache->decr not done", E_USER_ERROR);
+	}
+
 	function remove($name){
+		$this->actions[] = "remove $name";
 		$this->cachedb->prepare_query("DELETE FROM cache WHERE name IN (?)", $name);
 /*
 		if(function_exists('mmcache_rm')){
@@ -161,6 +175,14 @@ class cache{
 	}
 
 
+	function outputActions(){
+		echo "<table border=1 bgcolor=#FFFFFF cellspacing=0>";
+		echo "<tr><td>Cache - " . count($this->actions) . " actions</td></tr>";
+
+		foreach($this->actions as $row)
+			echo "<tr><td>$row</td></tr>";
+		echo "</table>";
+	}
 
 	function hdget($name, $callback = false, $default = false){
 		if(strlen($name) > 12)

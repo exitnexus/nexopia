@@ -7,10 +7,10 @@
 	if(empty($cat))
 		$cat = 0;
 
-	$db->prepare_query("SELECT products.id,name,firstpicture,summary,unitprice,bulkpricing,stock FROM products,producttext WHERE products.id=producttext.id && category = ?", $cat);
+	$shoppingcart->db->prepare_query("SELECT products.id,name,firstpicture,summary,unitprice,bulkpricing,stock FROM products,producttext WHERE products.id=producttext.id && category = ?", $cat);
 
 	$rows = array();
-	while($line = $db->fetchrow())
+	while($line = $shoppingcart->db->fetchrow())
 		$rows[] = $line;
 
 	incHeader(true,array('incShoppingCartMenu'));

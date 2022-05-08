@@ -2,20 +2,29 @@
 
 	$login=1;
 
+	$userprefs = array('replyjump');
+
 	require_once("include/general.lib.php");
 
-	if(!isset($tid) || $tid=="" || $tid==0)
+	if(!($tid = getREQval('tid', 'int')))
 		die("Bad Thread id");
 
-	$query = "SELECT title,forumid,locked,time FROM forumthreads WHERE id='$tid'";
-	$result = $db->query($query);
-	if($db->numrows($result)==0)
-		die("Bad thread id");
 
-	$thread = $db->fetchrow($result);
+	$thread = $cache->get(array($tid, "forumthread-$tid"));
+
+	if($thread === false){
+		$forums->db->prepare_query("SELECT forumid, moved, title, posts, sticky, locked, announcement, flag, pollid, time FROM forumthreads WHERE id = ?", $tid);
+		$thread = $forums->db->fetchrow();
+
+		if($thread)
+			$cache->put(array($tid, "forumthread-$tid"), $thread, 10800);
+	}
+
+	if(!$thread || $thread['moved'])
+		die("Bad Thread id");
 
 
-	$perms = getForumPerms($thread['forumid']);	//checks it's a forum, not a realm
+	$perms = $forums->getForumPerms($thread['forumid']);	//checks it's a forum, not a realm
 
 	if(!$perms['view'])
 		die("You don't have permission to view this forum");
@@ -27,21 +36,24 @@
 		die("You don't have permission to post in locked threads");
 
 
-	if(!isset($subscribe) || $subscribe != 'y')
-		$subscribe='n';
-
-	if(!isset($msg))
-		$msg="";
-
 	switch($action){
 		case "Post":
-			postReply($msg,$subscribe);
+			if(!($msg = getPOSTval('msg')))
+				reply('', true);
+
+			$subscribe = getPOSTval('subscribe');
+
+			postReply($msg, ($subscribe == 'y' ? 'y' : 'n'));
 			break;
 		case "quote":
+			$pid = getREQval('pid', 'int');
+
 			quote($pid);
 			break;
 		case "reply":
 		case "Preview":
+			$msg = getPOSTval('msg');
+
 			reply($msg, ($action == "Preview"));
 			break;
 	}
@@ -49,27 +61,29 @@
 
 
 function quote($pid){
-	global $db;
+	global $forums, $tid;
 
-	$db->prepare_query("SELECT author,msg FROM forumposts WHERE id = ?",$pid);
-	$line = $db->fetchrow();
+	$forums->db->prepare_query("SELECT author, msg FROM forumposts WHERE id = # && threadid = #", $pid, $tid);
+	$line = $forums->db->fetchrow();
+
+	if(!$line)
+		reply('', false);
 
 	$msg = "[quote][i]Originally posted by: [b]" . $line['author'] . "[/b][/i]\n" . $line['msg'] . "[/quote]\n";
 	reply($msg,false);
-	return;
 }
 
 function reply($msg, $preview){
-	global $tid,$userData,$db,$thread,$PHP_SELF,$perms;
+	global $tid, $userData, $forums, $thread, $perms;
 
-	$db->prepare_query("SELECT subscribe FROM forumread WHERE userid = ? && threadid = ?",$userData['userid'],$tid);
-	$subscribe = $db->fetchfield();
+	$forums->db->prepare_query("SELECT subscribe FROM forumread WHERE userid = # && threadid = #", $userData['userid'], $tid);
+	$subscribe = $forums->db->fetchfield();
 
-	$db->prepare_query("SELECT name,official,autolock FROM forums WHERE id = ?",$thread['forumid']);
-	$forum = $db->fetchrow();
+	$forums->db->prepare_query("SELECT name, official, autolock FROM forums WHERE id = #",$thread['forumid']);
+	$forum = $forums->db->fetchrow();
 
 	if($forum['autolock'] > 0 && (time() - $thread['time']) > $forum['autolock']){
-		$db->prepare_query("UPDATE forumthreads SET locked = 'y' WHERE id = ? ",$tid);
+		$forums->db->prepare_query("UPDATE forumthreads SET locked = 'y' WHERE id = #",$tid);
 		$thread['locked']='y';
 
 		if(!$perms['postlocked'])
@@ -92,7 +106,6 @@ function reply($msg, $preview){
 	echo "</td></tr>\n";
 
 	if($preview){
-
 		$msg = trim($msg);
 		$nmsg = removeHTML($msg);
 		$nmsg2 = parseHTML($nmsg);
@@ -110,7 +123,7 @@ function reply($msg, $preview){
 	}
 
 
-	echo "<form action=\"$PHP_SELF\" method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
+	echo "<form action=$_SERVER[PHP_SELF] method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
 	echo "<input type=hidden name='tid' value='$tid'>\n";
 	echo "<tr><td class=header2 colspan=2>";
 
@@ -127,7 +140,7 @@ function reply($msg, $preview){
 }
 
 function postReply($msg,$subscribe){
-	global $userData,$tid,$thread,$config,$emaildomain,$wwwdomain,$db,$PHP_SELF;
+	global $userData, $tid, $thread, $config, $emaildomain, $wwwdomain, $forums, $db, $cache;
 
 
 	$msg = trim($msg);
@@ -147,64 +160,73 @@ function postReply($msg,$subscribe){
 
 	$old_user_abort = ignore_user_abort(true);
 
-	$db->query("LOCK TABLES forumposts WRITE, forumread WRITE");
+//	$forums->db->query("LOCK TABLES forumposts WRITE, forumread WRITE");
+
+//	$forums->db->begin();
 
 //doublepost
-	$db->prepare_query("SELECT id FROM forumposts WHERE threadid = ? && authorid = ? && msg = ? && time > ?", $tid, $userData['userid'], $nmsg, $time-30);
+	$dupe = $cache->get(array($userData['userid'], "forumpostdupe-$tid-$userData[userid]")); //should block fast dupes, like bots, use a short time since it blocks ALL posts by that user in that thread, not just the same one.
 
-	if($db->numrows() > 0){
-		$db->query("UNLOCK TABLES");
+	if($dupe){
+		ignore_user_abort($old_user_abort);
+
+		header("location: forumthreads.php?fid=$thread[forumid]");
+		exit;
+	}
+
+
+	$forums->db->prepare_query("SELECT threadid FROM forumposts WHERE threadid = # && time >= # && authorid = # && msg = ?", $tid, $time-30, $userData['userid'], $nmsg);
+
+	if($forums->db->numrows() > 0){
+//		$forums->db->query("UNLOCK TABLES");
+		$forums->db->rollback();
+
+		$cache->put(array($userData['userid'], "forumpostdupe-$tid-$userData[userid]"), 1, 3); //block for another 3 seconds
 
 		ignore_user_abort($old_user_abort);
 
 		header("location: forumthreads.php?fid=$thread[forumid]");
-		exit(0);
+		exit;
 	}
 
-//	$query = $db->prepare("UPDATE forumread SET updated='y' WHERE threadid = ? && updated='n'", $tid);
-//	$db->query($query);
 
-//	$query = $db->prepare("UPDATE forumread SET time = ?, subscribe = ?, updated='n' WHERE userid = ? && threadid = ?", $time, $subscribe, $userData['userid'], $tid);
-	$db->prepare_query("UPDATE forumread SET time = ?, subscribe = ? WHERE userid = ? && threadid = ?", $time, $subscribe, $userData['userid'], $tid);
-	if($db->affectedrows()==0){
-		$db->prepare_query("INSERT IGNORE INTO forumread SET userid = ?, threadid = ?, time = ?, subscribe = ?", $userData['userid'], $tid, $time, $subscribe);
-	}
+	$forums->db->prepare_query("UPDATE forumread SET time = #, subscribe = ? WHERE userid = # && threadid = #", $time, $subscribe, $userData['userid'], $tid);
+	if($forums->db->affectedrows()==0)
+		$forums->db->prepare_query("INSERT IGNORE INTO forumread SET userid = #, threadid = #, time = #, subscribe = ?", $userData['userid'], $tid, $time, $subscribe);
 
-	$db->prepare_query("INSERT INTO forumposts SET threadid = ?, authorid = ?, author = ?, msg = ?, nmsg = ?, time = ?", $tid, $userData['userid'], $userData['username'], $nmsg, $nmsg3, $time);
 
-	$db->query("UNLOCK TABLES");
+	$forums->db->prepare_query("INSERT INTO forumposts SET threadid = #, authorid = #, author = ?, msg = ?, nmsg = ?, time = #", $tid, $userData['userid'], $userData['username'], $nmsg, $nmsg3, $time);
 
-	$db->prepare_query("UPDATE forumthreads SET posts = posts+1, time = ?, lastauthor = ?,lastauthorid = ? WHERE id = ?", $time, $userData['username'], $userData['userid'], $tid);
+//	$forums->db->query("UNLOCK TABLES");
 
-	$db->prepare_query("UPDATE forums SET posts = posts+1,time = ? WHERE id = ?", $time, $thread['forumid']);
+	$forums->db->prepare_query("UPDATE forumthreads SET posts = posts+1, time = #, lastauthor = ?, lastauthorid = # WHERE id = #", $time, $userData['username'], $userData['userid'], $tid);
 
-	$db->prepare_query("UPDATE users SET posts = posts+1 WHERE userid = ?", $userData['userid']);
+	$forums->db->prepare_query("UPDATE forums SET posts = posts+1,time = # WHERE id = #", $time, $thread['forumid']);
 
-	if($config['allowThreadUpdateEmails']){
-		$db->prepare_query("SELECT users.userid,username,email FROM users,forumread WHERE users.userid=forumread.userid && users.threadupdates='y' && forumread.threadid = ? && forumread.notified='n' && users.userid != ?", $tid, $userData['userid']);
+	$forums->db->commit();
 
-		if($db->numrows() > 0){
-			$subject = "Reply to post '$thread[title]' on $wwwdomain.";
+	$db->prepare_query("UPDATE users SET posts = posts+1 WHERE userid = #", $userData['userid']);
 
-			$users = array();
-			while($line = $db->fetchrow($result)){
-				$message = "Hello $line[username],\n\n$userData[username] has just replied to a thread you have subscribed to entitled - $thread[title].\n\nThis thread is located at: http://$wwwdomain/viewthread.php?tid=$tid \n\nThere may be other replies also, but you will not receive any more notifications until you visit the board again.";
-				$users[] = $line['userid'];
 
-				smtpmail("$line[username] <$line[email]>", $subject, $message, "From: $config[title] <no-reply@$emaildomain>") or trigger_error("Error sending email",E_USER_NOTICE);
-			}
+	$cache->put(array($userData['userid'], "forumread-$userData[userid]-$tid"), array('subscribe' => $subscribe, 'time' => $time, 'posts' => $thread['posts']+1), 10800);
 
-			$db->prepare_query("UPDATE forumread SET notified='y' WHERE forumread.threadid = ? && userid IN (?)", $tid, $users);
-		}
-	}
+	$cachethread = array(	'forumid' => $thread['forumid'],
+							'moved' => $thread['moved'],
+							'title' => $thread['title'],
+							'posts' => $thread['posts'] + 1,
+							'sticky' => $thread['sticky'],
+							'locked' => $thread['locked'],
+							'announcement' => $thread['announcement'],
+							'time' => $time,
+							'pollid' => $thread['pollid']);
+
+	$cache->put(array($tid, "forumthread-$tid"), $cachethread, 10800);
+
+	$cache->put(array($userData['userid'], "forumpostdupe-$tid-$userData[userid]"), 1, 3); //block dupes for 3 seconds
 
 	ignore_user_abort($old_user_abort);
 
-	$db->prepare_query("SELECT replyjump FROM users WHERE userid = ?", $userData['userid']);
-	$replyjump = $db->fetchfield();
-
-
-	if($replyjump=='forum')
+	if($userData['replyjump']=='forum')
 		header("location: forumthreads.php?fid=$thread[forumid]");
 	else
 		header("location: forumviewthread.php?tid=$tid");

@@ -7,65 +7,80 @@
 	if(!$mods->isadmin($userData['userid'],"listdeletedusers"))
 		die("Permission denied");
 
-	if(empty($page)) $page=0;
+	$selectlist = array('userid' => 'Userid', 'username' => 'Username', 'email' => 'Email');
 
-	if(empty($uid))
-		$uid="";
+	$type = getREQval('type','string', 'username');
+	$uid = getREQval('uid');
 
 	$mods->adminlog('list deletedusers',"list deleted users: $uid");
 
-	$query = "SELECT SQL_CALC_FOUND_ROWS * FROM deletedusers";
-	if($uid!="")
-		$query .= " WHERE " . $db->prepare("username = ?",$uid);
-	$query .=" ORDER BY id DESC LIMIT " . $page*$config['linesPerPage'] . ", $config[linesPerPage]";
-	$result = $db->query($query);
 
+	$rows = array();
 
-	$rowresult = $db->query("SELECT FOUND_ROWS()");
-	$numrows = $db->fetchfield();
-	$numpages =  ceil($numrows / $config['linesPerPage']);
+	if($type && $uid){
+		$col = '';
+
+		switch($type){
+			case "userid":
+			case 'username':
+			case 'email':
+				$col = $type;
+				break;
+		}
+
+		if($col){
+			$db->prepare_query("SELECT * FROM deletedusers WHERE $col = ?", $uid);
+
+			$rows = $db->fetchrowset();
+		}
+	}
 
 	incHeader();
 
-	echo "<table width=100%>";
-	echo "<tr><td class=header>Userid</td><td class=header>Username</td><td class=header>Time</td><td class=header>Reason</td><td class=header>Deleted by</td></tr>";
+	echo "<table align=center>";
 
-	$usernames = array();
-	while($line = $db->fetchrow($result)){
-		echo "<tr>";
-		echo "<td class=body align=right>$line[userid]</td>";
-		echo "<td class=body><a class=body href='mailto:$line[email]'>$line[username]</a></td>";
-		echo "<td class=body nowrap>" . userDate("F j, Y, g:i a", $line['time']) . "</td>";
-		echo "<td class=body>$line[reason]</td>";
-		echo "<td class=body>";
-		if($line['deleteid']==0){
-			echo "Automatically";
-		}elseif($line['deleteid']==$line['userid']){
-			echo $line['username'];
-		}else{
-			if(!isset($usernames[$line['deleteid']]))
-				$usernames[$line['deleteid']]=getUserName($line['deleteid']);
-			echo $usernames[$line['deleteid']];
-		}
-		echo "</td>";
-		echo "</tr>";
-	}
-
-	echo "<tr><td class=header colspan=5>";
-
-	echo "<table width=100%><tr>";
-	echo "<form action=$PHP_SELF>";
-	echo "<td class=header>";
-	echo "Username: <input class=body type=text name=uid value='$uid'><input class=body type=submit value=Go>";
-	echo "</td>";
+	echo "<form action=$_SERVER[PHP_SELF]>";
+	echo "<tr><td class=header align=center colspan=7>";
+	echo "<select class=body name=type>" . make_select_list_key($selectlist, $type) . "</select><input class=body type=text name=uid value='$uid'><input class=body type=submit value=Go>";
+	echo "</td></tr>";
 	echo "</form>";
 
-	echo "<td class=header align=right>";
-	echo "Page: " . pageList("$PHP_SELF",$page,$numpages,'header');
-	echo "</td>";
-	echo "</tr></table>";
-	echo "</td></tr>";
+	if(count($rows)){
+		echo "<tr>";
+		echo "<td class=header>Userid</td>";
+		echo "<td class=header>Username</td>";
+		echo "<td class=header>Time</td>";
+		echo "<td class=header>Reason</td>";
+		echo "<td class=header>Deleted by</td>";
+		echo "<td class=header>Abuse</td>";
+		echo "<td class=header>IPs</td>";
+		echo "</tr>";
+
+		$usernames = array();
+		foreach($rows as $line){
+			echo "<tr>";
+			echo "<td class=body align=right>$line[userid]</td>";
+			echo "<td class=body><a class=body href='mailto:$line[email]'>$line[username]</a></td>";
+			echo "<td class=body nowrap>" . userDate("F j, Y, g:i a", $line['time']) . "</td>";
+			echo "<td class=body>$line[reason]</td>";
+			echo "<td class=body>";
+			if($line['deleteid']==0){
+				echo "Automatically";
+			}elseif($line['deleteid']==$line['userid']){
+				echo $line['username'];
+			}else{
+				if(!isset($usernames[$line['deleteid']]))
+					$usernames[$line['deleteid']] = getUserName($line['deleteid']);
+				echo "<a class=body href=profile.php?uid=$line[deleteid]>" . $usernames[$line['deleteid']] . "</a>";
+			}
+			echo "</td>";
+			echo "<td class=body><a class=body href=adminabuselog.php?uid=$line[userid]>Abuse</a></td>";
+			echo "<td class=body><a class=body href=adminuserips.php?uid=$line[userid]&type=userid>IPs</a></td>";
+			echo "</tr>";
+		}
+	}
 
 	echo "</table>";
 
 	incFooter();
+

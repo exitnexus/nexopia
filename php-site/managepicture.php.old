@@ -1,0 +1,202 @@
+<?
+
+	$login=1;
+
+	require_once("include/enternexus.lib.php");
+
+	$isAdmin = isAdmin($userData['userid'],'users');
+
+	if(!isset($uid))
+		$uid = $userData['userid'];
+	elseif(!$isAdmin)
+		$uid = $userData['userid'];
+
+	sqlSafe(&$vote,&$id);
+
+//	$numpics = setNumPics($uid);
+
+	switch($action){
+		case "Submit":
+			if($numpics<$config['maxpics'] && $userData['userid']==$uid)
+				addPic($userfile,"users",$vote,removeHTML($description));
+			setFirstPic($uid);
+			break;
+		case "remove":
+			$query = $db->prepare("SELECT itemid FROM pics WHERE id = ?", $id);
+			$db->query($query);
+			$line = $db->fetchrow();
+
+			if($line['itemid']==$uid)
+				removePic($id);
+
+			setFirstPic($uid);
+//			setNumPics($uid);
+			break;
+		case "edit":
+			edit($id);
+			break;
+		case "Update":
+			update($id, (isset($vote) ? 'y' : 'n'), $description);
+			setFirstPic($uid);
+			break;
+		case "moveup":
+			if($userData['userid']==$uid)
+				increasepriority($id,"pics",$db->prepare("itemid = ?",$uid));
+			setFirstPic($uid);
+			break;
+		case "movedown":
+			if($userData['userid']==$uid)
+				decreasepriority($id,"pics",$db->prepare("itemid = ?", $uid));
+			setFirstPic($uid);
+			break;
+	}
+
+
+	incHeader();
+
+	$query = $db->prepare("SELECT id,priority,vote,description,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10, (v1+v2+v3+v4+v5+v6+v7+v8+v9+v10) as sum FROM pics WHERE itemid = ? ORDER BY priority", $uid);
+	$db->query($query);
+
+	echo "<table width=100%>";
+
+	echo "<tr><td class=header>Pic</td><td class=header>Description</td>";
+	if($config['votingenabled'])
+		echo "<td class=header>Votes</td><td class=header>Score</td>";
+	echo "<td class=header>Functions</td></tr>";
+
+	while($line = $db->fetchrow()){
+		echo "<tr>";
+
+		if($config['votingenabled']){
+			if($line['vote']=='y'){
+				$total=0;
+				for($i=1;$i<=10;$i++)
+					$total+= $i * $line["v$i"];
+
+				$score=0;
+				if($line['sum']!=0)
+					$score = scoreCurve($total/$line['sum']);
+			}else{
+				$score="N/A";
+				$line['sum']="N/A";
+			}
+		}
+
+		echo "<td class=body><a href=profile.php?uid=$uid&picnum=$line[priority]><img src=$config[thumbloc]" . floor($line['id']/1000) . "/$line[id].jpg border=0></a></td>";
+		echo "<td class=body>$line[description]</td>";
+		if($config['votingenabled'])
+			echo "<td class=body>$line[sum]</td><td class=body>$score</td>";
+
+		echo "<td class=body><a class=body href=\"$PHP_SELF?uid=$uid&action=edit&id=$line[id]\"><img src=$config[imageloc]edit.gif border=0 alt='Edit'></a>";
+		if($userData['userid']==$uid){
+			if($line['priority']>2)
+				echo " <a class=body href=\"$PHP_SELF?action=moveup&id=$line[id]\"><img src=$config[imageloc]up.png border=0 alt='Move Up'></a>";
+			if($line['priority'] < $numpics)
+				echo " <a class=body href=\"$PHP_SELF?action=movedown&id=$line[id]\"><img src=$config[imageloc]down.png border=0 alt='Move Down'></a>";
+		}
+		echo " <a class=body href=\"javascript:confirmLink('$PHP_SELF?uid=$uid&action=remove&id=$line[id]','delete this picture')\"><img src=$config[imageloc]delete.gif border=0 alt='Delete'></a></td>";
+
+		echo "</tr>";
+	}
+
+	echo "</table>";
+
+	if($numpics<$config['maxpics'] && $userData['userid']==$uid){
+		echo "<table align=center>";
+
+		echo "<tr><td class=header colspan=2>Upload a new Picture</td></tr>";
+
+		echo "<form action=\"$PHP_SELF\" method=post enctype=\"multipart/form-data\">\n";
+		echo "<tr><td class=body>Select a Picture:</td><td class=body><input class=body type=file name=userfile size=20></td></tr>";
+		echo "<tr><td class=body>Enter a Description</td><td class=body><input class=body type=text name=description maxlength=64 size=30></td></tr>";
+
+		if($config['votingenabled'])
+			echo "<tr><td class=body>Can people vote for this picture?</td><td class=body><input type=checkbox name=vote></td></tr>";
+		echo "<tr><td class=body></td><td><input class=body type=submit name=action value=Submit></td></tr>\n";
+		echo "</form>";
+
+		echo "</table>";
+	}
+
+	if($userData['userid']==$uid){
+		echo "<ul>";
+		echo "<li>Pictures must contain yourself in a discernable manner. Images containing 'recognizeable' body parts will be assessed on a case to case basis depending on such things as content, clarity, etc. Pictures of just inanimate objects, friends/family (excluding yourself in the image), artwork, and pets/animals; will not be accepted. For more detail, please read the <a class=body href=/faq.php>FAQ</a>.";
+		echo "<li>The image must be either a JPG or a PNG.";
+		echo "<li>If it is bigger than the maximum allowed size it will be resized to fit.";
+		echo "<li>The current maximum size is $config[maxPicWidth] x $config[maxPicHeight] pixels.";
+		echo "<li>Once your picture is uploaded, you can see it by clicking on 'My Page' on the personal menu.";
+		echo "</ul>";
+	}
+
+
+	incFooter();
+
+
+
+
+
+
+
+
+function edit($id){
+	global $uid,$config,$isAdmin, $db, $PHP_SELF;
+
+	$query = $db->prepare("SELECT vote,description,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10, (v1+v2+v3+v4+v5+v6+v7+v8+v9+v10) as sum FROM pics WHERE id = ? && itemid = ?", $id, $uid);
+	$db->query($query);
+	$data = $db->fetchrow();
+
+	incHeader();
+
+	echo "<table width=100%>\n";
+	echo "<form action=\"$PHP_SELF\" method=post>\n";
+
+	echo "<tr><td class=body><img src=\"$config[picloc]" . floor($id/1000) . "/$id.jpg\"></td><td class=body valign=top>";
+
+	if($config['votingenabled']){
+		echo "<table width=250><tr><td class=header colspan=2>Vote Histograph</td></tr>";
+
+		$maxval=0;
+		for($i=1;$i<=10;$i++)
+			if($data["v$i"]!=0 && $data["v$i"]/$data['sum'] > $maxval)
+				$maxval = $data["v$i"]/$data['sum'];
+
+		if($maxval==0)	$width=0;
+		else			$width=150/$maxval;
+
+		echo "<tr><td class=body>Score</td><td class=body>Number of Votes</td></tr>";
+		for($i=1;$i<=10;$i++)
+			echo "<tr><td class=body>$i</td><td class=body><img src=$config[imageloc]red.png width=" . ($data['sum']==0 ? 0 : $data["v$i"]/$data['sum']*$width) . " height=10> " . ($data["v$i"]) . "</td></tr>";
+		echo "</table></td></tr>";
+		echo "</table>";
+	}
+
+	echo "<table>";
+	echo "<input type=hidden name=id value=$id>";
+	echo "<input type=hidden name=uid value=$uid>";
+
+	if($config['votingenabled'])
+		echo "<tr><td class=body>Enable Voting:</td><td class=body><input type=checkbox name=vote" . ($data['vote']=='y'? " checked" : "") ."></td>";
+
+	echo "<tr><td class=body>Description:</td><td class=body><input class=body type=text name=description value=\"" . htmlentities($data['description']) . "\" size=40 maxlength=64></td></tr>";
+	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value=Update><input class=body type=submit name=action value=Cancel></td></tr>\n";
+
+	echo "</table>\n";
+
+	incFooter();
+	exit;
+}
+
+function update($id,$vote,$description){
+	global $uid,$msgs,$isAdmin, $db;
+
+	$query = $db->prepare("UPDATE pics SET vote = ?,description = ?", $vote, removeHTML($description));
+	if($vote=='n')
+		$query .= ", top='n'";
+	$query .= $db->prepare(" WHERE id = ? && itemid = ?", $id, $uid);
+	$db->query($query);
+
+	setFirstPic($uid);
+
+	$msgs->addMsg("Update Complete");
+	return;
+}

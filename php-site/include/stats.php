@@ -1,369 +1,258 @@
 <?
+
 function updateStats(){
 	if(defined("STATSUPDATED"))
 		return;
 	define("STATSUPDATED", true);
 
-	global $userData, $config, $sWidth, $sHeight, $siteStats, $db, $fastdb, $cache;
+	global $userData, $config, $sWidth, $sHeight, $siteStats, $db, $fastdb, $statsdb, $cache, $logdb;
 
-	if((ereg("Nav", getenv("HTTP_USER_AGENT"))) || (ereg("Gold", getenv("HTTP_USER_AGENT"))) || (ereg("X11", getenv("HTTP_USER_AGENT"))) || (ereg("Mozilla", getenv("HTTP_USER_AGENT"))) || (ereg("Netscape", getenv("HTTP_USER_AGENT"))) AND (!ereg("MSIE", getenv("HTTP_USER_AGENT")))) $browser = "Netscape";
-	elseif(ereg("MSIE", getenv("HTTP_USER_AGENT"))) $browser = "MSIE";
-	elseif(ereg("Lynx", getenv("HTTP_USER_AGENT"))) $browser = "Lynx";
-	elseif(ereg("Opera", getenv("HTTP_USER_AGENT"))) $browser = "Opera";
-	elseif(ereg("WebTV", getenv("HTTP_USER_AGENT"))) $browser = "WebTV";
-	elseif(ereg("Konqueror", getenv("HTTP_USER_AGENT"))) $browser = "Konqueror";
-	elseif((eregi("bot", getenv("HTTP_USER_AGENT"))) || (ereg("Google", getenv("HTTP_USER_AGENT"))) || (ereg("Slurp", getenv("HTTP_USER_AGENT"))) || (ereg("Scooter", getenv("HTTP_USER_AGENT"))) || (eregi("Spider", getenv("HTTP_USER_AGENT"))) || (eregi("Infoseek", getenv("HTTP_USER_AGENT")))) $browser = "Bot";
-	else $browser = "Other";
-
-	if(ereg("Win", getenv("HTTP_USER_AGENT"))) $os = "Windows";
-	elseif((ereg("Mac", getenv("HTTP_USER_AGENT"))) || (ereg("PPC", getenv("HTTP_USER_AGENT")))) $os = "Mac";
-	elseif(ereg("Linux", getenv("HTTP_USER_AGENT"))) $os = "Linux";
-	elseif(ereg("FreeBSD", getenv("HTTP_USER_AGENT"))) $os = "FreeBSD";
-	elseif(ereg("SunOS", getenv("HTTP_USER_AGENT"))) $os = "SunOS";
-	elseif(ereg("IRIX", getenv("HTTP_USER_AGENT"))) $os = "IRIX";
-	elseif(ereg("BeOS", getenv("HTTP_USER_AGENT"))) $os = "BeOS";
-	elseif(ereg("OS/2", getenv("HTTP_USER_AGENT"))) $os = "OS/2";
-	elseif(ereg("AIX", getenv("HTTP_USER_AGENT"))) $os = "AIX";
-	else $os = "Other";
-
-	function getUsersOnline(){
-		global $db, $fastdb, $config;
-
-		$time = time();
-
-		$fastdb->prepare_query("SELECT userid FROM useractivetime WHERE online = 'y' && activetime <= ?", ($time-$config['friendAwayTime']) );
-
-		if($fastdb->numrows()){
-			$loggedout = array();
-			while($line = $fastdb->fetchrow())
-				$loggedout[] = $line['userid'];
-
-			$fastdb->prepare_query("UPDATE useractivetime SET online = 'n' WHERE userid IN (?)", $loggedout);
-			$db->prepare_query("UPDATE users SET online = 'n' WHERE userid IN (?)", $loggedout);
-			$fastdb->prepare_query("UPDATE useractivetime SET online = 'n' WHERE userid IN (?)", $loggedout);
-		}
-
-
-		$online = array();
-		$fastdb->query("SELECT count(*) FROM useractivetime WHERE online = 'y'");
-		$online['online'] = $fastdb->fetchfield();
-
-		$fastdb->prepare_query("SELECT count(*) FROM sessions WHERE userid IS NULL && activetime >= ?", ($time-$config['friendAwayTime']) );
-		$online['guests'] = $fastdb->fetchfield();
-		return $online;
-	}
-
-	$cache->prime(array("stats","online"));
-
-	$online = $cache->get('online',15,'getUsersOnline',array('online'=> 0, 'guests' => 0));
-
-	$siteStats['online'] = $online['online'];
-	$siteStats['guests'] = $online['guests'];
-
-	function getStats(){
-		global $fastdb;
-
-		$fastdb->query("SELECT count,var,type FROM stats WHERE (type='hits' && var='total') || (type='users' && var='maxonline') || (type='users' && var='total') || (type='users' && var='maxid') || (type='users' && var='userswithpics') || (type='config' && var='userclusters') || (type='config' && var='picgroups') || (type='config' && var='userswsignpics')");
-
-		$siteStats = array();
-
-		while($line = $fastdb->fetchrow()){
-			if($line['type']=='hits' && $line['var'] == 'total')
-				$siteStats['hits'] = $line['count'];
-			if($line['type']=='users' && $line['var'] == 'maxonline')
-				$siteStats['maxonline'] = $line['count'];
-			if($line['type']=='users' && $line['var'] == 'total')
-				$siteStats['totalusers'] = $line['count'];
-			if($line['type']=='users' && $line['var'] == 'maxid')
-				$siteStats['maxuserid'] = $line['count'];
-			if($line['type']=='users' && $line['var'] == 'userswithpics')
-				$siteStats['userswithpics'] = $line['count'];
-			if($line['type']=='config' && $line['var'] == 'userclusters')
-				$siteStats['userclusters'] = $line['count'];
-			if($line['type']=='config' && $line['var'] == 'picgroups')
-				$siteStats['picgroups'] = $line['count'];
-			if($line['type']=='config' && $line['var'] == 'userswsignpics')
-				$siteStats['userswsignpics'] = $line['count'];
-		}
-		return $siteStats;
-	}
-
-	$line = $cache->get('stats',30,'getStats');
-
-	$siteStats = array_merge($siteStats, $line);
+	$siteStats = $cache->hdget('stats', 20, 'getStats');
 
 	if($userData['loggedIn']){
 		if($userData['showrightblocks'] == 'y'){
-			$db->prepare_query("SELECT friendid,username FROM friends,users WHERE friends.userid = ? && friendid=users.userid && online='y'", $userData['userid'] );
-			$online = array();
-			while($line = $db->fetchrow())
-				$online[$line['friendid']] = $line['username'];
+			$online = $cache->get(array($userData['userid'], "friendsonline-$userData[userid]"));
+
+			if($online === false){
+				$db->prepare_query("SELECT friendid,username FROM friends,users WHERE friends.userid = # && friendid=users.userid && online='y'", $userData['userid']);
+				$online = array();
+				while($line = $db->fetchrow())
+					$online[$line['friendid']] = $line['username'];
+
+				$cache->put(array($userData['userid'], "friendsonline-$userData[userid]"), $online, 60);
+			}
 			$userData['friends'] = $online;
-			$userData['friendsonline'] = $siteStats['friends'] = count($online);
+			$userData['friendsonline'] = count($online);
 		}else{
-			$db->prepare_query("SELECT count(*) FROM friends,users WHERE friends.userid = ? && friendid=users.userid && online='y'", $userData['userid'] );
-			$userData['friendsonline'] = $siteStats['friends'] = $db->fetchfield();
+			$online = $cache->get(array($userData['userid'], "numfriendsonline-$userData[userid]"));
+
+			if($online === false){
+				$db->prepare_query("SELECT count(*) FROM friends,users WHERE friends.userid = # && friendid=users.userid && online='y'", $userData['userid']);
+
+				$online = $db->fetchfield();
+
+				$cache->put(array($userData['userid'], "numfriendsonline-$userData[userid]"), $online, 60);
+			}
+
+			$userData['friendsonline'] = $online;
 		}
-
-		$siteStats['newmsgs'] = $userData['newmsgs'];
-	}
-
-	$query = "UPDATE stats SET count=count+1 WHERE (type='hits' && var='total')";
-		$query .= " || (type='browser' && var='$browser')";
-		$query .= " || (type='os' && var='$os' )";
-	if(isset($sWidth) && isset($sHeight))
-		$query .= " || (type='screen' && var = '" . $db->escape($sWidth) . " x " . $db->escape($sHeight) . "')";
-	if($userData['loggedIn']){
-		$query .= " || (type='hits' && var='user')";
-		$query .= " || (type='hits' && var='$userData[sex]')";
-	}else $query .= " || (type='hits' && var='anon')";
-	$fastdb->query($query);
-
-	if($siteStats['maxonline'] > 0 && $siteStats['online']>0 && $siteStats['maxonline'] < $siteStats['online']){
-		$fastdb->prepare_query("UPDATE stats SET count = GREATEST(count, ?) WHERE type='users' && var='maxonline'", $siteStats['online']);
 	}
 
 	$ip = ip2int(getip());
+	$time = time();
 
-	$query = "UPDATE iplog SET time = '" . time() . "', hits = hits+1" . ($userData['loggedIn'] ? ", userid='$userData[userid]'" : "" ) . " WHERE ip='$ip'";
-	$fastdb->query($query);
-	if($fastdb->affectedrows()==0){
-		$query = "INSERT IGNORE INTO iplog SET time = '" . time() . "', hits = 1," . ($userData['loggedIn'] ? " userid='$userData[userid]'," : "" ) . " ip='$ip'";
-		$fastdb->query($query);
+//fastdb first, because it shares a server with $sessiondb which is used in auth()
+
+	if($userData['loggedIn']){
+		$fastdb->prepare_query($userData['userid'], "UPDATE useractivetime SET activetime = #, hits = hits+1, ip = #, online = 'y' WHERE userid = #", $time, $ip, $userData['userid']);
+		if($fastdb->affectedrows()==0)
+			$fastdb->prepare_query($userData['userid'], "INSERT IGNORE INTO useractivetime SET activetime = #, hits = 1, ip = #, online = 'y', userid = #", $time, $ip, $userData['userid']);
+
+		$statsdb->query("UPDATE stats SET hitstotal = hitstotal + 1, hitsuser = hitsuser + 1, hits$userData[sex] = hits$userData[sex] + 1");
+	}else{
+		$statsdb->query("UPDATE stats SET hitstotal = hitstotal + 1, hitsanon = hitsanon + 1");
 	}
+
+	$statsdb->close();
+	$fastdb->close(); //may and may not be redundant, don't disconnect earlier as $fastdb and $statsdb may be the same connection
+
+
+
+	if($userData['loggedIn']){
+		$logdb->prepare_query($userData['userid'], "UPDATE userhitlog SET activetime = #, hits = hits+1 WHERE userid = # && ip = #", $time, $userData['userid'], $ip);
+		if($logdb->affectedrows()==0)
+			$logdb->prepare_query($userData['userid'], "INSERT IGNORE INTO userhitlog SET activetime = #, hits = hits+1, userid = #, ip = #", $time, $userData['userid'], $ip);
+
+		$logdb->prepare_query($ip, "UPDATE iplog SET time = #, hits = hits+1, userid = # WHERE ip = #", $time, $userData['userid'], $ip);
+		if($logdb->affectedrows()==0)
+			$logdb->prepare_query($ip, "INSERT IGNORE INTO iplog SET time = #, hits = 1, userid = #, ip = #", $time, $userData['userid'], $ip);
+	}else{
+		$logdb->prepare_query($ip, "UPDATE iplog SET time = #, hits = hits+1 WHERE ip = #", $time, $ip);
+		if($logdb->affectedrows()==0)
+			$logdb->prepare_query($ip, "INSERT IGNORE INTO iplog SET time = #, hits = 1, ip = #", $time, $ip);
+	}
+
+	$logdb->close();
 }
 
-function updateUserGroups(){
-	global $db, $config, $fastdb, $cache;
+function getStats(){
+	global $db, $fastdb, $statsdb, $config, $cache, $sessiondb;
 
-	$db->query("LOCK TABLES users WRITE, userclusters WRITE");
+	$time = time();
 
-	$query = "SELECT userid,sex,dob,age,single,signpic FROM users ORDER BY userid ASC";
-	$result = $db->unbuffered_query($query);
+//logout inactive users
+	$fastdb->prepare_query(false, "SELECT userid FROM useractivetime WHERE online = 'y' && activetime <= #", ($time - $config['friendAwayTime']) );
+	if($fastdb->numrows()){
+		$loggedout = array();
+		while($line = $fastdb->fetchrow())
+			$loggedout[] = $line['userid'];
 
-	$ages = array_flip(range(10,80));
+		logout($loggedout);
+	}
+
+//stats
+	$statsdb->query("SELECT hitstotal, onlineusersmax, onlineguestsmax, userstotal, userswithpics, userswithsignpics FROM stats");
+	$siteStats = $statsdb->fetchrow();
+
+//online
+	$fastdb->query(false, "SELECT count(*) as count FROM useractivetime WHERE online = 'y'"); //if load balanced, may return multiple rows
+
+	$siteStats['online'] = 0;
+	while($line = $fastdb->fetchrow())
+		$siteStats['online'] += $line['count'];
+
+//guests
+	$sessiondb->prepare_query(false, "SELECT count(*) FROM sessions WHERE userid IS NULL && activetime >= #", ($time - $config['friendAwayTime']) );
+	$siteStats['guests'] = $sessiondb->fetchfield();
+
+//update stats
+	$set = $params = array();
+
+	$set[] = "onlineusers = #";		$params[] = $siteStats['online'];
+	$set[] = "onlineguests = #";	$params[] = $siteStats['guests'];
+
+//maxonline
+	if($siteStats['onlineusersmax'] > 0 && $siteStats['online'] > 0 && $siteStats['onlineusersmax'] < $siteStats['online']){
+		$set[] = "onlineusersmax = GREATEST(onlineusersmax, #)";	$params[] = $siteStats['online'];
+	}
+//maxguestsonline
+	if($siteStats['onlineguestsmax'] > 0 && $siteStats['guests'] > 0 && $siteStats['onlineguestsmax'] < $siteStats['guests']){
+		$set[] = "onlineguestsmax = GREATEST(onlineguestsmax, #)";	$params[] = $siteStats['guests'];
+	}
+
+	$statsdb->prepare_array_query("UPDATE stats SET " . implode(", ", $set), $params);
+
+	return $siteStats;
+}
+
+function updateUserBirthdays(){
+	global $db;
+
+	$db->unbuffered_query("SELECT userid, dob, age, sex FROM users");
 
 	$updateages = array();
 
-	$groups = array();
-
-	$signpics = 0;
-
-	$start=1;
-	$groupid=0;
-	$i = 0;
-	while($line = $db->fetchrow($result)){
-		$i++;
-
-		if($line['signpic'] == 'y')
-			$signpics++;
+	while($line = $db->fetchrow()){
 
 		$age = getAge($line['dob']);
 		if($age != $line['age']){
 			if(!isset($updateages[$age]))
 				$updateages[$age] = array();
-			$updateages[$age][] = $line['userid'];
+			$updateages[$age][$line['userid']] = $line['sex'];
 		}
-
-		if(!is_array($ages[$age]))
-			$ages[$age] = array('Male' => 0, 'Female' => 0, 'singleMale' => 0, 'singleFemale' => 0);
-		$ages[$age][$line['sex']]++;
-		if($line['single']=='y')
-			$ages[$age]["single$line[sex]"]++;
-
-		if($i==$config['userclustersize']){
-			$groupid++;
-
-			$groups[$groupid] = array('start' => $start, 'end' => $line['userid']);
-
-			$i=0;
-			$start = $line['userid']+1;
-		}
-	}
-
-	if($i < $config['userclustersize']/2){
-		if($groupid==0){
-			$groupid=1;
-			$groups[$groupid] = array('start' => 0, 'end' => 0);
-		}else{
-			$groups[$groupid]['end']=0;
-		}
-	}else{
-		$groupid++;
-		$groups[$groupid] = array('start' => $start, 'end' => 0);
-	}
-
-	$db->query("SELECT count(*) as count FROM userclusters");
-	$line = $db->fetchrow();
-
-	$numgroups = $line['count'];
-
-	foreach($groups as $groupid => $group){
-		if($groupid <= $numgroups)
-			$db->query("UPDATE userclusters SET start='$group[start]', end='$group[end]' WHERE id='$groupid'");
-		else
-			$db->query("INSERT INTO userclusters SET start='$group[start]', end='$group[end]', id='$groupid'");
-	}
-
-	if($numgroups > $groupid)
-		$db->prepare_query("DELETE FROM userclusters WHERE id > ?", count($groups) );
-
-	$fastdb->prepare_query("UPDATE stats SET count = ? WHERE type='config' && var='userclusters'", count($groups) );
-	$fastdb->prepare_query("UPDATE stats SET count = ? WHERE type='config' && var='userswsignpics'", $signpics );
-
-	$db->query("UNLOCK TABLES");
-
-	foreach($ages as $age => $sexs){
-		if(!is_array($sexs))
-			$sexs = array('Male' => 0, 'Female' => 0, 'singleMale' => 0, 'singleFemale' => 0);
-		$db->prepare_query("UPDATE agegroups SET Male = ?, Female = ?, singleMale = ?, singleFemale = ? WHERE age = ?", $sexs['Male'], $sexs['Female'], $sexs['singleMale'], $sexs['singleFemale'], $age);
 	}
 
 	$db->query("TRUNCATE bday");
 
 	$vals = array();
 	foreach($updateages as $age => $uids)
-		foreach($uids as $uid)
-			$vals[] = "($uid, $age)";
+		foreach($uids as $uid => $sex)
+			$vals[] = "($uid, $age, '$sex')";
 
-	$db->query("INSERT INTO bday (userid, age) VALUES " . implode(',',$vals));
+	if(count($vals))
+		$db->query("INSERT INTO bday (userid, age, sex) VALUES " . implode(',',$vals));
+
+	$db->query("UPDATE users, bday SET users.age = bday.age WHERE users.userid = bday.userid");
+	$db->query("UPDATE pics, bday SET pics.age = bday.age WHERE pics.itemid = bday.userid");
+}
+
+function updateUserIndexes(){
+	global $db;
+
+	$db->query("TRUNCATE usersearch");
+
+//build to a temp table, then swap to be active?
+//*
+	$db->prepare_query("INSERT INTO usersearch (userid, age, sex, loc, active, pic, single, sexuality)
+		SELECT userid, age, sex, loc, ( (activetime > #) + (online = 'y') ) as active,
+		( (firstpic >= 1) + (signpic = 'y') ) as pic, (single = 'y') as single, sexuality
+		FROM users ORDER BY username", time() - 86400*7);
+/*/
+
+//SLOW...
+
+	$db->prepare_query("INSERT INTO usersearch (userid, age, sex, loc, active, pic, single, sexuality) SELECT userid, age, sex, loc, ( (activetime > #) + (online = 'y') ) as active, ( (firstpic >= 1) + (signpic = 'y') ) as pic, (single = 'y') as single, sexuality FROM users WHERE username < 'a' ORDER BY username", time() - 86400*7);
+
+	for($c = ord('a'); $c <= ord('y'); $c++)
+		$db->prepare_query("INSERT INTO usersearch (userid, age, sex, loc, active, pic, single, sexuality) SELECT userid, age, sex, loc, ( (activetime > #) + (online = 'y') ) as active, ( (firstpic >= 1) + (signpic = 'y') ) as pic, (single = 'y') as single, sexuality FROM users WHERE username LIKE '" . chr($c) . "%' ORDER BY username", time() - 86400*7);
+
+	$db->prepare_query("INSERT INTO usersearch (userid, age, sex, loc, active, pic, single, sexuality) SELECT userid, age, sex, loc, ( (activetime > #) + (online = 'y') ) as active, ( (firstpic >= 1) + (signpic = 'y') ) as pic, (single = 'y') as single, sexuality FROM users WHERE username > 'z' ORDER BY username", time() - 86400*7);
 
 
-	$db->query("UPDATE users, bday SET users.age = bday.age WHERE users.userid = bday.age");
-	$db->query("UPDATE pics, bday SET pics.age = bday.age WHERE pics.itemid = bday.age");
+//*/
+
+//active = 0,1,2
+//pic = 0,1,2
+
+//all
+	$db->query("CREATE TEMPORARY TABLE tempstats1 SELECT age, sex, count(*) as count FROM usersearch GROUP BY sex, age");
+	$db->query("UPDATE agesexgroups, tempstats1 SET total = count WHERE agesexgroups.age = tempstats1.age && agesexgroups.sex = tempstats1.sex");
+
+//active
+	$db->query("CREATE TEMPORARY TABLE tempstats2 SELECT age, sex, count(*) as count FROM usersearch WHERE active IN (1,2) GROUP BY sex, age");
+	$db->query("UPDATE agesexgroups, tempstats2 SET active = count WHERE agesexgroups.age = tempstats2.age && agesexgroups.sex = tempstats2.sex");
+
+//pics
+	$db->query("CREATE TEMPORARY TABLE tempstats3 SELECT age, sex, count(*) as count FROM usersearch WHERE pic IN (1,2) GROUP BY sex, age");
+	$db->query("UPDATE agesexgroups, tempstats3 SET pics = count WHERE agesexgroups.age = tempstats3.age && agesexgroups.sex = tempstats3.sex");
+
+//signpics
+	$db->query("CREATE TEMPORARY TABLE tempstats4 SELECT age, sex, count(*) as count FROM usersearch WHERE pic = 2 GROUP BY sex, age");
+	$db->query("UPDATE agesexgroups, tempstats4 SET signpics = count WHERE agesexgroups.age = tempstats4.age && agesexgroups.sex = tempstats4.sex");
+
+//activepics
+	$db->query("CREATE TEMPORARY TABLE tempstats5 SELECT age, sex, count(*) as count FROM usersearch WHERE active IN (1,2) && pic IN (1,2) GROUP BY sex, age");
+	$db->query("UPDATE agesexgroups, tempstats5 SET activepics = count WHERE agesexgroups.age = tempstats5.age && agesexgroups.sex = tempstats5.sex");
+
+//activesignpics
+	$db->query("CREATE TEMPORARY TABLE tempstats6 SELECT age, sex, count(*) as count FROM usersearch WHERE active IN (1,2) && pic = 2 GROUP BY sex, age");
+	$db->query("UPDATE agesexgroups, tempstats6 SET activesignpics = count WHERE agesexgroups.age = tempstats6.age && agesexgroups.sex = tempstats6.sex");
+
+//single
+	$db->query("CREATE TEMPORARY TABLE tempstats7 SELECT age, sex, count(*) as count FROM usersearch WHERE single = 1 GROUP BY sex, age");
+	$db->query("UPDATE agesexgroups, tempstats7 SET single = count WHERE agesexgroups.age = tempstats7.age && agesexgroups.sex = tempstats7.sex");
+
+//sexuality
+	$db->query("CREATE TEMPORARY TABLE tempstats8 SELECT age, sex, sexuality, count(*) as count FROM usersearch GROUP BY sex, age, sexuality");
+	$db->query("UPDATE agesexgroups, tempstats8 SET sexuality1 = count WHERE agesexgroups.age = tempstats8.age && agesexgroups.sex = tempstats8.sex && sexuality = 1");
+	$db->query("UPDATE agesexgroups, tempstats8 SET sexuality2 = count WHERE agesexgroups.age = tempstats8.age && agesexgroups.sex = tempstats8.sex && sexuality = 2");
+	$db->query("UPDATE agesexgroups, tempstats8 SET sexuality3 = count WHERE agesexgroups.age = tempstats8.age && agesexgroups.sex = tempstats8.sex && sexuality = 3");
+
+//locs
+	$db->query("CREATE TEMPORARY TABLE loccounts SELECT loc, count(*) as count FROM usersearch GROUP BY loc");
+	$db->query("UPDATE locs, loccounts SET users = count WHERE id = loc");
+
+//interests
+	$db->query("CREATE TEMPORARY TABLE interestcounts SELECT interestid, count(*) as count FROM userinterests GROUP BY interestid");
+	$db->query("UPDATE interests, interestcounts SET users = count WHERE id = interestid");
+
+//straight age/sex search
+//	$db->query("INSERT INTO agesexsearch (age, sex, userid) SELECT age, sex, userid FROM usersearch WHERE active >= 1 && pic >= 1");
+		//uses the agegroups stats from above
+
+}
+
+function updatePicsVotable(){
+	global $db, $config, $cache;
+
+	$db->query("TRUNCATE TABLE picsvotable");
+
+//add all votable pics
+	$db->prepare_query("INSERT INTO picsvotable (sex, age, picid) SELECT pics.sex, pics.age, pics.id FROM pics, users WHERE pics.itemid = users.userid && users.activetime >= # && users.frozen = 'n' && pics.vote = 'y'", time() - 86400*$config['votableactivity']);
+//	$db->prepare_query("INSERT INTO picsvotable (sex, age, picid) SELECT pics.sex, pics.age, pics.id FROM pics WHERE vote = 'y'");
 
 /*
-	foreach($updateages as $age => $uids){
-		$db->prepare_query("UPDATE users SET age = ? WHERE userid IN (?)", $age, $uids);
-		$db->prepare_query("UPDATE pics SET age = ? WHERE itemid IN (?)", $age, $uids);
-	}
+//add everyone who voted a second time for extra weighting
+	$db->query("CREATE TEMPORARY TABLE voteusers SELECT DISTINCT userid FROM votehist");
+	$db->query("INSERT INTO picsvotable (sex, age, picid) SELECT pics.sex, pics.age, pics.id FROM voteusers, pics WHERE voteusers.userid = pics.itemid && pics.vote = 'y'");
 */
-	$cache->resetFlag("usersByAge");
-	$cache->resetFlag('userclusters');
+
+	$db->query("CREATE TEMPORARY TABLE temppics SELECT age, sex, count(*) as count FROM picsvotable GROUP BY sex, age");
+	$db->query("UPDATE agesexgroups, temppics SET picsvotable = count WHERE agesexgroups.age = temppics.age && agesexgroups.sex = temppics.sex");
 }
 
-function updateUserLocs(){
-	global $db, $cache;
-
-	$db->query("LOCK TABLES users WRITE, locs WRITE");
-
-	$result = $db->query("SELECT count(*) as count,loc FROM users GROUP BY loc");
-
-	$db->query("UPDATE locs SET users = 0");
-
-	while($line = $db->fetchrow($result))
-		$db->query("UPDATE locs SET users = $line[count] WHERE id = $line[loc]");
-
-	$db->query("UNLOCK TABLES");
-
-	$cache->resetFlag("usersInLocs");
-}
-
-function updatePicGroups(){
-	global $db, $config,$fastdb, $cache;
-
-	$db->query("LOCK TABLES pics WRITE, picgroups WRITE, agegroups WRITE");
-
-	$result = $db->unbuffered_query("SELECT id,age,sex FROM pics ORDER BY id ASC");
-
-	$groups = array();
-	$ages = array();
-
-	$start=1;
-	$groupid=0;
-	$i = 0;
-	while($line = $db->fetchrow($result)){
-		$i++;
-
-		if(!isset($ages[$line['age']]))
-			$ages[$line['age']] = array('Male' => 0, 'Female' => 0);
-		$ages[$line['age']][$line['sex']]++;
-
-		if($i==$config['picgroupsize']){
-			$groupid++;
-
-			$groups[$groupid] = array('start' => $start, 'end' => $line['id']);
-
-			$i=0;
-			$start = $line['id']+1;
-		}
-	}
-
-	foreach($ages as $age => $sexs){
-		if(!is_array($sexs))
-			$sexs = array('Male' => 0, 'Female' => 0);
-		$db->prepare_query("UPDATE agegroups SET picsMale = ?, picsFemale = ? WHERE age = ?", $sexs['Male'], $sexs['Female'], $age);
-	}
-
-	if($i < $config['picgroupsize']/2){
-		if($groupid==0){
-			$groupid=1;
-			$groups[$groupid] = array('start' => 0, 'end' => 0);
-		}else{
-			$groups[$groupid]['end']=0;
-		}
-	}else{
-		$groupid++;
-		$groups[$groupid] = array('start' => $start, 'end' => 0);
-	}
-
-	$db->query("SELECT count(*) as count FROM picgroups");
-	$line = $db->fetchrow();
-
-	$numgroups = $line['count'];
-
-	foreach($groups as $groupid => $group){
-		if($groupid <= $numgroups)
-			$db->query("UPDATE picgroups SET start='$group[start]', end='$group[end]' WHERE id='$groupid'");
-		else
-			$db->query("INSERT INTO picgroups SET start='$group[start]', end='$group[end]', id='$groupid'");
-	}
-
-	if($numgroups > $groupid)
-		$db->prepare_query("DELETE FROM picgroups WHERE id > ?", count($groups));
-
-	$fastdb->prepare_query("UPDATE stats SET count = ? WHERE type='config' && var='picgroups'", count($groups) );
-
-	$db->query("UNLOCK TABLES");
-
-	$cache->resetFlag('picclusters');
-}
-/*
 function setTopLists(){
-	global $db, $config,$fastdb;
-
-	$db->prepare_query("SELECT id,score FROM pics WHERE vote='y' && sex = 'Female' && votes >= ? ORDER  BY score DESC LIMIT 1000", $config['minVotesTop10']);
-
-	$score = 0;
-	$top = array();
-	while($line = $db->fetchrow()){
-		$top[] = $line['id'];
-		$score = $line['score'];
-	}
-
-	$fastdb->prepare_query("UPDATE stats SET type='config', count = ? WHERE var='minScoreTop10Female'", floor($score));
-
-	$db->prepare_query("SELECT id,score FROM pics WHERE vote='y' && sex = 'Male' && votes >= ? ORDER  BY score DESC LIMIT 1000", $config['minVotesTop10']);
-
-	$score = 0;
-	while($line = $db->fetchrow()){
-		$top[] = $line['id'];
-		$score = $line['score'];
-	}
-
-	$fastdb->prepare_query("UPDATE stats SET type='config', count = ? WHERE var='minScoreTop10Male'", floor($score));
-
-	$db->query("LOCK TABLES pics WRITE");
-
-	$db->query("UPDATE pics SET top='n' WHERE top='y'");
-
-	$db->prepare_query("UPDATE pics SET top='y' WHERE id IN (?)", $top);
-
-	$db->query("UNLOCK TABLES");
-}
-*/
-function setTopLists(){
-	global $db, $config, $fastdb, $cache;
+	global $db, $config, $cache;
 
 	$sexes = array("Male","Female");
 	$ages = range(14,60);
@@ -375,142 +264,85 @@ function setTopLists(){
 	while($line = $db->fetchrow())
 		$minscores[$line['age']][$line['sex']] = $line['score'];
 
-	$usersByAge = $cache->hdget("usersByAge",'getUsersByAge');
+	$usersByAge = $cache->get("usersByAge",3600*6,'getUsersByAge');
 
 	foreach($ages as $age){
 		if(!isset($minscores[$age]))
 			$minscores[$age] = array("Male" => 0, "Female" => 0);
 		foreach($sexes as $sex){
-			$num = round($usersByAge[$age]["pics$sex"] / 30);
+			$num = round($usersByAge[$age][$sex]["pics"] / 30);
 			if($num > 100)		$num = 100;
-			if($num < 10)		$num = 10;
+			elseif($num < 10)	$num = 10;
 
-			if(!isset($minscores[$age][$sex]))
-				$minscores[$age][$sex] = 0;
+			if(!isset($minscores[$age][$sex]) || $minscores[$age][$sex] < 4.1)
+				$minscores[$age][$sex] = 4.1;
 
-			$db->prepare_query("DELETE FROM picstop WHERE age = ? && sex = ?", $age, $sex);
+			$db->prepare_query("DELETE FROM picstop WHERE age = # && sex = ?", $age, $sex);
 
-			$db->prepare_query("INSERT IGNORE INTO picstop SELECT id,pics.itemid,username,pics.age,pics.sex,score FROM pics,users WHERE pics.itemid=users.userid && pics.age = ? && pics.sex = ? && vote = 'y' && votes >= ? && score >= ? ORDER BY score DESC LIMIT $num", $age, $sex, $config['minVotesTop10'], ($minscores[$age][$sex] - 0.1) );
+			$db->prepare_query("INSERT IGNORE INTO picstop SELECT id, pics.itemid, username, pics.age, pics.sex, score FROM pics, users WHERE pics.itemid=users.userid && pics.age = # && pics.sex = ? && vote = 'y' && votes >= # && score >= # && activetime >= # && frozen = 'n' ORDER BY score DESC LIMIT $num", $age, $sex, $config['minVotesTop10'], ($minscores[$age][$sex] - 0.1), time() - 86400*7 );
 		}
 	}
 }
 
-function getSexFactor(){
-	global $db;
+function updateSpotlightList(){
+	global $db, $cache;
 
-	$db->prepare_query("SELECT sexuality, count(*) as count FROM users GROUP BY sexuality");
+	$db->query("TRUNCATE TABLE spotlight");
 
-	$rows = array();
-	$total = 0.0;
+	$db->prepare_query("INSERT INTO spotlight (userid, age, sex, username) SELECT userid, age, sex, username FROM users WHERE spotlight = 'y' && premiumexpiry > # && firstpic > 0 && frozen='n'", time());
 
-	while ($line = $db->fetchrow()){
-		$rows[$line['sexuality']] = $line['count'];
-		$total += $line['count'];
-	}
-
-	foreach($rows as $k => $count)
-		$rows[$k] = ($count / $total);
-
-	return $rows;
-}
-
-function getSexualityFactor($sexuality){
-	global $cache;
-
-	$rows = $cache->get("sexfactor", 86400, 'getSexFactor');
-
-	return $rows[$sexuality];
+	$cache->put("spotlightmax", $db->affectedrows(), 86400);
 }
 
 function getUsersByAge(){
 	global $db;
 
-	$db->query("SELECT * FROM agegroups ORDER BY age");
+	$db->query("SELECT * FROM agesexgroups ORDER BY age");
 
-	$usersByAge = array();
+	$users = array();
 	while($line = $db->fetchrow())
-		$usersByAge[$line['age']] = $line;
+		$users[$line['age']][$line['sex']] = $line;
 
-	return $usersByAge;
+	return $users;
 }
 
-function getNumUsersInAge($sexes, $min,$max){
-	global $cache;
+function getNumUsersInAgeSexCol($sexes, $minage, $maxage, $col){
+	global $cache, $db;
 
 	if(!is_array($sexes))
 		$sexes = array($sexes);
 
-	$usersByAge = $cache->hdget("usersByAge",'getUsersByAge');
+	$users = $cache->get("usersByAge",3600*6,'getUsersByAge');
 
 	$total = 0;
-	for($age = $min; $age <= $max; $age++)
+	for($age = $minage; $age <= $maxage; $age++)
 		foreach($sexes as $sex)
-			$total += $usersByAge[$age][$sex];
+			if(isset($users[$age][$sex]))
+				$total += $users[$age][$sex][$col];
 
 	return $total;
-}
-
-function getUsersInLocs(){
-	global $db;
-
-	$db->query("SELECT id,users FROM locs");
-
-	$usersByLoc = array();
-	while($line = $db->fetchrow())
-		$usersByLoc[$line['id']] = $line['users'];
-
-	return $usersByLoc;
 }
 
 function getNumUsersInLocs($locs){
-	global $cache;
+	global $cache, $db;
 
-	$usersByLoc = $cache->hdget("usersInLocs",'getUsersInLocs');
+	$users = $cache->get("usersInLocs");
+
+	if(!$users){
+		$db->query("SELECT id, users FROM locs");
+
+		$users = array();
+		while($line = $db->fetchrow())
+			$users[$line['id']] = $line['users'];
+
+		$cache->put("usersInLocs", $users, 3600*6);
+	}
 
 	$total = 0;
 	foreach($locs as $loc)
-		$total += $usersByLoc[$loc];
+//		if(isset($users[$loc]))
+		$total += $users[$loc];
 
 	return $total;
-}
-
-function getUserClusters(){
-	global $db;
-
-	$db->prepare_query("SELECT id,start,end FROM userclusters");
-
-	$userclusters = array();
-	while($line = $db->fetchrow())
-		$userclusters[$line['id']] = $line;
-
-	return $userclusters;
-}
-
-function getUserClusterUserid($min,$max){
-	global $cache;
-
-	$userclusters = $cache->hdget('userclusters','getUserClusters');
-
-	return array('minuserid' => $userclusters[$min]['start'],'maxuserid' => $userclusters[$max]['end']);
-}
-
-function getPicClusters(){
-	global $db;
-
-	$db->query("SELECT id,start,end FROM picgroups");
-
-	$picclusters = array();
-	while($line = $db->fetchrow())
-		$picclusters[$line['id']] = $line;
-
-	return $picclusters;
-}
-
-function getPicClusterpicid($min,$max){
-	global $cache;
-
-	$picclusters = $cache->hdget('picclusters','getPicClusters');
-
-	return array('minpicid' => $picclusters[$min]['start'],'maxpicid' => $picclusters[$max]['end']);
 }
 

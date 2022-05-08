@@ -9,7 +9,7 @@ function scoreCurve($rawScore){
 }
 
 function votePic($id,$score){
-	global $userData,$msgs,$config,$db;
+	global $userData, $msgs, $config, $db, $cache;
 	if(!isset($id) || !isset($score) || !in_array($score,range(1,10))  || !$userData['loggedIn'])
 		return false;
 
@@ -17,7 +17,7 @@ function votePic($id,$score){
 
 	$ip = ip2int(getip());
 
-	$db->prepare_query("SELECT itemid,vote,votes,score,sex FROM pics WHERE id = ?", $id);
+	$db->prepare_query("SELECT itemid, vote, votes, score, sex FROM pics WHERE id = #", $id);
 
 	if($db->numrows() == 0)
 		return;
@@ -34,44 +34,53 @@ function votePic($id,$score){
 		return;
 	}
 
-	$db->prepare_query("SELECT id FROM votehist WHERE userid = ? && picid = ?", $userData['userid'], $id);
+	$db->prepare_query("SELECT id FROM votehist WHERE userid = # && picid = #", $userData['userid'], $id);
 	if($db->numrows()){
 		$id = $db->fetchfield();
-		$db->prepare_query("UPDATE votehist SET time = ? WHERE id = ?", time(), $id);
+		$db->prepare_query("UPDATE votehist SET time = # WHERE id = #", time(), $id);
+
 		$msgs->addMsg("You have already voted for that picture");
 	}else{
-		$db->prepare_query("SELECT count(*) FROM votehist WHERE userid = ?", $userData['userid']);
+		$numVotes = $cache->incr(array($userData['userid'], "numpicvotes-$userData[userid]"));
 
-		$numVotes = $db->fetchfield();
+		if($numVotes === false){
+			$db->prepare_query("SELECT count(*) FROM votehist WHERE userid = #", $userData['userid']);
+			$numVotes = (int)$db->fetchfield() + 1;
+
+			$cache->put(array($userData['userid'], "numpicvotes-$userData[userid]"), $numVotes, 10800);
+		}
 
 		if($numVotes > $config['minVotesToBlock']){
-			$db->prepare_query("SELECT vote,count(vote) AS count FROM votehist WHERE userid = ? GROUP BY vote", $userData['userid']);
+			$sumVotes = $cache->incr(array($userData['userid'], "sumpicvotes-$userData[userid]"), $score);
 
-			$total=0;
-			while($line = $db->fetchrow())
-				$total+= $line['count']*$line['vote'];
+			if($sumVotes === false){
+				$db->prepare_query("SELECT SUM(vote) FROM votehist WHERE userid = #", $userData['userid']);
+				$sumVotes = (int)$db->fetchfield() + $score;
 
-			if($total/$numVotes < $config['minAvgVote'] && $score<=$config['maxVoteBlocked'])
+				$cache->put(array($userData['userid'], "sumpicvotes-$userData[userid]"), $sumVotes, 10800);
+			}
+
+			if($sumVotes/$numVotes < $config['minAvgVote'] && $score <= $config['maxVoteBlocked'])
 				$blocked='y';
 		}
 
 		if($blocked=='n'){
-/*			$top='n';
-			if($data['votes']+1 >= $config['minVotesTop10'] && ((($data['score']*$data['votes'])+$score)/($data['votes']+1)) > $config['minScoreTop10' . $data['sex']])
-				$top='y';
-*/			$db->prepare_query("UPDATE pics SET score = (((score*votes)+$score)/(votes+1)), votes = votes+1 , v$score=v$score+1 WHERE id = ?", $id);
+//			$db->prepare_query("UPDATE pics SET score = (((score*votes)+$score)/(votes+1)), votes = votes+1 , v$score=v$score+1 WHERE id = #", $id);
+			$db->prepare_query("UPDATE pics SET v$score=v$score+1, votes = v1+v2+v3+v4+v5+v6+v7+v8+v9+v10, score = (v1 + 2*v2 + 3*v3 + 4*v4 + 5*v5 + 6*v6 + 7*v7 + 8*v8 + 9*v9 + 10*v10)/votes WHERE id = #", $id);
 		}
 
-		$db->prepare_query("INSERT IGNORE INTO votehist SET ip = ?, userid = ?, picid = ?, vote = ?, time = ?, blocked = ?", $ip, $userData['userid'], $id, $score, time(), $blocked);
+		$db->prepare_query("INSERT IGNORE INTO votehist SET ip = #, userid = #, picid = #, vote = #, time = #, blocked = ?", $ip, $userData['userid'], $id, $score, time(), $blocked);
+
+		$prev = array("picid" => $id, "vote" => $score, "score" => ($data['score']*$data['votes'] + $score)/($data['votes']+1), "votes" => $data['votes']+1);
+
+		$cache->put(array($userData['userid'], "lastpicvote-$userData[userid]"), $prev, 10800);
 	}
 }
 
 function getTopPics($sex, $minage, $maxage){
 	global $db;
 
-//	$db->prepare_query("SELECT pics.id,username FROM pics USE INDEX (top),users WHERE pics.itemid=users.userid && pics.sex='Male' && pics.age IN (?) && votes >= '$config[minVotesTop10]' && vote='y' && top='y' ORDER BY score DESC LIMIT 5", range($minage,$maxage));
-
-	$db->prepare_query("SELECT id, username FROM picstop WHERE sex = ? && age IN (?) ORDER BY score DESC LIMIT 5", $sex, range($minage, $maxage));
+	$db->prepare_query("SELECT id, username FROM picstop WHERE sex = ? && age IN (#) ORDER BY RAND() DESC LIMIT 5", $sex, range($minage, $maxage));
 
 	$rows = array();
 	while($line = $db->fetchrow())

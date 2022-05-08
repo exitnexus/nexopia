@@ -3,7 +3,7 @@
 function banner($size,$linkclass='side'){
 	global $config,$fastdb,$userData;
 
-	if(!$config['enablebanners'])
+//	if(!$config['enablebanners'])
 		return "";
 
 	$time = time();
@@ -62,7 +62,7 @@ function banner($size,$linkclass='side'){
 		$fastdb->prepare_query("UPDATE banners SET views = views+1 WHERE id = ?", $banner['id']);
 	}
 
-	if(substr($banner['image'],0,7)=="http://")
+	if(substr($banner['image'],0,7)=="http://" || $banner['bannertype']=='html')
 		$picName = $banner['image'];
 	else
 		$picName = $config['bannerloc'] . $banner['image'];
@@ -93,5 +93,7 @@ function banner($size,$linkclass='side'){
 				return "<b>$banner[image]</b></a><br>$banner[alt]";
 			else
 				return "<a class=$linkclass href=\"bannerclick.php?id=$banner[id]\" target=_blank" . ($banner['status']=="" ? "" : " onmouseover=\"window.status='$banner[status]';return true;\" onmouseout=\"window.status=' ';return true;\"" ) . ">$banner[image]</a><br>$banner[alt]";
+		case "html":
+			return $picName;
 	}
 }

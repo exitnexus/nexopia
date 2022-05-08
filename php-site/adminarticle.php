@@ -20,7 +20,7 @@
 	isValidSortd($sortd,'DESC');
 
 
-	$categories = & new category("cats");
+	$categories = & new category( $db, "cats");
 
 	$branch = $categories->makebranch();
 
@@ -32,6 +32,7 @@
 			$db->prepare_query("DELETE FROM articles WHERE id = ?", $id);
 			$db->prepare_query("DELETE FROM comments WHERE itemid = ?", $id);
 			$mods->deleteItem('articles',$id);
+			$cache->remove(array($id, "article-$id"));
 			break;
 		case "edit":
 			edit($id);
@@ -39,6 +40,7 @@
 		case "Update":
 		case "Preview":
 			update($id,$category,$title,$msg,$action);
+			$cache->remove(array($id, "article-$id"));
 			break;
 	}
 
@@ -74,7 +76,7 @@
 
 	$numpages =  ceil($Rows / $config['linesPerPage']);
 
-	if(!isset($page) || $page<0 || $page>=$numpages) $page=0;
+	$page = getREQval('page', 'int');
 
 	$where[] = "articles.category=cats.id";
 
@@ -89,9 +91,9 @@
 
 	echo "<table cellpadding=2 cellspacing=1 border=0 width=100%>\n";
 
-	echo "<form action=$PHP_SELF>";
+	echo "<form action=$_SERVER[PHP_SELF]>";
 	echo "<tr><td colspan=$cols class=header>";
-	echo "<select class=body name=cat onChange=\"location.href='$PHP_SELF?cat='+(this.options[this.selectedIndex].value)\"><option value=0>Choose a Category<option value=0>Home". makeCatSelect($branch,$cat) . "</select> ";
+	echo "<select class=body name=cat onChange=\"location.href='$_SERVER[PHP_SELF]?cat='+(this.options[this.selectedIndex].value)\"><option value=0>Choose a Category<option value=0>Home". makeCatSelect($branch,$cat) . "</select> ";
 	echo "Search: <input class=body type=text name=search value='$search'><input class=body type=submit name=action value=Go>";
 	echo "</td></form></tr>";
 
@@ -111,7 +113,7 @@
 	while ($line = $db->fetchrow($result)) {
 		echo "<tr>";
 
-		echo "<td class=body><a class=body href=$PHP_SELF?action=delete&id=$line[id]&cat=$cat&search=$search&page=$page&sortt=$sortt&sortd=$sortd><img src=/images/delete.gif border=0></a><a class=body href=$PHP_SELF?action=edit&id=$line[id]&cat=$cat&search=$search&page=$page&sortt=$sortt&sortd=$sortd><img src=/images/edit.gif border=0></a></td>";
+		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=delete&id=$line[id]&cat=$cat&search=$search&page=$page&sortt=$sortt&sortd=$sortd><img src=$config[imageloc]delete.gif border=0></a><a class=body href=$_SERVER[PHP_SELF]?action=edit&id=$line[id]&cat=$cat&search=$search&page=$page&sortt=$sortt&sortd=$sortd><img src=$config[imageloc]edit.gif border=0></a></td>";
 		echo "<td class=body><a class=body href=\"article.php?sortd=$sortd&sortt=$sortt&page=$page&id=$line[id]\">$line[title]</a></td>";
 
 		echo "<td class=body>";
@@ -138,7 +140,7 @@
 	}
 
 	echo "<tr><td colspan=$cols align=right class=header>Page: ";
-	echo pageList("$PHP_SELF?sortt=$sortt&sortd=$sortd",$page,$numpages,'header');
+	echo pageList("$_SERVER[PHP_SELF]?sortt=$sortt&sortd=$sortd",$page,$numpages,'header');
 	echo "</td></tr>\n";
 
 	echo "</table>\n";
@@ -148,7 +150,7 @@
 
 
 function edit($id){
-	global $cat,$search,$sortt,$sortd,$branch,$PHP_SELF, $db;
+	global $cat,$search,$sortt,$sortd,$branch, $db;
 
 
 	$db->prepare_query("SELECT * FROM articles WHERE id = ?", $id);
@@ -157,7 +159,7 @@ function edit($id){
 
 
 	incHeader();
-	echo "<table width=100% cellspacing=0><form action=\"$PHP_SELF\" method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
+	echo "<table width=100% cellspacing=0><form action=\"$_SERVER[PHP_SELF]\" method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
 
 	echo "<tr><td class=body align=center>Category: <select class=body name=category><option value=0>Choose a Category" . makeCatSelect($branch,$data['category']) . "</select></td></tr>";
 	echo "<tr><td class=body align=center>Title: <input class=body type=text name=\"title\" value=\"$data[title]\" size=40></td></tr>\n";
@@ -171,7 +173,7 @@ function edit($id){
 	echo "<input type=hidden name=search value=$search>";
 	echo "<input type=hidden name=sortt value=$sortt>";
 	echo "<input type=hidden name=sortd value=$sortd>";
-	echo "<tr><td class=body align=center><input type=submit name=action value=Preview> <input type=submit name=action value=Update></td></tr>\n";
+	echo "<tr><td class=body align=center><input class=body type=submit name=action value=Preview> <input class=body type=submit name=action value=Update></td></tr>\n";
 	echo "</form></table>\n";
 
 
@@ -180,7 +182,7 @@ function edit($id){
 }
 
 function update($id,$category,$title,$msg,$action){
-	global $categories,$branch,$PHP_SELF,$msgs,$userData,$cat,$search,$sortt,$sortd, $db;
+	global $categories,$branch,$msgs,$userData,$cat,$search,$sortt,$sortd, $db;
 
 	if(!isset($title) || strlen($title)<1){
 		$action="Preview";
@@ -220,7 +222,7 @@ function update($id,$category,$title,$msg,$action){
 
 		echo "</blockquote><hr>\n";
 
-		echo "<table width=100% cellspacing=0><form action=\"$PHP_SELF\" method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
+		echo "<table width=100% cellspacing=0><form action=\"$_SERVER[PHP_SELF]\" method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
 		echo "<tr><td class=body>You can make any changes needed below:</td></tr>\n";
 		echo "<tr><td class=body align=center>Category: <select name=category><option value=0>Choose a Category" . makeCatSelect($branch,$category) . "</select></td></tr>";
 		echo "<tr><td class=body align=center>Title: <input class=body type=text name=\"title\" value=\"$title\" size=40></td></tr>\n";
@@ -234,13 +236,13 @@ function update($id,$category,$title,$msg,$action){
 		echo "<input type=hidden name=search value=$search>";
 		echo "<input type=hidden name=sortt value=$sortt>";
 		echo "<input type=hidden name=sortd value=$sortd>";
-		echo "<tr><td class=body align=center><input type=submit name=action value=Preview> <input type=submit name=action value=Update></td></tr>\n";
+		echo "<tr><td class=body align=center><input class=body type=submit name=action value=Preview> <input class=body type=submit name=action value=Update></td></tr>\n";
 		echo "</form></table>\n";
 
 		incFooter();
 		exit;
 	}
 
-	$db->prepare_query("UPDATE articles SET category = ?, title = ?, text = ?, ntext = ? WHERE id = ?", $category, $ntitle, $narticle, $narticle3, $id);
+	$db->prepare_query("UPDATE articles SET category = ?, title = ?, text = ? WHERE id = ?", $category, $ntitle, $narticle, $id); //, ntext = ?, $narticle3
 
 }

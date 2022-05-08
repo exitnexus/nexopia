@@ -4,34 +4,36 @@
 
 	require_once("include/general.lib.php");
 
+	$id = getREQval('id', 'int');
+
 	if(empty($id)){
 		header("location: productlist.php");
 		exit;
 	}
 
-	$db->prepare_query("SELECT products.*,producttext.ndescription FROM products,producttext WHERE products.id=producttext.id && products.id = ?", $id);
+	$shoppingcart->db->prepare_query("SELECT products.*, producttext.ndescription FROM products,producttext WHERE products.id=producttext.id && products.id = #", $id);
 
-	if($db->numrows() == 0){
+	if($shoppingcart->db->numrows() == 0){
 		header("location: productlist.php");
 		exit;
 	}
 
-	$product = $db->fetchrow();
+	$product = $shoppingcart->db->fetchrow();
 
 	$prices = array(1 => $product['unitprice']);
 
 	if($product['bulkpricing'] == 'y'){
-		$db->prepare_query("SELECT minimum, price FROM productprices WHERE productid = ?", $id);
+		$shoppingcart->db->prepare_query("SELECT minimum, price FROM productprices WHERE productid = #", $id);
 
-		while($line = $db->fetchrow())
+		while($line = $shoppingcart->db->fetchrow())
 			$prices[$line['minimum']] = $line['price'];
 	}
 
 	$choices = array();
 	if($product['input'] == 'mc'){
-		$db->prepare_query("SELECT id,productid,name FROM productinputchoices WHERE productid = ?", $id);
+		$shoppingcart->db->prepare_query("SELECT id,productid,name FROM productinputchoices WHERE productid = #", $id);
 
-		while($line = $db->fetchrow())
+		while($line = $shoppingcart->db->fetchrow())
 			$choices[$line['id']] = $line['name'];
 	}
 
@@ -48,12 +50,12 @@
 
 
 //order inputs
-	echo "<table align=right><form action=cart.php>";
+	echo "<table align=right><form action=cart.php method=post>";
 //price
 	echo "<tr><td class=header>Price per month</td></tr>";
 	echo "<tr><td class=body>";
 	if(count($prices) == 1){
-		echo "\$$prices[1]";
+		echo "\$" . number_format($prices[1],2);
 	}else{
 		foreach($prices as $min => $price)
 			echo "$min month" . ($min == 1 ? "" : "s") . " or more: \$" . number_format($price,2) . "<br>";

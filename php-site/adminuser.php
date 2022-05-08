@@ -12,8 +12,6 @@
 						'username'		=> 'Username',
 						'jointime'		=> 'Join Time',
 						'activetime'	=> 'Active Time',
-//						'ip'			=> 'IP address',
-//						'hostname'		=> 'Host Name',
 						'activated'		=> 'Activated',
 						'frozen'		=> 'Frozen',
 						'premiumexpiry'	=> 'Plus',
@@ -38,101 +36,135 @@
 						'email'			=> 'Email Address');
 
 
-	$searchtypes = array('userid' => "Userid", 'username' => 'Username', 'email' => 'Email', 'ip' => 'IP');
+	$searchtypes = array('username' => 'Username', 'userid' => "Userid", 'email' => 'Email', 'ip' => 'IP');
 
-	if(empty($search))
-		$search = "";
-	if(empty($type))
-		$type = "username";
+
+	if(!($type = getREQval('type')) || !isset($searchtypes[$type]))
+		$type = key($searchtypes);
+
+	$search	= getREQval('search');
+
+	$sortt 	= getREQval('sortt');
+	$sortd 	= getREQval('sortd');
+
+	$reason = getPOSTval('reason');
+	$input 	= getPOSTval('input');
+
+	if(!($checkID = getPOSTval('checkID', 'array')))
+		$checkID = array();
+
+
 
 	for($i=1;$i<=12;$i++)
 		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
 
-	$locations = & new category("locs");
+	$locations = & new category( $db, "locs");
 
-	switch($action){
-		case "delete":
-			if(!$mods->isAdmin($userData['userid'],"deleteusers"))
-				break;
+	if(count($checkID)){
+		switch($action){
+			case "delete":
+				if(!$mods->isAdmin($userData['userid'],"deleteusers"))
+					break;
 
-			if(isset($checkID) && is_array($checkID))
 				foreach($checkID as $check){
-					$mods->adminlog('delete user',"Delete user $check: $input");
-					if(deleteAccount($check,$input))
+					$mods->adminlog('delete user',"Delete user $check: " . $abuselog->reasons[$reason] . ": $input");
+
+					$abuselog->addAbuse($check, ABUSE_ACTION_DELETE_ACCOUNT, $reason, $input, "");
+
+					if(deleteAccount($check,$abuselog->reasons[$reason] . ": $input")){
 						$msgs->addMsg("$check Account deleted");
-					else
+						$cache->remove(array($check, "userprefs-$check"));
+					}else
 						$msgs->addMsg("Could not delete account $check");
 				}
-			break;
-		case "banemail":
-			if(!$mods->isAdmin($userData['userid'],"banusers"))
 				break;
-			if(isset($checkID) && is_array($checkID)){
+
+			case "banemail":
+				if(!$mods->isAdmin($userData['userid'],"banusers"))
+					break;
+
 				$db->prepare_query("INSERT INTO bannedusers (email, type) SELECT email, 'email' FROM users WHERE userid IN (?)", $checkID);
+
 				foreach($checkID as $user){
+					$abuselog->addAbuse($user, ABUSE_ACTION_EMAIL_BAN, $reason, $input, "");
 					$mods->adminlog('ban email',"Ban email from user $user: $input");
 					$msgs->addMsg("email banned for user $user");
 				}
-			}
-			break;
-		case "banip":
-			if(!$mods->isAdmin($userData['userid'],"banusers"))
 				break;
-			if(isset($checkID) && is_array($checkID)){
+
+			case "banip":
+				if(!$mods->isAdmin($userData['userid'],"banusers"))
+					break;
+
 				$db->prepare_query("INSERT INTO bannedusers (ip, type) SELECT DISTINCT ip, 'ip' FROM users WHERE ip != 0 && userid IN (?)", $checkID);
 
 				foreach($checkID as $user){
-					$mods->adminlog('ban ip',"Ban ip $banip from user $user: $input");
+					$abuselog->addAbuse($user, ABUSE_ACTION_IP_BAN, $reason, $input, "");
+					$mods->adminlog('ban ip',"Ban ip from user $user: $input");
 					$msgs->addMsg("IP banned");
 				}
-			}
-			break;
-		case "activate":
-			if(!$mods->isAdmin($userData['userid'],"activateusers"))
 				break;
 
-			if(isset($checkID))
+			case "activate":
+				if(!$mods->isAdmin($userData['userid'],"activateusers"))
+					break;
+
 				foreach($checkID as $check){
 					activateAccount($check);
 					$mods->adminlog('activate user',"Activate user $check: $input");
 					$msgs->addMsg("$check activated");
 				}
-			break;
-		case "deactivate":
-			if(!$mods->isAdmin($userData['userid'],"activateusers"))
 				break;
 
-			if(isset($checkID))
+			case "deactivate":
+				if(!$mods->isAdmin($userData['userid'],"activateusers"))
+					break;
+
 				foreach($checkID as $check){
 					deactivateAccount($check);
 					$mods->adminlog('deactivate user',"Deactivate user $check: $input");
 					$msgs->addMsg("$check deactivated");
 				}
-			break;
-		case "freeze":
-			if(!$mods->isAdmin($userData['userid'],"deleteusers"))
 				break;
 
-			if(isset($checkID))
-				foreach($checkID as $check){
-					$mods->adminlog('freeze user',"Freeze user $check: $input");
-					$msgs->addMsg("$check frozen");
-				}
-				$db->prepare_query("UPDATE users SET frozen='y' WHERE userid IN (?)", $checkID);
+			case "freeze":
+				if(!$mods->isAdmin($userData['userid'],"deleteusers"))
+					break;
 
-			break;
-		case "unfreeze":
-			if(!$mods->isAdmin($userData['userid'],"deleteusers"))
+				foreach($checkID as $check){
+					$db->prepare_query("UPDATE users SET frozen='y' WHERE userid = #", $check);
+
+					if($db->affectedrows()){
+						$abuselog->addAbuse($check, ABUSE_ACTION_FREEZE_ACCOUNT, $reason, $input, "");
+						$mods->adminlog('freeze user',"Freeze user $check: $input");
+						$msgs->addMsg("$check frozen");
+						$cache->remove(array($check, "userprefs-$check"));
+					}else{
+						$msgs->addMsg("$check already frozen");
+					}
+				}
+
 				break;
 
-			if(isset($checkID))
-				foreach($checkID as $check){
-					$mods->adminlog('unfreeze user',"UnFreeze user $check: $input");
-					$msgs->addMsg("$check unfrozen");
-				}
-				$db->prepare_query("UPDATE users SET frozen='n' WHERE userid IN (?)", $checkID);
+			case "unfreeze":
+				if(!$mods->isAdmin($userData['userid'],"deleteusers"))
+					break;
 
-			break;
+				foreach($checkID as $check){
+					$db->prepare_query("UPDATE users SET frozen='n' WHERE userid = #", $check);
+
+					if($db->affectedrows()){
+						$abuselog->addAbuse($check, ABUSE_ACTION_UNFREEZE_ACCOUNT, $reason, $input, "");
+						$mods->adminlog('unfreeze user',"UnFreeze user $check: $input");
+						$msgs->addMsg("$check unfrozen");
+					}else{
+						$msgs->addMsg("$check already unfrozen");
+					}
+				}
+
+
+				break;
+		}
 	}
 
 	if(!empty($search)){
@@ -140,7 +172,7 @@
 		isValidSortd($sortd,'ASC');
 		isValidSortt($selectable,$sortt);
 
-		if(empty($page)) $page=0;
+		$page = getREQval('page', 'int');
 
 		$selects = array_keys($dbselectable);
 		$select = array_keys($selectable);
@@ -200,7 +232,7 @@
 		}
 
 		if(count($users)){
-			$fastdb->prepare_query("SELECT userid, hits, activetime FROM useractivetime WHERE userid IN (?)", array_keys($users));
+			$fastdb->prepare_query(array_keys($users), "SELECT userid, hits, activetime FROM useractivetime WHERE userid IN (?)", array_keys($users));
 
 			while($line = $fastdb->fetchrow()){
 				$users[$line['userid']]['hits'] = $line['hits'];
@@ -212,15 +244,15 @@
 	incHeader();
 
 	echo "<table align=center>";
-	echo "<form action=$PHP_SELF>";
+	echo "<form action=$_SERVER[PHP_SELF]>";
 	echo "<tr><td class=header colspan=2 align=center>Search User</td></tr>";
 	echo "<tr><td class=body><select name=type class=body>" . make_select_list_key($searchtypes, $type) . "</select><input class=body type=text name=search value='" . htmlentities($search) . "' size=40><input class=body type=submit value=Search></td></tr>";
 	echo "</form>";
 	echo "</table>";
 
-	if(count($users)){
-		echo "<table border=0 cellspacing=1 cellpadding=2 align=center><form action=$PHP_SELF name=users>";
-		echo "<tr><td class=body colspan=" . (54 + count($selectable)) . " align=center>IP: " . long2ip($ip) . ", Hostname: " . gethostbyaddr(long2ip($ip)) . "</td></tr>";
+	if(isset($users) && count($users)){
+		echo "<table border=0 cellspacing=1 cellpadding=2 align=center><form action=$_SERVER[PHP_SELF] name=users method=post>";
+		echo "<tr><td class=body colspan=" . (6 + count($selectable)) . " align=center>IP: " . long2ip($ip) . ", Hostname: " . gethostbyaddr(long2ip($ip)) . "</td></tr>";
 		echo "<tr>";
 		echo "<td class=header width=22>&nbsp;</td>";
 
@@ -230,6 +262,9 @@
 			echo "<td class=header>&nbsp;</td>";
 		if($mods->isAdmin($userData['userid'],"editpreferences"))
 			echo "<td class=header>&nbsp;</td>";
+		if($mods->isAdmin($userData['userid'],"loginlog"))
+			echo "<td class=header>&nbsp;</td>";
+		echo "<td class=header>&nbsp;</td>";
 		echo "<td class=header>&nbsp;</td>";
 
 		$varlist = array();
@@ -239,27 +274,36 @@
 		$varlist['sortt']=$sortt;
 		$varlist['sortd']=$sortd;
 
-		foreach($selectable as $k => $n){
+		foreach($selectable as $k => $n)
 			makeSortTableHeader('',$n,$k,$varlist);
-		}
 		echo "</tr>";
 
 		$classes = array('body2','body');
 		$i=0;
 
+		if(!isset($checkID))
+			$checkID = array();
+		if(!isset($reason))
+			$reason = 0;
+
+		$time = time();
 
 		$hosts = array();
 		foreach($users as $line){
 			$i = !$i;
 			echo "<tr>";
-			echo "<td class=header><input type=checkbox name=checkID[] value=$line[userid]></td>";
+			echo "<td class=header><input type=checkbox name=checkID[] value=$line[userid]" . (in_array($line['userid'], $checkID) ? " checked" : "" ) . "></td>";
 			if($mods->isAdmin($userData['userid'],"editpictures"))
 				echo "<td class=header><a class=header href=managepicture.php?uid=$line[userid]>Pics</a></td>";
 			if($mods->isAdmin($userData['userid'],"editprofile"))
 				echo "<td class=header><a class=header href=manageprofile.php?uid=$line[userid]>Profile</a></td>";
 			if($mods->isAdmin($userData['userid'],"editpreferences"))
 				echo "<td class=header><a class=header href=prefs.php?uid=$line[userid]>Prefs</a></td>";
-			echo "<td class=header><a class=header href=adminuserips.php?uid=$line[userid]>IPs</a></td>";
+			if($mods->isAdmin($userData['userid'],"loginlog"))
+				echo "<td class=header><a class=header href=adminloginlog.php?col=user&val=$line[userid]>Logins</a></td>";
+			echo "<td class=header><a class=header href=adminuserips.php?uid=$line[userid]&type=userid>IPs</a></td>";
+			echo "<td class=header><a class=header href=adminabuselog.php?uid=$line[username]>Abuse</a></td>";
+
 			foreach($select as $n){
 				echo "<td class=$classes[$i] nowrap>";
 				switch($n){
@@ -274,17 +318,24 @@
 						echo "<a class=body href=profile.php?uid=$line[userid]>$line[username]</a>";
 						break;
 					case 'jointime':
+						echo userdate("M j, y, G:i", $line[$n]);
+						break;
 					case 'activetime':
-						if($line[$n])
-							echo userdate("D M j, Y G:i:s",$line[$n]);
-						else
+						if($line[$n]){
+							if($line[$n] >= $time - $config['maxAwayTime'])
+								echo "<b>";
+
+							echo userdate("M j, y, G:i",$line[$n]);
+
+							if($line[$n] >= $time - $config['maxAwayTime'])
+								echo "</b>";
+						}else{
 							echo "Never";
+						}
+
 						break;
 					case 'premiumexpiry':
-						if($line[$n] > time())
-							echo userdate("M j, Y",$line[$n]);
-						else
-							echo "No";
+						echo ($line[$n] > $time ? userdate("M j, y",$line[$n]) : "No");
 						break;
 					case 'loc':
 						echo $locations->getCatName($line['loc']);
@@ -312,7 +363,7 @@
 			}
 			echo "</tr>";
 		}
-		echo "<tr><td class=header colspan=" . (count($select)+5) . ">";
+		echo "<tr><td class=header colspan=" . (count($select)+7) . ">";
 
 		echo "<table width=100% cellspacing=0 cellpadding=0><tr><td class=header align=left>";
 		if($mods->isAdmin($userData['userid'],"listusers")){
@@ -324,8 +375,8 @@
 				echo "<option value=''>Choose an Action";
 				if($mods->isAdmin($userData['userid'],"deleteusers")){
 					echo "<option value=delete>Delete User";
-					echo "<option value=freeze>Freeze User";
 					echo "<option value=unfreeze>UnFreeze User";
+					echo "<option value=freeze>Freeze User";
 				}
 				if($mods->isAdmin($userData['userid'],"activateusers")){
 					echo "<option value=activate>Activate Account";
@@ -336,15 +387,18 @@
 					echo "<option value=banemail>Ban Email";
 				}
 			echo "</select>";
+
+			echo "<select class=body name=reason><option value=0>Reason" . make_select_list_key($abuselog->reasons, $reason) . "</select>";
+
 			echo "<input class=body type=text name=input size=50>";
-			echo "<input class=body type=submit value=Go onClick=\"if(document.users.action.selectedIndex!=0 && document.users.input.value==''){alert('You must specify a reason.'); return false;}\">";
+			echo "<input class=body type=submit value=Go onClick=\"if(document.users.reason.selectedIndex==0 || document.users.input.value==''){alert('You must specify a reason.'); return false;}\">";
 		}
 
 		echo "</td><td class=header align=right>";
 
 		foreach($varlist as $n => $v)
 			$list[] = "$n=$v";
-		echo "Page: " . pageList("$PHP_SELF?" . implode("&",$list),$page,$numpages,'header');
+		echo "Page: " . pageList("$_SERVER[PHP_SELF]?" . implode("&",$list),$page,$numpages,'header');
 
 		echo "</td></tr></table>";
 

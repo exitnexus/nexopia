@@ -6,19 +6,46 @@
 
 	$uid = $userData['userid'];
 
-
 	switch($action){
-		case "add":		addSkin();				//exit
-		case "edit":	addSkin($id);			//exit
-		case "Add":		insertSkin($data);		break;
-		case "Update":	updateSkin($id, $data);	break;
-		case "delete":	deleteSkin($id);		break;
+		case "add":
+			addSkin();
+			//exit
+
+		case "edit":
+			if($id = getREQval('id', 'int'))
+				addSkin($id);//exit
+			break;
+
+		case "Add":
+			if($data = getREQval('data', 'array'))
+				insertSkin($data);
+			break;
+
+		case "Update":
+			$id = getPOSTval('id', 'int');
+			$data = getPOSTval('data', 'array');
+			if($id && $data)
+				updateSkin($id, $data);
+			break;
+
+		case "Test":
+			$id = getPOSTval('id', 'int', 0);
+			$data = getPOSTval('data', 'array');
+			addSkin($id, $data);
+			break;
+
+		case "delete":
+			if($id = getREQval('id', 'int'))
+				deleteSkin($id);
+			break;
 	}
 
 	listSkins();
 
+///////////////////////
+
 function listSkins(){
-	global $PHP_SELF, $uid, $db;
+	global $uid, $db;
 
 	$db->prepare_query("SELECT id, name FROM profileskins WHERE userid = ? ORDER BY name", $uid);
 
@@ -36,11 +63,11 @@ function listSkins(){
 
 	foreach($rows as $id => $name){
 		echo "<tr>";
-		echo "<td class=body><a class=body href=$PHP_SELF?action=edit&id=$id>$name</a></td>";
-		echo "<td class=body><a class=body href=$PHP_SELF?action=delete&id=$id>Delete</a></td>";
+		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=edit&id=$id>$name</a></td>";
+		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=delete&id=$id>Delete</a></td>";
 		echo "</tr>";
 	}
-	echo "<tr><td class=header colspan=2 align=right><a class=header href=$PHP_SELF?action=add>Create New Skin</a></td></tr>";
+	echo "<tr><td class=header colspan=2 align=right><a class=header href=$_SERVER[PHP_SELF]?action=add>Create New Skin</a></td></tr>";
 	echo "</table>";
 
 	incFooter();
@@ -48,8 +75,8 @@ function listSkins(){
 }
 
 
-function addSkin($id = 0, $data = array()){
-	global $PHP_SELF, $data, $uid, $db, $config;
+function addSkin($id = 0, $skindata = array()){
+	global $data, $uid, $db, $config;
 
 	$headerbg = "#";
 	$headertext = "#";
@@ -66,22 +93,52 @@ function addSkin($id = 0, $data = array()){
 	$offline = "#";
 	$name = "";
 
-	if($id && !count($data)){
+	if($id && !count($skindata)){
 		$db->prepare_query("SELECT name, data FROM profileskins WHERE id = ? && userid = ?", $id, $uid);
-			if($db->numrows()){
+		if($db->numrows()){
 			$line = $db->fetchrow();
-			$data = decodeSkin($line['data']);
+			$skindata = decodeSkin($line['data']);
+			extract($skindata);
 			$name = $line['name'];
 		}else{
 			$data = array();
 		}
-	}
+	}elseif(is_array($skindata)){
+		extract($skindata);
+		foreach($skindata as $n => $v)
+			if(substr($v, 0, 1) == '#')
+				$skindata[$n] = substr($v, 1);
 
-	extract($data);
+	}
 
 	incHeader();
 
-	echo "<table align=center width=366><form action=$PHP_SELF>";
+	if(count($skindata)){
+
+echo <<<END
+<style>
+a.header:active,
+a.header:link,
+a.header:visited{ color: #$skindata[headerlink]; font-family: arial; font-size: 8pt }
+a.header:hover	{ color: #$skindata[headerhover]; font-family: arial; font-size: 8pt }
+td.header		{ background-color: #$skindata[headerbg]; color: #$skindata[headertext]; font-family: arial; font-size: 8pt}
+
+a.body:active,
+a.body:link,
+a.body:visited	{ color: #$skindata[bodylink]; font-family: arial; font-size: 8pt }
+a.body:hover	{ color: #$skindata[bodyhover]; font-family: arial; font-size: 8pt }
+td.body			{ background-color: #$skindata[bodybg]; color: #$skindata[bodytext]; font-family: arial; font-size: 8pt}
+td.body2		{ background-color: #$skindata[bodybg2]; color: #$skindata[bodytext]; font-family: arial; font-size: 8pt}
+
+td.online		{ background-color: #$skindata[bodybg]; color: #$skindata[online]; font-family: arial; font-size: 16pt; font-weight: bolder}
+td.offline		{ background-color: #$skindata[bodybg]; color: #$skindata[offline]; font-family: arial; font-size: 16pt; font-weight: bolder}
+
+</style>
+END;
+
+	}
+
+	echo "<table align=center width=366><form action=$_SERVER[PHP_SELF] method=post>";
 
 	echo "<tr><td class=body colspan=2 align=center valign=top height=300>";
 	echo "<div style=\"position:relative;\">";
@@ -117,10 +174,23 @@ function addSkin($id = 0, $data = array()){
 	echo "<tr><td class=body>Online:</td><td class=body><input type=text class=body name=data[online] value='$online' maxlength=7 size=7></td></tr>";
 	echo "<tr><td class=body>Offline:</td><td class=body><input type=text class=body name=data[offline] value='$offline' maxlength=7 size=7></td></tr>";
 
+	echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
+
+	echo "<tr><td class=header>Header Preview:</td><td class=header>Text <a class=header href=#>Link</a></td></tr>";
+	echo "<tr><td class=body>Body Preview:</td><td class=body>Text <a class=body href=#>Link</a></td></tr>";
+	echo "<tr><td class=body2>Alternative Body Preview:</td><td class=body2>Text <a class=body href=#>Link</td></tr>";
+	echo "<tr><td class=online>Online</td><td class=offline>Offline</td></tr>";
+
+	echo "<tr><td class=body align=center colspan=2>";
+	echo "<input type=hidden name=id value=$id>";
+	echo "<input class=body type=submit name=action value=Test>";
 	if($id)
-		echo "<tr><td class=body align=center colspan=2><input type=hidden name=id value=$id><input class=body type=submit name=action value=Update></td></tr>";
+		echo "<input class=body type=submit name=action value=Update>";
 	else
-		echo "<tr><td class=body align=center colspan=2><input class=body type=submit name=action value=Add></td></tr>";
+		echo "<input class=body type=submit name=action value=Add>";
+	echo "<input class=body type=submit name=action value=Cancel>";
+
+	echo "</td></tr>";
 
 	echo "</form></table>";
 
@@ -147,7 +217,7 @@ function insertSkin($data){
 }
 
 function updateSkin($id, $data){
-	global $uid, $db, $msgs;
+	global $uid, $db, $msgs, $cache;
 
 	$data2 = encodeSkin($data);
 
@@ -162,11 +232,13 @@ function updateSkin($id, $data){
 	}
 
 	$db->prepare_query("UPDATE profileskins SET name = ?, data = ? WHERE id = ? && userid = ?", $data['name'], $data2, $id, $uid);
+	$cache->remove(array($id, "profileskin-$id"));
 }
 
 function deleteSkin($id){
-	global $db, $uid;
+	global $db, $uid, $cache;
 
 	$db->prepare_query("DELETE FROM profileskins WHERE id = ? && userid = ?", $id, $uid);
+	$cache->remove(array($id, "profileskin-$id"));
 }
 

@@ -5,7 +5,7 @@
 	require_once("include/general.lib.php");
 
 
-	$numposts = $db->nextAuto("forumposts");
+	$numposts = $forums->db->nextAuto("forumposts");
 	$db->query("SELECT count(*) FROM users");
 	$numusers = $db->fetchfield();
 

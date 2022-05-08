@@ -4,13 +4,13 @@
 
 	require_once("include/general.lib.php");
 
-	$db->prepare_query("SELECT shoppingcart.id,productid,quantity,price,name,unitprice,products.input as inputtype, shoppingcart.input FROM shoppingcart,products WHERE shoppingcart.productid = products.id && shoppingcart.userid = ?", $userData['userid']);
+	$shoppingcart->db->prepare_query("SELECT shoppingcart.id, productid, quantity, price, name, unitprice, products.input as inputtype, shoppingcart.input FROM shoppingcart, products WHERE shoppingcart.productid = products.id && shoppingcart.userid = # ORDER BY id", $userData['userid']);
 
 	$rows = array();
 
 	$mcids = array();
 
-	while($line = $db->fetchrow()){
+	while($line = $shoppingcart->db->fetchrow()){
 		$rows[] = $line;
 		if($line['inputtype']=='mc')
 			$mcids[] = $line['input'];
@@ -18,10 +18,12 @@
 
 	$mcs = array();
 
-	$db->prepare_query("SELECT id,name FROM productinputchoices WHERE id IN (?)", $mcids);
+	if(count($mcids)){
+		$shoppingcart->db->prepare_query("SELECT id,name FROM productinputchoices WHERE id IN (#)", $mcids);
 
-	while($line = $db->fetchrow())
-		$mcs[$line['id']] = $line['name'];
+		while($line = $shoppingcart->db->fetchrow())
+			$mcs[$line['id']] = $line['name'];
+	}
 
 	incHeader(true,array('incShoppingCartMenu'));
 

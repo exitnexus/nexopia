@@ -4,16 +4,18 @@
 
 	require_once("include/general.lib.php");
 
-	if(empty($fid) || !is_numeric($fid))
+	if(!($fid = getREQval('fid', 'int')))
 		die("Bad Forum id");
 
-	$perms = getForumPerms($fid);	//checks it's a forum, not a realm
+	$perms = $forums->getForumPerms($fid);	//checks it's a forum, not a realm
 
 	if(!$perms['invite'])
 		die("You don't have permission to mute people in this forum");
 
-	$db->prepare_query("SELECT name,official,ownerid FROM forums WHERE id = ?", $fid);
-	$forumdata = $db->fetchrow();
+	$forumdata = $perms['cols'];
+
+//	$forums->db->prepare_query("SELECT name, official, ownerid FROM forums WHERE id = #", $fid);
+//	$forumdata = $forums->db->fetchrow();
 
 
 	if($forumdata['official']=='y')
@@ -21,70 +23,107 @@
 
 	switch($action){
 		case "Invite":
-			if(trim($username) == "")
+			if(!($username = getPOSTval('username')))
+				break;
+
+			if(empty($username) || trim($username) == "")
 				break;
 
 			$uid = getUserId($username);
 
-			$db->prepare_query("SELECT id FROM foruminvite WHERE userid = ? && forumid = ?", $uid, $fid);
-			if($db->numrows() > 0 )
+			if($uid == $username)
 				break;
 
-			$db->prepare_query("INSERT IGNORE INTO foruminvite SET userid = ?, forumid = ?", $uid, $fid);
+			$forums->invite($uid, $fid);
+/*
 
-			modLog('invite',$fid,0,$uid);
+			$forums->db->prepare_query("INSERT IGNORE INTO foruminvite SET userid = ?, forumid = ?", $uid, $fid);
 
-			deliverMsg($uid,"Forum Invite","You have been invited to join the forum [url=forumthreads.php?fid=$fid]" . $forumdata['name'] . "[/url]");
+			if($forums->db->affectedrows() == 0)
+				break;
+
+			$forums->modLog('invite',$fid,0,$uid);
+
+			$messaging->deliverMsg($uid,"Forum Invite","You have been invited to join the forum [url=forumthreads.php?fid=$fid]" . $forumdata['name'] . "[/url]. Click [url=forumthreads.php?fid=$fid&action=withdraw]here[/url] to withdraw from the forum.");
+
+			$cache->put(array($uid, "foruminvite-$uid-$fid"), 1, 10800);
+*/
 
 			$msgs->addMsg("User Invited");
 
 			break;
 		case "delete":
-			$db->prepare_query("SELECT userid FROM foruminvite WHERE id = ? && forumid = ?", $id, $fid);
-			$line = $db->fetchrow();
+		case "Uninvite":
 
-			if(!$line)
+			if(!($deleteID = getPOSTval('deleteID', 'array')))
 				break;
 
-			modLog('uninvite',$fid,0,$line['userid']);
+			$forums->unInvite($deleteID, $fid);
 
-			$db->prepare_query("DELETE FROM foruminvite WHERE id = ?", $id);
+/*
+			$forums->db->prepare_query("DELETE FROM foruminvite WHERE userid IN (#) && forumid = #", $deleteID, $fid);
 
-			$msgs->addMsg("User Uninvited");
+			foreach($deleteID as $uid){
+				$forums->modLog('uninvite',$fid,0,$uid);
+				$cache->put(array($uid, "foruminvite-$uid-$fid"), 0, 10800);
+			}
+*/
+
+			$msgs->addMsg("User(s) Uninvited");
 			break;
 	}
 
 
-	$result = $db->prepare_query("SELECT id,users.userid,username FROM foruminvite,users WHERE users.userid=foruminvite.userid && forumid = ? ORDER BY username", $fid);
+	$forums->db->prepare_query("SELECT userid FROM foruminvite WHERE forumid = #", $fid);
+
+	$uids = array();
+	while($line = $forums->db->fetchrow())
+		$uids[] = $line['userid'];
+
+	$rows = array();
+
+	if(count($uids)){
+		$db->prepare_query("SELECT userid, username FROM users WHERE userid IN (#)", $uids);
+
+		while($line = $db->fetchrow())
+			$rows[$line['userid']] = $line['username'];
+	}
+
+	natcasesort($rows);
 
 	incHeader();
 
-	echo "<table>";
-
-	echo "<tr><td class=body colspan=3>";
-	echo "<a class=body href=forumsusercreated.php>User Created Forums</a> > ";
-
-	echo "<a class=body href=forumthreads.php?fid=$fid>$forumdata[name]</a> > ";
-	echo "<a class=body href=$PHP_SELF?fid=$fid>Invite Users</a>";
-	echo "</td></tr>";
-
-	echo "<tr><td class=header></td><td class=header>Username</td></tr>";
-
-	while($line = $db->fetchrow($result)){
-		if($line['userid'] == $forumdata['ownerid'])
-			continue;
-		echo "<tr><td class=body><a class=body href=$PHP_SELF?action=delete&id=$line[id]&fid=$fid><img src=/images/delete.gif border=0></a></td>";
-		echo "<td class=body><a class=body href=profile.php?uid=$line[userid]>$line[username]</a></td>";
-	}
-
-	echo "</table>";
-	echo "<br>";
-
-	echo "<table><form action=$PHP_SELF>";
+	echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
 	echo "<tr><td class=header colspan=2>Invite user</td></tr>";
 	echo "<tr><td class=body>Username:</td><td class=body><input class=body type=text name=username></td></tr>";
 	echo "<input type=hidden name=fid value=$fid>";
 	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value=Invite></td></tr>";
 	echo "</form></table>";
+	echo "<br>";
+
+	echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
+	echo "<input type=hidden name=fid value=$fid>";
+	echo "<tr><td class=body colspan=3>";
+	echo "<a class=body href=forumsusercreated.php>User Created Forums</a> > ";
+
+	echo "<a class=body href=forumthreads.php?fid=$fid>$forumdata[name]</a> > ";
+	echo "<a class=body href=$_SERVER[PHP_SELF]?fid=$fid>Invite Users</a>";
+	echo "</td></tr>";
+
+	echo "<tr><td class=header></td><td class=header>Username</td></tr>";
+
+	foreach($rows as $uid => $username){
+		if($uid == $forumdata['ownerid'])
+			continue;
+		echo "<tr>";
+		echo "<td class=body><input class=body type=checkbox name=deleteID[] value=$uid></td>";
+		echo "<td class=body><a class=body href=profile.php?uid=$uid>$username</a></td>";
+		echo "</tr>";
+	}
+
+	echo "<td class=header colspan=2><input class=body name=selectall type=checkbox value='Check All' onClick=\"this.value=check(this.form,'deleteID')\"><input class=body type=submit name=action value=Uninvite></td>";
+
+	echo "</table>";
 
 	incFooter();
+

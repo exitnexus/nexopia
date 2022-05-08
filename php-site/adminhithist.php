@@ -36,7 +36,7 @@
 
 	incHeader();
 
-	echo "<center><form action=\"$PHP_SELF\" method=get>";
+	echo "<center><form action=$_SERVER[PHP_SELF] method=get>";
 	echo "<input type=submit class=body name=action value=\"<--\">";
 	echo "<select class=body name=\"month\"><option value=0>Month" . make_select_list_key($months,$month) . "</select>";
 	echo "<select class=body name=\"day\"><option value=0>Day" . make_select_list(range(1,31),$day) . "</select>";

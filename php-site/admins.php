@@ -4,15 +4,13 @@
 
 	require_once("include/general.lib.php");
 
-	if($userData['userid'] != 1)
+	if(!in_array($userData['userid'],$debuginfousers))
 		die("Permission Denied");
 
 
-	$db->prepare_query("SELECT users.username, admin.* FROM admin, users WHERE admin.userid = users.userid ORDER BY username");
+	$rows = $mods->getAdminDump();
 
-	$rows = array();
-	while($line = $db->fetchrow())
-		$rows[] = $line;
+	sortCols($rows, SORT_ASC, SORT_CASESTR, 'username');
 
 	incHeader();
 

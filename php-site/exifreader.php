@@ -17,4 +17,4 @@ if(isset($filename)){
 }else
 	$filename = "";
 
-echo "<form action=$PHP_SELF><input type=text name=filename value='$filename'><input type=submit value=Go></form>";
+echo "<form action=$_SERVER[PHP_SELF]><input type=text name=filename value='$filename'><input type=submit value=Go></form>";

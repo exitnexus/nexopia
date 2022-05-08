@@ -44,7 +44,12 @@
 
 			smtpmail("$to <$targets[$to]>", $config['contactsubjectPrefix'] . " " . $subject, $text, "From: $name <$email>") or die("Error sending email");
 
-			$msgs->addMsg("Message Sent");
+			incHeader();
+
+			echo "Your message has been sent.";
+
+			incFooter();
+			exit;
 		}
 	}
 
@@ -57,18 +62,16 @@
 
 	incHeader();
 
-	echo "<table><form action=\"$PHP_SELF\" method=post>";
-
-echo "<tr><td class=body colspan=2>
-<b>This is used to contact site Administrators only.  The following will be ignored and deleted: <br><br>
+echo "<b>This is used to contact site Administrators only.  The following will be ignored and deleted: <br><br>
 
 Any questions already answered in the <a class=body href=faq.php>FAQ</a>. <br>
 Any complaints about a user being fake or a user using your pictures.  Report this in the <a class=body href=forumthreads.php?fid=39>Fakers forum</a> or report their pictures as fake. <br>
 Any complaints about a user harassing you through private messaging, comments or in the forums.  Read the <a class=body href=faq.php>FAQ</a> for information on how to block people and report forum abuses to forum moderators. <br>
 Any site suggestions.  Post these in the <a class=body href=forumthreads.php?fid=4>Suggestions forum</a>, which the Administrators regularly read. <br>
 Any issues regarding your email service, Internet browser settings or any other programs.  Consult the provider of the product or service for support. <br><br><br>
-</b></td></tr>";
+</b>";
 
+	echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
 	echo "<tr><td class=body>Your Name:</td><td><input class=body type=text style=\"width:250px\" size=30 name=name value=\"$userData[username]\"></td></tr>";
 	echo "<tr><td class=body>Your Email:</td><td><input class=body type=text style=\"width:250px\" size=30 name=email value=\"$email\"></td></tr>";
 	echo "<tr><td class=body>To:</td><td><select class=body style=\"width:250px\" name=to>" . make_select_list_key_key($targets,$target) . "</select></td></tr>";

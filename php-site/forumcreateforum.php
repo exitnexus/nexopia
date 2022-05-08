@@ -6,14 +6,14 @@
 
 
 	if(!$mods->isAdmin($userData['userid'],'forums')){
-		$db->prepare_query("SELECT count(*) FROM forums WHERE ownerid = ?", $userData['userid']);
+		$forums->db->prepare_query("SELECT count(*) FROM forums WHERE ownerid = ?", $userData['userid']);
 
-		if($db->fetchfield() > 0)
+		if($forums->db->fetchfield() > 0)
 			die("You can only create one forum");
 
-		$db->prepare_query("SELECT unmutetime FROM forummute WHERE userid = ? && forumid = 0", $userData['userid']);
+		$forums->db->prepare_query("SELECT unmutetime FROM forummute WHERE userid = ? && forumid = 0", $userData['userid']);
 
-		if($db->numrows() > 0 && $db->fetchfield() > time())
+		if($forums->db->numrows() > 0 && $forums->db->fetchfield() > time())
 			die("You are not allowed to post in any forums, or create your own");
 	}
 
@@ -25,7 +25,7 @@
 
 
 function addForum($data = array()){
-	global $PHP_SELF,$childdata;
+	global $childdata;
 
 	$name="";
 	$description="";
@@ -39,7 +39,7 @@ function addForum($data = array()){
 
 	incHeader();
 
-	echo "<table><form action=$PHP_SELF method=post>";
+	echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
 
 	echo "<tr><td class=header colspan=2 align=center>Add Forum</td></tr>";
 
@@ -60,7 +60,7 @@ function addForum($data = array()){
 }
 
 function insertForum($data){
-	global $msgs,$userData,$db;
+	global $msgs, $userData, $forums;
 
 	$name="";
 	$description="";
@@ -86,8 +86,8 @@ function insertForum($data){
 	if($public != 'n')
 		$public='y';
 
-	$db->prepare_query("SELECT id FROM forums WHERE name = ?", $name);
-	if($db->numrows() > 0){
+	$forums->db->prepare_query("SELECT id FROM forums WHERE name = ?", $name);
+	if($forums->db->numrows() > 0){
 		$msgs->addMsg("Forum name already taken");
 		$error=true;
 	}
@@ -95,12 +95,12 @@ function insertForum($data){
 	if($error)
 		addForum($data); //exit
 
-	$db->prepare_query("INSERT INTO forums SET name = ?, description = ?, parent = ?, autolock = ?, edit = ?, public = ?, mute = ?, official = 'n', ownerid = ?",
+	$forums->db->prepare_query("INSERT INTO forums SET name = ?, description = ?, parent = ?, autolock = ?, edit = ?, public = ?, mute = ?, official = 'n', ownerid = ?",
 							removehtml($name), removehtml($description), $parent, $autolock, $edit, $public, $mute, $userData['userid']);
 
-	$fid = $db->insertid();
+	$fid = $forums->db->insertid();
 
-	$db->prepare_query("INSERT INTO foruminvite SET userid = ?, forumid = ?", $userData['userid'], $fid);
+	$forums->db->prepare_query("INSERT IGNORE INTO foruminvite SET userid = ?, forumid = ?", $userData['userid'], $fid);
 
 	header("location: forumthreads.php?fid=$fid");
 	exit;

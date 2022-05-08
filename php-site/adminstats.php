@@ -16,28 +16,32 @@
 						'votestats' => "Vote Stats",
 						'forumstats' => "Forum Stats",
 						'skinstats' => "Skin Stats",
-						'browsingStats' => "Browsers, OS, Screen size",
 						'usersbyagesex' => "Users By Age/Sex",
 						'usersperloc' => "Users By location",
-						'hitsperweek' => "Hits per week",
-						'usersperweek' => "New Users per week");
+						'usersByLocRecur' => "Users By Location Recursive",
+//						'hitsperweek' => "Hits per week",
+//						'usersperweek' => "New Users per week",
+						);
+
+	if($mods->isAdmin($userData['userid'], "viewinvoice"))
+		$selectable['plususersbyage'] = "Plus Users by Age";
 
 	$selects = array();
 
-	if(!isset($select))
-		$select = array('hitStats','ipStats','userStats','hitstoday');
 
-	foreach($select as $k => $v)
-		if(in_array($v,array_flip($selectable)))
+	$select = getPOSTval('select', 'array', array('hitStats','userStats','hitstoday'));
+
+	foreach($select as $v)
+		if(isset($selectable[$v]))
 			$selects[] = $v;
 
 	$mods->adminlog("view stats","View Site Stats: " . implode(",", $selects));
 
-	incHeader();
+	incHeader(750);
 
 	echo "<table width=100%>";
 
-	echo "<form action=$PHP_SELF>";
+	echo "<form action=$_SERVER[PHP_SELF] method=post>";
 
 	echo "<tr><td class=header colspan=2 align=center>";
 	echo "<select class=body name=select[]>";// size=5 multiple=multiple>";
@@ -67,158 +71,141 @@ echo "<tr><td colspan=2 class=header align=center>General</td></tr>";
 	incFooter();
 
 
-function browsingStats(){
-	global $db, $fastdb;
-
-	$fastdb->query("SELECT * FROM stats WHERE type IN ('browser','os','screen') ORDER BY count");
-
-	while($line = $fastdb->fetchrow())
-		$data[$line['type']][$line['var']] = $line['count'];
-
-	echo "<tr><td colspan=2 align=center class=header>Browsers Used</td></tr>";
-	foreach($data['browser'] as $name => $count)
-		echo "<tr><td class=body>$name</td><td class=body>" . number_format($count) . "</td></tr>";
-
-	echo "<tr><td colspan=2 align=center class=header>Operating Systems Used</td></tr>";
-	foreach($data['os'] as $name => $count)
-		echo "<tr><td class=body>$name</td><td class=body>" . number_format($count) . "</td></tr>";
-
-	echo "<tr><td colspan=2 align=center class=header>Hits by Screen resoltions</td></tr>";
-	foreach($data['screen'] as $name => $count)
-		echo "<tr><td class=body>$name</td><td class=body>" . number_format($count) . "</td></tr>";
-}
-
 function hitStats(){
-	global $db, $fastdb;
-	$fastdb->query("SELECT * FROM stats WHERE type='hits'");
+	global $db, $statsdb;
+	$statsdb->query("SELECT * FROM stats");
 
-	$hits = array();
-	while($line = $fastdb->fetchrow())
-		$hits[$line['var']] = $line['count'];
+	$hits = $statsdb->fetchrow();
 
 	echo "<tr><td colspan=2 align=center class=header>Distribution of hits</td></tr>";
-	echo "<tr><td class=body>Total hits</td><td class=body>" . number_format($hits['total']) ."</td></tr>";
-	echo "<tr><td class=body>Anonymous hits</td><td class=body>" . number_format($hits['anon']) ."</td></tr>";
-	echo "<tr><td class=body>Logged In Users</td><td class=body>" .number_format($hits['user']) ."</td></tr>";
-	echo "<tr><td class=body>Male</td><td class=body>" . number_format($hits['Male']) . "</td></tr>";
-	echo "<tr><td class=body>Female</td><td class=body>" . number_format($hits['Female']) ."</td></tr>";
+	echo "<tr><td class=body>Total hits</td><td class=body>" . number_format($hits['hitstotal']) ."</td></tr>";
+	echo "<tr><td class=body>Anonymous hits</td><td class=body>" . number_format($hits['hitsanon']) ."</td></tr>";
+	echo "<tr><td class=body>Logged In Users</td><td class=body>" .number_format($hits['hitsMale'] + $hits['hitsFemale']) ."</td></tr>";
+	echo "<tr><td class=body>Male</td><td class=body>" . number_format($hits['hitsMale']) . "</td></tr>";
+	echo "<tr><td class=body>Female</td><td class=body>" . number_format($hits['hitsFemale']) ."</td></tr>";
 }
 
 function ipStats(){
-	global $db, $fastdb;
+	global $logdb;
+
+	$time = time();
+
+	if(isset($logdb->backupdb))
+		$ipdb = & $logdb->backupdb;
+	else
+		$ipdb = & $logdb;
 
 	echo "<tr><td colspan=2 align=center class=header>IP stats</td></tr>";
 
-	$query = "SELECT count(*) FROM iplog WHERE time > " . (time() - 3600);
-	$result = $fastdb->query($query);
-	$ips = $fastdb->fetchfield();
-	echo "<tr><td class=body>Unique ips active in the  past hour</td><td class=body>" . number_format($ips) . "</td></tr>";
+	$ipdb->prepare_query("SELECT count(*) FROM iplog WHERE time > ?", ($time - 3600));
+	$ips = $ipdb->fetchfield();
+	echo "<tr><td class=body>Unique ips active in the past hour</td><td class=body>" . number_format($ips) . "</td></tr>";
 
-	$query = "SELECT count(*) FROM iplog WHERE time > " . (time() - 86400);
-	$result = $fastdb->query($query);
-	$ips = $fastdb->fetchfield();
-	echo "<tr><td class=body>Unique ips active in the  past day</td><td class=body>" . number_format($ips) . "</td></tr>";
+	$ipdb->prepare_query("SELECT count(*) FROM iplog WHERE time > ?", ($time - 86400));
+	$ips = $ipdb->fetchfield();
+	echo "<tr><td class=body>Unique ips active in the past day</td><td class=body>" . number_format($ips) . "</td></tr>";
 
-	$query = "SELECT count(*) FROM iplog WHERE time > " . (time() - (86400*7));
-	$result = $fastdb->query($query);
-	$ips = $fastdb->fetchfield();
-	echo "<tr><td class=body>Unique ips active in the  past week</td><td class=body>" . number_format($ips) . "</td></tr>";
+	$ipdb->prepare_query("SELECT count(*) FROM iplog WHERE time > ?", ($time - (86400*7)));
+	$ips = $ipdb->fetchfield();
+	echo "<tr><td class=body>Unique ips active in the past week</td><td class=body>" . number_format($ips) . "</td></tr>";
 
-	$query = "SELECT count(*) FROM iplog WHERE time > " . (time() - (86400*14));
-	$result = $fastdb->query($query);
-	$ips = $fastdb->fetchfield();
-	echo "<tr><td class=body>Unique ips active in the  past two weeks</td><td class=body>" . number_format($ips) . "</td></tr>";
+	$ipdb->prepare_query("SELECT count(*) FROM iplog WHERE time > ?", ($time - (86400*14)));
+	$ips = $ipdb->fetchfield();
+	echo "<tr><td class=body>Unique ips active in the past two weeks</td><td class=body>" . number_format($ips) . "</td></tr>";
 
-	$query = "SELECT count(*) FROM iplog WHERE time > " . (time() - (86400*30));
-	$result = $fastdb->query($query);
-	$ips = $fastdb->fetchfield();
-	echo "<tr><td class=body>Unique ips active in the  past month</td><td class=body>" . number_format($ips) . "</td></tr>";
+	$ipdb->prepare_query("SELECT count(*) FROM iplog WHERE time > ?", ($time - (86400*30)));
+	$ips = $ipdb->fetchfield();
+	echo "<tr><td class=body>Unique ips active in the past month</td><td class=body>" . number_format($ips) . "</td></tr>";
 
-	$query = "SELECT count(*) FROM iplog";
-	$result = $fastdb->query($query);
-	$ips = $fastdb->fetchfield();
+	$ipdb->query("SELECT count(*) FROM iplog");
+	$ips = $ipdb->fetchfield();
 	echo "<tr><td class=body>Unique ips logged</td><td class=body>" . number_format($ips) . "</td></tr>";
 }
 
 function activityStats(){
-	global $db, $fastdb;
+	global $db;
+
+	$time = time();
+
+	if(isset($db->backupdb))
+		$thisdb = & $db->backupdb;
+	else
+		$thisdb = & $db;
 
 	echo "<tr><td colspan=2 align=center class=header>Activity stats</td></tr>";
 
-	$query = "SELECT count(*) FROM users WHERE activetime >= " . (time() - 3600);
-	$result = $db->query($query);
-	$ips = $db->fetchfield();
-	echo "<tr><td class=body>Accounts active in the  past hour</td><td class=body>" . number_format($ips) . "</td></tr>";
+	$thisdb->prepare_query("SELECT count(*) FROM users WHERE activetime >= ?", ($time - 3600));
+	$ips = $thisdb->fetchfield();
+	echo "<tr><td class=body>Accounts active in the past hour</td><td class=body>" . number_format($ips) . "</td></tr>";
 
-	$query = "SELECT count(*) FROM users WHERE activetime >= " . (time() - 86400);
-	$result = $db->query($query);
-	$ips = $db->fetchfield();
-	echo "<tr><td class=body>Accounts active in the  past day</td><td class=body>" . number_format($ips) . "</td></tr>";
+	$thisdb->prepare_query("SELECT count(*) FROM users WHERE activetime >= ?", ($time - 86400));
+	$ips = $thisdb->fetchfield();
+	echo "<tr><td class=body>Accounts active in the past day</td><td class=body>" . number_format($ips) . "</td></tr>";
 
-	$query = "SELECT count(*) FROM users WHERE activetime >= " . (time() - 86400*3);
-	$result = $db->query($query);
-	$ips = $db->fetchfield();
-	echo "<tr><td class=body>Accounts active in the  past 3 days</td><td class=body>" . number_format($ips) . "</td></tr>";
+	$thisdb->prepare_query("SELECT count(*) FROM users WHERE activetime >= ?", ($time - 86400*3));
+	$ips = $thisdb->fetchfield();
+	echo "<tr><td class=body>Accounts active in the past 3 days</td><td class=body>" . number_format($ips) . "</td></tr>";
 
-	$query = "SELECT count(*) FROM users WHERE activetime >= " . (time() - 86400*7);
-	$result = $db->query($query);
-	$ips = $db->fetchfield();
-	echo "<tr><td class=body>Accounts active in the  past week</td><td class=body>" . number_format($ips) . "</td></tr>";
+	$thisdb->prepare_query("SELECT count(*) FROM users WHERE activetime >= ?", ($time - 86400*7));
+	$ips = $thisdb->fetchfield();
+	echo "<tr><td class=body>Accounts active in the past week</td><td class=body>" . number_format($ips) . "</td></tr>";
 
-	$query = "SELECT count(*) FROM users WHERE activetime >= " . (time() - 86400*14);
-	$result = $db->query($query);
-	$ips = $db->fetchfield();
-	echo "<tr><td class=body>Accounts active in the  past 2 weeks</td><td class=body>" . number_format($ips) . "</td></tr>";
+	$thisdb->prepare_query("SELECT count(*) FROM users WHERE activetime >= ?", ($time - 86400*14));
+	$ips = $thisdb->fetchfield();
+	echo "<tr><td class=body>Accounts active in the past 2 weeks</td><td class=body>" . number_format($ips) . "</td></tr>";
 
-	$query = "SELECT count(*) FROM users WHERE activetime >= " . (time() - 86400*30);
-	$result = $db->query($query);
-	$ips = $db->fetchfield();
-	echo "<tr><td class=body>Accounts active in the  past month</td><td class=body>" . number_format($ips) . "</td></tr>";
+	$thisdb->prepare_query("SELECT count(*) FROM users WHERE activetime >= ?", ($time - 86400*30));
+	$ips = $thisdb->fetchfield();
+	echo "<tr><td class=body>Accounts active in the past month</td><td class=body>" . number_format($ips) . "</td></tr>";
 
-	$query = "SELECT count(*) FROM users WHERE activetime >= " . (time() - 86400*90);
-	$result = $db->query($query);
-	$ips = $db->fetchfield();
-	echo "<tr><td class=body>Accounts active in the  past 3 months</td><td class=body>" . number_format($ips) . "</td></tr>";
+	$thisdb->prepare_query("SELECT count(*) FROM users WHERE activetime >= ?", ($time - 86400*90));
+	$ips = $thisdb->fetchfield();
+	echo "<tr><td class=body>Accounts active in the past 3 months</td><td class=body>" . number_format($ips) . "</td></tr>";
 
-	$query = "SELECT count(*) FROM users WHERE activetime >= " . (time() - 86400*365);
-	$result = $db->query($query);
-	$ips = $db->fetchfield();
-	echo "<tr><td class=body>Accounts active in the  past year</td><td class=body>" . number_format($ips) . "</td></tr>";
+	$thisdb->prepare_query("SELECT count(*) FROM users WHERE activetime >= ?", ($time - 86400*180));
+	$ips = $thisdb->fetchfield();
+	echo "<tr><td class=body>Accounts active in the past 6 months</td><td class=body>" . number_format($ips) . "</td></tr>";
 
-	$query = "SELECT count(*) FROM users WHERE activated = 'y'";
-	$result = $db->query($query);
-	$ips = $db->fetchfield();
+	$thisdb->prepare_query("SELECT count(*) FROM users WHERE activetime >= ?", ($time - 86400*365));
+	$ips = $thisdb->fetchfield();
+	echo "<tr><td class=body>Accounts active in the past year</td><td class=body>" . number_format($ips) . "</td></tr>";
+
+	$thisdb->query("SELECT count(*) FROM users WHERE activated = 'y'");
+	$ips = $thisdb->fetchfield();
 	echo "<tr><td class=body>Activated Accounts total</td><td class=body>" . number_format($ips) . "</td></tr>";
 
-	$query = "SELECT count(*) FROM users";
-	$result = $db->query($query);
-	$ips = $db->fetchfield();
+	$thisdb->query("SELECT count(*) FROM users");
+	$ips = $thisdb->fetchfield();
 	echo "<tr><td class=body>Accounts total</td><td class=body>" . number_format($ips) . "</td></tr>";
 }
 
 function userStats(){
-	global $db, $fastdb;
+	global $db, $statsdb;
 
-	$query = "SELECT age,Male,Female FROM agegroups WHERE age < 40";
+	$query = "SELECT age, sex, total, active FROM agesexgroups WHERE age < 40";
 	$result = $db->unbuffered_query($query);
 
-	$totalm=0;
-	$totalf=0;
-	$numm=0;
-	$numf=0;
+	$total = array("Male" => 0, "Female" => 0);
+	$num = array("Male" => 0, "Female" => 0);
+	$active = array("Male" => 0, "Female" => 0);
+
 	while($line = $db->fetchrow($result)){
-		$totalm += $line['Male']*$line['age'];
-		$totalf += $line['Female']*$line['age'];
-		$numm += $line['Male'];
-		$numf += $line['Female'];
+		$total[$line['sex']] += $line['total']*$line['age'];
+		$num[$line['sex']] += $line['total'];
+		$active[$line['sex']] += $line['active'];
 	}
 
 echo "<tr><td colspan=2 align=center class=header>User Stats</td></tr>";
-	echo "<tr><td class=body>Average Age</td><td class=body>" . number_format(($totalm+$totalf)/($numm+$numf),2) . "</td></tr>";
-	echo "<tr><td class=body>Average Age Male</td><td class=body>" . number_format($totalm/$numm,2) . "</td></tr>";
-	echo "<tr><td class=body>Average Age Female</td><td class=body>" . number_format($totalf/$numf,2) . "</td></tr>";
+	echo "<tr><td class=body>Number of Male</td><td class=body>". number_format($num['Male']) . " - " . number_format(100*$num['Male']/($num['Male']+$num['Female']), 2) . "%</td></tr>";
+	echo "<tr><td class=body>Number of Female</td><td class=body>". number_format($num['Female']) . " - " . number_format(100*$num['Female']/($num['Male']+$num['Female']), 2) . "%</td></tr>";
+	echo "<tr><td class=body>Active Male</td><td class=body>". number_format($active['Male']) . " - " . number_format(100*$active['Male']/$num['Male'], 2) . "%</td></tr>";
+	echo "<tr><td class=body>Active Female</td><td class=body>". number_format($active['Female']) . " - " . number_format(100*$active['Female']/$num['Female'], 2) . "%</td></tr>";
 
-	$query = "SELECT age,count(*) as count FROM users WHERE online = 'y' && age < 40 GROUP BY age";
+	echo "<tr><td class=body>Average Age</td><td class=body>" . number_format(($total['Male']+$total['Female'])/($num['Male']+$num['Female']),2) . "</td></tr>";
+	echo "<tr><td class=body>Average Age Male</td><td class=body>" . number_format($total['Male']/$num['Male'],2) . "</td></tr>";
+	echo "<tr><td class=body>Average Age Female</td><td class=body>" . number_format($total['Female']/$num['Female'],2) . "</td></tr>";
+
+	$query = "SELECT age, count(*) as count FROM usersearch WHERE active = 2 && age < 40 GROUP BY age";
 	$result = $db->unbuffered_query($query);
 
 	$total=0;
@@ -230,18 +217,17 @@ echo "<tr><td colspan=2 align=center class=header>User Stats</td></tr>";
 
 	echo "<tr><td class=body>Average Age Online</td><td class=body>" . number_format($total/$num,2) . "</td></tr>";
 
-	echo "<tr><td class=body>Number of Male</td><td class=body>". number_format($numm) . "</td></tr>";
-	echo "<tr><td class=body>Number of Female</td><td class=body>". number_format($numf) . "</td></tr>";
-
-	$fastdb->query("SELECT count FROM stats WHERE type='users' && var='maxonline'");
-	$num = $fastdb->fetchfield();
+	$statsdb->query("SELECT onlineusersmax FROM stats");
+	$num = $statsdb->fetchfield();
 
 	echo "<tr><td class=body>Max Users Online at a time</td><td class=body>" . number_format($num) ."</td></tr>";
 
-	$db->prepare_query("SELECT count(*) FROM users WHERE jointime >= ?", (time()-86400));
+	$next = $db->nextAuto("users");
+
+	$db->prepare_query("SELECT count(*) FROM users WHERE jointime >= ? && userid >= ?", (time()-86400), round($next*0.98)); //only check the last 5% of users
 	$numnew = $db->fetchfield();
 
-	echo "<tr><td class=body>New users in the past day</td><td class=body>" . number_format($numnew) . "</td></tr>";
+	echo "<tr><td class=body>New accounts in the past day</td><td class=body>" . number_format($numnew) . "</td></tr>";
 }
 
 function votestats(){
@@ -271,7 +257,7 @@ echo "<tr><td colspan=2 class=header align=center>Blocked Vote Distribution</td>
 	while($line=$db->fetchrow($result)){
 		echo "<tr>";
 		foreach($line as $value)
-			echo "<td class=body>$value</td>";
+			echo "<td class=body>" . number_format($value) . "</td>";
 		echo "</tr>";
 	}
 
@@ -329,22 +315,22 @@ echo "<tr><td colspan=2 class=header align=center>Average</td></tr>";
 
 
 function forumstats(){
-	global $db;
+	global $forums, $db;
 
 	echo "<tr><td class=header align=center colspan=2>Forum Stats</td></tr>";
 
-	$db->prepare_query("SELECT count(*) as total, count(DISTINCT authorid) as users FROM forumposts WHERE time >= ?", time() - 86400);
-	$line = $db->fetchrow();
+	$forums->db->prepare_query("SELECT count(*) as total, count(DISTINCT authorid) as users FROM forumposts WHERE time >= ?", time() - 86400);
+	$line = $forums->db->fetchrow();
 
 	echo "<tr><td class=body>Number of posts today:</td><td class=body>$line[total]</td></tr>";
 
-	$db->prepare_query("SELECT count(*) FROM forumthreads WHERE time >= ?", time() - 86400);
-	$num = $db->fetchfield();
+	$forums->db->prepare_query("SELECT count(*) FROM forumthreads WHERE time >= ?", time() - 86400);
+	$num = $forums->db->fetchfield();
 
 	echo "<tr><td class=body>Threads with new posts today:</td><td class=body>$num</td></tr>";
 
-	$db->prepare_query("SELECT count(DISTINCT userid) FROM forumread WHERE readtime >= ?", time() - 86400);
-	$num = $db->fetchfield();
+	$forums->db->prepare_query("SELECT count(DISTINCT userid) FROM forumread WHERE readtime >= ?", time() - 86400);
+	$num = $forums->db->fetchfield();
 
 	echo "<tr><td class=body>Users reading the forums today:</td><td class=body>$num</td></tr>";
 
@@ -365,12 +351,13 @@ function forumstats(){
 
 function usersbyagesex(){
 	global $db;
+
 	$db->query("SELECT age,Male,Female FROM agegroups ORDER BY age ASC");
 
 	echo "<tr><td class=header align=center colspan=2>Number of Users by Age and Sex</td></tr>";
 	echo "<tr><td class=body colspan=2>";
 	echo "<table>";
-	echo "<tr><td class=header>Age</td><td class=header>Male</td><td class=header>Male</td><td class=header>Female</td><td class=header>Female</td></tr>";
+	echo "<tr><td class=header>Age</td><td class=header>Male</td><td class=header>Male</td><td class=header>Female</td><td class=header>Female</td><td class=header>Total</td><td class=header>Total</td></tr>";
 
 	$total = 0;
 	$rows = array();
@@ -378,12 +365,14 @@ function usersbyagesex(){
 		$rows[] = $line;
 		$total += $line['Male'] + $line['Female'];
 	}
+
 	foreach($rows as $line){
 		if($line['Male'] || $line['Female']){
 			echo "<tr>";
 			echo "<td class=body>$line[age]</td>";
 			echo "<td class=body>$line[Male]</td><td class=body>" . number_format(($line['Male']/$total)*100,2) . "%</td>";
 			echo "<td class=body>$line[Female]</td><td class=body>" . number_format(($line['Female']/$total)*100,2) . "%</td>";
+			echo "<td class=body>" . ($line['Male'] + $line['Female']) . "</td><td class=body>" . number_format((($line['Male'] + $line['Female'])/$total)*100,2) . "%</td>";
 			echo "</tr>";
 		}
 	}
@@ -402,36 +391,101 @@ function usersperloc(){
 		echo "<tr><td class=body>$line[name]</td><td class=body>$line[users]</td></tr>";
 }
 
-function hitstoday(){
-	global $db, $fastdb;
+function usersByLocRecur(){
+	global $db;
 
-	$fastdb->query("SELECT * FROM stats WHERE type='hits'");
+	function recurTotal(& $locs, &$parents, $id){
+		$total = $locs[$id]['users'];
 
-	$hits = array();
-	while($line = $fastdb->fetchrow())
-		$hits[$line['var']] = $line['count'];
+		if(isset($parents[$id]))
+			foreach($parents[$id] as $child)
+				$total += recurTotal($locs, $parents, $child);
 
-	echo "<tr><td colspan=2 align=center class=header>Distribution of hits by hour</td></tr>";
-	$query = "SELECT * FROM hithist WHERE time >= '" . (gmmktime(gmdate("H"),0,0,gmdate("n"),gmdate("j"),gmdate("Y")) - 86400) . "' ORDER BY time DESC";
-	$result = $db->query($query);
+		$locs[$id]['total'] = $total;
 
-	$lasthourtotal =0;
-	while($line = $db->fetchrow($result)){
-		if($lasthourtotal==0)
-			echo "<tr><td class=body>" . userdate("M d - h a") . "</td><td class=body>" . number_format($hits['total'] - $line['total']) . " (" . number_format(($hits['total'] - $line['total'])*3600/(time()-$line['time']-3600)) . " expected)</td></tr>";
-		echo "<tr><td class=body>" . userdate("M d - h a",$line['time']) . "</td><td class=body>" . number_format($line['hits']) . "</td></tr>";
-		$lasthourtotal=$line['total'];
+		return $total;
 	}
 
-	echo "<tr><td class=body>Total:</td><td class=body>" . number_format($hits['total'] - $lasthourtotal) . "</td></tr>";
+	function recurOutput(&$locs, &$parents, $id, $level, $total, $threshhold = 0){
+		echo "<tr>";
+		echo "<td class=body>" . str_repeat("- ", $level) . $locs[$id]['name'] . "</td>";
+		echo "<td class=body align=right>" . number_format($locs[$id]['users']) . "</td><td class=body align=right>" . number_format(100*$locs[$id]['users']/$total, 2) . "%</td>";
+		echo "<td class=body align=right>" . number_format($locs[$id]['total']) . "</td><td class=body align=right>" . number_format(100*$locs[$id]['total']/$total, 2) . "%</td>";
+		echo "</tr>";
 
-	echo "<tr><td class=body>Max hits in an hour:</td><td class=body>" . number_format($hits['maxhour']) . "</td></tr>";
-	echo "<tr><td class=body>Max hits in a day (24h period)</td><td class=body>" . number_format($hits['maxday']) . "</td></tr>";
+		if(isset($parents[$id]))
+			foreach($parents[$id] as $child)
+				if(!$threshhold || $locs[$child]['total'] >= $threshhold)
+					recurOutput($locs, $parents, $child, $level+1, $total, $threshhold);
+	}
+
+
+	$db->query("SELECT id, name, parent, users FROM locs ORDER BY name");
+
+	$locs = array();
+	$parents = array();
+
+	while($line = $db->fetchrow()){
+		$locs[$line['id']] = $line;
+		$locs[$line['id']]['total'] = 0;
+		$parents[$line['parent']][] = $line['id'];
+	}
+
+	$total = 0;
+	foreach($parents[0] as $child)
+		$total += recurTotal($locs, $parents, $child);
+
+	echo "<tr><td class=header align=center colspan=2>Users By Location</td></tr>";
+	echo "<tr><td class=body colspan=2>";
+
+	echo "<table>";
+	echo "<tr>";
+	echo "<td class=header>Location</td>";
+	echo "<td class=header>Users</td><td class=header>Users</td>";
+	echo "<td class=header>Total</td><td class=header>Total</td>";
+	echo "</tr>";
+	echo "<tr>";
+	echo "<td class=body>Location</td>";
+	echo "<td class=body align=right>0</td><td class=body align=right>0.00%</td>";
+	echo "<td class=body align=right>" . number_format($total) . "</td><td class=body align=right>100.00%</td>";
+	echo "</tr>";
+
+	foreach($parents[0] as $child)
+		recurOutput($locs, $parents, $child, 1, $total, 0);
+	echo "</table>";
+
+	echo "</td></tr>";
+}
+
+function hitstoday(){
+	global $db, $statsdb;
+
+	$statsdb->query("SELECT * FROM stats");
+
+	$hits = $statsdb->fetchrow();
+
+	echo "<tr><td colspan=2 align=center class=header>Distribution of hits by hour</td></tr>";
+
+	$statsdb->prepare_query("SELECT * FROM statshist WHERE time >= ? ORDER BY time DESC", time() - 86400);//-3600);
+
+	$lasthour = 0;
+	while($line = $statsdb->fetchrow()){
+		if($lasthour==0)
+			echo "<tr><td class=body>" . userdate("M d - h a") . "</td><td class=body>" . number_format($hits['hitstotal'] - $line['hitstotal']) . " (" . number_format(($hits['hitstotal'] - $line['hitstotal'])*3600/(time()-$line['time'])) . " expected)</td></tr>";
+		else
+			echo "<tr><td class=body>" . userdate("M d - h a", $line['time']) . "</td><td class=body>" . number_format($lasthour['hitstotal'] - $line['hitstotal']) . "</td></tr>";
+		$lasthour=$line;
+	}
+
+	echo "<tr><td class=body>Total:</td><td class=body>" . number_format($hits['hitstotal'] - $lasthour['hitstotal']) . "</td></tr>";
+
+	echo "<tr><td class=body>Max hits in an hour:</td><td class=body>" . number_format($hits['hitsmaxhour']) . "</td></tr>";
+	echo "<tr><td class=body>Max hits in a day (24h period)</td><td class=body>" . number_format($hits['hitsmaxday']) . "</td></tr>";
 }
 
 function hitsperweek(){
 	global $db;
-
+/*
 	echo "<tr><td class=header align=center colspan=2>Hits by week</td></tr>";
 	echo "<tr><td class=header>First of the week</td><td class=header>Hits that week</td></tr>";
 	$time = time();
@@ -452,11 +506,13 @@ function hitsperweek(){
 		echo "<tr><td class=body>" . date("m/d/y",$time) . "</td><td class=body>" . number_format($oldnum - $num,0) . "</td></tr>";
 		$oldnum = $num;
 	}
+*/
 }
 
 function usersperweek(){
 	global $db;
-
+/*
+//damn slow, rewrite
 	echo "<tr><td class=header align=center colspan=2>New users by week</td></tr>";
 	echo "<tr><td class=header>First of the week</td><td class=header>New users that week</td></tr>";
 	$time = time();
@@ -477,11 +533,12 @@ function usersperweek(){
 		echo "<tr><td class=body>" . date("m/d/y",$time) . "</td><td class=body>" . ($oldnumusers - $numusers) . "</td></tr>";
 		$oldnumusers = $numusers;
 	}
+*/
 }
 
 function ageStats(){
 	global $db;
-
+/*
 	$query = "SELECT dob FROM users";
 	$result = $db->unbuffered_query($query);
 
@@ -529,6 +586,7 @@ function ageStats(){
 	}
 
 	echo "Male: " . getAge($total/$num,2) . "<br>\n";
+*/
 }
 
 function skinstats(){
@@ -549,3 +607,40 @@ function skinstats(){
 	}
 
 }
+
+function plususersbyage(){
+	global $db;
+
+	$db->prepare_query("SELECT age, sex, count(*) as count FROM users WHERE premiumexpiry > ? GROUP BY age, sex ORDER BY age", time());
+
+	$plususers = array();
+	for($i=14; $i<=60; $i++)
+		$plususers[$i] = array('Male' => 0, 'Female' => 0);
+
+	while($line = $db->fetchrow())
+		$plususers[$line['age']][$line['sex']] = $line['count'];
+
+	echo "<tr><td class=header colspan=2 align=center>Plus Users By age/sex</td></tr>";
+	echo "<tr><td class=body colspan=2>";
+
+	echo "<table>";
+
+	$male = 0;
+	$female = 0;
+	echo "<tr><td class=header>Age</td><td class=header>Male</td><td class=header>Female</td><td class=header>Total</td></tr>";
+	foreach($plususers as $age => $sex){
+		echo "<tr>";
+		echo "<td class=body>$age</td>";
+		echo "<td class=body>$sex[Male]</td>";
+		echo "<td class=body>$sex[Female]</td>";
+		echo "<td class=body>" . ($sex['Male'] + $sex['Female']) . "</td>";
+		echo "</tr>";
+		$male += $sex['Male'];
+		$female += $sex['Female'];
+	}
+	echo "<tr><td class=header></td><td class=header>$male</td><td class=header>$female</td><td class=header>" . ($male + $female) . "</td></tr>";
+
+	echo "</table>";
+	echo "</td></tr>";
+}
+

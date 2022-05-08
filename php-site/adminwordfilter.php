@@ -25,11 +25,11 @@
 
 				incHeader();
 
-				echo "<form action=\"$PHP_SELF\" method=POST>\n";
+				echo "<form action=$_SERVER[PHP_SELF] method=POST>\n";
 				echo "<input type=hidden name=id value=\"$id\">";
 				echo "<table>";
 				echo "<tr><td class=body>Word: </td><td class=body><input class=body type=text name=\"word\" value=\"$line[word]\"></td></tr>\n";
-				echo "<tr><td class=body>Type: </td><td class=body><select name=type>" . make_select_list(getEnumValues("bannedwords","type"),$line['type']) ."</select></td></tr>\n";
+				echo "<tr><td class=body>Type: </td><td class=body><select name=type>" . make_select_list(getEnumValues($db, "bannedwords","type"),$line['type']) ."</select></td></tr>\n";
 				echo "<tr><td class=body></td><td class=body><INPUT class=body TYPE=submit name=action VALUE=\"Update\"><input class=body type=submit value=Cancel></td></tr>\n";
 				echo "</table></form>\n";
 
@@ -52,25 +52,25 @@
 	incHeader();
 
 
-	echo "<table align=center><form action=\"$PHP_SELF\" method=post>\n";
+	echo "<table align=center><form action=$_SERVER[PHP_SELF] method=post>\n";
 	echo "<tr>\n";
 	echo "  <td class=header></td>\n";
 	echo "  <td class=header>Word</td>\n";
 	echo "  <td class=header>Type</td>\n";
 	echo "</tr>\n";
 	while($line = $db->fetchrow($result))
-		echo "<tr><td class=body><input type=checkbox name=check[] value=\"$line[id]\"></td><td class=body><a class=body href=\"$PHP_SELF?id=$line[id]&action=edit\">$line[word]</a></td><td class=body>$line[type]</td></tr>\n";
+		echo "<tr><td class=body><input type=checkbox name=check[] value=\"$line[id]\"></td><td class=body><a class=body href=\"$_SERVER[PHP_SELF]?id=$line[id]&action=edit\">$line[word]</a></td><td class=body>$line[type]</td></tr>\n";
 	echo "<tr><td class=header colspan=6>";
 	echo "<input class=body name=selectall type=checkbox value='Check All' onClick=\"this.value=check(this.form,'check')\">";
 	echo "<input class=body type=submit name=action value=Delete></td></tr>\n";
 	echo "</form></table>\n";
 
 
-	echo "<form action=\"$PHP_SELF\" method=POST>\n";
+	echo "<form action=$_SERVER[PHP_SELF] method=POST>\n";
 	echo "<table>";
 	echo "<tr><td class=header colspan=2 align=center>Add Filter</td></tr>";
 	echo "<tr><td class=body>Word: </td><td class=body><input class=body type=text name=\"word\"></td></tr>\n";
-	echo "<tr><td class=body>Type: </td><td class=body><select class=body name=type>".make_select_list(getEnumValues("bannedwords","type"))."</select></td></tr>\n";
+	echo "<tr><td class=body>Type: </td><td class=body><select class=body name=type>".make_select_list(getEnumValues($db, "bannedwords","type"))."</select></td></tr>\n";
 	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action VALUE=\"Add Variable\"></td><td></td></tr>\n";
 	echo "</table></form>\n";
 

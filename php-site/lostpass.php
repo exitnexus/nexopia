@@ -16,20 +16,23 @@
 			if($db->numrows($result)==1){
 				$line  = $db->fetchrow($result);
 				if($line['activatekey']==''){
-					$key=makekey();
+					$key=makeRandKey();
 					$query = $db->prepare_query("UPDATE users SET activatekey = ? WHERE userid = ?", $key, $line['userid']);
 				}else
 					$key = $line['activatekey'];
 
-				$message = "To change your password at $config[title] you'll need your\n";
-				$msssage.= "username: $line[username]\n";
-				$message.= "and the activation key: $key\n";
-				$message.= "To activate your account after signup, or changing emails click\n";
-				$message.= "the link: http://$wwwdomain/activate.php?username=" . urlencode($line['username']) . "&actkey=$key\n";
-				$message.= "If you didn't request this email, you can safely ignore it.";
 				$subject = "Change your password at $wwwdomain.";
 
-				smtpmail("$username <$line[email]>", $subject, $message, "From: $config[title] <no-reply@$emaildomain>") or die("Error sending email");
+$urlencoded = urlencode($line['username']);
+$message =
+"To change your password at $config[title] you'll need your
+username: $line[username]
+and the activation key: $key
+To activate your account after signup, or changing emails click
+the link: http://$wwwdomain/activate.php?username=$urlencoded&actkey=$key
+If you didn't request this email, you can safely ignore it.";
+
+				smtpmail("$line[email]", $subject, $message, "From: $config[title] <no-reply@$emaildomain>") or die("Error sending email");
 				$msgs->addMsg("Email sent");
 			}
 			break;
@@ -70,7 +73,7 @@
 
 	incHeader();
 
-	echo "<table width=100%><form action=\"$PHP_SELF\" method=post>";
+	echo "<table width=100%><form action=$_SERVER[PHP_SELF] method=post>";
 	echo "<tr><td class=header colspan=2 align=center>Resend Activation</td></tr>";
 //	echo "<tr><td class=body colspan=2>This will allow you to change your password below. It is useful if you lost your password, or the activation email didn't arrive. If you login before changing passwords, the activation key sent to you won't work.</td></tr>";
 	echo "<tr><td class=body>Your Username:</td><td class=body><input class=body type=text name=username></td></tr>";
@@ -80,7 +83,7 @@
 
 	echo "<tr><td class=header colspan=2 align=center>Lost Password</td></tr>";
 
-	echo "<form action=\"$PHP_SELF\" method=post>";
+	echo "<form action=$_SERVER[PHP_SELF] method=post>";
 	echo "<tr><td class=body colspan=2>If you have logged in since requesting the activation key, the key sent won't work.</td></tr>";
 	echo "<tr><td class=body>Your Username:</td><td class=body><input class=body type=text name=username></td></tr>";
 	echo "<tr><td class=body>Your Activation Key:</td><td class=body><input class=body type=text name=activation></td></tr>";
@@ -90,7 +93,7 @@
 	echo "<tr><td colspan=2>&nbsp;</td></tr>";
 	echo "</form>";
 
-	echo "<form action=$PHP_SELF method=post>";
+	echo "<form action=$_SERVER[PHP_SELF] method=post>";
 	echo "<tr><td class=header colspan=2 align=center>Activate Account</td></tr>";
 	echo "<tr><td class=body colspan=2>If you didn't receive an email when you signed up, enter your username above to have it resent.</td></tr>";
 	echo "<tr><td class=body>Username:</td><td class=body><input class=body type=text name=username></td></tr>";

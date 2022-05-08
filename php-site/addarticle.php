@@ -4,17 +4,13 @@
 
 	require_once("include/general.lib.php");
 
-	$cats = & new category("cats");
+	$cats = & new category( $db, "cats");
 
 	$branch = $cats->makebranch();
 
-
-	if(!isset($action)) $action="";
-
 	switch($action){
 		case "Preview":
-		case "Submit":
-		case "changed":
+		case "Post":
 
 			addArticle($category,$title,$msg,$action);
 			break;
@@ -23,7 +19,7 @@
 	incHeader();
 
 	echo "<table align=center>";
-	echo "<form method=post action=\"$PHP_SELF\" name=editbox>";
+	echo "<form method=post action=$_SERVER[PHP_SELF] name=editbox>";
 	echo "<tr><td class=header colspan=2 align=center>Submit Article</td></tr>";
 	echo "<tr><td class=body>Category:</td><td class=body><select class=body name=category><option value=0>Choose a Category". makeCatSelect($branch) . "</select></td></tr>";
 	echo "<tr><td class=body>Subject:</td><td class=body><input class=body type=text name=title size=50 maxlength=255></td></tr>";
@@ -31,8 +27,8 @@
 //	<textarea class=body name=msg cols=50 rows=10></textarea>
 	editbox("",true);
 	echo "</td></tr>";
-	echo "<tr><td class=body></td><td class=body>Your article will not show up until it has been approved.</td></tr>";
-	echo "<tr><td class=body></td><td class=body><select class=body name=action><option value=changed>Preview if changes made<option value=Submit>Post without previewing<option value=Preview>Preview</select><input class=body type=submit value=\"Submit Article\"></td></tr>";
+	echo "<tr><td class=body colspan=2>Your article will not show up until it has been approved. You will receive a message when it is accepted or denied.</td></tr>";
+	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value=Preview><input class=body type=submit name=action value=Post></td></tr>";
 	echo "</table>";
 	echo "</form>";
 
@@ -40,7 +36,7 @@
 
 
 function addArticle($category,$title,$msg,$action){
-	global $branch, $cats,$PHP_SELF,$msgs,$userData,$db, $mods;
+	global $branch, $cats,$msgs,$userData,$db, $mods;
 
 	if(!isset($title) || strlen($title)<1){
 		$action="Preview";
@@ -83,29 +79,33 @@ function addArticle($category,$title,$msg,$action){
 
 		echo "</blockquote><hr>\n";
 
-		echo "<table align=center cellspacing=0><form action=\"$PHP_SELF\" method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
+		echo "<table align=center cellspacing=0><form action=$_SERVER[PHP_SELF] method=post name=editbox>\n";
 		echo "<tr><td class=body colspan=2>You can make any changes needed below:</td></tr>\n";
 		echo "<tr><td class=body>Category:</td><td class=body><select class=body name=category><option value=0>Choose a Category" . makeCatSelect($branch,$category) . "</select></td></tr>";
-		echo "<tr><td class=body>Title:</td><td class=body><input class=body type=text name=\"title\" value=\"$title\" size=40></td></tr>\n";
+		echo "<tr><td class=body>Title:</td><td class=body><input class=body type=text name=title value=\"$title\" size=40></td></tr>\n";
 		echo "<tr><td class=body align=center colspan=2>";
 
 		editbox($narticle,true);
 
-//		<textarea class=header cols=50 rows=10 name=msg wrap=virtual>$msg</textarea>
+//		<textarea class=header cols=50 rows=10 name=msg wrap=virtual>$narticle</textarea>
 		echo "</td></tr>\n";
-		echo "<tr><td class=body align=center colspan=2><input type=submit name=action value=Preview> <input type=submit name=action value=\"Submit\"></td></tr>\n";
+		echo "<tr><td class=body align=center colspan=2><input type=submit name=action value=Preview><input type=submit name=action value=Post></td></tr>\n";
 		echo "</form></table>\n";
 
 		incFooter();
 		exit;
 	}
 
-	$db->prepare_query("INSERT INTO articles SET author = ?, authorid = ?, submittime = ?, category = ?, title = ?, text = ?, ntext = ?",
-								$userData['username'], $userData['userid'], time(), $category, $ntitle, $narticle, $narticle3);
+	$db->prepare_query("SELECT id FROM articles WHERE authorid = ? && title = ? && text = ?", $userData['userid'], $ntitle, $narticle);
 
-	$articleID = $db->insertid();
+	if(!$db->numrows()){ //dupe detection
+		$db->prepare_query("INSERT INTO articles SET author = ?, authorid = ?, submittime = ?, category = ?, title = ?, text = ?",//, ntext = ?",
+									$userData['username'], $userData['userid'], time(), $category, $ntitle, $narticle);//, $narticle3);
 
-	$mods->newItem(MOD_ARTICLE,$articleID);
+		$articleID = $db->insertid();
+
+		$mods->newItem(MOD_ARTICLE,$articleID);
+	}
 
 	header ("Location: articlelist.php");
 	exit;

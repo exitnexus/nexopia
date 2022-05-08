@@ -1,18 +1,17 @@
 <?
 
 	$login=0;
+	$userprefs = array('forumsort', 'forumpostsperpage');
 
 	require_once("include/general.lib.php");
 
 	addRefreshHeaders();
 
 
-	if(!isset($fid) || $fid=="" || $fid==0 || !is_numeric($fid))
+	if(!($fid = getREQval('fid', 'int')))
 		die("Bad Forum id");
 
-	$cache->prime("fo$fid");
-
-	$perms = getForumPerms($fid,array('name','official','autolock','public','ownerid','sorttime'));	//checks it's a forum, not a realm, users permissions here, and column info
+	$perms = $forums->getForumPerms($fid);	//checks it's a forum, not a realm, users permissions here, and column info
 
 	if(!$perms['view'])
 		die("You don't have permission to view this forum");
@@ -25,140 +24,162 @@
 	if($userData['loggedIn']){
 		switch($action){
 			case "markallread":
-				$db->prepare_query("UPDATE forumupdated SET readalltime = ? WHERE userid = ? && forumid = ?", time(), $userData['userid'], $fid);
-				if($db->affectedrows()==0){
-					$db->prepare_query("INSERT IGNORE INTO forumupdated SET userid = ?, forumid = ?, time = ?, readalltime = ?", $userData['userid'], $fid, time(), time());
+				$time = time();
+				$forums->db->prepare_query("UPDATE forumupdated SET readalltime = # WHERE userid = # && forumid = #", $time, $userData['userid'], $fid);
+				if($forums->db->affectedrows()==0){
+					$forums->db->prepare_query("INSERT IGNORE INTO forumupdated SET userid = #, forumid = #, time = #, readalltime = #", $userData['userid'], $fid, $time, $time);
 				}
+				if($config['memcached'])
+					$cache->put(array($userData['userid'], "forumreadalltime-$userData[userid]-$fid"), $time, 86400);
 				break;
 			case "sortbythread":
-				$db->prepare_query("UPDATE users SET forumsort='thread' WHERE userid = ?", $userData['userid']);
+				$db->prepare_query("UPDATE users SET forumsort='thread' WHERE userid = #", $userData['userid']);
+				$userData['forumsort'] = 'thread';
 
 				break;
 			case "sortbypost":
-				$db->prepare_query("UPDATE users SET forumsort='post' WHERE userid = ?", $userData['userid']);
+				$db->prepare_query("UPDATE users SET forumsort='post' WHERE userid = #", $userData['userid']);
+				$userData['forumsort'] = 'post';
 
 				break;
 			case "delete":
-				if($perms['deletethreads'] && isset($checkID) && is_array($checkID))
+				if($perms['deletethreads'] && ($checkID = getPOSTval('checkID', 'array')))
 					foreach($checkID as $id)
-						deleteThread($id);
+						$forums->deleteThread($id);
 				break;
 			case "lock":
-				if($perms['lock'] && isset($checkID) && is_array($checkID))
+				if($perms['lock'] && ($checkID = getPOSTval('checkID', 'array')))
 					foreach($checkID as $id)
-						lockThread($id);
+						$forums->lockThread($id);
 				break;
 			case "unlock":
-				if($perms['lock'] && isset($checkID) && is_array($checkID))
+				if($perms['lock'] && ($checkID = getPOSTval('checkID', 'array')))
 					foreach($checkID as $id)
-						unlockThread($id);
+						$forums->unlockThread($id);
 				break;
 			case "stick":
-				if($perms['stick'] && isset($checkID) && is_array($checkID))
+				if($perms['stick'] && ($checkID = getPOSTval('checkID', 'array')))
 					foreach($checkID as $id)
-						stickThread($id);
+						$forums->stickThread($id);
 				break;
 			case "unstick":
-				if($perms['stick'] && isset($checkID) && is_array($checkID))
+				if($perms['stick'] && ($checkID = getPOSTval('checkID', 'array')))
 					foreach($checkID as $id)
-						unstickThread($id);
+						$forums->unstickThread($id);
 				break;
 			case "announce":
-				if($perms['announce'] && isset($checkID) && is_array($checkID))
+				if($perms['announce'] && ($checkID = getPOSTval('checkID', 'array')))
 					foreach($checkID as $id)
-						announceThread($id);
+						$forums->announceThread($id);
 				break;
 			case "unannounce":
-				if($perms['announce'] && isset($checkID) && is_array($checkID))
+				if($perms['announce'] && ($checkID = getPOSTval('checkID', 'array')))
 					foreach($checkID as $id)
-						unannounceThread($id);
+						$forums->unannounceThread($id);
+				break;
+			case "flag":
+				if($perms['flag'] && ($checkID = getPOSTval('checkID', 'array')))
+					foreach($checkID as $id)
+						$forums->flagThread($id);
+				break;
+			case "unflag":
+				if($perms['flag'] && ($checkID = getPOSTval('checkID', 'array')))
+					foreach($checkID as $id)
+						$forums->unflagThread($id);
 				break;
 			case "move":
-				if($perms['move'] && isset($checkID) && is_array($checkID)){
-					if(!isset($moveto) || $moveto<=0){
-						$msgs->addMsg("You must specify a destination");
-					}else{
+				if($perms['move'] && ($checkID = getPOSTval('checkID', 'array'))){
+					if($moveto = getPOSTval('moveto', 'int')){
 						foreach($checkID as $id)
-							moveThread($id,$moveto);
+							$forums->moveThread($id, $moveto);
+					}else{
+						$msgs->addMsg("You must specify a destination");
 					}
 				}
 				break;
 			case "withdraw":
 				if($perms['invited'] && $userData['userid'] != $forumdata['ownerid']){
-					$db->prepare_query("DELETE FROM foruminvite WHERE userid = ? && forumid = ?", $userData['userid'], $fid);
+					$forums->db->prepare_query("DELETE FROM foruminvite WHERE userid = # && forumid = #", $userData['userid'], $fid);
 					$perms['invited']=false;
+					$cache->put(array($userData['userid'], "foruminvite-$userData[userid]-$fid"), 0, 10800);
 				}
 				break;
 			case "subscribe":
 				if(!$perms['invited'] && $forumdata['official']=='n'){
-					$db->prepare_query("INSERT IGNORE INTO foruminvite SET userid = ?, forumid = ?", $userData['userid'], $fid);
+					$forums->db->prepare_query("INSERT IGNORE INTO foruminvite SET userid = #, forumid = #", $userData['userid'], $fid);
 					$perms['invited']=true;
+					$cache->put(array($userData['userid'], "foruminvite-$userData[userid]-$fid"), 1, 10800);
 				}
 				break;
 		}
 	}
 
 	if($userData['loggedIn']){
-		$db->prepare_query("SELECT readalltime FROM forumupdated WHERE userid = ? && forumid = ?", $userData['userid'], $fid);
-		if($db->numrows()==0)
-			$readalltime = 0;
-		else
-			$readalltime = $db->fetchfield();
-	}else
+		$readalltime = $cache->get(array($userData['userid'], "forumreadalltime-$userData[userid]-$fid"));
+
+		if($readalltime === false){
+			$forums->db->prepare_query("SELECT readalltime FROM forumupdated WHERE userid = ? && forumid = ?", $userData['userid'], $fid);
+			if($forums->db->numrows())
+				$readalltime = $forums->db->fetchfield();
+			else
+				$readalltime = 0;
+
+			$cache->put(array($userData['userid'], "forumreadalltime-$userData[userid]-$fid"), $readalltime, 86400);
+		}
+
+		$forums->db->prepare_query("UPDATE forumupdated SET time = ? WHERE userid = ? && forumid = ?", time(), $userData['userid'], $fid);
+		if($forums->db->affectedrows()==0)
+			$forums->db->prepare_query("INSERT IGNORE INTO forumupdated SET time = ?, userid = ?, forumid = ?", time(), $userData['userid'], $fid);
+
+		$forumsort = $userData['forumsort'];
+		$forumpostsperpage = $userData['forumpostsperpage'];
+	}else{
 		$readalltime = 0;
+		$forumsort='post';
+		$forumpostsperpage = 25;
+	}
 
-	if(!isset($page) || $page<0) $page=0;
+	$page = getREQval('page', 'int');
 
-	if(!isset($age) || $age < 0)
-		$age = $forumdata['sorttime'];
+	$age = getREQval('age', 'int', $forumdata['sorttime']);
 
 	if($age==0)
 		$startdate = 0;
 	else
 		$startdate = time() - ($age * 86400);
 
-
-	if($userData['loggedIn']){
-		$db->prepare_query("SELECT forumsort, forumpostsperpage FROM users WHERE userid = ?", $userData['userid']);
-		$line = $db->fetchrow();
-		extract($line);
-	}else{
-		$forumsort='post';
-		$forumpostsperpage = 25;
-	}
-
 	$threaddata = array();
 	$threadids = array();
 
-	$select = "id,title,author,authorid,reads,posts,time,lastauthor,lastauthorid,locked,sticky,moved,announcement,pollid,'0' as new, '0' as subscribe";
+	$select = "id, title, author, authorid, reads, posts, time, lastauthor, lastauthorid, locked, sticky, moved, announcement, flag, pollid, '0' as new, '0' as subscribe";
 
 	if($page == 0){
-		$db->prepare_query("SELECT $select FROM  forumthreads USE INDEX (announcement) WHERE announcement='y' && forumid = ? ORDER BY time DESC", $fid);
+		$forums->db->prepare_query("SELECT $select FROM  forumthreads USE INDEX (announcement) WHERE announcement='y' && forumid = ? ORDER BY time DESC", $fid);
 
-		while($line = $db->fetchrow()){
+		while($line = $forums->db->fetchrow()){
 			$threaddata[$line['id']] = $line;
 			$threadids[$line['id']] = $line['id'];
 		}
 	}
 
 
-	$db->prepare_query("SELECT SQL_CALC_FOUND_ROWS $select FROM forumthreads USE INDEX (forumid) WHERE forumid = ? && time >= ? && sticky IN ('y','n') && announcement='n' ORDER BY sticky DESC," . ($forumsort=='post' ? "time" : "id") . " DESC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]", $fid, $startdate);
+	$forums->db->prepare_query("SELECT SQL_CALC_FOUND_ROWS $select FROM forumthreads USE INDEX (forumid) WHERE forumid = ? && time >= ? && sticky IN ('y','n') && announcement='n' ORDER BY sticky DESC," . ($forumsort=='post' ? "time" : "id") . " DESC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]", $fid, $startdate);
 
-	while($line = $db->fetchrow()){
+	while($line = $forums->db->fetchrow()){
 		$threaddata[$line['id']] = $line;
 		$threadids[$line['id']] = $line['id'];
 	}
 
-	$db->query("SELECT FOUND_ROWS()");
-	$numthreads = $db->fetchfield();
+	$forums->db->query("SELECT FOUND_ROWS()");
+	$numthreads = $forums->db->fetchfield();
 	$numpages =  ceil($numthreads / $config['linesPerPage']);
 
 //all new: 2, some new: 1, no new: 0
 	if($userData['loggedIn'] && count($threadids)>0){
 		$subscribes = array();
-		$db->prepare_query("SELECT threadid,time,subscribe FROM forumread WHERE userid='$userData[userid]' && threadid IN (?)", $threadids);
+		$forums->db->prepare_query("SELECT threadid,time,subscribe FROM forumread WHERE userid='$userData[userid]' && threadid IN (?)", $threadids);
 
-		while($line = $db->fetchrow())
+		while($line = $forums->db->fetchrow())
 			$subscribes[$line['threadid']] = $line;
 
 		foreach($threaddata as $threadid => $data){
@@ -170,10 +191,6 @@
 				$threaddata[$threadid]['subscribe'] = ($subscribes[$threadid]['subscribe'] == 'y');
 			}
 		}
-
-		$db->prepare_query("UPDATE forumupdated SET time = ? WHERE userid = ? && forumid = ?", time(), $userData['userid'], $fid);
-		if($db->affectedrows()==0)
-			$db->prepare_query("INSERT IGNORE INTO forumupdated SET userid = ?, forumid = ?, time = ?", $userData['userid'], $fid, time());
 	}
 
 	$lockids = array();
@@ -184,9 +201,9 @@
 		}
 	}
 	if(count($lockids) > 0)
-		$db->prepare_query("UPDATE forumthreads SET locked='y' WHERE id IN (?)", $lockids);
+		$forums->db->prepare_query("UPDATE forumthreads SET locked='y' WHERE id IN (?)", $lockids);
 
-	$numonline = forumsNumOnline($fid);
+	$numonline = $forums->forumsNumOnline($fid);
 
 	incHeader(false);
 
@@ -205,15 +222,15 @@
 	else
 		echo "<a class=header2 href=forumsusercreated.php>User Created Forums</a> > ";
 
-	echo "<a class=header2 href=$PHP_SELF?fid=$fid>$forumdata[name]</a>";
-	echo "</td><form><td class=header2 align=right>";
+	echo "<a class=header2 href=$_SERVER[PHP_SELF]?fid=$fid>$forumdata[name]</a>";
+	echo "</td><td class=header2 align=right>";
 
 	if($userData['loggedIn'] && $perms['post'])
 		echo "<a class=header2 href=forumcreatethread.php?fid=$fid>Create New Thread</a> | ";
 
-	echo "Page: " . pageList("$PHP_SELF?fid=$fid&age=$age",$page,$numpages,'header2');
+	echo "Page: " . pageList("$_SERVER[PHP_SELF]?fid=$fid&age=$age",$page,$numpages,'header2');
 
-	echo "</td></form></tr></table></td></tr>\n";
+	echo "</td></tr></table></td></tr>\n";
 
 	if($userData['loggedIn']){
 		echo "<tr><td class=header2 colspan=$cols>";
@@ -222,17 +239,17 @@
 
 		echo "<td align=right class=header2>";
 		if($perms['invited'] && $forumdata['ownerid']!=$userData['userid'])
-			echo "<a class=header2 href=\"javascript:confirmLink('$PHP_SELF?fid=$fid&action=withdraw','withdraw from this forum?')\">Withdraw From Forum Topic</a> | ";
+			echo "<a class=header2 href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?fid=$fid&action=withdraw','withdraw from this forum?')\">Withdraw From Forum Topic</a> | ";
 		elseif($forumdata['official'] == 'n' && $forumdata['ownerid']!=$userData['userid'])
-			echo "<a class=header2 href=$PHP_SELF?fid=$fid&action=subscribe>Subscribe to Forum Topic</a> | ";
-		echo "<a class=header2 href=$PHP_SELF?fid=$fid&action=markallread>Mark All as Read</a> | ";
-		echo "<a class=header2 href=$PHP_SELF?fid=$fid&action=" . ($forumsort=="post" ? "sortbythread>Sort By Thread" : "sortbypost>Sort By Post") . "</a>";
+			echo "<a class=header2 href=$_SERVER[PHP_SELF]?fid=$fid&action=subscribe>Subscribe to Forum Topic</a> | ";
+		echo "<a class=header2 href=$_SERVER[PHP_SELF]?fid=$fid&action=markallread>Mark All as Read</a> | ";
+		echo "<a class=header2 href=$_SERVER[PHP_SELF]?fid=$fid&action=" . ($forumsort=="post" ? "sortbythread>Sort By Thread" : "sortbypost>Sort By Post") . "</a>";
 		echo "</td></tr></table></td></tr>\n";
 	}
 
 	echo "<tr>";
 	if($isMod)
-		echo "<form action=\"$PHP_SELF\" method=post><td class=header width=20></td>";
+		echo "<form action=$_SERVER[PHP_SELF] method=post><td class=header width=20></td>";
 	echo "<td class=header>Threads</td><td class=header align=center width=120>Author</td><td class=header width=40 align=center>Replies</td><td class=header width=40 align=center>Views</td><td class=header align=right width=120>Last Post</td></tr>\n";
 
 
@@ -243,6 +260,8 @@
 			echo "<td class=body><input type=checkbox name=checkID[] value=$line[id]></td>";
 
 		echo "<td class=body>";
+		if($isMod && $line['flag']=='y')
+			echo "<img src=$config[imageloc]flag.gif> ";
 		if($line['locked']=='y')
 			echo "<img src=$config[imageloc]locked.png> ";
 		if($line['sticky']=='y')
@@ -263,7 +282,7 @@
 			echo "$line[title]";
 		echo "</a>";
 
-		if($line['posts'] > $forumpostsperpage){
+		if($line['posts'] >= $forumpostsperpage){
 //			echo "<br>Page: ";
 
 			$last = ceil(($line['posts']+1) / $forumpostsperpage);
@@ -272,7 +291,7 @@
 			for($i=0; $i < $max; $i++)
 				$list[] = "<a class=body href=forumviewthread.php?tid=$line[id]&page=$i>" . ($i+1) . "</a>";
 			if($max < $last )
-				$list[] = "... <a class=body href=forumviewthread.php?tid=$line[id]&page=$last>" . ($last+1) . "</a>";
+				$list[] = "... <a class=body href=forumviewthread.php?tid=$line[id]&page=" . ($last-1) . ">$last</a>";
 
 			echo " &nbsp; [ " . implode(" ", $list) . " ]";
 		}
@@ -319,10 +338,14 @@
 				echo "<option value=announce>Announce";
 				echo "<option value=unannounce>Unannounce";
 			}
+			if($perms['flag']){
+				echo "<option value=flag>Flag";
+				echo "<option value=unflag>UnFlag";
+			}
 			echo "</select>";
 
 			if($perms['move']){
-				$forumcats = & new category("forums","official='y' ORDER BY priority ASC");
+				$forumcats = & new category( $forums->db, "forums", "official='y' ORDER BY priority ASC");
 
 				$branch = $forumcats->makeBranch();
 
@@ -365,16 +388,16 @@
 	else
 		echo "<a class=header2 href=forumsusercreated.php>User Created Forums</a> > ";
 
-	echo "<a class=header2 href=$PHP_SELF?fid=$fid>$forumdata[name]</a>";
+	echo "<a class=header2 href=$_SERVER[PHP_SELF]?fid=$fid>$forumdata[name]</a>";
 	echo "</td><form><td class=header2 align=center>";
 
-	echo "Show topics from last: <select class=body name=age onChange=\"location.href='$PHP_SELF?fid=$fid&page=$page&age='+(this.options[this.selectedIndex].value)\">" . make_select_list_key(array(0 => 'All Topics', 1 => '1 Day', 3 => '3 Days', 7 => '1 Week', 14 => '2 Weeks', 30 => '1 Month', 60 => '2 Months', 180 => '6 Months', 365 => '1 Year'), $age) . "</select>";
+	echo "Show topics from last: <select class=body name=age onChange=\"location.href='$_SERVER[PHP_SELF]?fid=$fid&page=$page&age='+(this.options[this.selectedIndex].value)\">" . make_select_list_key($forums->sorttimes, $age) . "</select>";
 
 	echo "</td><td class=header2 align=right>";
 
 	if($userData['loggedIn'] && $perms['post'])
 		echo "<a class=header2 href=forumcreatethread.php?fid=$fid>Create New Topic</a> | ";
-	echo "Page: " . pageList("$PHP_SELF?fid=$fid&age=$age",$page,$numpages,'header2');
+	echo "Page: " . pageList("$_SERVER[PHP_SELF]?fid=$fid&age=$age", $page, $numpages, 'header2');
 
 	echo "</td></form></tr></table></td></tr>\n";
 
@@ -390,4 +413,4 @@
 
 	echo "</table>\n";
 
-	incFooter(false);
+	incFooter();

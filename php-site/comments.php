@@ -23,30 +23,13 @@
 //delete
 	if($isAdmin && $action=="Delete" && isset($checkID) && is_array($checkID)){
 
-		$old_user_abort = ignore_user_abort(true);
-
-		$db->query("LOCK TABLES comments WRITE, commentstext WRITE");
-
-		$db->prepare_query("SELECT id FROM comments WHERE itemid = ? && id IN (?)", $id, $checkID);
-
-		$checkID = array();
-		while($line = $db->fetchrow())
-			$checkID[] = $line['id'];
-
-		$db->prepare_query("DELETE FROM comments WHERE id IN (?)", $checkID);
-		$db->prepare_query("DELETE FROM commentstext WHERE id IN (?)", $checkID);
-
-
-		$db->query("UNLOCK TABLES");
+		$db->prepare_query("DELETE comments, commentstext FROM comments LEFT JOIN commentstext ON comments.id = commentstext.id WHERE itemid = ? && comments.id IN (?)", $id, $checkID);
 
 		$db->prepare_query("UPDATE articles SET comments = comments - ? WHERE id = ?", count($checkID), $id);
 		$mods->adminlog("delete article comments", "Delete article comments: article $id");
-
-		ignore_user_abort($old_user_abort);
 	}
 
-	if(empty($page))
-		$page = 0;
+	$page = getREQval('page', 'int');
 
 	$db->prepare_query("SELECT SQL_CALC_FOUND_ROWS comments.id, author, authorid, time, nmsg FROM comments, commentstext WHERE itemid = ?  && comments.id = commentstext.id ORDER BY comments.id ASC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]", $id);
 
@@ -66,14 +49,14 @@
 	echo "<tr><td class=header colspan=2>";
 	echo "<table width=100%><tr><td class=header>";
 
-	$cats = & new category("cats");
+	$cats = & new category( $db, "cats");
 	$root = $cats->makeroot($data['category']);
 
 	foreach($root as $cat)
 		echo "<a class=header href=articlelist.php?cat=$cat[id]>$cat[name]</a> > ";
 
 	echo "<a class=header href=\"article.php?id=$id\">$data[title]</a> > ";
-	echo "<a class=header href=$PHP_SELF?id=$id>Comments</a>";
+	echo "<a class=header href=$_SERVER[PHP_SELF]?id=$id>Comments</a>";
 
 	echo "</td>";
 
@@ -81,7 +64,7 @@
 	echo "<td class=header align=right>";
 
 	echo "Page:";
-	echo pageList("$PHP_SELF?id=$id",$page,$numpages,'header');
+	echo pageList("$_SERVER[PHP_SELF]?id=$id",$page,$numpages,'header');
 
 	echo "</td></tr></table></td></tr>";
 
@@ -89,7 +72,7 @@
 		echo "<tr><td class=body colspan=2 align=center>No Comments</td>";
 
 	if($isAdmin){
-		echo "<form action=$PHP_SELF method=post>";
+		echo "<form action=$_SERVER[PHP_SELF] method=post>";
 		echo "<input type=hidden name=id value='$id'>";
 	}
 
@@ -127,7 +110,7 @@
 	echo "<td class=header align=right>";
 
 	echo "Page:";
-	echo pageList("$PHP_SELF?id=$id",$page,$numpages,'header');
+	echo pageList("$_SERVER[PHP_SELF]?id=$id",$page,$numpages,'header');
 
 	echo "</td>";
 	echo "</form>";
@@ -141,7 +124,7 @@
 		echo "<table  cellspacing=0 align=center>";
 		echo "<tr><td class=header2><a name=reply>Post a Comment:</a></td></tr>\n";
 
-		echo "<form action=\"$PHP_SELF\" method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
+		echo "<form action=$_SERVER[PHP_SELF] method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
 		echo "<input type=hidden name=id value=$id>\n";
 
 		echo "<tr><td class=header2 align=center>";

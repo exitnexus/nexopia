@@ -11,20 +11,20 @@
 		$action="";
 
 	switch($action){
-		case "create":		create();								break;
-		case "Add":			insert($title,$text,$category);			break;
-		case "edit":		edit($id);								break;
-		case "Update":		update($id,$title,$text,$category);		break;
-		case "delete":		delete($id);							break;
+		case "create":		createFAQ();								break;
+		case "Add":			insertFAQ($title,$text,$category);			break;
+		case "edit":		editFAQ($id);								break;
+		case "Update":		updateFAQ($id,$title,$text,$category);		break;
+		case "delete":		deleteFAQ($id);							break;
 	}
 
 	listFAQ();
 //////////////
 
-function create(){
-	global $PHP_SELF, $mods;
+function createFAQ(){
+	global $mods;
 
-	$categories = & new category('faqcats');
+	$categories = & new category( $db, 'faqcats');
 
 	$branch = $categories->makeBranch();
 
@@ -32,7 +32,7 @@ function create(){
 
 	incHeader();
 
-	echo "<table><form method=POST action=\"$PHP_SELF\">\n";
+	echo "<table><form method=POST action=$_SERVER[PHP_SELF]>\n";
 	echo "<tr><td class=body>Category</td><td class=body><select class=body name=category>" . makeCatSelect($branch) . "</select></td></tr>";
 	echo "<tr><td class=body>Question</td><td class=body><input class=body type=text name=title size=50></td></tr>";
 	echo "<tr><td class=body>Answer</td><td class=body><textarea cols=80 rows=10 name=text class=body></textarea></td></tr>";
@@ -43,38 +43,50 @@ function create(){
 	exit;
 }
 
-function insert($title,$text,$category){
-	global $msgs, $db, $mods;
+function insertFAQ($title,$text,$category){
+	global $msgs, $db, $mods, $cache;
 
 	$db->prepare_query("INSERT INTO faq SET title = ?, text = ?, parent = ?", $title, $text, $category);
 
 	$id = $db->insertid();
+
+	$cache->remove(array($category, "faqquestions-$category"));
 
 	$mods->adminlog('insert faq',"insert faq $id");
 
 	$msgs->addMsg("Faq entry added");
 }
 
-function delete($id){
-	global $msgs, $db, $mods;
+function deleteFAQ($id){
+	global $msgs, $db, $mods, $cache;
 
 	if(!isset($id)) return false;
 
 	$mods->adminlog('delete faq',"delete faq $id");
 
+	$db->prepare_query("SELECT parent FROM faq WHERE id = ?", $id);
+
+	if(!$db->numrows())
+		return false;
+
+	$category = $db->fetchfield();
+
 	$db->prepare_query("DELETE FROM faq WHERE id = ?", $id);
+
+	$cache->remove(array($category, "faqquestions-$category"));
+	$cache->remove(array($id, "faqans-$id"));
 
 	$msgs->addMsg("Message Deleted");
 }
 
-function edit($id){
-	global $msgs,$PHP_SELF, $db, $mods;
+function editFAQ($id){
+	global $msgs, $db, $mods;
 
 	if(!isset($id)) return false;
 
 	$mods->adminlog('edit faq',"edit faq $id");
 
-	$categories = & new category('faqcats');
+	$categories = & new category( $db, 'faqcats');
 	$branch = $categories->makeBranch();
 
 	$query = $db->prepare_query("SELECT title,text,parent FROM faq WHERE id = ?", $id);
@@ -82,7 +94,7 @@ function edit($id){
 
 	incHeader();
 
-	echo "<table><form method=POST action=\"$PHP_SELF\">\n";
+	echo "<table><form method=POST action=$_SERVER[PHP_SELF]>\n";
 	echo "<input type=hidden name=id value=\"$id\">";
 	echo "<tr><td class=body>Category</td><td class=body><select class=body name=category>" . makeCatSelect($branch, $line['parent']) . "</select></td></tr>";
 	echo "<tr><td class=body>Question</td><td class=body><input class=body type=text name=title size=50 value=\"" . htmlentities($line['title']) . "\"></td></tr>";
@@ -94,12 +106,15 @@ function edit($id){
 	exit();
 }
 
-function update($id,$title,$text,$category){
-	global $msgs, $db, $mods;
+function updateFAQ($id,$title,$text,$category){
+	global $msgs, $db, $mods, $cache;
 
 	if(!isset($id)) return false;
 
 	$mods->adminlog('update faq',"update faq $id");
+
+	$cache->remove(array($category, "faqquestions-$category"));
+	$cache->remove(array($id, "faqans-$id"));
 
 	$db->prepare_query("UPDATE faq SET title = ?, text = ?, parent = ? WHERE id = ?", $title, $text, $category, $id);
 
@@ -109,15 +124,15 @@ function update($id,$title,$text,$category){
 
 
 function listFAQ(){
-	global $PHP_SELF,$db, $mods;
+	global $db, $mods, $config;
 
 	$mods->adminlog('list faq',"List FAQ");
 
-	$categories = & new category('faqcats');
+	$categories = & new category( $db, 'faqcats');
 
 	$branch = $categories->makeBranch();
 
-	$db->query("SELECT * FROM faq ORDER BY 'priority'");
+	$db->query("SELECT id, parent, priority, title FROM faq ORDER BY 'priority'");
 
 	$data=array();
 	while($line = $db->fetchrow())
@@ -129,21 +144,22 @@ function listFAQ(){
 	incHeader();
 
 	echo "<table width=100%>\n";
-	echo "<tr><td class=header>Functions</td><td class=header>Question</td></tr>\n";
+	echo "<tr><td class=header>Functions</td><td class=header>Priority</td><td class=header>Question</td></tr>\n";
 	foreach($branch as $category){
 
 		$questions = array();
 		if(isset($data[$category['id']]))
 			$questions = $data[$category['id']];
 
-		echo "<td class=header colspan=2>"  . str_repeat("- ", $category['depth'] - 1 ) . "$category[name]</td></tr>";
+		echo "<td class=header colspan=3>"  . str_repeat("- ", $category['depth'] - 1 ) . "<b>$category[name]</b></td></tr>";
 
 		foreach($questions as $line){
 			echo "<tr>";
 			echo "<td class=body>";
-			echo "<a class=body href=\"$PHP_SELF?action=edit&id=$line[id]\"><img src=/images/edit.gif border=0></a>";
-			echo "<a class=body href=\"javascript:confirmLink('$PHP_SELF?action=delete&id=$line[id]','delete this faq entry')\"><img src=/images/delete.gif border=0></a>";
+			echo "<a class=body href=\"$_SERVER[PHP_SELF]?action=edit&id=$line[id]\"><img src=$config[imageloc]edit.gif border=0></a>";
+			echo "<a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?action=delete&id=$line[id]','delete this faq entry')\"><img src=$config[imageloc]delete.gif border=0></a>";
 			echo "</td>";
+			echo "<td class=body>$line[priority]</td>";
 			echo "<td class=body>" . str_repeat("- ", $category['depth']);
 			echo "<a class=body href=faq.php?cat=$category[id]&q=$line[id]>";
 			echo substr($line['title'],0,100);
@@ -152,7 +168,7 @@ function listFAQ(){
 			echo "</tr>";
 		}
 	}
-	echo "<tr><td class=header colspan=2><a class=header href=$PHP_SELF?action=create>Add Question</a></td></tr>";
+	echo "<tr><td class=header colspan=3><a class=header href=$_SERVER[PHP_SELF]?action=create>Add Question</a></td></tr>";
 	echo "</table>";
 
 	incFooter();

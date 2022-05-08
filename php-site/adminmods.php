@@ -7,7 +7,7 @@
 	if(!$mods->isAdmin($userData['userid'],"listmods"))
 		die("Permission denied");
 
-	$sortlist = array( 	'users.userid' => "",
+	$sortlist = array( 	'userid' => "",
 						'username' => "username",
 						'total' => "`right`+`wrong`",
 						'right' => "right",
@@ -17,7 +17,9 @@
 						'level' => "level",
 						'time' => "time",
 						'creationtime' => "creationtime",
-						'percent' => "IF(`right`+`wrong`=0,0,100.0*`wrong`/(`right` + `wrong`))"
+						'percent' => "IF(`right`+`wrong`=0,0,100.0*`wrong`/(`right` + `wrong`))",
+						'online' => "'n'",
+						'activetime' => "'0'"
 						);
 
 	isValidSortt($sortlist,$sortt);
@@ -43,13 +45,42 @@
 
 
 function listMods($type){
-	global $db, $sortlist, $sortt, $sortd, $type, $isAdmin, $PHP_SELF, $config, $mods;
+	global $fastdb, $db, $sortlist, $sortt, $sortd, $type, $isAdmin, $config, $mods;
 
-	$mods->moddb->prepare_query("SELECT " . makeSortSelect($sortlist) . " FROM users, mods WHERE users.userid=mods.userid && type = ? ORDER BY $sortt $sortd,username", $type);
+	$mods->db->prepare_query("SELECT " . makeSortSelect($sortlist) . " FROM mods WHERE type = ?", $type);
 
 	$rows = array();
-	while($line = $mods->moddb->fetchrow())
-		$rows[] = $line;
+	while($line = $mods->db->fetchrow())
+		$rows[$line['userid']] = $line;
+
+	$fastdb->prepare_query(array_keys($rows), "SELECT userid, online, activetime FROM useractivetime WHERE userid IN (?)", array_keys($rows));
+
+	while($line = $fastdb->fetchrow()){
+		$rows[$line['userid']]['online'] = $line['online'];
+		$rows[$line['userid']]['activetime'] = $line['activetime'];
+	}
+
+	switch($sortt){
+		case 'userid':
+		case 'total':
+		case 'right':
+		case 'wrong':
+		case 'strict':
+		case 'lenient':
+		case 'level':
+		case 'time':
+		case 'creationtime':
+		case 'percent':
+		case 'activetime':
+			$sortcomp = SORT_NUMERIC;
+			break;
+
+		case "username":
+		default:
+			$sortcomp = SORT_CASESTR;
+	}
+
+	sortCols($rows, SORT_ASC, SORT_CASESTR, 'username', ($sortd == 'ASC' ? SORT_ASC : SORT_DESC), $sortcomp, $sortt);
 
 	$mods->adminlog("list mods", "List $type mods");
 
@@ -57,8 +88,8 @@ function listMods($type){
 
 	echo "<table align=center>";
 
-	echo "<form action=$PHP_SELF>";
-	echo "<tr><td class=header colspan=11 align=center>Type: <select class=body name=type>" . make_select_list_key($mods->modtypes,$type) . "</select><input class=body type=submit value=Go></td></tr>";
+	echo "<form action=$_SERVER[PHP_SELF]>";
+	echo "<tr><td class=header colspan=12 align=center>Type: <select class=body name=type>" . make_select_list_key($mods->modtypes,$type) . "</select><input class=body type=submit value=Go></td></tr>";
 	echo "</form>";
 
 	echo "<tr>";
@@ -70,8 +101,9 @@ function listMods($type){
 		makeSortTableHeader($sortlist,"Strict","strict");
 		makeSortTableHeader($sortlist,"Lenient","lenient");
 		makeSortTableHeader($sortlist,"Percent","percent");
-		makeSortTableHeader($sortlist,"Last Activity","time");
+		makeSortTableHeader($sortlist,"Last Moded","time");
 		makeSortTableHeader($sortlist,"Creation Time","creationtime");
+		makeSortTableHeader($sortlist,"Active Time","activetime");
 		if($isAdmin)
 			echo "<td class=header></td>";
 	echo "</tr>";
@@ -88,18 +120,31 @@ function listMods($type){
 	foreach($rows as $line){
 		echo "<tr>";
 		echo "<td class=body><a class=body href=profile.php?uid=$line[userid]>$line[username]</a></td>";
-		echo "<td class=body>$line[level]</td>";
+		echo "<td class=body>";
+		if($isAdmin){
+			$newlevel = $mods->suggestedModLevel($line['right'], $line['percent'], $line['level']);
+			if($newlevel > $line['level'])
+				echo "<b><a class=body href=/adminmods.php?type=$type&uid=$line[userid]&level=$newlevel&action=Update>$line[level] +++</a></b>";
+			elseif($newlevel < $line['level'])
+				echo "<b><a class=body href=/adminmods.php?type=$type&uid=$line[userid]&level=$newlevel&action=Update>$line[level] ---</a></b>";
+			else
+				echo "$line[level]";
+		}else{
+			echo "$line[level]";
+		}
+		echo "</td>";
 		echo "<td class=body align=right>$line[total]</td>";
 		echo "<td class=body align=right>$line[right]</td>";
 		echo "<td class=body align=right>$line[wrong]</td>";
 		echo "<td class=body align=right>$line[strict]</td>";
 		echo "<td class=body align=right>$line[lenient]</td>";
 		echo "<td class=body align=right>" . number_format($line['percent'],2) . "%</td>";
-		echo "<td class=body>" . ($line['time'] == 0 ? "Never" : userDate("D M j, Y G:i:s", $line['time']) ) . "</td>";
-		echo "<td class=body>" . ($line['creationtime'] == 0 ? "Unknown" : userDate("D M j, Y G:i:s", $line['creationtime']) ) . "</td>";
+		echo "<td class=body>" . ($line['time'] == 0 ? "Never" : userDate("M j, Y G:i", $line['time']) ) . "</td>";
+		echo "<td class=body>" . ($line['creationtime'] == 0 ? "Unknown" : userDate("M j, Y G:i", $line['creationtime']) ) . "</td>";
+		echo "<td class=body>" . ($line['online'] == 'y' ? "<b>Online</b>" : ($line['activetime'] == 0 ? "Never" : userDate("M j, Y G:i", $line['activetime']) )) . "</td>";
 		if($isAdmin){
-			echo "<td class=body><a class=body href=$PHP_SELF?action=edit&uid=$line[userid]&sortt=$sortt&sortd=$sortd&type=$type><img src=/images/edit.gif border=0></a>";
-			echo "<a class=body href=$PHP_SELF?action=delete&uid=$line[userid]&sortt=$sortt&sortd=$sortd&type=$type><img src=/images/delete.gif border=0></a></td>";
+			echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=edit&uid=$line[userid]&sortt=$sortt&sortd=$sortd&type=$type><img src=$config[imageloc]edit.gif border=0></a>";
+			echo "<a class=body href=$_SERVER[PHP_SELF]?action=delete&uid=$line[userid]&sortt=$sortt&sortd=$sortd&type=$type><img src=$config[imageloc]delete.gif border=0></a></td>";
 		}
 		echo "</tr>";
 		$nummods++;
@@ -121,9 +166,9 @@ function listMods($type){
 	echo "<td class=header align=right>$strict</td>";
 	echo "<td class=header align=right>$lenient</td>";
 	echo "<td class=header align=right>" . ($nummods > 0 ? number_format($error/$nummods,2) : "0.00") . "%</td>";
-	echo "</td><td class=header colspan=3 align=right>";
+	echo "</td><td class=header colspan=4 align=right>";
 	if($isAdmin)
-		echo "<a class=header href=$PHP_SELF?action=add&type=$type>Create Moderator</a>";
+		echo "<a class=header href=$_SERVER[PHP_SELF]?action=add&type=$type>Create Moderator</a>";
 	echo "</td></tr>";
 
 	echo "</table>";
@@ -133,15 +178,15 @@ function listMods($type){
 }
 
 function addMod(){
-	global $type, $db, $PHP_SELF;
+	global $type, $db;
 
 	incHeader();
 
 	echo "<table>";
-	echo "<form action=$PHP_SELF>";
+	echo "<form action=$_SERVER[PHP_SELF]>";
 	echo "<input type=hidden name=type value=$type>";
 	echo "<tr><td class=body>Username:</td><td class=body><input class=body type=text name=username></td></tr>";
-	echo "<tr><td class=body>Level:</td><td class=body><select class=body name=level>" . make_select_list(range(0,5)) . "</select></td></tr>";
+	echo "<tr><td class=body>Level:</td><td class=body><select class=body name=level>" . make_select_list(range(0,6)) . "</select></td></tr>";
 	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value=Create><input class=body type=submit name=action value=Cancel></td></tr>";
 
 	echo "</form></table>";
@@ -159,8 +204,8 @@ function insertMod($username,$level){
 		return;
 	}
 
-	if($level > 5)
-		$level = 5;
+	if($level > 6)
+		$level = 6;
 	if($level < 0)
 		$level = 0;
 
@@ -172,25 +217,35 @@ function insertMod($username,$level){
 }
 
 function editMod($userid){
-	global $type, $db, $PHP_SELF,$sortt,$sortd, $mods;
+	global $type, $sortt, $sortd, $mods, $sortlist;
 
-	$username = getUserName($userid);
+	$mods->db->prepare_query("SELECT " . makeSortSelect($sortlist) . " FROM mods WHERE type = ? && userid = ?", $type, $userid);
 
-	$level = $mods->getModLvl($userid, $type);
-
-	if($level === false)
+	if(!$mods->db->numrows())
 		die("Bad mod");
+
+	$line = $mods->db->fetchrow();
 
 	incHeader();
 
 	echo "<table>";
-	echo "<form action=$PHP_SELF>";
+	echo "<form action=$_SERVER[PHP_SELF]>";
 	echo "<input type=hidden name=type value=$type>";
 	echo "<input type=hidden name=uid value=$userid>";
 	echo "<input type=hidden name=sortt value=$sortt>";
 	echo "<input type=hidden name=sortd value=$sortd>";
-	echo "<tr><td class=body>Username:</td><td class=body><a class=body href=profile.php?uid=$userid>$username</a></td></tr>";
-	echo "<tr><td class=body>Level:</td><td class=body><select class=body name=level>" . make_select_list(range(0,5), $level) . "</select></td></tr>";
+	echo "<tr><td class=body>Username:</td><td class=body><a class=body href=profile.php?uid=$userid>$line[username]</a></td></tr>";
+	echo "<tr><td class=body>Total:</td><td class=body>$line[total]</td></tr>";
+	echo "<tr><td class=body>Right:</td><td class=body>$line[right]</td></tr>";
+	echo "<tr><td class=body>Wrong:</td><td class=body>$line[wrong]</td></tr>";
+	echo "<tr><td class=body>Strict:</td><td class=body>$line[strict]</td></tr>";
+	echo "<tr><td class=body>Lenient:</td><td class=body>$line[lenient]</td></tr>";
+	echo "<tr><td class=body>Error:</td><td class=body>" . number_format($line['percent'],2) . "%</td></tr>";
+	echo "<tr><td class=body>Active Time:</td><td class=body>" . ($line['time'] == 0 ? "Never" : userDate("D M j, Y G:i:s", $line['time']) ) . "</td></tr>";
+	echo "<tr><td class=body>Creation Time:</td><td class=body>" . ($line['creationtime'] == 0 ? "Unknown" : userDate("D M j, Y G:i:s", $line['creationtime']) ) . "</td></tr>";
+
+	echo "<tr><td class=body>Suggested Level:</td><td class=body>" . $mods->suggestedModLevel($line['right'], $line['percent'], $line['level']) . "</td></tr>";
+	echo "<tr><td class=body>Level:</td><td class=body><select class=body name=level>" . make_select_list(range(0,5), $line['level']) . "</select></td></tr>";
 	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value=Update><input class=body type=submit name=action value=Cancel></td></tr>";
 
 	echo "</form></table>";
@@ -202,8 +257,8 @@ function editMod($userid){
 function updateMod($userid,$level){
 	global $type, $msgs, $db, $mods;
 
-	if($level > 5)
-		$level = 5;
+	if($level > 6)
+		$level = 6;
 	if($level < 0)
 		$level = 0;
 

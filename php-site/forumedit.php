@@ -7,7 +7,7 @@
 	if(!isset($id) || $id==0)
 		die("Bad forumid");
 
-	$perms = getForumPerms($id);	//checks it's a forum, not a realm
+	$perms = $forums->getForumPerms($id);	//checks it's a forum, not a realm
 
 
 	if(!$perms['admin'])
@@ -17,7 +17,7 @@
 		case "editforum":			editForum($id);				break;
 		case "Update Forum":		updateForum($data,$id);		break;
 		case "Delete":
-			deleteForum($id);
+			$forums->deleteForum($id);
 			header("location: /forums.php");
 			exit;
 	}
@@ -26,23 +26,25 @@
 
 
 function editForum($id){
-	global $PHP_SELF,$childdata,$db, $sorttimes;
+	global $childdata, $forums, $db, $sorttimes;
 
-	$db->prepare_query("SELECT name,description,autolock,edit,public,mute,username as ownername FROM forums LEFT JOIN users ON forums.ownerid=users.userid WHERE forums.id = ?", $id);
-	$data = $db->fetchrow();
+	$forums->db->prepare_query("SELECT name, description, autolock, edit, public, mute, ownerid FROM forums WHERE forums.id = ?", $id);
+	$data = $forums->db->fetchrow();
+
+	$ownername = getUserName($data['ownerid']);
 
 	extract($data);
 
 	incHeader();
 
-	echo "<table><form action=$PHP_SELF method=post>";
+	echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
 
 
 	echo "<tr><td class=body colspan=2>";
 	echo "<a class=body href=forumsusercreated.php>User Created Forums</a> > ";
 
 	echo "<a class=body href=forumthreads.php?fid=$id>$name</a> > ";
-	echo "<a class=body href=$PHP_SELF?id=$id>Edit Forum</a>";
+	echo "<a class=body href=$_SERVER[PHP_SELF]?id=$id>Edit Forum</a>";
 	echo "</td></tr>";
 
 	echo "<input type=hidden name=id value='$id'";
@@ -63,7 +65,7 @@ function editForum($id){
 	echo "</form></table>";
 
 	echo "<br>";
-	echo "<table><form action=$PHP_SELF method=post>";
+	echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
 	echo "<input type=hidden name=id value=$id>";
 	echo "<tr><td class=header align=center>Delete Forum</td></tr>";
 	echo "<tr><Td class=body>This will permanently delete the forum and all threads and posts associated with it</td></tr>";
@@ -75,7 +77,7 @@ function editForum($id){
 }
 
 function updateForum($data,$id){
-	global $msgs,$userData,$db,$sorttime,$sorttimes;
+	global $msgs,$userData,$forums,$sorttime,$sorttimes, $cache;
 
 	$name="";
 	$description="";
@@ -96,8 +98,8 @@ function updateForum($data,$id){
 		$error=true;
 	}
 
-	$db->prepare_query("SELECT id FROM forums WHERE name = ? && id != ?", $name, $id);
-	if($db->numrows() > 0){
+	$forums->db->prepare_query("SELECT id FROM forums WHERE name = ? && id != ?", $name, $id);
+	if($forums->db->numrows() > 0){
 		$msgs->addMsg("A forum already exists with that name");
 		$error=true;
 	}
@@ -121,21 +123,23 @@ function updateForum($data,$id){
 		editForum($id); //exit
 
 	$commands = array();
-	$commands[] = $db->prepare("name = ?", removehtml($name));
-	$commands[] = $db->prepare("description = ?", removehtml($description));
+	$commands[] = $forums->db->prepare("name = ?", removehtml($name));
+	$commands[] = $forums->db->prepare("description = ?", removehtml($description));
 	$commands[] = "parent='0'";
-	$commands[] = $db->prepare("autolock = ?", ($autolock*86400) );
-	$commands[] = $db->prepare("edit = ?", $edit);
-	$commands[] = $db->prepare("public = ?", $public);
-	$commands[] = $db->prepare("mute = ?", $mute);
-	$commands[] = $db->prepare("ownerid = ?", $ownerid);
+	$commands[] = $forums->db->prepare("autolock = ?", ($autolock*86400) );
+	$commands[] = $forums->db->prepare("edit = ?", $edit);
+	$commands[] = $forums->db->prepare("public = ?", $public);
+	$commands[] = $forums->db->prepare("mute = ?", $mute);
+	$commands[] = $forums->db->prepare("ownerid = ?", $ownerid);
 	$commands[] = "official='n'";
-	if(!in_array($sorttime,$sorttimes))
+	if(!in_array($sorttime, $forums->sorttimes))
 		$sorttime = 14;
 	$commands[] = "sorttime='$sorttime'";
 
-	$query = "UPDATE forums SET " . implode(", ",$commands) . $db->prepare(" WHERE id = ?", $id);
-	$db->query($query);
+	$query = "UPDATE forums SET " . implode(", ",$commands) . $forums->db->prepare(" WHERE id = ?", $id);
+	$forums->db->query($query);
+
+	$cache->remove(array($id, "forumdata-$id"));
 
 	$msgs->addMsg("Forum Updated");
 }
@@ -146,19 +150,19 @@ function updateForum($data,$id){
 ///////////////////////////////////
 
 function dispBranch(&$data,$basedepth=0){
-	global $PHP_SELF,$table;
+	global $table;
 	foreach($data as $line){
 		echo "<tr><td class=body>";
 		echo "<input class=body type=checkbox name=checkID[] value=$line[id]>";
 		for($i=0;$i<$line['depth']+$basedepth-1;$i++)
 			echo "&nbsp;- ";
-		echo "<a href=$PHP_SELF?catid=$line[id]&table=$table>" . $line['name'] . "</a> ($line[depth])";
+		echo "<a class=body href=$_SERVER[PHP_SELF]?catid=$line[id]&table=$table>" . $line['name'] . "</a> ($line[depth])";
 		echo "</td></tr>\n";
 	}
 }
 
 function dispRoot(&$data){
-	global $PHP_SELF,$table;
+	global $table;
 
 	$depth=0;
 	$maxdepth=count($data)-1;
@@ -170,7 +174,7 @@ function dispRoot(&$data){
 		echo "<input class=body type=checkbox name=checkID[] value=$line[id]>";
 		for($i=0;$i<$depth;$i++)
 			echo "&nbsp;- ";
-		echo "<a href=$PHP_SELF?catid=$line[id]&table=$table>" . $line['name'] . "</a> ($line[depth])";
+		echo "<a class=body href=$_SERVER[PHP_SELF]?catid=$line[id]&table=$table>" . $line['name'] . "</a> ($line[depth])";
 		echo "</td></tr>\n";
 		$depth++;
 	}
@@ -178,22 +182,23 @@ function dispRoot(&$data){
 
 
 function & getForumData(){	//table of type id,parent,name
+	global $forums;
 	$query = "SELECT * FROM forums WHERE official='y' ORDER BY priority ASC";
-    $result = $db->query($query);
+    $result = $forums->db->query($query);
 
 	$data = array();
-	while($line = $db->fetchrow($result))
+	while($line = $forums->db->fetchrow($result))
 		$data[$line['parent']][$line['id']]=$line;
 
 	return $data;
 }
 
 function & getForumParentData(){	//table of type id,parent,name
-	$query = "SELECT * FROM forums WHERE official='y' ORDER BY priority ASC";
-    $result = $db->query($query);
+	global $forums;
+    $forums->db->query("SELECT * FROM forums WHERE official='y' ORDER BY priority ASC");
 
 	$data = array();
-	while($line = $db->fetchrow($result))
+	while($line = $forums->db->fetchrow())
 		$data[$line['id']][$line['parent']]=$line;
  	return $data;
 }

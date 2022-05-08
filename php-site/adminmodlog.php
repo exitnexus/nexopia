@@ -7,12 +7,14 @@
 	if(!$mods->isadmin($userData['userid'],"listmods"))
 		die("Permission denied");
 
+//	die("Last update killed this, bug Timo about it.");
+
+	// can't do join between pics, users, and modvoteslog
+
 	$rows = array();
 
-	if(empty($username))
-		$username = "";
-	if(empty($itemid))
-		$itemid = "";
+	$username = getREQval('username');
+	$itemid = getREQval('itemid');
 
 	if(!empty($username) || !empty($itemid)){
 
@@ -31,10 +33,10 @@
 
 		$mods->adminlog('mod log',"Show mod vote log, search by user: $username, itemid: $itemid");
 
-		if(empty($page))
-			$page = 0;
+		$page = getREQval('page', 'int');
 
-		$db->query("SELECT SQL_CALC_FOUND_ROWS modvoteslog.modid, moduser.username as modname, modvoteslog.vote, modvoteslog.picid, pics.description, modvoteslog.userid as picuserid, picuser.username as picusername, picuser.age, picuser.sex
+		$db->query("SELECT SQL_CALC_FOUND_ROWS modvoteslog.modid, moduser.username as modname, modvoteslog.vote, modvoteslog.picid,
+								pics.description, modvoteslog.userid as picuserid, picuser.username as picusername, picuser.age, picuser.sex
 						FROM modvoteslog
 							LEFT JOIN pics ON modvoteslog.picid=pics.id
 							LEFT JOIN users AS picuser ON modvoteslog.userid=picuser.userid
@@ -56,11 +58,13 @@
 
 	incHeader();
 
+//print_r($rows);
+
 	if(count($rows)){
 		echo "<table>";
-		echo "<tr><td class=header colspan=2 align=right>Page: " . pageList("$PHP_SELF?username=$username&itemid=$itemid",$page,$numpages,'header') . "</td></tr>";
+		echo "<tr><td class=header colspan=2 align=right>Page: " . pageList("$_SERVER[PHP_SELF]?username=$username&itemid=$itemid",$page,$numpages,'header') . "</td></tr>";
 
-		$picloc = $config['picloc'];
+		$picloc = "http://www.nexopia.com" . $config['picdir'];
 
 		foreach($rows as $line){
 			if($line['sex']=='Female') 	$bgcolor = '#FFAAAA';
@@ -82,18 +86,18 @@
 			echo "<br><br>";
 
 			if(empty($username))
-				echo "<a class=body href=$PHP_SELF?username=$line[modid]>Search this mod</a>";
+				echo "<a class=body href=$_SERVER[PHP_SELF]?username=$line[modid]>Search this mod</a>";
 			if(empty($itemid))
-				echo "<a class=body href=$PHP_SELF?itemid=$line[picid]>Search this pic</a>";
+				echo "<a class=body href=$_SERVER[PHP_SELF]?itemid=$line[picid]>Search this pic</a>";
 			echo "</td></tr>";
 			echo "<tr><td colspan=2>&nbsp;</td></tr>\n";
 		}
 
-		echo "<tr><td class=header colspan=2 align=right>Page: " . pageList("$PHP_SELF?username=$username&itemid=$itemid",$page,$numpages,'header') . "</td></tr>";
+		echo "<tr><td class=header colspan=2 align=right>Page: " . pageList("$_SERVER[PHP_SELF]?username=$username&itemid=$itemid",$page,$numpages,'header') . "</td></tr>";
 		echo "</table>";
 	}
 
-	echo "<table><form action=$PHP_SELF>";
+	echo "<table><form action=$_SERVER[PHP_SELF]>";
 	echo "<tr><td class=body>Username</td><td class=body><input class=body type=text name=username value=$username></td></tr>";
 	echo "<tr><td class=body>Picid</td><td class=body><input class=body type=text name=itemid value=$itemid></td></tr>";
 	echo "<tr><td class=body></td><td class=body><input class=body type=submit value=Search></td></tr>";

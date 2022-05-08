@@ -4,23 +4,33 @@
 
 	require_once("include/general.lib.php");
 
-
-	$db->prepare_query("SELECT forummods.userid,username,forums.name as forumname,forummods.forumid, online, activetime FROM forummods,users LEFT JOIN forums ON forummods.forumid=forums.id WHERE forummods.userid = users.userid && (forums.official='y' || forummods.forumid = 0)");
-
 	$mod = $mods->isAdmin($userData['userid'],"forums");
 
+	$forums->db->prepare_query("SELECT forummods.userid, forums.name as forumname, forummods.forumid, forummods.activetime FROM forummods LEFT JOIN forums ON forummods.forumid=forums.id WHERE (forums.official='y' || forummods.forumid = 0)");
+
+	$users = array();
 	$forummods = array();
-	while($line = $db->fetchrow()){
+	while($line = $forums->db->fetchrow()){
 		$forummods[] = $line;
 		if($line['userid'] == $userData['userid'])
 			$mod = true;
+		$users[$line['userid']] = $line['userid'];
 	}
 
 	if(!$mod)
 		die("You don't have permission to see this");
 
+	$db->prepare_query("SELECT userid, username, online, activetime FROM users WHERE userid IN (?)", $users);
+
+	while($line = $db->fetchrow())
+		$users[$line['userid']] = $line;
+
+/*
+	if(empty($sortn))
+		$sortn = "";
+
 	$sortd = SORT_ASC;
-	$sortt = SORT_CASTSTR;
+	$sortt = SORT_CASESTR;
 	switch($sortn){
 		case 'forumname':
 		case 'username':
@@ -37,30 +47,30 @@
 			$sortn = 'forumname';
 			break;
 	}
-
-	sortCols($forummods, SORT_ASC, SORT_CASESTR, 'forumname', SORT_ASC, SORT_CASESTR, 'username', $sortd, $sortt, $sortn);
+*/
+	sortCols($forummods, SORT_ASC, SORT_CASESTR, 'forumname');//, SORT_ASC, SORT_CASESTR, 'username', $sortd, $sortt, $sortn);
 
 	incHeader();
 
 	echo "<table align=center>";
 	echo "<tr>";
-	echo "<td class=header><a class=header href=$PHP_SELF?sortn=username>Username</a></td>";
-	echo "<td class=header><a class=header href=$PHP_SELF?sortn=forumname>Forum Name</a></td>";
-	echo "<td class=header><a class=header href=$PHP_SELF?sortn=online>Online</a></td>";
-	echo "<td class=header><a class=header href=$PHP_SELF?sortn=activetime>Activetime</a></td>";
+	echo "<td class=header>Username</td>";
+	echo "<td class=header>Forum Name</td>";
+	echo "<td class=header>Mod Activity</td>";
+	echo "<td class=header>User Activity</td>";
 	echo "</tr>";
 
 	foreach($forummods as $mod){
 		echo "<tr>";
-		echo "<td class=body><a class=body href=profile.php?uid=$mod[userid]>$mod[username]</a></td>";
+		echo "<td class=body><a class=body href=profile.php?uid=$mod[userid]>" . $users[$mod['userid']]['username'] . "</a></td>";
 		echo "<td class=body>";
 		if(empty($mod['forumid']))
 			echo "Global";
 		else
 			echo "<a class=body href=forumthreads.php?fid=$mod[forumid]>$mod[forumname]</a>";
 		echo "</td>";
-		echo "<td class=body>" . ($mod['online'] == 'y' ? 'Online' : '') . "</td>";
-		echo "<td class=body>" . userDate("F j, Y \\a\\t g:i a", $mod['activetime']) . "</td>";
+		echo "<td class=body>" . ($mod['activetime'] ? userDate("F j, Y \\a\\t g:i a", $mod['activetime']) : 'Unknown') . "</td>";
+		echo "<td class=body>" . ($users[$mod['userid']]['online'] == 'y' ? '<b>Online</b>' : userDate("F j, Y \\a\\t g:i a", $users[$mod['userid']]['activetime'])) . "</td>";
 		echo "</tr>";
 	}
 	echo "</table>";

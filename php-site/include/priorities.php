@@ -1,7 +1,7 @@
 <?
 
-function increasepriority($id,$table,$where=""){
-	global $msgs,$db;
+function increasepriority(&$db, $table, $id, $where="", $circular = false){
+	global $msgs;
 	if(empty($id) || empty($table))
 		return false;
 
@@ -28,14 +28,26 @@ function increasepriority($id,$table,$where=""){
 
 		$msgs->addMsg("Priority Increased");
 		return true;
+	}elseif($circular){ //already max, set to min
+		$query="UPDATE $table SET priority=priority-1 WHERE priority > $priority";
+		if($where) $query .=" && $where";
+		$db->query($query);
+		$numModified = $db->affectedrows();
+
+		$query="UPDATE $table SET priority=$priority+$numModified WHERE id='$id'";
+		if($where) $query .=" && $where";
+		$db->query($query);
+
+		$msgs->addMsg("Priority set to Minimum");
+		return true;
 	}else{
 		$msgs->addMsg("Already Max Priority");
 		return false;
 	}
 }
 
-function decreasepriority($id,$table,$where=""){
-	global $msgs,$db;
+function decreasepriority(&$db, $table, $id, $where="", $circular = false){
+	global $msgs;
 	if(empty($id) || empty($table))
 		return false;
 
@@ -68,14 +80,25 @@ function decreasepriority($id,$table,$where=""){
 
 		$msgs->addMsg("Priority Decreased");
 		return true;
+	}elseif($circular){ //already min, set to max
+		$query="UPDATE $table SET priority=priority+1 WHERE priority < $priority";
+		if($where) $query .=" && $where";
+		$db->query($query);
+		$numModified = $db->affectedrows();
+
+		$query="UPDATE $table SET priority=1 WHERE id='$id'";
+		if($where) $query .=" && $where";
+		$db->query($query);
+
+		$msgs->addMsg("Priority set to Maximum");
+		return true;
 	}else{
 		$msgs->addMsg("Already Min Priority");
 		return false;
 	}
 }
 
-function setMaxPriority($id,$table,$where=""){
-	global $db;
+function setMaxPriority(&$db, $table, $id, $where=""){ //max priority id, lowest priority though
 
 	if(empty($id) || empty($table))
 		return false;
@@ -98,16 +121,16 @@ function setMaxPriority($id,$table,$where=""){
 	$db->query($query);
 }
 
-function getMaxPriority($table,$where=""){
-	global $db;
+function getMaxPriority(&$db, $table, $where=""){ //max priority id, lowest priority though
+
 	$query = "SELECT count(*) FROM $table";
 	if($where) $query .=" WHERE $where";
 	$result = $db->query($query);
 	return $db->fetchfield() +1;
 }
 
-function fixPriorities($table,$where=""){
-	global $db;
+function fixPriorities(&$db, $table, $where=""){
+
 	$query = "SELECT id,priority FROM $table";
 	if($where) $query .= " WHERE $where";
 	$query .= " ORDER BY priority";

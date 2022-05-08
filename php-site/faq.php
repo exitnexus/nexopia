@@ -4,17 +4,10 @@
 
 	require_once("include/general.lib.php");
 
+	$q = getREQval('q', 'int');
+	$cat = getREQval('cat', 'int');
 
-	$categories = & new category('faqcats');
-
-	$branch = $categories->makeBranch();
-
-	if(!isset($cat) || !$categories->isValidCat($cat))
-		$cat = 0;
-
-	if(!isset($q)){
-		$q=0;
-	}else{
+	if($q){
 		switch($action){
 			case "Yes":
 				$db->prepare_query("UPDATE faq SET priority = priority + 1 WHERE id = ?", $q);
@@ -29,41 +22,72 @@
 		}
 	}
 
-	if($cat == 0)		$db->query("SELECT * FROM faq ORDER BY priority DESC LIMIT 10");
-	else				$db->prepare_query("SELECT * FROM faq WHERE parent = ? ORDER BY priority DESC", $cat);
+	$categories = & new category( $db, 'faqcats');
 
-	$questions = array();
-	while($line = $db->fetchrow())
-		$questions[$line['id']] = $line;
+	$branch = $categories->makeBranch();
+
+
+	if(!empty($q)){
+		$answer = $cache->get(array($q, "faqans-$q"));
+
+		if(!$answer){
+			$db->prepare_query("SELECT parent, title, text FROM faq WHERE id = ?", $q);
+			$answer = $db->fetchrow();
+
+			$cache->put(array($q, "faqans-$q"), $answer, 86400);
+		}
+
+		if($answer && !isset($cat))
+			$cat = $answer['parent'];
+	}
+
+	if(!$cat || !$categories->isValidCat($cat)){
+		$query = "SELECT id, parent, priority, title FROM faq ORDER BY priority DESC LIMIT 10";
+	}else{
+		$query = $db->prepare("SELECT id, parent, priority, title FROM faq WHERE parent = ? ORDER BY priority DESC", $cat);
+	}
+
+
+	$questions = $cache->get(array($cat, "faqquestions-$cat"));
+
+	if(!$questions){
+		$db->query($query);
+
+		$questions = array();
+		while($line = $db->fetchrow())
+			$questions[$line['id']] = $line;
+
+		$cache->put(array($cat, "faqquestions-$cat"), $questions, 86400);
+	}
 
 	$catname = "Top Questions";
 
 	incHeader();
 
-	echo "<table width=100%><tr>";
+	echo "<table align=center><tr>";
 
 	echo "<td class=body valign=top width=150>";
 
 		echo "<table>";
 		echo "<tr><td class=header>Categories</td></tr>";
-		echo "<tr><td class=body><a class=body href=$PHP_SELF?cat=0>Top Questions</a></td></tr>";
+		echo "<tr><td class=body><a class=body href=$_SERVER[PHP_SELF]?cat=0>Top Questions</a></td></tr>";
 		foreach($branch as $category){
 			if($category['id'] == $cat)
 				$catname = $category['name'];
-			echo "<tr><td class=body>" . str_repeat("- ", $category['depth'] - 1) . "<a class=body href=$PHP_SELF?cat=$category[id]>$category[name]</a></td></tr>";
+			echo "<tr><td class=body>" . str_repeat("- ", $category['depth'] - 1) . "<a class=body href=$_SERVER[PHP_SELF]?cat=$category[id]>$category[name]</a></td></tr>";
 		}
 		echo "</table>";
 
-	echo "</td><td class=body valign=top>";
+	echo "</td><td class=body valign=top width=500>";
 
 	echo "<table>";
 
-	if(isset($questions[$q])){
-		echo "<tr><td class=body><b>" . $questions[$q]['title'] . "</b></td></tr>";
-		echo "<tr><td class=body>" . nl2br($questions[$q]['text']) . "</td></tr>";
+	if(!empty($answer)){
+		echo "<tr><td class=header><b>" . $answer['title'] . "</b></td></tr>";
+		echo "<tr><td class=body>" . nl2br($answer['text']) . "</td></tr>";
 
 		echo "<tr><td class=body>&nbsp;</td></tr>";
-		echo "<form action=$PHP_SELF>";
+		echo "<form action=$_SERVER[PHP_SELF]>";
 		echo "<input type=hidden name=cat value=$cat>";
 		echo "<input type=hidden name=q value=$q>";
 		echo "<tr><td class=body>Did this answer your question? <input class=body type=submit name=action value=Yes> <input class=body type=submit name=action value=No></td></tr>";
@@ -73,10 +97,11 @@
 
 	echo "<tr><td class=header>$catname</td></tr>";
 
-	foreach($questions as $question){
+	echo "<tr><td class=body><ul>";
+	foreach($questions as $question)
 		if($question['id'] != $q)
-			echo "<tr><td class=body><a class=body href=$PHP_SELF?cat=$cat&q=$question[id]>$question[title]</a></td></tr>";
-	}
+			echo "<li><a class=body href=$_SERVER[PHP_SELF]?cat=$cat&q=$question[id]>$question[title]</a>";
+	echo "</ul></td></tr>";
 
 	echo "</table>";
 
@@ -84,6 +109,4 @@
 	echo "</tr></table>";
 
 	incFooter();
-
-
 

@@ -4,11 +4,14 @@
 
 	require_once("include/general.lib.php");
 
-	$db->prepare_query("SELECT * FROM files WHERE userid = ? ORDER BY length(location) ASC",$userData['userid']);
+	if(!isset($uid) || !$mods->isAdmin($userData['userid'],'editfiles'))
+		$uid = $userData['userid'];
+
+	$db->prepare_query("SELECT * FROM files WHERE userid = # ORDER BY length(location) ASC", $uid);
 
 	if($db->numrows()==0){
 		$allperms = array( 0 => 	array(	'userid' => $userData['userid'],
-											'location' => $config['basefiledir'] . floor($userData['userid']/1000) . "/" . $userData['userid'] . "/",
+											'location' => $config['basefiledir'] . floor($uid/1000) . "/" . $uid . "/",
 											'list' => 'y',
 											'read' => 'y',
 											'readphp' => 'n',
@@ -18,11 +21,11 @@
 											'filesizelimit' => $config['filesizelimit'],
 											'quota' => $config['quota'] ) );
 
-		if(!file_exists($masterserver . $config['basefiledir'] . floor($userData['userid']/1000)))
-			mkdir($masterserver . $config['basefiledir'] . floor($userData['userid']/1000) . "/");
+		if(!file_exists($masterserver . $config['basefiledir'] . floor($uid/1000)))
+			mkdir($masterserver . $config['basefiledir'] . floor($uid/1000) . "/");
 
-		if(!file_exists($masterserver . $config['basefiledir'] . floor($userData['userid']/1000) . "/" . $userData['userid'] ))
-			mkdir($masterserver . $config['basefiledir'] . floor($userData['userid']/1000) . "/" . $userData['userid']);
+		if(!file_exists($masterserver . $config['basefiledir'] . floor($uid/1000) . "/" . $uid ))
+			mkdir($masterserver . $config['basefiledir'] . floor($uid/1000) . "/" . $uid);
 /*
 			if(!empty($action) && $action == 'Continue'){
 
@@ -30,7 +33,7 @@
 				incHeader();
 
 				echo "Some TOS thing here<br>";
-				echo "<form action=$PHP_SELF>";
+				echo "<form action=$_SERVER[PHP_SELF]>";
 				echo "<input class=body type=submit name=action value=Continue>";
 				echo "</form>";
 
@@ -39,7 +42,7 @@
 			}
 		}
 */
-		$urlRoot = $config['imgserver'];
+		$urlRoot = "http://users.nexopia.com"; //$config['imgserver'];
 	}else{
 		$allperms = array();
 
@@ -48,6 +51,8 @@
 
 		$urlRoot = $wwwdomain;
 	}
+
+	$restrictedfiles = array("php", "pif", "com", "scr", "bat", "vbs");
 
 //	print_r($allperms);
 
@@ -97,7 +102,7 @@
 /////////////////////////////////////////////////
 
 function upload($userfile,$userfile_name){
-	global $opendirperms,$msgs,$basedir,$opendir;
+	global $opendirperms,$msgs,$basedir,$opendir, $restrictedfiles;
 
 	if($opendirperms['write']=='n'){
 		$msgs->addMsg("You don't have permission to upload");
@@ -107,7 +112,7 @@ function upload($userfile,$userfile_name){
 	if(!isset($userfile) || $userfile=="none")
 		return;
 
-	if(strpos($userfile_name,"..")!==false || strpos($userfile_name,"/")!==false){
+	if(strpos($userfile_name,"..")!==false || strpos($userfile_name,"/")!==false || strpos($userfile_name,"'")!==false || strpos($userfile_name,'"')!==false || strpos($userfile_name,'&')!==false){
 		$msgs->addMsg("File " . $userfile_name . " is illegal. Check its name and size.");
 		return;
 	}
@@ -122,8 +127,8 @@ function upload($userfile,$userfile_name){
 		return;
 	}
 
-	if(getFileExt($userfile_name)=="php" && $opendirperms['writephp']!='y'){
-		$msgs->addMsg("You do not have permission to upload php files");
+	if(in_array(getFileExt($userfile_name), $restrictedfiles) && $opendirperms['writephp']!='y'){
+		$msgs->addMsg("You do not have permission to upload this file");
 		return;
 	}
 
@@ -135,7 +140,10 @@ function upload($userfile,$userfile_name){
 }
 
 function edit($filename){
-	global $opendirperms,$msgs,$basedir,$opendir,$PHP_SELF,$sortt,$sortd;
+	global $opendirperms, $msgs, $basedir, $opendir, $sortt, $sortd, $uid, $userData, $urlRoot, $baseuserdir, $restrictedfiles;
+
+	if($uid != $userData['userid'])
+		return;
 
 	if(!isset($filename)){
 		$msgs->addMsg("bad data");
@@ -145,7 +153,7 @@ function edit($filename){
 		$msgs->addMsg("You don't have permission to edit files");
 		return;
 	}
-	if(getFileExt($filename)=='php' && $opendirperms['writephp']=='n'){
+	if(in_array(getFileExt($filename), $restrictedfiles) && $opendirperms['writephp']=='n'){
 		$msgs->addMsg("You don't have permission to edit php files");
 		return;
 	}
@@ -153,7 +161,7 @@ function edit($filename){
 		$msgs->addMsg("You can only edit text files");
 		return;
 	}
-	if(strpos($filename,"..")!==false || strpos($filename,"/")!==false){
+	if(strpos($filename,"..")!==false || strpos($filename,"/")!==false || strpos($filename,"'")!==false || strpos($filename,'"')!==false || strpos($filename,'&')!==false){
 		$msgs->addMsg("Invalid File name");
 		return;
 	}
@@ -167,7 +175,12 @@ function edit($filename){
 		return;
 	}
 
-	$file_contents = fread( $fp, filesize( $basedir . $opendir . $filename ) );
+	$filesize = filesize( $basedir . $opendir . $filename );
+
+	$file_contents = "";
+
+	if($filesize)
+		$file_contents = fread($fp,  $filesize);
 
 	fclose( $fp );
 
@@ -176,7 +189,7 @@ function edit($filename){
 
 	echo "<center>";
 	echo "$urlRoot$baseuserdir$opendir$filename<br>";
-	echo "<form action=$PHP_SELF method=post>";
+	echo "<form action=$_SERVER[PHP_SELF] method=post>";
 	echo "<textarea name=text wrap=off style='font: 10pt courier new; width: 750; height:500'>";
 	echo htmlentities($file_contents);
 	echo "</textarea><br>";
@@ -194,7 +207,10 @@ function edit($filename){
 }
 
 function save($filename,$text){
-	global $opendirperms,$msgs,$basedir,$opendir;
+	global $opendirperms,$msgs,$basedir,$opendir, $uid, $userData, $restrictedfiles;
+
+	if($uid != $userData['userid'])
+		return;
 
 	if(!isset($filename)){
 		$msgs->addMsg("bad data");
@@ -204,15 +220,15 @@ function save($filename,$text){
 		$msgs->addMsg("You don't have permission to edit files");
 		return false;
 	}
-	if(getFileExt($filename)=='php' && $opendirperms['writephp']=='n'){
-		$msgs->addMsg("You don't have permission to edit php files");
+	if(in_array(getFileExt($filename), $restrictedfiles)  && $opendirperms['writephp']=='n'){
+		$msgs->addMsg("You don't have permission to edit " . getFileExt($filename) . " files");
 		return false;
 	}
 	if(getFileType($filename) != 'text' && getFileType($filename) != 'php'){
 		$msgs->addMsg("You can only edit text files");
 		return false;
 	}
-	if(strpos($filename,"..")!==false || strpos($filename,"/")!==false){
+	if(strpos($filename,"..")!==false || strpos($filename,"/")!==false || strpos($filename,"'")!==false || strpos($filename,'"')!==false || strpos($filename,'&')!==false){
 		$msgs->addMsg("Invalid File name");
 		return false;
 	}
@@ -273,7 +289,10 @@ function delete($filename){
 }
 
 function createfile($filename){
-	global $msgs,$basedir,$opendir,$opendirperms;
+	global $msgs,$basedir,$opendir,$opendirperms, $uid, $userData;
+
+	if($uid != $userData['userid'])
+		return;
 
 	if(file_exists($basedir . $opendir . $filename)){
 		$msgs->addMsg("File already exists");
@@ -285,13 +304,16 @@ function createfile($filename){
 }
 
 function createdir($name){
-	global $opendirperms,$msgs,$basedir,$opendir;
+	global $opendirperms,$msgs,$basedir,$opendir, $uid, $userData;
+
+	if($uid != $userData['userid'])
+		return;
 
 	if(!$opendirperms['write'] || !$opendirperms['recursive']){
 		$msgs->addMsg("You don't have permission to create a directory");
 		return;
 	}
-	if(strpos($name,"..")!==false || strpos($name,"/")!==false){
+	if(strpos($name,"..")!==false || strpos($name,"/")!==false || strpos($name,"'")!==false || strpos($name,'"')!==false || strpos($name,'&')!==false){
 		$msgs->addMsg("Invalid directory name");
 		return;
 	}
@@ -299,7 +321,10 @@ function createdir($name){
 }
 
 function renamefile($filename,$new){
-	global $opendirperms,$msgs,$basedir,$opendir;
+	global $opendirperms,$msgs,$basedir,$opendir, $uid, $userData, $restrictedfiles;
+
+	if($uid != $userData['userid'])
+		return;
 
 	if(!isset($filename)){
 		$msgs->addMsg("bad data");
@@ -309,8 +334,8 @@ function renamefile($filename,$new){
 		$msgs->addMsg("You don't have permission to rename files");
 		return;
 	}
-	if(getFileExt($new)=='php' && $opendirperms['writephp']=='n'){
-		$msgs->addMsg("You don't have permission to create php files");
+	if(in_array(getFileExt($new), $restrictedfiles) && $opendirperms['writephp']=='n'){
+		$msgs->addMsg("You don't have permission to create files with this file extension");
 		return;
 	}
 	if($opendirperms['readphp']=='n' && getFileType($filename)=='php'){
@@ -321,7 +346,7 @@ function renamefile($filename,$new){
 		$msgs->addMsg("Invalid File name");
 		return;
 	}
-	if(strpos($new,"..")!==false || strpos($new,"/")!==false){
+	if(strpos($new,"..")!==false || strpos($new,"/")!==false || strpos($new,"'")!==false || strpos($new,'"')!==false || strpos($new,'&')!==false){
 		$msgs->addMsg("Invalid File name");
 		return;
 	}
@@ -338,15 +363,20 @@ function renamefile($filename,$new){
 }
 
 function view($filename){
-	global $opendirperms,$msgs,$basedir,$opendir,$baseuserdir,$PHP_SELF,$urlRoot;
+	global $opendirperms, $msgs, $basedir, $opendir, $baseuserdir, $urlRoot, $uid, $userData, $restrictedfiles;
 
 	if($opendirperms['read']=='n'){
 		$msgs->addMsg("You don't have read permissions");
 		return;
 	}
 
-	if($opendirperms['readphp']=='n' && getFileType($filename)=='php'){
+	if($opendirperms['readphp']=='n' && in_array(getFileExt($filename), $restrictedfiles)){
 		$msgs->addMsg("You don't have read permissions on php files");
+		return;
+	}
+
+	if(strpos($filename,"..")!==false || strpos($filename,"/")!==false || strpos($filename,"'")!==false || strpos($filename,'"')!==false || strpos($filename,'&')!==false){
+		$msgs->addMsg("Invalid File name");
 		return;
 	}
 
@@ -355,6 +385,8 @@ function view($filename){
 		return;
 	}
 
+
+	$uidstr = ($uid == $userData['userid'] ? "" : "&uid=$uid");
 
 	switch(getFileType($filename)){
 		case "php":
@@ -386,7 +418,7 @@ function view($filename){
 			incHeader();
 
 			echo "[img]$urlRoot$baseuserdir$opendir$filename" . "[/img]<br>";
-			echo "<a class=body href=$PHP_SELF?opendir=$opendir><img src=\"$urlRoot$baseuserdir$opendir$filename\" border=0></a>";
+			echo "<a class=body href=$_SERVER[PHP_SELF]?opendir=$opendir$uidstr><img src=\"$urlRoot$baseuserdir$opendir$filename\" border=0></a>";
 
 			incFooter();
 			exit;
@@ -394,7 +426,7 @@ function view($filename){
 }
 
 function download($filename){
-	global $opendirperms,$msgs,$basedir,$opendir,$baseuserdir;
+	global $opendirperms,$msgs,$basedir,$opendir,$baseuserdir, $restrictedfiles;
 
 
 	if($opendirperms['read']=='n'){
@@ -402,8 +434,8 @@ function download($filename){
 		return;
 	}
 
-	if($opendirperms['readphp']=='n' && getFileType($filename)=='php'){
-		$msgs->addMsg("You don't have read permissions on php files");
+	if($opendirperms['readphp']=='n' && in_array(getFileExt($filename), $restrictedfiles)){
+		$msgs->addMsg("You don't have read permissions on files of this type");
 		return;
 	}
 
@@ -458,7 +490,7 @@ function dirsize($dir,$maxLevel=3,$level=0) { // calculate the size of files in 
 
 
 function browse($opendir){
-	global $basedir,$baseuserdir,$userData,$opendirperms, $sortt, $sortd,$PHP_SELF,$config;
+	global $basedir, $baseuserdir, $userData, $opendirperms, $sortt, $sortd, $config, $uid;
 
 	if (!($dir = @opendir($basedir . $opendir))){
 		echo "Could not open " . $basedir . $opendir . " for reading";
@@ -488,7 +520,7 @@ function browse($opendir){
 
 	incHeader();
 
-	echo "<form action=$PHP_SELF>";
+	echo "<form action=$_SERVER[PHP_SELF]>";
 	echo "<input type=hidden name=opendir value=\"$opendir\">";
 	echo "<input type=hidden name=sortt value=$sortt>";
 	echo "<input type=hidden name=sortd value=$sortd>";
@@ -502,18 +534,19 @@ function browse($opendir){
 	echo "	<td class=header width=20><img src=$config[imageloc]down.png alt=Download></td>";
 	echo "	<td class=header width=20><img src=$config[imageloc]edit.gif alt=Edit></td>";
 
-	echo "	<td class=header><a class=header href=\"$PHP_SELF?opendir=$opendir&sortd=" . ($sortt=="name" ? ($sortd=="ASC" ? "DESC" : "ASC") : $sortd). "&sortt=name\">Name</a>". ($sortt=="name" ? "&nbsp<img src=/images/$sortd.png>" : "") ."</td>\n";
-	echo "	<td class=header align=right><a class=header href=\"$PHP_SELF?opendir=$opendir&sortd=" . ($sortt=="size" ? ($sortd=="ASC" ? "DESC" : "ASC") : $sortd). "&sortt=size\">Size</a>". ($sortt=="size" ? "&nbsp<img src=/images/$sortd.png>" : "") ."</td>\n";
-	echo "	<td class=header align=right><a class=header href=\"$PHP_SELF?opendir=$opendir&sortd=" . ($sortt=="date" ? ($sortd=="ASC" ? "DESC" : "ASC") : $sortd). "&sortt=date\">Date</a>". ($sortt=="date" ? "&nbsp<img src=/images/$sortd.png>" : "") ."</td>\n";
+	echo "	<td class=header><a class=header href=\"$_SERVER[PHP_SELF]?opendir=$opendir&sortd=" . ($sortt=="name" ? ($sortd=="ASC" ? "DESC" : "ASC") : $sortd). "&sortt=name\">Name</a>". ($sortt=="name" ? "&nbsp<img src=$config[imageloc]$sortd.png>" : "") ."</td>\n";
+	echo "	<td class=header align=right><a class=header href=\"$_SERVER[PHP_SELF]?opendir=$opendir&sortd=" . ($sortt=="size" ? ($sortd=="ASC" ? "DESC" : "ASC") : $sortd). "&sortt=size\">Size</a>". ($sortt=="size" ? "&nbsp<img src=$config[imageloc]$sortd.png>" : "") ."</td>\n";
+	echo "	<td class=header align=right><a class=header href=\"$_SERVER[PHP_SELF]?opendir=$opendir&sortd=" . ($sortt=="date" ? ($sortd=="ASC" ? "DESC" : "ASC") : $sortd). "&sortt=date\">Date</a>". ($sortt=="date" ? "&nbsp<img src=$config[imageloc]$sortd.png>" : "") ."</td>\n";
 	echo "</tr>\n";
 
+	$uidstr = ($uid == $userData['userid'] ? "" : "&uid=$uid");
 
 
 	if($opendir != "/"){
 		$up=dirname($opendir);
 		if($up!="/")
 			$up.="/";
-		echo "<tr><td class=body></td><td class=body></td><td class=body></td><td class=body></td><td class=body>[&nbsp<a class=body href=\"$PHP_SELF?opendir=$up&sortd=$sortd&sortt=$sortt\">Up one level</a>&nbsp]</td><td class=body></td><td class=body></td></tr>\n";
+		echo "<tr><td class=body></td><td class=body></td><td class=body></td><td class=body></td><td class=body>[&nbsp<a class=body href=\"$_SERVER[PHP_SELF]?opendir=$up&sortd=$sortd&sortt=$sortt\">Up one level</a>&nbsp]</td><td class=body></td><td class=body></td></tr>\n";
 	}
 
 	if(sizeof($listing) >= 1){
@@ -528,12 +561,12 @@ function browse($opendir){
 //delete
 				echo "<td class=body>";
 				if($perms['write']=='y')
-					echo "<a class=body href=\"javascript:confirmLink('$PHP_SELF?opendir=$opendir&action=delete&filename=$file[filename]','delete this directory')\"><img src=$config[imageloc]delete.gif border=0 alt=Delete></a> ";
+					echo "<a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?opendir=$opendir&action=delete&filename=" . urlencode($file['filename']) . "$uidstr','delete this directory')\"><img src=$config[imageloc]delete.gif border=0 alt=Delete></a> ";
 				echo "</td>";
 //rename
 				echo "<td class=body>";
-				if($perms['write']=='y')
-					echo "<a class=body href=\"javascript: if(name = prompt('Rename to what?','$file[filename]')) location.href= '$PHP_SELF?opendir=$opendir&action=rename&filename=$file[filename]&new=' + name\"><img src=$config[imageloc]rename.gif border=0 alt=Rename></a> ";
+				if($perms['write']=='y' && $uid == $userData['userid'])
+					echo "<a class=body href=\"javascript: if(name = prompt('Rename to what?','" . urlencode($file['filename']) . "')) location.href= '$_SERVER[PHP_SELF]?opendir=$opendir&action=rename&filename=" . urlencode($file['filename']) . "$uidstr&new=' + escape(name)\"><img src=$config[imageloc]rename.gif border=0 alt=Rename></a> ";
 				echo "</td>";
 
 				echo "<td class=body></td>"; //download
@@ -544,7 +577,7 @@ function browse($opendir){
 				echo "<td class=body>";
 				echo "[&nbsp;";
 				if($perms['list'])
-					echo "<a class=body href=\"$PHP_SELF?opendir=$opendir$file[filename]/&sortd=$sortd&sortt=$sortt\">";
+					echo "<a class=body href=\"$_SERVER[PHP_SELF]?opendir=$opendir" . urlencode($file['filename']) . "/$uidstr&sortd=$sortd&sortt=$sortt\">";
 				echo $file['filename'];
 				if($perms['list'])
 					echo "</a>";
@@ -554,22 +587,22 @@ function browse($opendir){
 //delete
 				echo "<td class=body>";
 				if($opendirperms['write']=='y')
-					echo "<a class=body href=\"javascript:confirmLink('$PHP_SELF?opendir=$opendir&action=delete&filename=$file[filename]','delete this file')\"><img src=$config[imageloc]delete.gif border=0 alt=Delete></a> ";
+					echo "<a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?opendir=$opendir&action=delete$uidstr&filename=" . urlencode(urlencode($file['filename'])) . "','delete this file')\"><img src=$config[imageloc]delete.gif border=0 alt=Delete></a> ";
 				echo "</td>";
 //rename
 				echo "<td class=body>";
-				if($opendirperms['write']=='y' && (getFileType($file['filename'])!='php' || $opendirperms['readphp']=='y'))
-					echo "<a class=body href=\"javascript: if(name = prompt('Rename to what?','$file[filename]')) location.href= '$PHP_SELF?opendir=$opendir&action=rename&filename=$file[filename]&new=' + name\"><img src=$config[imageloc]rename.gif border=0 alt=Rename></a> ";
+				if($opendirperms['write']=='y' && (getFileType($file['filename'])!='php' || $opendirperms['readphp']=='y') && $uid == $userData['userid'])
+					echo "<a class=body href=\"javascript: if(name = prompt('Rename to what?','" . urlencode($file['filename']) . "')) location.href= '$_SERVER[PHP_SELF]?opendir=$opendir&action=rename&filename=" . urlencode(urlencode($file['filename'])) . "&new=' + escape(name)\"><img src=$config[imageloc]rename.gif border=0 alt=Rename></a> ";
 				echo "</td>";
-//down
+//download
 				echo "<td class=body>";
 				if($opendirperms['read']=='y' && (getFileType($file['filename'])!='php' || $opendirperms['readphp']=='y'))
-					echo "<a class=body href=\"$PHP_SELF?opendir=$opendir&action=download&filename=$file[filename]\"><img src=$config[imageloc]down.png border=0 alt=Download></a> ";
+					echo "<a class=body href=\"$_SERVER[PHP_SELF]?opendir=$opendir&action=download$uidstr&filename=" . urlencode($file['filename']) . "\"><img src=$config[imageloc]down.png border=0 alt=Download></a> ";
 				echo "</td>";
 //edit
 				echo "<td class=body>";
 				if($opendirperms['read']=='y' && ($file['filetype']=='text' || ($file['filetype']=='php' && $opendirperms['writephp']=='y')))
-					echo "<a class=body href=\"$PHP_SELF?opendir=$opendir&action=edit&filename=$file[filename]\"><img src=$config[imageloc]edit.gif border=0 alt=Edit></a>";
+					echo "<a class=body href=\"$_SERVER[PHP_SELF]?opendir=$opendir&action=edit$uidstr&filename=" . urlencode($file['filename']) . "\"><img src=$config[imageloc]edit.gif border=0 alt=Edit></a>";
 				echo "</td>";
 
 
@@ -578,7 +611,7 @@ function browse($opendir){
 				if($opendirperms['read']=='n' || getFileType($file['filename'])=='unknown' || ($opendirperms['readphp']=='n' && getFileType($file['filename'])=='php'))
 					echo $file['filename'];
 				else
-					echo "<a class=body href=\"$PHP_SELF?opendir=$opendir&action=view&filename=$file[filename]\">$file[filename]</a>";
+					echo "<a class=body href=\"$_SERVER[PHP_SELF]?opendir=$opendir&action=view$uidstr&filename=" . urlencode($file['filename']) . "\">$file[filename]</a>";
 			}
 
 			echo "</td>";
@@ -599,28 +632,28 @@ function browse($opendir){
 	echo "<td class=header align=right>Quota: " . number_format($opendirperms['quota']/1024) . " KB</td></tr>\n";
 	echo "</table>";
 
-	if($opendirperms['write']=='y'){
-		echo "<table><form action=$PHP_SELF>";
+	if($opendirperms['write']=='y' && $userData['userid'] == $uid){
+		echo "<table><form action=$_SERVER[PHP_SELF]>";
 		echo "<input type=hidden name=opendir value=\"$opendir\">";
 		echo "<input type=hidden name=sortt value=$sortt>";
 		echo "<input type=hidden name=sortd value=$sortd>";
 		echo "<tr><td class=header colspan=2>Create New Text or HTML File</td></tr>";
-		echo "<tr><td class=body><input class=body type=text name=filename size=40></td><td class=body><input class=body type=submit name=action value='Create File'></td></tr>";
+		echo "<tr><td class=body><input class=body type=text name=filename size=40><input class=body type=submit name=action value='Create File'></td></tr>";
 		echo "</form>";
 		echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
 
 		if($opendirperms['recursive']=='y'){
-			echo "<form action=$PHP_SELF>";
+			echo "<form action=$_SERVER[PHP_SELF]>";
 			echo "<input type=hidden name=opendir value=\"$opendir\">";
 			echo "<input type=hidden name=sortt value=$sortt>";
 			echo "<input type=hidden name=sortd value=$sortd>";
 			echo "<tr><td class=header colspan=2>Create Directory</td></tr>";
-			echo "<tr><td class=body><input class=body type=text name=dirname size=40></td><td class=body><input class=body type=submit name=action value='Create Directory'></td></tr>";
+			echo "<tr><td class=body><input class=body type=text name=dirname size=40><input class=body type=submit name=action value='Create Directory'></td></tr>";
 			echo "</form>";
 			echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
 		}
 
-		echo "<form action=\"$PHP_SELF\" ENCTYPE=\"multipart/form-data\" method=POST>\n";
+		echo "<form action=$_SERVER[PHP_SELF] ENCTYPE=\"multipart/form-data\" method=POST>\n";
 		echo "<input type=hidden name=opendir value=\"$opendir\">";
 		echo "<input type=hidden name=sortt value=$sortt>";
 		echo "<input type=hidden name=sortd value=$sortd>";
@@ -628,10 +661,11 @@ function browse($opendir){
 		echo "<tr><td class=header colspan=3>Upload Files</td></tr>";
 
 
-		echo "<tr><td class=body><input class=body name=\"userfile\" type=\"file\" size=40></td><td class=body><input class=body type=submit name=action value=\"Upload\">\n";
+		echo "<tr><td class=body><input class=body name=\"userfile\" type=\"file\" size=40><input class=body type=submit name=action value=\"Upload\"></td></tr>\n";
 		echo "</table></form>";
 
 	}
+
 	incFooter();
 }
 

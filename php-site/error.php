@@ -1,39 +1,34 @@
 <?
 
-/*
-phpinfo();
-exit;
-//*/
-
 	if(isset($_SERVER['REQUEST_URI']))
 		$url = substr($_SERVER['REQUEST_URI'],1);
 	if(isset($_SERVER['REDIRECT_URL']))
 		$url = substr($_SERVER['REDIRECT_URL'],1);
 
-//echo $url;
+	if($url != "favicon.ico"){
+//		include_once("include/general.lib.php");
 
-	require_once("include/general.lib.php");
+		if(	strlen($url) <= 12 &&
+			strpos($url,".php") === false &&
+			strpos($url,".jpg") === false &&
+			strpos($url,".html")=== false &&
+			strpos($url,".gif") === false &&
+			strpos($url,".png") === false &&
+			strpos($url,".swf") === false &&
+			strpos($url,".js")  === false &&
+			strpos($url,".css") === false &&
+			strpos($url,".ico") === false){
 
-	if(	strlen($url) <= 12 &&
-		strpos($url,".php") === false &&
-		strpos($url,".html")=== false &&
-		strpos($url,".gif") === false &&
-		strpos($url,".png") === false &&
-		strpos($url,".jpg") === false &&
-		strpos($url,".swf") === false &&
-		strpos($url,".js")  === false &&
-		strpos($url,".css") === false &&
-		strpos($url,".ico") === false){
+			header("location: /profile.php?uid=$url");
+			exit;
+		}
 
-		header("location: http://$wwwdomain/profile.php?uid=$url");
-		exit;
+		if(substr($url,0,3) == "www"){
+			header("location: http://$url");
+			exit;
+		}
 	}
-
-	if(substr($url,0,3) == "www"){
-		header("location: http://$url");
-		exit;
-	}
-
+/*
 if(0){ //enable mirroring
 
 	$mirroring = array('picdir','thumbdir','bannerdir','basefiledir','gallerypicdir','gallerythumbdir','imagedir','smilydir');
@@ -59,7 +54,6 @@ if(0){ //enable mirroring
 						$basedir .= "/$dir";
 					}
 
-//*
 		$masterimageserver = "beta.www.nexopia.com";
 
 		$remotefile = "http://" . $masterimageserver . $url;
@@ -77,10 +71,6 @@ if(0){ //enable mirroring
 		fclose($remote);
 		fclose($local);
 
-/*/
-
-					@copy($masterserver . $url, $docRoot . $url);
-//*/
 					header("location: $url");
 					exit;
 				}
@@ -88,10 +78,10 @@ if(0){ //enable mirroring
 			}
 		}
 	}
-}
+}*/
 
 header("404 Not Found");
-echo <<<END
+?>
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
 <HTML><HEAD>
 <TITLE>404 Not Found</TITLE>
@@ -99,5 +89,4 @@ echo <<<END
 <H1>Not Found</H1>
 The requested URL $url was not found on this server.
 </BODY></HTML>
-END;
 

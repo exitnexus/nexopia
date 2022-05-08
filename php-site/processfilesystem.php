@@ -1,5 +1,5 @@
+#!/usr/local/bin/php
 <?
-	$forceserver=true;
 
 	require_once("include/general.lib.php");
 
