@@ -1,47 +1,133 @@
 <?
 
 	$login = 1;
-	$userprefs = array("email");
 
 	include_once("include/general.lib.php");
 
+	$maxlength = 250;
+
+
+	$friendnames = getPOSTval('friendnames', 'array');
+	$friendemails = getPOSTval('friendemails', 'array');
+
+	$myname = getPOSTval('myname', 'string', $userData['username']);
+
+//	$msg = getPOSTval('msg');
+//	$msg = substr($msg, 0, $maxlength);
+
 	if($action == "Send"){
+//		$msg = removeHTML($msg);
 
-		$subject = "Invitation to Nexopia.com";
-		$message =
-"Your friend $myname would like to invite you to join Nexopia.com. The reason given is:
+		if(count($friendnames) && count($friendnames) == count($friendemails)){
+			$parts = array();
+			$time = time();
+			$num = 0;
 
-$msg
+			$res = $db->prepare_query("SELECT email FROM inviteoptout WHERE email IN (?)", $friendemails);
 
-Check it out here: http://www.nexopia.com
-You can see " . ($userData['sex'] == 'Male' ? 'his' : 'her') . " profile here: http://www.nexopia.com/profile.php?uid=$userData[userid]
-You may join here: http://www.nexopia.com/create.php";
+			$optout = array();
+			while($line = $res->fetchrow())
+				$optout[$line['email']] = $line['email'];
 
-		smtpmail("$friendname <$friendemail>", $subject, $message, "From: $myname <$myemail>") or die("Error sending email");
+			$res = $masterdb->prepare_query("SELECT email FROM useremails WHERE email IN (?)", $friendemails);
 
-		incHeader();
+			$optout = array();
+			while($line = $res->fetchrow())
+				$optout[$line['email']] = $line['email'];
 
-		echo "An invitation has been sent to $friendname.";
+			for($i = 0; $i < count($friendnames); $i++){
 
-		incFooter();
-		exit;
+				if(empty($friendnames[$i]) || empty($friendemails[$i]))
+					continue;
+
+				if(!isValidEmail($friendemails[$i])) //adds the $msg itself
+					continue;
+
+				if(strlen($friendnames[$i]) <= 2){
+					$msgs->addMsg("The name: " . htmlentities($friendnames[$i]) . " is too short");
+					continue;
+				}
+
+				if(strlen($friendnames[$i]) >= 20){
+					$msgs->addMsg("The name: " . htmlentities($friendnames[$i]) . " is too long");
+					continue;
+				}
+
+/*				if(!preg_match("/[\w\d ]* /", $friendnames[$i])){
+					$msgs->addMsg("The name: " . htmlentities($friendnames[$i]) . " is too long");
+					continue;
+				}
+*/
+				if(isset($optout[$friendemails[$i]]))
+					continue;
+
+				$num++;
+
+				$subject = "Invitation to Nexopia.com";
+				$message =
+"Hey $friendnames[$i],
+
+Your friend, $myname, would like you to come join us at Nexopia, the fastest growing online community in Canada!
+
+What is Nexopia?
+Nexopia is an online community where you can keep in touch with your friends and meet new people.
+
+As a member you can:
+- Create a customized profile
+- Upload and share your pictures
+- Send messages and leave comments for your friends
+- Create your own blog
+- Browse some of the most popular forums in North America
+
+The best part is it's FREE!
+
+Check out " . $myname . "'s profile right now and see what we're all about: http://www.nexopia.com/profile.php?uid=$userData[userid]
+
+If you do not want to receive invitation emails from Nexopia members in the future, you can click here: http://www.nexopia.com/inviteoptout.php?email=$friendemails[$i]&k=" . makeKey($friendemails[$i], -1);
+
+				smtpmail("$friendnames[$i] <$friendemails[$i]>", $subject, $message, "From: $myname <$userData[email]>");
+
+				$parts[] = $db->prepare("(?,?,#,#)", $friendnames[$i], $friendemails[$i], $userData['userid'], $time);
+
+				unset($friendnames[$i], $friendemails[$i]);
+			}
+
+			if(count($parts))
+				$db->query("INSERT INTO invites (name, email, userid, time) VALUES " . implode(',', $parts));
+
+			$msgs->addMsg("$num Invitations sent");
+		}else{
+			$friendnames = array();
+			$friendemails = array();
+		}
 	}
 
+	$friendnames = array_values($friendnames);
+	$friendemails = array_values($friendemails);
 
-	incHeader();
+	$numFriends = count($friendnames);
+	$inviteFriends = array();
 
-	echo "<table align=center><form action=$_SERVER[PHP_SELF] method=post>";
-	echo "<tr><td class=header align=center colspan=2>Refer a Friend</td></tr>";
+	for($i = 0; $i < $numFriends; $i++){
+//		if(empty($friendnames[$i]) && empty($friendemails[$i])){
+//			unset($friendnames[$i], $friendemails[$i]);
+//			continue;
+//		}
 
-	echo "<tr><td class=body>Your Name:</td><td class=body><input class=body type=text name=myname value='$userData[username]'></td></tr>";
-	echo "<tr><td class=body>Your Email:</td><td class=body><input class=body type=text name=myemail value='$userData[email]'></td></tr>";
-	echo "<tr><td class=body>Friends Name:</td><td class=body><input class=body type=text name=friendname></td></tr>";
-	echo "<tr><td class=body>Friends Email:</td><td class=body><input class=body type=text name=friendemail></td></tr>";
+		$inviteFriends[] = array(
+			'name'	=> $friendnames[$i],
+			'email'	=> $friendemails[$i]
+		);
+	}
 
-	echo "<tr><td class=body colspan=2>Message:<br><textarea class=body cols=50 rows=6 name=msg></textarea></td></tr>";
-	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value=Send></td></tr>";
+	for($i = $numFriends; $i < 6; $i++)
+		$inviteFriends[] = array(
+			'name'	=> '',
+			'email'	=> ''
+		);
 
-	echo "</form></table>";
-
-	incFooter();
-
+	$template = new template('invite/index');
+	$template->set('inviteFriends', $inviteFriends);
+	$template->set('myUserName', $myname);
+	$template->set('myEmail', $useraccounts->getEmail($userData['userid']));
+	$template->display();

@@ -3,10 +3,10 @@
 function getMirrors(){
 	global $db;
 
-	$db->prepare_query("SELECT * FROM mirrors");
+	$res = $db->prepare_query("SELECT * FROM mirrors");
 
 	$mirrors = array();
-	while($line = $db->fetchrow())
+	while($line = $res->fetchrow())
 		$mirrors[$line['type']][] = $line;
 
 	return $mirrors;
@@ -40,7 +40,7 @@ function chooseRandomServer($mirrors, $plus = false, $col = false, $default = fa
 
 	$choices = array();
 	foreach($mirrors as $id => $server){
-		if((!$force && $server['weight'] <= 0) || $plus != $server['plus'])
+		if(!$force && ($server['weight'] <= 0 || $plus != $server['plus']))
 			continue;
 
 		if($default && $server['domain'] == $default) // auto chose the cached choice
@@ -61,8 +61,21 @@ function chooseRandomServer($mirrors, $plus = false, $col = false, $default = fa
 }
 
 function chooseImageServer($key){ //and always type=image
-	global $mirrors, $userData;
+	global $mirrors, $userData, $imgServerHardCoded;
 
+	// this is to allow the hard coded override to function, however the IMG server in the global scope
+	// ends up with http:// infront of it, however we don't want to return that since its expected that this fucntion
+	// will just simply return the host, thus it is removed
+	if (isset($imgServerHardCoded) === true && $imgServerHardCoded === true) {
+		global $imgserver;
+		eregi("^http://(.+)$", $imgserver, $match);
+		if ($match) {
+			$imgserver = $match[1];
+		}
+
+		return $imgserver;
+	}
+	
 	$plus = false;
 	if($userData['loggedIn'] && $userData['premium']){ //are there any plus servers?
 		$plus = false;

@@ -1,10 +1,8 @@
 <?
 
 	$login=0;
-	$userprefs = array('friendslistthumbs', 'enablecomments', 'journalentries' ,'gallery', 'hideprofile', 'premiumexpiry');
 
 	require_once("include/general.lib.php");
-
 	$sortlist = array(  'friends.id' => "",
 						'users.userid' => "",
 						'username' => "users.username",
@@ -18,10 +16,8 @@
 
 	$uid = getREQval('uid', 'int', ($userData['loggedIn'] ? $userData['userid'] : 0));
 
-	if(empty($uid)){
-		header("location: /login.php?referer=" . urlencode($REQUEST_URI));
-		exit;
-	}
+	if(empty($uid))
+		$auth->loginRedirect();
 
 	$mode = getREQval('mode', 'int', 1);
 	if($mode != 2 || !$userData['loggedIn'] || $uid!=$userData['userid'])
@@ -43,16 +39,15 @@
 
 				$uid = $userData['userid'];
 
-				$db->prepare_query("SELECT count(*) FROM friends WHERE userid = ?", $userData['userid']);
-				$count = $db->fetchfield();
+				$res = $usersdb->prepare_query("SELECT count(*) FROM friends WHERE userid = %", $userData['userid']);
+				$count = $res->fetchfield();
 
 				if($count >= $config['maxfriends'] * $multiplyer ){
-					$msgs->addMsg("You have the reached the maximum amount of friends allowed, which is currently set at $config[maxfriends] or " . ($config['maxfriends']*$multiplyer) . " for plus users.");
+					$msgs->addMsg("You have the reached the maximum amount of friends allowed, which is currently set at $config[maxfriends] or " . ($config['maxfriends']*2) . " for plus users.");
 					break;
 				}
 
-				$db->prepare_query("SELECT premiumexpiry, friendsauthorization FROM users WHERE userid = #", $id);
-				$line = $db->fetchrow();
+				$line = getUserInfo($id);
 
 				if(!$line){
 					$msgs->addMsg("That user does not exist");
@@ -64,67 +59,67 @@
 					break;
 				}
 
-				$db->prepare_query("INSERT IGNORE INTO friends SET userid = #, friendid = #", $userData['userid'], $id);
+				$usersdb->prepare_query("INSERT IGNORE INTO friends SET userid = %, friendid = #", $userData['userid'], $id);
 
-				if($db->affectedrows() == 0){
+				if($usersdb->affectedrows() == 0){
 					$msgs->addMsg("He/She is already on your friends list");
 				}else{
 					$msgs->addMsg("Friend has been added to your friends list.");
 
 					if($line['premiumexpiry'] > time() && $line['friendsauthorization'] == 'y')
-						$messaging->deliverMsg($id, "Friends List Notification", "[user]$userData[username]" . "[/user] has added you to " . ($userData['sex'] == 'Male' ? "his" : "her") . " friends list. You may remove yourself by clicking [url=/friends.php?action=delete&mode=2&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]here[/url], or add " . ($userData['sex'] == 'Male' ? "him" : "her") . " to yours by clicking [url=/friends.php?action=add&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]here[/url].");
+						$messaging->deliverMsg($id, "Friends List Notification", "[user]$userData[username]" . "[/user] has added you to " . ($userData['sex'] == 'Male' ? "his" : "her") . " friends list. You may remove yourself by clicking [url=/friends.php?action=delete&mode=2&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]here[/url], or add " . ($userData['sex'] == 'Male' ? "him" : "her") . " to yours by clicking [url=/friends.php?action=add&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]here[/url].", 0, false, false, false);
 				}
 
-				$cache->remove(array($userData['userid'], "friends-$userData[userid]"));
+				$cache->remove("friendids" . USER_FRIENDS . "-$userData[userid]");
+				$cache->remove("friendids" . USER_FRIENDOF . "-$id");
+
+				$cache->remove("friendsonline-$userData[userid]");
 
 				break;
 
 			case "delete":
 				if(($id = getREQval('id', 'int')) && checkKey($id, getREQval('k'))){
 					if($mode == 1){
-						$db->prepare_query("DELETE FROM friends WHERE userid = # && friendid = #",$userData['userid'], $id);
+						$usersdb->prepare_query("DELETE FROM friends WHERE userid = % && friendid = #",$userData['userid'], $id);
 
-						if($db->affectedrows()){
-							$db->prepare_query("SELECT premiumexpiry, friendsauthorization FROM users WHERE userid = #", $id);
-							$line = $db->fetchrow();
+						if($usersdb->affectedrows()){
+							$line = getUserInfo($id);
 
 							if($line['premiumexpiry'] > time() && $line['friendsauthorization'] == 'y')
-								$messaging->deliverMsg($id, "Friends List Notification", "[user]$userData[username]" . "[/user] has removed you from " . ($userData['sex'] == 'Male' ? "his" : "her") . " friends list. You may remove " . ($userData['sex'] == 'Male' ? "him" : "her") . " from yours by clicking [url=/friends.php?action=delete&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]Here[/url]");
+								$messaging->deliverMsg($id, "Friends List Notification", "[user]$userData[username]" . "[/user] has removed you from " . ($userData['sex'] == 'Male' ? "his" : "her") . " friends list. You may remove " . ($userData['sex'] == 'Male' ? "him" : "her") . " from yours by clicking [url=/friends.php?action=delete&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]Here[/url]", 0, false, false, false);
 						}
 
-						$cache->remove(array($userData['userid'], "friends-$userData[userid]"));
+						$cache->remove("friendids" . USER_FRIENDS . "-$userData[userid]");
+						$cache->remove("friendids" . USER_FRIENDOF . "-$id");
+						$cache->remove("friendsonline-$userData[userid]");
 					}elseif($userData['premium']){
-						$db->prepare_query("DELETE FROM friends WHERE userid = # && friendid = #", $id, $userData['userid']);
+						$usersdb->prepare_query("DELETE FROM friends WHERE userid = % && friendid = #", $id, $userData['userid']);
 
-						if($db->affectedrows()){
-							$db->prepare_query("SELECT premiumexpiry, friendsauthorization FROM users WHERE userid = ?", $id);
-							$line = $db->fetchrow();
+						if($usersdb->affectedrows()){
+							$line = getUserInfo($id);
 
 							if($line['premiumexpiry'] > time() && $line['friendsauthorization'] == 'y')
-								$messaging->deliverMsg($id, "Friends List Notification", "[user]$userData[username]" . "[/user] has removed " . ($userData['sex'] == 'Male' ? "himself" : "herself") . " from your friends list.");
+								$messaging->deliverMsg($id, "Friends List Notification", "[user]$userData[username]" . "[/user] has removed " . ($userData['sex'] == 'Male' ? "himself" : "herself") . " from your friends list.", 0, false, false, false);
 						}
 
-						$cache->remove(array($id, "friends-$id"));
+						$cache->remove("friendids" . USER_FRIENDS . "-$id");
+						$cache->remove("friendids" . USER_FRIENDOF . "-$userData[userid]");
+						$cache->remove("friendsonline-$id");
 					}
 
 					$msgs->addMsg("Friend Deleted");
 				}
 				break;
 			case "update":
-				if(($id = getREQval('id', 'int')) && getREQval('comment', 'bool') && $mode==1 && checkKey($id, getREQval('k'))){ //bool to check that it exists, so that updating to '' works
+				if($mode==1 && ($id = getREQval('id', 'int')) && isset($_REQUEST['comment']) && checkKey($id, getREQval('k'))){
 					$comment = getREQval('comment');
-					$db->prepare_query("SELECT id FROM friends WHERE userid = # && friendid = #", $userData['userid'], $id);
-					if($db->numrows() == 0)
-						break;
-
-					$commentid = $db->fetchfield();
 
 					if($comment==""){
-						$db->prepare_query("DELETE FROM friendscomments WHERE id = #", $commentid);
+						$usersdb->prepare_query("DELETE FROM friendscomments WHERE userid = % && friendid = #", $userData['userid'], $id);
 					}else{
-						$db->prepare_query("UPDATE friendscomments SET comment = ? WHERE id = #", removeHTML($comment), $commentid);
-						if($db->affectedrows()==0)
-							$db->prepare_query("INSERT IGNORE INTO friendscomments SET comment = ?, id = #", removeHTML($comment), $commentid);
+						$usersdb->prepare_query("UPDATE friendscomments SET comment = ? WHERE userid = % && friendid = #", removeHTML($comment), $userData['userid'], $id);
+						if($usersdb->affectedrows()==0)
+							$usersdb->prepare_query("INSERT IGNORE INTO friendscomments SET comment = ?, userid = %, friendid = #", removeHTML($comment), $userData['userid'], $id);
 					}
 					$msgs->addMsg("Comment updated");
 				}
@@ -132,15 +127,10 @@
 		}
 	}
 
-	if($userData['loggedIn'] && $uid == $userData['userid']){
-		$user = $userData;
-	}else{
-		$db->prepare_query("SELECT userid, username, enablecomments, journalentries, gallery, hideprofile, premiumexpiry, frozen FROM users WHERE userid = #", $uid);
-		if($db->numrows()==0)
-			die("User Doesn't exist");
-		$user = $db->fetchrow();
+	$user = getUserInfo($uid);
+	if(!$userData['loggedIn'] || $uid != $userData['userid']){
 
-		if($user['frozen'] == 'y' && !$mods->isAdmin($userData['userid'], 'listusers'))
+		if(!$user || ($user['state'] == 'frozen' && !$mods->isAdmin($userData['userid'], 'listusers')))
 			die("Bad user");
 	}
 
@@ -155,18 +145,43 @@
 		exit;
 	}
 
-	if($mode == 1)
-		$db->prepare_query("SELECT friends.id, users.userid, users.username, age, sex, loc, online, firstpic, friendscomments.comment, mutual.id IS NOT NULL as mutual FROM users, friends LEFT JOIN friendscomments ON friends.id=friendscomments.id LEFT JOIN friends AS mutual ON friends.friendid=mutual.userid && mutual.friendid = # WHERE friends.userid = # && friends.friendid=users.userid", $uid, $uid);
-	else
-		$db->prepare_query("SELECT friends.id, users.userid, users.username, age, sex, loc, online, firstpic, friendscomments.comment, mutual.id IS NOT NULL as mutual FROM users, friends LEFT JOIN friendscomments ON friends.id=friendscomments.id LEFT JOIN friends AS mutual ON friends.userid=mutual.friendid && mutual.userid = # WHERE friends.friendid = # && friends.userid=users.userid", $uid, $uid);
+	$friendids = getMutualFriendsList($uid, $mode); //grabs the userids
+
+
+	$users = array();
+	$comments = array();
+	if($friendids){
+		$users = getUserInfo(array_keys($friendids));
+
+
+		if($mode == USER_FRIENDS){
+			$res = $usersdb->prepare_query("SELECT friendid as id, comment FROM friendscomments WHERE userid = %", $uid);
+		}else{
+			$res = $usersdb->prepare_query("SELECT userid as id, comment FROM friendscomments WHERE friendid = #", $uid); //all servers
+		}
+
+		$comments = $res->fetchfields('id');
+	}
+
 
 	$rows = array();
-	while($line = $db->fetchrow())
-		$rows[] = $line;
+	foreach($friendids as $id => $mutual)
+		if ($users[$id])
+			$rows[$id] = $users[$id] + array('mutual' => $mutual, 'comment' => (isset($comments[$id]) ? $comments[$id] : ''));
+
+
+	$missing = array_diff(array_keys($rows), array_keys($users));
+	foreach ($missing as $id)
+	{
+		$key = isset($rows[$id]['userid'])? 'userid' : 'id';
+		$query = $usersdb->prepare_query("DELETE FROM friends WHERE userid = % AND friendid = #", $rows[$id][$key], $rows[$id]['friendid']);
+		$cache->remove("friendids-" . $rows[$id][$key]);
+		unset($rows[$id]);
+	}
 
 	sortCols($rows, SORT_ASC, SORT_CASESTR, 'username', SORT_DESC, SORT_STRING, 'online');
 
-	$locations = & new category( $db, "locs");
+	$locations = new category( $configdb, "locs");
 
 	if($userData['loggedIn'])	$minage = $userData['defaultminage'];
 	else						$minage = 14;
@@ -183,114 +198,76 @@
 		$sex = 'b';
 	}
 
-	incHeader(0,array('incSortBlock','incSkyAdBlock','incTopGirls','incTopGuys','incNewestMembersBlock'));
+    ob_start();
+	injectSkin($user, 'friend');
+    $injectedSkin = ob_get_contents();
+    ob_end_clean();
 
 	$cols=6;
-	$showthumbs = false;
+	$showThumbs = false;
 	if($userData['loggedIn']){
 		if($userData['userid']==$uid)
 			$cols++;
 		if($userData['friendslistthumbs'] == 'y'){
 			$cols++;
-			$showthumbs = true;
+			$showThumbs = true;
 		}
 	}
 
 
 
-	echo "<table width=600 align=center cellspacing=1 cellpadding=3>\n";
-
-
-	$isFriend = $userData['loggedIn'] && ($userData['userid']==$user['userid'] || isFriend($userData['userid'],$user['userid']));
+	$isFriend = $userData['loggedIn'] && ($userData['userid']==$uid || isFriend($userData['userid'],$uid));
 
 	$cols2=2;
 	if($user['enablecomments']=='y')
 		$cols2++;
-	if(	$user['journalentries'] == WEBLOG_PUBLIC ||
-		($user['journalentries'] == WEBLOG_LOGGEDIN && $userData['loggedIn']) ||
-		($user['journalentries'] == WEBLOG_FRIENDS && $isFriend))
+	$userblog = new userblog($weblog, $uid);
+	if ($userblog->isVisible($userData['loggedIn'], $isFriend))
 		$cols2++;
 	if($user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend))
 		$cols2++;
 
 	$width = 100.0/$cols2;
 
-	echo "<tr>";
-	echo "<td class=header2 colspan=$cols>";
-	echo "<table width=100%>";
-	echo "<td class=header align=center width=$width%><a class=header href=\"profile.php?uid=$user[userid]\"><b>Profile</b></a></td>";
-	if($user['enablecomments']=='y')
-		echo "<td class=header align=center width=$width%><a class=header href=\"usercomments.php?id=$user[userid]\"><b>Comments</b></a></td>";
-	if($user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend))
-		echo "<td class=header align=center width=$width%><a class=header href=\"gallery.php?uid=$user[userid]\"><b>Gallery</b></a></td>";
-	if(	$user['journalentries'] == WEBLOG_PUBLIC ||
-		($user['journalentries'] == WEBLOG_LOGGEDIN && $userData['loggedIn']) ||
-		($user['journalentries'] == WEBLOG_FRIENDS && $isFriend))
-		echo "<td class=header align=center width=$width%><a class=header href=weblog.php?uid=$user[userid]><b>Blog</a></td>";
-	echo "<td class=header align=center width=$width%><a class=header href=\"friends.php?uid=$user[userid]\"><b>Friends</b></a></td></tr>";
-	echo "</table>";
-	echo "</td></tr>";
+	$enabledComments = $user['enablecomments'] == 'y';
+	$enabledGallery = $user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend);
+	$enabledBlog = $userblog->isVisible($userData['loggedIn'], $isFriend);
 
+	$whosFriends = ($userData['loggedIn'] && $uid==$userData['userid']) ? 'ownFriends' : 'othersFriends';
 
-	if($userData['loggedIn'] && $uid==$userData['userid']){// && $userData['premium']){
-		if($mode==1)
-			echo "<tr><td class=body colspan=$cols><table cellpadding=0 cellspacing=0 width=100%><tr><td class=body>People on $user[username]'s friends list:</td><td class=body align=right><a class=body href=$_SERVER[PHP_SELF]?uid=$uid&mode=2>Who added $user[username] to their friends list?</a></td></tr></table></td></tr>";
-		else
-			echo "<tr><td class=body colspan=$cols><table cellpadding=0 cellspacing=0 width=100%><tr><td class=body>People who've added $user[username] to their friends list:</td><td class=body align=right><a class=body href=$_SERVER[PHP_SELF]?uid=$uid&mode=1>Back to $user[username]'s friends list</a></td></tr></table></td></tr>";
-	}
-
-	echo "<tr>";
-		if($showthumbs)
-			echo "<td class=header width=$config[thumbWidth]>&nbsp;</td>";
-		echo "<td class=header>Username</td>";
-		echo "<td class=header align=center>Age</td>";
-		echo "<td class=header align=center>Sex</td>";
-		echo "<td class=header>Location</td>";
-		echo "<td class=header align=center>Online</td>";
-		echo "<td class=header align=center>Mutual</td>";
-		if($userData['loggedIn'] && $userData['userid']==$uid)// && $mode==1)
-			echo "<td class=header>&nbsp;</td>";
-	echo "</tr>\n";
-
-	echo "<script>function editcomment(str,id,k){comment = prompt('New comment:',str); if(comment != null){ location.href='$_SERVER[PHP_SELF]?id='+ id + '&action=update&k=' + k + '&comment=' + comment;} }</script>";
-
+	$friendsList = array();
 	foreach($rows as $line){
-		echo "<tr>";
-			if($showthumbs){
-				if($line['firstpic']>0)
-					echo "<td class=body rowspan=2><a class=body href='profile.php?uid=$line[userid]'><img src=http://" . chooseImageServer($line['firstpic']) . $config['thumbdir'] . floor($line['firstpic']/1000) . "/$line[firstpic].jpg border=0></td>";
-				else
-					echo "<td class=body rowspan=2>No pic</td>";
-			}
-			echo "<td class=body height=25><a class=body href='profile.php?uid=$line[userid]'>$line[username]</a></td>";
-			echo "<td class=body align=center>$line[age]</td>";
-			echo "<td class=body align=center>$line[sex]</td>";
-			echo "<td class=body>" . $locations->getCatName($line['loc']) . "</td>";
-			echo "<td class=body align=center>" . ($line['online'] == 'y' ? "<b>Online</b>" : "" ) . "</td>";
-			echo "<td class=body align=center>" . ($line['mutual'] ? "Mutual" : "" ) . "</td>";
-			if($userData['loggedIn'] && $userData['userid']==$uid){
-				echo "<td class=body align=center>";
+		if($line['state'] == 'frozen')
+			continue;
 
-				$key = makekey($line['userid']);
-
-				if($mode==1)
-					echo "<a class=body href=\"javascript: editcomment('" . (strpos($line['comment'],"'")===false && strpos($line['comment'],'"')===false ? $line['comment'] : ""  ) . "',$line[userid],'$key'); \"><img src=$config[imageloc]edit.gif border=0></a>";
-				if($mode==1 || ($userData['loggedIn'] && $userData['premium']))
-					echo "<a class=body href='$_SERVER[PHP_SELF]?id=$line[userid]&action=delete&mode=$mode&k=$key'><img src=$config[imageloc]delete.gif border=0></a>";
-				echo "</td>";
-			}
-		echo "</tr>";
-		echo "<tr>";
-			echo "<td class=body></td><td class=body colspan=6 valign=top>$line[comment]</td>";
-		echo "</tr>\n";
+		$line['imagePath'] = $config['thumbloc'] . floor($line['userid']/1000) . "/" . weirdmap($line['userid']) . "/{$line['firstpic']}.jpg";
+		$line['userLocation'] = $locations->getCatName($line['loc']);
+		$line['userKey'] = makekey($line['userid']);
+		$line['javascriptComment'] = (strpos($line['comment'],"'")===false && strpos($line['comment'],'"')===false && strpos($line['comment'],'\\')===false ? $line['comment'] : "");
+		$line['canDeleteFriend'] = ($mode==1 || ($userData['loggedIn'] && $userData['premium']));
+		$friendsList[] = $line;
 	}
 
-	if($mode == 1)
-		echo "<tr><td class=body colspan=$cols>You have " . count($rows) . " friends on your friends list. The maximum is " . ($config['maxfriends']*$multiplyer) . ".</td></tr>";
-	else
-		echo "<tr><td class=body colspan=$cols>" . count($rows) . " people have added you to their friends list.</td></tr>";
-	echo "</form></table>\n";
+	$friendsCount = count($rows);
+	$maxFriends = $config['maxfriends'] * $multiplyer;
 
-	incFooter();
-
+	$template = new template('friends/index');
+	$template->setMultiple(array(
+		'injectedSkin'		=> $injectedSkin,
+		'cols'				=> $cols,
+		'width'				=> $width,
+		'uid'				=> $uid,
+		'enabledComments'	=> $enabledComments,
+		'enabledGallery'	=> $enabledGallery,
+		'enabledBlog'		=> $enabledBlog,
+		'whosFriends'		=> $whosFriends,
+		'mode'				=> $mode,
+		'user'				=> $user,
+		'showThumbs'		=> $showThumbs,
+		'config'			=> $config,
+		'friendsList'		=> $friendsList,
+		'friendsCount'		=> $friendsCount,
+		'maxFriends'		=> $maxFriends
+	));
+	$template->display();
 

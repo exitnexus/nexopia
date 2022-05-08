@@ -7,10 +7,6 @@
 	if(!$mods->isadmin($userData['userid'],"listmods"))
 		die("Permission denied");
 
-//	die("Last update killed this, bug Timo about it.");
-
-	// can't do join between pics, users, and modvoteslog
-
 	$rows = array();
 
 	$username = getREQval('username');
@@ -26,34 +22,33 @@
 			else
 				$uid = $username;
 
-			$commands[] = $db->prepare("modvoteslog.modid = ?", $uid);
+			$commands[] = $db->prepare("modid = #", $uid);
 		}
 		if(!empty($itemid))
-			$commands[] = $db->prepare("modvoteslog.picid = ?", $itemid);
+			$commands[] = $db->prepare("picid = #", $itemid);
 
 		$mods->adminlog('mod log',"Show mod vote log, search by user: $username, itemid: $itemid");
 
 		$page = getREQval('page', 'int');
 
-		$db->query("SELECT SQL_CALC_FOUND_ROWS modvoteslog.modid, moduser.username as modname, modvoteslog.vote, modvoteslog.picid,
-								pics.description, modvoteslog.userid as picuserid, picuser.username as picusername, picuser.age, picuser.sex
-						FROM modvoteslog
-							LEFT JOIN pics ON modvoteslog.picid=pics.id
-							LEFT JOIN users AS picuser ON modvoteslog.userid=picuser.userid
-							LEFT JOIN users as moduser ON modvoteslog.modid=moduser.userid
-						WHERE " . implode(" && ", $commands) . "
-						ORDER BY modvoteslog.id DESC
-						LIMIT " . $page*$config['linesPerPage'] . ", $config[linesPerPage]");
+		$res = $moddb->query("SELECT SQL_CALC_FOUND_ROWS modid, vote, picid, userid FROM modvoteslog WHERE " . implode(" && ", $commands) . " ORDER BY time ASC LIMIT " .($page*$config['linesPerPage']) .", $config[linesPerPage]");
 
-		while($line = $db->fetchrow())
+		$uids = array();
+
+		while($line = $res->fetchrow()){
 			$rows[] = $line;
+			$uids[$line['modid']] = $line['modid'];
+			$uids[$line['userid']] = $line['userid'];
+		}
 
-		$db->query("SELECT FOUND_ROWS()");
-		$numrows = $db->fetchfield();
+		$numrows = $res->totalrows();
 		$numpages =  ceil($numrows / $config['linesPerPage']);
 
 		if($numrows == 0)
 			$msgs->addMsg("No results found");
+
+		if(count($uids))
+			$users = getUserInfo($uids);
 	}
 
 	incHeader();
@@ -64,21 +59,20 @@
 		echo "<table>";
 		echo "<tr><td class=header colspan=2 align=right>Page: " . pageList("$_SERVER[PHP_SELF]?username=$username&itemid=$itemid",$page,$numpages,'header') . "</td></tr>";
 
-		$picloc = "http://www.nexopia.com" . $config['picdir'];
+		$picloc = $config['picloc'];
 
 		foreach($rows as $line){
-			if($line['sex']=='Female') 	$bgcolor = '#FFAAAA';
-			else						$bgcolor = '#AAAAFF';
+			if($users[$line['userid']]['sex']=='Female') 	$bgcolor = '#FFAAAA';
+			else											$bgcolor = '#AAAAFF';
 
-			$age = $line['age'];
-			echo "<tr><td class=body valign=top align=right style=\"background-color: $bgcolor\"><img src=$picloc" . floor($line['picid']/1000) . "/$line[picid].jpg></td>";
+			echo "<tr><td class=body valign=top align=right style=\"background-color: $bgcolor\"><img src=$picloc" . floor($line['userid']/1000) . "/" . weirdmap($line['userid']) . "/$line[picid].jpg></td>";
 			echo "<td class=body valign=top style=\"background-color: $bgcolor\">";
-			echo "<a class=body href=profile.php?uid=$line[picuserid]>$line[picusername]</a><br>";
-			echo "Age: $age<br>";
-			echo "Sex: <b>$line[sex]</b><br><br>";
+			echo "<a class=body href=/profile.php?uid=$line[userid]>" . $users[$line['userid']]['username'] . "</a><br>";
+			echo "Age: " . $users[$line['userid']]['age'] . "<br>";
+			echo "Sex: <b>" . $users[$line['userid']]['sex'] . "</b><br><br>";
 			echo "$line[description]<br><br>";
 			echo "Vote:<br>";
-			echo "<a class=body href=profile.php?uid=$line[modid]>$line[modname]</a><br>";
+			echo "<a class=body href=/profile.php?uid=$line[modid]>" . $users[$line['modid']]['username'] . "</a><br>";
 			if($line['vote']=='y')
 				echo "Accept";
 			else
@@ -98,7 +92,7 @@
 	}
 
 	echo "<table><form action=$_SERVER[PHP_SELF]>";
-	echo "<tr><td class=body>Username</td><td class=body><input class=body type=text name=username value=$username></td></tr>";
+	echo "<tr><td class=body>Username</td><td class=body><input class=body type=text name=username value='" . htmlentities($username) . "'></td></tr>";
 	echo "<tr><td class=body>Picid</td><td class=body><input class=body type=text name=itemid value=$itemid></td></tr>";
 	echo "<tr><td class=body></td><td class=body><input class=body type=submit value=Search></td></tr>";
 	echo "</form></table>";

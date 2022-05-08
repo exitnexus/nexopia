@@ -34,18 +34,18 @@
 function listProductCats(){
 	global $shoppingcart;
 
-	$shoppingcart->db->query("SELECT id, name FROM productcats ORDER BY priority");
+	$res = $shoppingcart->db->query("SELECT id, name FROM productcats ORDER BY priority");
 
 	$cats = array();
-	while($line = $shoppingcart->db->fetchrow())
+	while($line = $res->fetchrow())
 		$cats[$line['id']] = $line['name'];
 
 
 
-	$shoppingcart->db->query("SELECT id, category, name, active FROM products ORDER BY priority");
+	$res = $shoppingcart->db->query("SELECT id, category, name, active FROM products ORDER BY priority");
 
 	$products = array();
-	while($line = $shoppingcart->db->fetchrow())
+	while($line = $res->fetchrow())
 		$products[$line['category']][] = $line;
 
 
@@ -74,7 +74,7 @@ function listProductCats(){
 
 		foreach($products[$catid] as $line){
 			echo "<tr>";
-			echo "<td class=body><a class=body href=product.php?id=$line[id]>$line[name]</a></td>";
+			echo "<td class=body><a class=body href=/product.php?id=$line[id]>$line[name]</a></td>";
 			echo "<td class=body>" . ($line['active'] == 'n' ? "Discontinued" : "") . "</td>";
 			echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=editproduct&id=$line[id]>Edit</a></td>";
 			echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=upproduct&id=$line[id]>Up</a></td>";
@@ -95,8 +95,8 @@ function editcat($id = 0){
 	global $shoppingcart;
 
 	if($id){
-		$shoppingcart->db->prepare_query("SELECT name, description FROM productcats WHERE id = ?", $id);
-		extract($shoppingcart->db->fetchrow());
+		$res = $shoppingcart->db->prepare_query("SELECT name, description FROM productcats WHERE id = ?", $id);
+		extract($res->fetchrow());
 	}else{
 		$name = "";
 		$description = "";
@@ -132,9 +132,9 @@ function editproduct($id = 0){
 	global $shoppingcart;
 
 	if($id){
-		$shoppingcart->db->prepare_query("SELECT category, name, firstpicture, unitprice, bulkpricing, shipping, input, inputname, callback, stock, active, summary, description FROM products, producttext WHERE products.id = producttext.id && products.id = ?", $id);
+		$res = $shoppingcart->db->prepare_query("SELECT category, name, firstpicture, unitprice, bulkpricing, shipping, input, inputname, callback, stock, active, summary, description FROM products, producttext WHERE products.id = producttext.id && products.id = ?", $id);
 
-		extract($shoppingcart->db->fetchrow());
+		extract($res->fetchrow());
 	}else{
 		$category 		= 0;
 		$name 			= "";
@@ -155,10 +155,10 @@ function editproduct($id = 0){
 		$description = "";
 	}
 
-	$shoppingcart->db->query("SELECT id, name FROM productcats ORDER BY priority");
+	$res = $shoppingcart->db->query("SELECT id, name FROM productcats ORDER BY priority");
 
 	$cats = array();
-	while($line = $shoppingcart->db->fetchrow())
+	while($line = $res->fetchrow())
 		$cats[$line['id']] = $line['name'];
 
 	$status = array('y' => "Active", 'n' => "Discontinued");
@@ -233,9 +233,9 @@ function updateproduct($id, $data){
 function moveupproduct($id){
 	global $shoppingcart;
 
-	$shoppingcart->db->prepare_query("SELECT category FROM products WHERE id = ?", $id);
+	$res = $shoppingcart->db->prepare_query("SELECT category FROM products WHERE id = ?", $id);
 
-	$cat = $shoppingcart->db->fetchfield();
+	$cat = $res->fetchfield();
 
 	increasepriority($shoppingcart->db, "products", $id, $shoppingcart->db->prepare("category = ?", $cat));
 }
@@ -243,9 +243,9 @@ function moveupproduct($id){
 function movedownproduct($id){
 	global $shoppingcart;
 
-	$shoppingcart->db->prepare_query("SELECT category FROM products WHERE id = ?", $id);
+	$res = $shoppingcart->db->prepare_query("SELECT category FROM products WHERE id = ?", $id);
 
-	$cat = $shoppingcart->db->fetchfield();
+	$cat = $res->fetchfield();
 
 	decreasepriority($shoppingcart->db, "products", $id, $shoppingcart->db->prepare("category = ?", $cat));
 }

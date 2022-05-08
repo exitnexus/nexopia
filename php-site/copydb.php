@@ -14,19 +14,19 @@
 	set_time_limit(0);
 //	ignore_user_abort(true);
 
-	$convertdb = & new sql_db("192.168.0.231", "root", 'pRlUvi$t', "nexopia2");
+	$convertdb = new sql_db("192.168.0.231", "root", 'pRlUvi$t', "nexopia2");
 
 	$tables = array();
 
     $tableresult = $convertdb->listtables();
-    while(list($name) = $convertdb->fetchrow($tableresult,DB_NUM))
+    while(list($name) = $tableresult->fetchrow(DB_NUM))
 		$tables[] = $name;
 
 
-	$convertdb->query("SHOW TABLE STATUS");
+	$res = $convertdb->query("SHOW TABLE STATUS");
 
 	$tablestatus = array();
-	while($line = $convertdb->fetchrow())
+	while($line = $res->fetchrow())
 		$tablestatus[$line['Name']] = $line;
 
 	$time = time();

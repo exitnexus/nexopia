@@ -1,831 +1,709 @@
 <?
-
-	$login=2;
-
-	require_once("include/general.lib.php");
-
-	$isAdmin = $mods->isAdmin($userData['userid'],'editfiles');
-
-	$uid = ($isAdmin ? getREQval('uid', 'int', $userData['userid']) : $userData['userid']);
-
-
-	$db->prepare_query("SELECT * FROM files WHERE userid = # ORDER BY length(location) ASC", $uid);
-
-	if($db->numrows()==0){
-		$allperms = array( 0 => 	array(	'userid' => $uid,
-											'location' => $config['basefiledir'] . floor($uid/1000) . "/" . $uid . "/",
-											'list' => 'y',
-											'read' => 'y',
-											'readphp' => 'n',
-											'write' => 'y',
-											'writephp' => 'n',
-											'recursive' => 'n',
-											'filesizelimit' => $config['filesizelimit'],
-											'quota' => $config['quota'] ) );
-
-		if(!file_exists($docRoot . $config['basefiledir'] . floor($uid/1000)))
-			mkdir($docRoot . $config['basefiledir'] . floor($uid/1000) . "/");
-
-		if(!file_exists($docRoot . $config['basefiledir'] . floor($uid/1000) . "/" . $uid ))
-			mkdir($docRoot . $config['basefiledir'] . floor($uid/1000) . "/" . $uid);
-/*
-			if(!empty($action) && $action == 'Continue'){
-
-			}else{
-				incHeader();
-
-				echo "Some TOS thing here<br>";
-				echo "<form action=$_SERVER[PHP_SELF]>";
-				echo "<input class=body type=submit name=action value=Continue>";
-				echo "</form>";
-
-				incFooter();
-				exit;
-			}
-		}
-*/
-		$urlRoot = "http://users.nexopia.com"; //$config['imgserver'];
-	}else{
-		$allperms = array();
-
-		while($line = $db->fetchrow())
-			$allperms[] = $line;
-
-		$urlRoot = "http://$wwwdomain";
-	}
-
-	$restrictedfiles = array("php", "pif", "com", "scr", "bat", "vbs");
-
-//	print_r($allperms);
-
-	$baseuserdir = getBaseDir($allperms);
-
-	if($baseuserdir === false)
-		die("no base directory. Contact the webmaster");
-
-	$basedir = $docRoot . $baseuserdir;
-
-	if(substr($basedir, -1) == '/')
-		$basedir = substr($basedir, 0, -1);
-
-	if(!($opendir = getREQval('opendir')) || @strpos(realpath($basedir . $opendir),$basedir)===false || !is_dir($basedir . $opendir))
-		$opendir="/";
-
-
-	if(!($sortd = getREQval('sortd')) || ($sortd!="ASC" && $sortd!="DESC"))
-		$sortd="ASC";
-
-	if(!($sortt = getREQval('sortt')) || ($sortt!="name" && $sortt!="size" && $sortt!="date"))
-		$sortt="name";
-
-	$opendirperms = getPerms($baseuserdir . $opendir);
-
-//	print_r($opendirperms);
-
-	if($opendirperms==false || $opendirperms['list']=='n')
-		die("you don't have list access to this folder");
-
-
-	switch($action){
-		case "Upload":
-			$userfile = getFILEval('userfile');
-			upload($userfile['tmp_name'], $userfile['name']);
-			break;
-
-		case "edit":
-			if(($filename = getREQval('filename')) &&
-				($k = getREQval('k')) && checkKey($filename, $k))
-				edit($filename);
-			break;
-
-		case "Save":
-			if(($filename = getREQval('filename')) &&
-				($text = getPOSTval('text')) )
-				save($filename, $text);
-			break;
-
-		case "delete":
-			if(($filename = getREQval('filename')) &&
-				($k = getREQval('k')) && checkKey($filename, $k))
-				delete($filename);
-			break;
-
-		case "Create File":
-			if(($filename = getPOSTval('filename')))
-				createfile($filename);
-			break;
-
-		case "Create Directory":
-			if(($filename = getPOSTval('filename')))
-				createdir($dirname);
-			break;
-
-		case "view":
-			if(($filename = getREQval('filename')))
-				view($filename);
-			break;
-
-		case "download":
-			if(($filename = getREQval('filename')) &&
-				($k = getREQval('k')) && checkKey($filename, $k))
-				download($filename);
-			break;
-
-		case "rename":
-			if(($filename = getREQval('filename')) &&
-				($new = getREQval('new')) &&
-				($k = getREQval('k')) && checkKey($filename, $k))
-				renamefile($filename,$new);
-			break;
-	}
-
-	browse($opendir);
-
-	exit;
-
-/////////////////////////////////////////////////
-
-function upload($userfile,$userfile_name){
-	global $opendirperms,$msgs,$basedir,$opendir, $restrictedfiles;
-
-	if($opendirperms['write']=='n'){
-		$msgs->addMsg("You don't have permission to upload");
-		return;
-	}
-
-	if(!isset($userfile) || $userfile=="none")
-		return;
-
-	if(strpos($userfile_name,"..")!==false || strpos($userfile_name,"/")!==false || strpos($userfile_name,"'")!==false || strpos($userfile_name,'"')!==false || strpos($userfile_name,'&')!==false){
-		$msgs->addMsg("File " . $userfile_name . " is illegal. Check its name and size.");
-		return;
-	}
-
-	if($opendirperms['filesizelimit'] > 0 && filesize($userfile) > $opendirperms['filesizelimit']){
-		$msgs->addMsg("You do not have permission to upload files bigger than $opendirperms[filesizelimit] bytes");
-		return;
-	}
-
-	if($opendirperms['quota'] > 0 && dirsize($basedir) + filesize($userfile) > $opendirperms['quota']){
-		$msgs->addMsg("You do not have enough room to upload this file.");
-		return;
-	}
-
-	if(in_array(getFileExt($userfile_name), $restrictedfiles) && $opendirperms['writephp']!='y'){
-		$msgs->addMsg("You do not have permission to upload this file");
-		return;
-	}
-
-	$destfile=$basedir . $opendir . $userfile_name;
-	if(!copy($userfile, $destfile)){
-		$msgs->addMsg("File could not be copied");
-		return;
-	}
-}
-
-function edit($filename){
-	global $opendirperms, $msgs, $basedir, $opendir, $sortt, $sortd, $uid, $userData, $urlRoot, $baseuserdir, $restrictedfiles;
-
-	if($uid != $userData['userid'])
-		return;
-
-	if(!isset($filename)){
-		$msgs->addMsg("bad data");
-		return;
-	}
-	if($opendirperms['write']=='n'){
-		$msgs->addMsg("You don't have permission to edit files");
-		return;
-	}
-	if(in_array(getFileExt($filename), $restrictedfiles) && $opendirperms['writephp']=='n'){
-		$msgs->addMsg("You don't have permission to edit php files");
-		return;
-	}
-	if(getFileType($filename) != 'text' && getFileType($filename) != 'php'){
-		$msgs->addMsg("You can only edit text files");
-		return;
-	}
-	if(strpos($filename,"..")!==false || strpos($filename,"/")!==false || strpos($filename,"'")!==false || strpos($filename,'"')!==false || strpos($filename,'&')!==false){
-		$msgs->addMsg("Invalid File name");
-		return;
-	}
-	if(!file_exists($basedir . $opendir . $filename)){
-		$msgs->addMsg("File doesn't exist");
-		return;
-	}
-
-	if(!($fp = fopen( $basedir . $opendir . $filename, 'r' ))){
-		$msgs->addMsg("Cannot open file");
-		return;
-	}
-
-	$filesize = filesize( $basedir . $opendir . $filename );
-
-	$file_contents = "";
-
-	if($filesize)
-		$file_contents = fread($fp,  $filesize);
-
-	fclose( $fp );
-
-
-	incHeader();
-
-	echo "<center>";
-	echo "$urlRoot$baseuserdir$opendir$filename<br>";
-	echo "<form action=$_SERVER[PHP_SELF] method=post>";
-	echo "<textarea name=text wrap=off style='font: 10pt courier new; width: 750; height:500'>";
-	echo htmlentities($file_contents);
-	echo "</textarea><br>";
-	echo "<input type=hidden name=opendir value=\"$opendir\">";
-	echo "<input type=hidden name=filename value=\"$filename\">";
-	echo "<input type=hidden name=sortt value=$sortt>";
-	echo "<input type=hidden name=sortd value=$sortd>";
-	echo "<input class=body type=submit name=action value=Save>";
-	echo "<input class=body type=submit name=action value=Cancel>";
-	echo "</form>";
-	echo "</center>";
-
-	incFooter();
-	exit;
-}
-
-function save($filename,$text){
-	global $opendirperms,$msgs,$basedir,$opendir, $uid, $userData, $restrictedfiles;
-
-	if($uid != $userData['userid'])
-		return;
-
-	if(!isset($filename)){
-		$msgs->addMsg("bad data");
-		return false;
-	}
-	if($opendirperms['write']=='n'){
-		$msgs->addMsg("You don't have permission to edit files");
-		return false;
-	}
-	if(in_array(getFileExt($filename), $restrictedfiles)  && $opendirperms['writephp']=='n'){
-		$msgs->addMsg("You don't have permission to edit " . getFileExt($filename) . " files");
-		return false;
-	}
-	if(getFileType($filename) != 'text' && getFileType($filename) != 'php'){
-		$msgs->addMsg("You can only edit text files");
-		return false;
-	}
-	if(strpos($filename,"..")!==false || strpos($filename,"/")!==false || strpos($filename,"'")!==false || strpos($filename,'"')!==false || strpos($filename,'&')!==false){
-		$msgs->addMsg("Invalid File name");
-		return false;
-	}
-
-	if($opendirperms['filesizelimit'] > 0 && strlen($text) > $opendirperms['filesizelimit']){
-		$msgs->addMsg("You do not have permission to create files bigger than $opendirperms[filesizelimit] bytes");
-		return;
-	}
-
-	if($opendirperms['quota'] > 0 && dirsize($basedir) + strlen($text) > $opendirperms['quota']){
-		$msgs->addMsg("You do not have enough room to save this file.");
-		return;
-	}
-
-	if(!($fp = fopen( $basedir . $opendir . $filename, 'w' ))){
-		$msgs->addMsg("Cannot open file");
-		return false;
-	}
-
-	fwrite( $fp, $text );
-	fclose( $fp );
-
-	return true;
-}
-
-function delete($filename){
-	global $msgs,$basedir,$opendir,$opendirperms;
-
-	if($opendirperms['write']=='n'){
-		$msgs->addMsg("You don't have permission");
-		return;
-	}
-
-	if(!file_exists($basedir . $opendir . $filename)){
-		$msgs->addMsg("File doesn't exist");
-		return;
-	}
-	if(strpos($filename,"..")!==false || strpos($filename,"/")!==false){
-		$msgs->addMsg("Invalid File name");
-		return;
-	}
-
-	if(is_dir($basedir . $opendir . $filename)){
-		if($opendirperms['recursive']=='n'){
-			$msgs->addMsg("You don't have permission to delete directories");
-			return;
-		}
-		if(rmdir($basedir . $opendir . $filename))
-			$msgs->addMsg("Directory \"$filename\" was deleted");
-		else
-			$msgs->addMsg("Directory \"$filename\" was NOT deleted. Directory must be empty");
-	}else{
-		if(unlink($basedir . $opendir . $filename))
-			$msgs->addMsg("File \"$filename\" was deleted");
-		else
-			$msgs->addMsg("File \"$filename\" was NOT deleted");
-	}
-}
-
-function createfile($filename){
-	global $msgs,$basedir,$opendir,$opendirperms, $uid, $userData;
-
-	if($uid != $userData['userid'])
-		return;
-
-	if(file_exists($basedir . $opendir . $filename)){
-		$msgs->addMsg("File already exists");
-		return;
-	}
-
-	if(save($filename,""))	//create file, checks permissions
-		edit($filename);	//exit, checks permissions
-}
-
-function createdir($name){
-	global $opendirperms,$msgs,$basedir,$opendir, $uid, $userData;
-
-	if($uid != $userData['userid'])
-		return;
-
-	if(!$opendirperms['write'] || !$opendirperms['recursive']){
-		$msgs->addMsg("You don't have permission to create a directory");
-		return;
-	}
-	if(strpos($name,"..")!==false || strpos($name,"/")!==false || strpos($name,"'")!==false || strpos($name,'"')!==false || strpos($name,'&')!==false){
-		$msgs->addMsg("Invalid directory name");
-		return;
-	}
-	mkdir($basedir . $opendir . $name,0744);
-}
-
-function renamefile($filename,$new){
-	global $opendirperms,$msgs,$basedir,$opendir, $uid, $userData, $restrictedfiles;
-
-	if($uid != $userData['userid'])
-		return;
-
-	if(!isset($filename)){
-		$msgs->addMsg("bad data");
-		return;
-	}
-	if($opendirperms['write']=='n'){
-		$msgs->addMsg("You don't have permission to rename files");
-		return;
-	}
-	if(in_array(getFileExt($new), $restrictedfiles) && $opendirperms['writephp']=='n'){
-		$msgs->addMsg("You don't have permission to create files with this file extension");
-		return;
-	}
-	if($opendirperms['readphp']=='n' && getFileType($filename)=='php'){
-		$msgs->addMsg("You don't have permission to rename a php file");
-		return;
-	}
-	if(strpos($filename,"..")!==false || strpos($filename,"/")!==false){
-		$msgs->addMsg("Invalid File name");
-		return;
-	}
-	if(strpos($new,"..")!==false || strpos($new,"/")!==false || strpos($new,"'")!==false || strpos($new,'"')!==false || strpos($new,'&')!==false){
-		$msgs->addMsg("Invalid File name");
-		return;
-	}
-	if(!file_exists($basedir . $opendir . $filename)){
-		$msgs->addMsg("File does not exist");
-		return;
-	}
-	if(file_exists($basedir . $opendir . $new)){
-		$msgs->addMsg("File $new already exists. Delete it first");
-		return;
-	}
-	if(!rename($basedir.$opendir.$filename, $basedir.$opendir.$new))
-		$msgs->addMsg("File $filename not renamed to $new");
-}
-
-function view($filename){
-	global $opendirperms, $msgs, $basedir, $opendir, $baseuserdir, $urlRoot, $uid, $userData, $restrictedfiles;
-
-	if($opendirperms['read']=='n'){
-		$msgs->addMsg("You don't have read permissions");
-		return;
-	}
-
-	if($opendirperms['readphp']=='n' && in_array(getFileExt($filename), $restrictedfiles)){
-		$msgs->addMsg("You don't have read permissions on php files");
-		return;
-	}
-
-	if(strpos($filename,"..")!==false || strpos($filename,"/")!==false || strpos($filename,"'")!==false || strpos($filename,'"')!==false || strpos($filename,'&')!==false){
-		$msgs->addMsg("Invalid File name");
-		return;
-	}
-
-	if(!file_exists($basedir.$opendir.$filename)){
-		$msgs->addMsg("File doesn't exist");
-		return;
-	}
-
-
-	$uidstr = ($uid == $userData['userid'] ? "" : "&uid=$uid");
-
-	switch(getFileType($filename)){
-		case "php":
-			incHeader();
-
-			echo "$urlRoot$baseuserdir$opendir$filename<br>";
-			echo "<table><tr><td class=body>";
-
-			show_source($basedir.$opendir.$filename);
-
-			echo "</td></tr></table>";
-
-			incFooter();
-			exit;
-
-		case "text":
-			incHeader();
-
-			echo "$urlRoot$baseuserdir$opendir$filename<br>";
-			echo "<table><tr><td class=body><pre>";
-
-			readfile($basedir.$opendir.$filename);
-
-			echo "</pre></td></tr></table>";
-
-			incFooter();
-			exit;
-		case "image":
-			incHeader();
-
-			echo "[img]$urlRoot$baseuserdir$opendir$filename" . "[/img]<br>";
-			echo "<a class=body href=$_SERVER[PHP_SELF]?opendir=$opendir$uidstr><img src=\"$urlRoot$baseuserdir$opendir$filename\" border=0></a>";
-
-			incFooter();
-			exit;
-	}
-}
-
-function download($filename){
-	global $opendirperms,$msgs,$basedir,$opendir,$baseuserdir, $restrictedfiles;
-
-
-	if($opendirperms['read']=='n'){
-		$msgs->addMsg("You don't have read permissions");
-		return;
-	}
-
-	if($opendirperms['readphp']=='n' && in_array(getFileExt($filename), $restrictedfiles)){
-		$msgs->addMsg("You don't have read permissions on files of this type");
-		return;
-	}
-
-	if(!file_exists($basedir.$opendir.$filename)){
-		$msgs->addMsg("File doesn't exist");
-		return;
-	}
-
-	header("Content-disposition: attachment; filename=$filename");
-	header("Content-length: ".filesize($basedir.$opendir.$filename));
-	header("Content-type: application/force-download");
-	header("Connection: close");
-	header("Expires: 0");
-	set_time_limit(0);
-	readfile($basedir.$opendir.$filename);
-	exit;
-}
-
-
-////////////////////////////////////
-///////// Start Functions //////////
-////////////////////////////////////
-
-function getFileExt( $filename ) {
-	return substr($filename,strrpos($filename,".")+1) ;
-}
-
-
-function dirsize($dir,$maxLevel=3,$level=0) { // calculate the size of files in $dir, (it descends recursively into other dirs)
-	if($level > $maxLevel)
-		return 0;
-	if (!($dh = @opendir($dir))){
-		echo "Could not open $dir for reading<br>\n";
-		return false;
-	}
-
-	$size = 0;
-	while (($file = readdir($dh)) !== false){
-		if ($file != "." and $file != "..") {
-			$path = $dir."/".$file;
-			if (is_dir($path))
-				$size += dirsize($path,$maxLevel,$level+1);
-			elseif (is_file($path))
-				$size += filesize($path);
-		}
-	}
-
-	closedir($dh);
-
-	return $size;
-}
-
-
-function browse($opendir){
-	global $basedir, $baseuserdir, $userData, $opendirperms, $sortt, $sortd, $config, $uid;
-
-	if (!($dir = @opendir($basedir . $opendir))){
-		echo "Could not open " . $basedir . $opendir . " for reading";
-		return;
-	}
-
-	$listing = array();
-	$totalsize=0;
-	while($file = readdir($dir)) {
-		if($file[0]!="."){
-			if(is_dir($basedir . $opendir . $file)){
-				$file_size = -0.001 - dirsize($basedir . $opendir . $file)/1024;
-				$totalsize -= $file_size;
-				$filetype = "directory";
-			}else{
-				$file_size = filesize($basedir . $opendir . $file) /1024;
-				$totalsize+=$file_size;
-
-				$filetype = getFileType($file);
-
-			}
-			$file_date =  filemtime($basedir . $opendir . $file);
-			$listing[]=array("filename" => $file, "filesize" => $file_size , "filedate" => $file_date, 'filetype'=> $filetype);
-		}
-	}
-	closedir($dir);
-
-	incHeader();
-
-	echo "<form action=$_SERVER[PHP_SELF]>";
-	echo "<input type=hidden name=opendir value=\"$opendir\">";
-	echo "<input type=hidden name=sortt value=$sortt>";
-	echo "<input type=hidden name=sortd value=$sortd>";
-
-	echo "<table cellpadding=2 cellspacing=1 width=100%>\n";
-	echo "<tr>";
-	echo "<td colspan=7 class=header>Current Dir: $opendir</td></tr>";
-	echo "<tr>\n";
-	echo "	<td class=header width=20><img src=$config[imageloc]delete.gif alt=Delete></td>";
-	echo "	<td class=header width=20><img src=$config[imageloc]rename.gif alt=Rename></td>";
-	echo "	<td class=header width=20><img src=$config[imageloc]down.png alt=Download></td>";
-	echo "	<td class=header width=20><img src=$config[imageloc]edit.gif alt=Edit></td>";
-
-	echo "	<td class=header><a class=header href=\"$_SERVER[PHP_SELF]?opendir=$opendir&sortd=" . ($sortt=="name" ? ($sortd=="ASC" ? "DESC" : "ASC") : $sortd). "&sortt=name\">Name</a>". ($sortt=="name" ? "&nbsp<img src=$config[imageloc]$sortd.png>" : "") ."</td>\n";
-	echo "	<td class=header align=right><a class=header href=\"$_SERVER[PHP_SELF]?opendir=$opendir&sortd=" . ($sortt=="size" ? ($sortd=="ASC" ? "DESC" : "ASC") : $sortd). "&sortt=size\">Size</a>". ($sortt=="size" ? "&nbsp<img src=$config[imageloc]$sortd.png>" : "") ."</td>\n";
-	echo "	<td class=header align=right><a class=header href=\"$_SERVER[PHP_SELF]?opendir=$opendir&sortd=" . ($sortt=="date" ? ($sortd=="ASC" ? "DESC" : "ASC") : $sortd). "&sortt=date\">Date</a>". ($sortt=="date" ? "&nbsp<img src=$config[imageloc]$sortd.png>" : "") ."</td>\n";
-	echo "</tr>\n";
-
-	$uidstr = ($uid == $userData['userid'] ? "" : "&uid=$uid");
-
-
-	if($opendir != "/"){
-		$up=dirname($opendir);
-		if($up!="/")
-			$up.="/";
-		echo "<tr><td class=body></td><td class=body></td><td class=body></td><td class=body></td><td class=body>[&nbsp<a class=body href=\"$_SERVER[PHP_SELF]?opendir=$up&sortd=$sortd&sortt=$sortt\">Up one level</a>&nbsp]</td><td class=body></td><td class=body></td></tr>\n";
-	}
-
-	if(sizeof($listing) >= 1){
-		usort ($listing, "cmp" . $sortt . $sortd);
-
-		foreach($listing as $file){
-			echo "<tr>";
-
-			$key = makeKey($file['filename']);
-
-//directories
-			if($file['filetype']=='directory'){
-				$perms = getPerms($baseuserdir . $opendir . $file['filename'] . "/");
-
-//delete
-				echo "<td class=body>";
-				if($perms['write']=='y')
-					echo "<a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?opendir=$opendir&action=delete&k=$key&filename=" . urlencode($file['filename']) . "$uidstr','delete this directory')\"><img src=$config[imageloc]delete.gif border=0 alt=Delete></a> ";
-				echo "</td>";
-//rename
-				echo "<td class=body>";
-				if($perms['write']=='y' && $uid == $userData['userid'])
-					echo "<a class=body href=\"javascript: if(name = prompt('Rename to what?','" . urlencode($file['filename']) . "')) location.href= '$_SERVER[PHP_SELF]?opendir=$opendir&action=rename&k=$key&filename=" . urlencode($file['filename']) . "$uidstr&new=' + escape(name)\"><img src=$config[imageloc]rename.gif border=0 alt=Rename></a> ";
-				echo "</td>";
-
-				echo "<td class=body></td>"; //download
-				echo "<td class=body></td>"; //edit
-
-
-
-				echo "<td class=body>";
-				echo "[&nbsp;";
-				if($perms['list'])
-					echo "<a class=body href=\"$_SERVER[PHP_SELF]?opendir=$opendir" . urlencode($file['filename']) . "/$uidstr&sortd=$sortd&sortt=$sortt\">";
-				echo $file['filename'];
-				if($perms['list'])
-					echo "</a>";
-				echo "&nbsp;]";
-			}else{
-//files
-//delete
-				echo "<td class=body>";
-				if($opendirperms['write']=='y')
-					echo "<a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?opendir=$opendir&action=delete$uidstr&k=$key&filename=" . urlencode(urlencode($file['filename'])) . "','delete this file')\"><img src=$config[imageloc]delete.gif border=0 alt=Delete></a> ";
-				echo "</td>";
-//rename
-				echo "<td class=body>";
-				if($opendirperms['write']=='y' && (getFileType($file['filename'])!='php' || $opendirperms['readphp']=='y') && $uid == $userData['userid'])
-					echo "<a class=body href=\"javascript: if(name = prompt('Rename to what?','" . urlencode($file['filename']) . "')) location.href= '$_SERVER[PHP_SELF]?opendir=$opendir&action=rename&k=$key&filename=" . urlencode(urlencode($file['filename'])) . "&new=' + escape(name)\"><img src=$config[imageloc]rename.gif border=0 alt=Rename></a> ";
-				echo "</td>";
-//download
-				echo "<td class=body>";
-				if($opendirperms['read']=='y' && (getFileType($file['filename'])!='php' || $opendirperms['readphp']=='y'))
-					echo "<a class=body href=\"$_SERVER[PHP_SELF]?opendir=$opendir&action=download$uidstr&k=$key&filename=" . urlencode($file['filename']) . "\"><img src=$config[imageloc]down.png border=0 alt=Download></a> ";
-				echo "</td>";
-//edit
-				echo "<td class=body>";
-				if($opendirperms['read']=='y' && ($file['filetype']=='text' || ($file['filetype']=='php' && $opendirperms['writephp']=='y')))
-					echo "<a class=body href=\"$_SERVER[PHP_SELF]?opendir=$opendir&action=edit$uidstr&k=$key&filename=" . urlencode($file['filename']) . "\"><img src=$config[imageloc]edit.gif border=0 alt=Edit></a>";
-				echo "</td>";
-
-
-
-				echo "<td class=body>";
-				if($opendirperms['read']=='n' || getFileType($file['filename'])=='unknown' || ($opendirperms['readphp']=='n' && getFileType($file['filename'])=='php'))
-					echo $file['filename'];
-				else
-					echo "<a class=body href=\"$_SERVER[PHP_SELF]?opendir=$opendir&action=view$uidstr&filename=" . urlencode($file['filename']) . "\">$file[filename]</a>";
+	$login = 0;
+	require_once('include/general.lib.php');
+	require_once('include/userfiles.php');
+
+	class pageUserFiles extends pagehandler {
+		public $userfiles, $root, $errmsgs = array(), $config;
+		public static $constToolbars = array(
+			'upload'		=> 1,
+			'newfiles'		=> 2,
+			'newfolders'	=> 4,
+			'all'			=> 7
+		);
+
+		function __construct () {
+			global $userData, $usersdb;
+
+			$vuid = getREQval('uid', 'integer', 0);
+			if (! $vuid)
+				$vuid = $userData['userid'];
+
+			$userfiles = new userfiles($vuid);
+			$this->userfiles = $userfiles;
+
+			$this->config = $userfiles->config;
+
+			if ($userfiles->ruid == -1 && $userfiles->vuid == -1)
+				return $this->showError('You must login to your account in order to manage your files.');
+
+			if ($userfiles->ruid == $userfiles->vuid && $userData['premiumexpiry'] < time())
+				return $this->showError('The files section is a a Plus only feature. <a href="/plus.php" class="body">Find out how to get Plus</a>');
+
+			$info = getUserInfo($userfiles->vuid);
+			if (! $info || $info['state'] == 'frozen')
+				return $this->showError('The user who\'s files you are trying to access does not exist.');
+
+			$this->root = getREQval('root', 'string', '/');
+			if (strlen($this->root) > 500)
+				$this->root = '/';
+
+			$this->root = $this->filenameAllowed($this->root);
+
+			// we have a valid, existing path
+			if ($this->root !== false && $userfiles->rootExists($this->root, 'any-strict')) {
+				// keep the root folder and files within the root folder private
+				if ($userfiles->vuid != $userfiles->euid && strpos($this->root, '/', 2) === false)
+					return $this->showError('You do not have permission to view this file or folder.');
 			}
 
-			echo "</td>";
-			echo "<td class=body align=right>" . number_format(abs($file["filesize"])) ." KB</td>";
-			echo "<td class=body align=right>" . userdate("m/d/y h:i:s A",$file["filedate"]) . "</td>";
-			echo "</tr>\n";
+			// path does not exist
+			else
+				return $this->showError('The file or folder requested could not be found.');
+
+			// get the toplevel folder of the entire path and check permissions for it
+			$path = array();
+			if (preg_match('/\A(\/[^\/]+\/)/', $this->root, $path)) {
+				$sth = $usersdb->prepare_query('SELECT permissions FROM userfiles WHERE userid = % AND folderpath = ?', $userfiles->vuid, $path[1]);
+				$row = $sth->fetchrow();
+				$perms = $row['permissions'];
+
+				if ($userfiles->vuid != $userfiles->euid) {
+					switch ($perms) {
+						case 'private':
+							return $this->showError('You do not have permission to view this user\'s files.');
+							break;
+
+						case 'loggedin':
+							if ($userfiles->ruid == -1)
+								return $this->showError('You must login to your account in order to view this user\'s files.');
+							break;
+
+						case 'friends':
+							if ($userfiles->ruid != $userfiles->vuid && ! isFriend($userfiles->ruid, $userfiles->vuid))
+								return $this->showError('You do not have permission to view this user\'s files.');
+							break;
+					}
+				}
+			}
+
+			$this->registerSubHandler(__FILE__, new varsubhandler(
+				$this, 'folderCreate', REQUIRE_LOGGEDIN_PLUS,
+				varargs('action', 'Create Folders', 'post', true),
+				varargs('newFolder', array('string'), 'post', false, array())
+			));
+
+			$this->registerSubHandler(__FILE__, new varsubhandler(
+				$this, 'filesUpload', REQUIRE_LOGGEDIN_PLUS,
+				varargs('action', 'Upload Files', 'post', true)
+			));
+
+			$this->registerSubHandler(__FILE__, new varsubhandler(
+				$this, 'filesDelete', REQUIRE_LOGGEDIN_PLUS,
+				varargs('action', 'Delete', 'post', true),
+				varargs('file', array('string'), 'post', false, array())
+			));
+
+			$this->registerSubHandler(__FILE__, new varsubhandler(
+				$this, 'filesCreate', REQUIRE_LOGGEDIN_PLUS,
+				varargs('action', 'Create Files', 'post', true),
+				varargs('newFile', array('string'), 'post', false, array())
+			));
+
+			$this->registerSubHandler(__FILE__, new varsubhandler(
+				$this, 'fileEdit', REQUIRE_LOGGEDIN_PLUS,
+				varargs('action', 'Edit File', 'post', true)
+			));
+
+			$this->registerSubHandler(__FILE__, new varsubhandler(
+				$this, 'fileSave', REQUIRE_LOGGEDIN_PLUS,
+				varargs('action', 'Save File', 'post', true),
+				varargs('subaction', 'string', 'post', false, 'Discard Changes'),
+				varargs('contents', 'string', 'post', true)
+			));
+
+			$this->registerSubHandler(__FILE__, new varsubhandler(
+				$this, 'filesMove', REQUIRE_LOGGEDIN_PLUS,
+				varargs('action', 'Move', 'post', true),
+				varargs('moveto', 'string', 'post', true),
+				varargs('file', array('string'), 'post', false, array())
+			));
+
+			$this->registerSubHandler(__FILE__, new varsubhandler(
+				$this, 'fileRename', REQUIRE_LOGGEDIN_PLUS,
+				varargs('action', 'Rename', 'post', true),
+				varargs('renameTo', 'string', 'post', true)
+			));
+
+			$this->registerSubHandler(__FILE__, new varsubhandler(
+				$this, 'fileDownload', REQUIRE_ANY,
+				varargs('action', 'Download', 'post', true)
+			));
+
+			$this->registerSubHandler(__FILE__, new varsubhandler(
+				$this, 'toolbarStatus', REQUIRE_LOGGEDIN_PLUS,
+				varargs('action', 'toolbarStatus', 'post', true),
+				varargs('toolbars', 'int', 'post', true)
+			));
+
+			$this->registerSubHandler(__FILE__, new varsubhandler(
+				$this, 'savePerms', REQUIRE_LOGGEDIN_PLUS,
+				varargs('action', 'savePerms', 'request', true),
+				varargs('perms', 'string', 'request', true)
+			));
+
+			$this->registerSubHandler(__FILE__, new varsubhandler(
+				$this, 'filesIndex', REQUIRE_ANY
+			));
 		}
 
-	}
+		function execTemplate ($file, $vars = array()) {
+			$userfiles = $this->userfiles;
 
-	echo "<tr>";
-	echo "<td class=header></td>";
-	echo "<td class=header></td>";
-	echo "<td class=header></td>";
-	echo "<td class=header></td>";
-	echo "<td class=header>$opendir</td>";
-	echo "<td class=header align=right>" . number_format($totalsize) . " KB</td>";
-	echo "<td class=header align=right>Quota: " . number_format($opendirperms['quota']/1024) . " KB</td></tr>\n";
-	echo "</table>";
-
-	if($opendirperms['write']=='y' && $userData['userid'] == $uid){
-		echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
-		echo "<input type=hidden name=opendir value=\"$opendir\">";
-		echo "<input type=hidden name=sortt value=$sortt>";
-		echo "<input type=hidden name=sortd value=$sortd>";
-		echo "<tr><td class=header colspan=2>Create New Text or HTML File</td></tr>";
-		echo "<tr><td class=body><input class=body type=text name=filename size=40><input class=body type=submit name=action value='Create File'></td></tr>";
-		echo "</form>";
-		echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
-
-		if($opendirperms['recursive']=='y'){
-			echo "<form action=$_SERVER[PHP_SELF] method=post>";
-			echo "<input type=hidden name=opendir value=\"$opendir\">";
-			echo "<input type=hidden name=sortt value=$sortt>";
-			echo "<input type=hidden name=sortd value=$sortd>";
-			echo "<tr><td class=header colspan=2>Create Directory</td></tr>";
-			echo "<tr><td class=body><input class=body type=text name=dirname size=40><input class=body type=submit name=action value='Create Directory'></td></tr>";
-			echo "</form>";
-			echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
+			$this->tmpl = new template($file);
+			$this->tmpl->setMultiple(array_merge(
+				array(
+					'HOST'			=> $_SERVER['HTTP_HOST'],
+					'userRoot'		=> (floor($userfiles->vuid / 1000)) . "/" . $userfiles->vuid,
+					'root'			=> $this->root,
+					'errmsgs'		=> $this->errmsgs,
+					'errmsgs_count'	=> count($this->errmsgs),
+					'canWrite'		=> $userfiles->canWrite,
+					'config'		=> $this->config
+				),
+				$userfiles->userPerms(),
+				$vars
+			));
+			$this->tmpl->display();
 		}
 
-		echo "<form action=$_SERVER[PHP_SELF] enctype=\"multipart/form-data\" method=post>\n";
-		echo "<input type=hidden name=opendir value=\"$opendir\">";
-		echo "<input type=hidden name=sortt value=$sortt>";
-		echo "<input type=hidden name=sortd value=$sortd>";
+		function adminlog ($entry) {
+			global $mods;
+			if ($this->userfiles->isAdmin)
+				$mods->adminlog("files;{$this->userfiles->vuid}", $entry);
+		}
 
-		echo "<tr><td class=header colspan=3>Upload Files</td></tr>";
+		function delPerms ($root) {
+			global $usersdb;
+			$usersdb->prepare_query('DELETE FROM userfiles WHERE userid = % AND folderpath = ?', $this->userfiles->euid, $root);
+		}
 
+		function getPerms ($root) {
+			global $usersdb;
+			$sth = $usersdb->prepare_query('SELECT permissions FROM userfiles WHERE userid = % AND folderpath = ?', $this->userfiles->euid, $root);
 
-		echo "<tr><td class=body><input class=body name=\"userfile\" type=\"file\" size=40><input class=body type=submit name=action value=\"Upload\"></td></tr>\n";
-		echo "</table></form>";
+			if ( ($row = $sth->fetchrow()) !== false )
+				return $row['permissions'];
+			else
+				return false;
+		}
 
-	}
+		function setPerms ($root, $perms) {
+			global $usersdb;
+			$usersdb->prepare_query('INSERT IGNORE INTO userfiles (userid, folderpath, permissions) VALUES (%, ?, ?)', $this->userfiles->euid, $root, $perms);
+		}
 
-	incFooter();
-}
+		function filesIndex () {
+			global $usersdb, $config;
+			$userfiles = $this->userfiles;
 
+			if (! $userfiles->rootExists($this->root, 'folder-strict'))
+				return $this->showError('Cannot retrieve a folder listing for the requested path.');
 
-function cmpnameASC($a,$b){
-	if($a["filesize"] < 0 && $b["filesize"] >= 0)
-		return -1;
-	if($a["filesize"] >= 0 && $b["filesize"] < 0)
-		return 1;
-	return strnatcasecmp($a["filename"],$b["filename"]);
-}
+			// get the status of shown/hidden toolbars
+			$sth = $usersdb->prepare_query('SELECT filestoolbar FROM users WHERE userid = %', $userfiles->ruid);
+			if ( ($toolbars = $sth->fetchrow()) !== false )
+				$toolbars = $toolbars['filestoolbar'];
+			else
+				$toolbars = self::$constToolbars['all'];
 
-function cmpnameDESC($a,$b){
-	if($a["filesize"] < 0 && $b["filesize"] >= 0)
-		return -1;
-	if($a["filesize"] >= 0 && $b["filesize"] < 0)
-		return 1;
-	return strnatcasecmp($b["filename"],$a["filename"]);
-}
-function cmpsizeASC($a,$b){
-	if($a["filesize"] < 0 && $b["filesize"] >= 0)
-		return -1;
-	if($a["filesize"] >= 0 && $b["filesize"] < 0)
-		return 1;
-	if($a["filesize"] == $b["filesize"])
-		return 0;
-	return ($a["filesize"] < $b["filesize"] ? -1 : 1);
-}
-function cmpsizeDESC($a,$b){
-	if($a["filesize"] < 0 && $b["filesize"] >= 0)
-		return -1;
-	if($a["filesize"] >= 0 && $b["filesize"] < 0)
-		return 1;
-	if($a["filesize"] == $b["filesize"])
-		return 0;
-	return ($a["filesize"] < $b["filesize"] ? 1 : -1);
-}
-function cmpdateASC($a,$b){
-	if($a["filesize"] < 0 && $b["filesize"] >= 0)
-		return -1;
-	if($a["filesize"] >= 0 && $b["filesize"] < 0)
-		return 1;
-	if($a["filedate"] == $b["filedate"])
-		return 0;
-	return ($a["filedate"] < $b["filedate"] ? -1 : 1);
-}
-function cmpdateDESC($a,$b){
-	if($a["filesize"] < 0 && $b["filesize"] >= 0)
-		return -1;
-	if($a["filesize"] >= 0 && $b["filesize"] < 0)
-		return 1;
-	if($a["filedate"] == $b["filedate"])
-		return 0;
-	return ($a["filedate"] < $b["filedate"] ? 1 : -1);
-}
+			// fetch total size used by user
+			$allsize = $userfiles->ttlsize;
+			$maxsize = $userfiles->config['maxTotal'];
 
-function getBaseDir($allperms){
-	foreach($allperms as $perm)
-		if($perm['list']=='y')
-			return substr($perm['location'],0,-1);
-	return false;
-}
+			// fetch a full folder tree of the user's files
+			$allFolders = $curFolders = $curFiles = $selectedFolder = array();
+			foreach (array_merge(array('/'), $userfiles->listFolders("/", true)) as $key => $folderPath) {
+				$allFolders[$key] = $userfiles->getHandle($folderPath)->fileInfo;
+				$selectedFolder[$folderPath] = $this->root == $folderPath ? ' selected="selected"' : '';
+			}
 
-function getFileType($filename){
-	$extension = strtolower(getFileExt($filename));
+			// fetch the subfolders of the current folder
+			foreach ($userfiles->listFolders($this->root) as $key => $folderPath) {
+				$curFolders[$key] = $userfiles->getHandle($folderPath)->fileInfo;
+				$curFolders[$key]['modified'] = userDate('m/d/Y h:i A', $curFolders[$key]['modified']);
+				$curFolders[$key]['uniqueID'] = preg_replace('/[^a-zA-Z0-9]+/', '', md5($folderPath));
+				$curFolders[$key]['size'] = floor($curFolders[$key]['size'] / 1024) . " kB";
 
+				if ($this->root == '/') {
+					$sth = $usersdb->prepare_query('SELECT permissions FROM userfiles WHERE userid = % AND folderpath = ?', $userfiles->euid, $folderPath);
+					$row = $sth->fetchrow();
+					$curFolders[$key]['permissions'] = $row['permissions'];
+				}
+			}
 
-	switch($extension){
-		case "jpg":
-		case "jpeg":
-		case "gif":
-		case "png":
-		case "bmp":
-			return "image";
-		case "txt":
-		case "c":
-		case "cpp":
-		case "h":
-		case "nfo":
-		case "css":
-		case "js":
-		case "html":
-		case "csv":
-			return "text";
-		case "php":
-		case "php3":
-			return "php";
-		default:
-			return "unknown";
-	}
-	return "unknown";
-}
+			$ttlsize = 0;
+			// fetch the files of the current folder
+			foreach ($userfiles->listFiles($this->root) as $key => $filePath) {
+				$curFiles[$key] = $userfiles->getHandle($filePath)->fileInfo;
+				$ttlsize += $curFiles[$key]['size'];
+				$curFiles[$key]['modified'] = userDate('m/d/Y h:i A', $curFiles[$key]['modified']);
+				$curFiles[$key]['size'] = floor($curFiles[$key]['size'] / 1024) . " kB";
+				$curFiles[$key]['uniqueID'] = preg_replace('/[^a-zA-Z0-9]+/', '', md5($filePath));
+			}
 
-function getPerms($directory){
-	global $allperms;
+			/* get the parent folder of the folder we are viewing */
+			// we are in root folder; there is no parent folder above this
+			if ($this->root == '/')
+				$rootParent = array('root' => '.');
 
-	foreach($allperms as $perm){
-		if($perm['location'] == $directory)
-			return $perm;
-	}
+			// we are not in root folder; parent folder exists
+			else {
+				$rootParent = $userfiles->getHandle($userfiles->rootParent($this->root))->fileInfo;
+				$rootParent['modified'] = userDate('m/d/Y h:i A', $rootParent['modified']);
 
-	while(1){
-		$pos = strrpos(substr($directory,0,-1),"/");
-		if($pos===false)
-			break;
-	 	$directory = substr($directory,0,$pos+1);
+				// keep root folder private by not showing parent folder when we are one folder deep
+				if ($userfiles->vuid != $userfiles->euid && $rootParent['root'] == '/')
+					$rootParent = array('root' => '.');					
+			}
 
-		foreach($allperms as $perm){
-			if($perm['location'] == $directory && $perm['recursive']=='y')
-				return $perm;
+			// calculate the folder depth (to enforce max folder depth)
+			$allowNewFolders = true;
+			$folderDepth = 0;
+			preg_replace('/\//', '', $this->root, -1, $folderDepth);
+
+			if ($folderDepth > $this->config['filesMaxFolderDepth'])
+				$allowNewFolders = false;
+
+			$this->execTemplate('userfiles/index', array(
+				'jsloc'             => $config['jsloc'],
+				'toolbars'			=> $toolbars,
+				'userfilesToolbars'	=> self::$constToolbars,
+				'selectedFolder'	=> $selectedFolder,
+				'allFolders'		=> $allFolders,
+				'rootParent'		=> $rootParent,
+				'allowNewFolders'	=> $allowNewFolders,
+				'folderCnt'			=> count($curFolders),
+				'curFolders'		=> $curFolders,
+				'fileCnt'			=> count($curFiles),
+				'curFiles'			=> $curFiles,
+				'ttlsize'			=> floor($ttlsize / 1024) . " kB",
+				'allsize'			=> floor($allsize / 1024) . ' kB',
+				'maxsize'			=> floor($maxsize / 1024) . ' kB'
+			));
+		}
+
+		function folderCreate ($action, $newFolders) {
+			$userfiles = $this->userfiles;
+
+			if (! $userfiles->canWrite)
+				return $this->showError('You do not have permission to modify this user\'s files.');
+
+			$handle = $userfiles->getHandle($this->root);
+			if ($handle === false || $handle->type == 'File')
+				return $this->showError('The folder specified for location of new folder is invalid.');
+
+			$folderDepth = 0;
+			preg_replace('/\//', '', $handle->root, -1, $folderDepth);
+
+			if ($folderDepth > $this->config['filesMaxFolderDepth']) {
+				$this->errmsgs[] = "Maximum folder depth has been reached in this folder. Cannot create folder here.";
+				$newFolders = array();
+			}
+
+			$allFolderCount = count($userfiles->listFolders("/", true));
+			
+			foreach ($newFolders as $newFolder) {
+				if (
+					strlen($newFolder) > $this->config['filesMaxFolderLength'] ||
+					($newFolder = $this->filenameAllowed($newFolder, true)) === false
+				) {
+					$this->errmsgs[] = "Name for new folder contains invalid characters.";
+					continue;
+				}
+
+				$pathExists = $userfiles->rootExists("{$handle->root}{$newFolder}", 'any');
+				if ($pathExists === true) {
+					$this->errmsgs[] = "A file or folder with the name '{$newFolder}' already exists in this folder.";
+					continue;
+				}
+
+				if ($allFolderCount >= $this->config['filesMaxFolders']) {
+					$this->errmsgs[] = "You have reached the limit of {$this->config['filesMaxFolders']} total folders. Could not create folder.";
+					break;
+				}
+
+				++$allFolderCount;
+
+				if ($this->root == '/')
+					$this->setPerms("{$handle->root}{$newFolder}/", 'private');
+				$this->adminlog("create folder;{$handle->root}{$newFolder}");
+				$userfiles->makeFolder("{$handle->root}{$newFolder}");
+				$this->errmsgs[] = "Created new folder '{$newFolder}'.";
+			}
+
+			$this->filesIndex();
+		}
+
+		function filesMove ($action, $movetoRoot, $fileRoots) {
+			$userfiles = $this->userfiles;
+
+			if (! $userfiles->canWrite)
+				return $this->showError('You do not have permission to modify this user\'s files.');
+
+			if ( ($movetoRoot = $this->filenameAllowed($movetoRoot)) === false )
+				return $this->showError('The folder to which you are attempting to move files is invalid.');
+
+			if ($movetoRoot == '0') {
+				$this->errmsgs[] = "You must select the folder to which you want to move the files.";
+				return $this->filesIndex();
+			}
+
+			$movetoHandle = $userfiles->getHandle($movetoRoot);
+
+			if ($movetoHandle === false || $movetoHandle->type == 'File')
+				return $this->showError('The folder to which you are attempting to move files is invalid.');
+
+			$allowNewFolders = true;
+			$folderDepth = 0;
+			preg_replace('/\//', '', $movetoHandle->root, -1, $folderDepth);
+
+			foreach ($fileRoots as $fileRoot) {
+				if ( ($fileRoot = $this->filenameAllowed($fileRoot)) === false )
+					continue;
+
+				$handle = $userfiles->getHandle($fileRoot);
+				if ($handle !== false && $handle->root != '/') {
+					if ($handle->type == 'Folder' && $folderDepth > $this->config['filesMaxFolderDepth']) {
+						$this->errmsgs[] = "Could not move '{$handle->basename}' to '{$movetoHandle->root}', as the folder has reached its maximum permitted folder depth.";
+						continue;
+					}
+
+					$parentHandle = $userfiles->getHandle($userfiles->rootParent($handle->root));
+					if ($parentHandle->root == $movetoHandle->root || strpos($movetoHandle->fsPath, $handle->fsPath) !== false) {
+						$this->errmsgs[] = "{$handle->type} '{$handle->basename}' cannot be moved inside of '{$movetoHandle->root}' (doesn't make sense, nor is it possible).";
+						continue;
+					}
+
+					$pathExists = $userfiles->rootExists("{$movetoHandle->root}{$handle->basename}", 'any');
+					if ($pathExists === true) {
+						$this->errmsgs[] = "Could not move '{$handle->basename}' to '{$movetoHandle->root}', as the folder already contains a file or folder with this name.";
+						continue;
+					}
+
+					if ($handle->type == 'Folder') {
+						$this->delPerms($handle->root);
+						if ($movetoHandle->root == '/')
+							$this->setPerms("{$movetoHandle->root}{$handle->basename}", 'private');
+					}
+
+					$this->adminlog("move file;from={$this->root}{$handle->basename};to={$movetoHandle->root}{$handle->basename}");
+					$handle->rename("{$movetoHandle->root}{$handle->basename}");
+					$this->errmsgs[] = "{$handle->type} '{$handle->basename}' moved to '{$movetoHandle->root}'.";
+				}
+			}
+
+			$this->filesIndex();
+		}
+
+		function fileRename ($action, $renameTo) {
+			$userfiles = $this->userfiles;
+
+			if (! $userfiles->canWrite)
+				return $this->showError('You do not have permission to modify this user\'s files.');
+
+			$handle = $userfiles->getHandle($this->root);
+			$parent = $userfiles->getHandle($userfiles->rootParent($handle->root));
+
+			if ($handle === false || $handle->root == '/')
+				return $this->showError('The file or folder you are attempting to rename is invalid.');
+
+			if (
+				($renameTo = $this->filenameAllowed($renameTo, true)) === false || (
+					($handle->type == 'File' && strlen($renameTo) > $this->config['filesMaxFileLength']) ||
+					($handle->type == 'Folder' && strlen($renameTo) > $this->config['filesMaxFolderLength'])
+				)
+			) {
+				$this->errmsgs[] = "The new filename entered for '{$handle->basename}' is invalid.";
+			}
+			else {
+				$pathExists = $userfiles->rootExists("{$parent->root}{$renameTo}", 'any');
+				if ($pathExists === true)
+					$this->errmsgs[] = "A file or folder with the name '{$renameTo}' already exists; could not rename file.";
+			}
+
+			if (! count($this->errmsgs)) {
+				if ($handle->type == 'Folder') {
+					$perms = $this->getPerms($handle->root);
+					$this->delPerms($handle->root);
+					$this->setPerms("{$parent->root}{$renameTo}" . ($handle->type == 'Folder' ? '/' : ''), $perms);
+				}
+
+				$this->adminlog("rename file;from={$handle->root};to={$parent->root}{$renameTo}");
+				$handle->rename("{$parent->root}{$renameTo}");
+				$this->errmsgs[] = $handle->type . " '{$handle->basename}' renamed to '{$renameTo}" . ($handle->type == 'Folder' ? '/' : '') . "'.";
+			}
+
+			$this->root = $parent->root;
+			$this->filesIndex();
+		}
+
+		function filesDelete ($action, $roots) {
+			$userfiles = $this->userfiles;
+
+			if (! $userfiles->canWrite)
+				return $this->showError('You do not have permission to modify this user\'s files.');
+
+			foreach ($roots as $root) {
+				if ( ($root = $this->filenameAllowed($root)) === false || $root == '/') {
+					$this->errmsgs[] = "Could not delete file or folder due to invalid filename.";
+					continue;
+				}
+
+				$handle = $userfiles->getHandle($root);
+				if ($handle !== false) {
+					if ($handle->type == 'Folder')
+						$this->delPerms($handle->root);
+
+					$this->adminlog("delete {$handle->type};{$handle->root}");
+					$handle->delete();
+					$this->errmsgs[] = "{$handle->type} '{$handle->basename}' deleted.";
+				}
+			}
+
+			$userfiles->ttlsize = $userfiles->getTotalSize('/');
+			$this->filesIndex();
+		}
+
+		function filesUpload ($action) {
+			$userfiles = $this->userfiles;
+
+			if (! $userfiles->canWrite)
+				return $this->showError('You do not have permission to modify this user\'s files.');
+
+			$handle = $userfiles->getHandle($this->root);
+			if ($handle === false || $handle->type == 'File')
+				return $this->showError('The folder specified for location of uploaded files is invalid.');
+
+			$fileUploads = isset($_FILES['upload']) ? $_FILES['upload'] : null;
+			if ($fileUploads !== null && ! is_array($fileUploads))
+				$fileUploads = array($fileUploads);
+
+			if (! is_null($fileUploads)) {
+				foreach ($fileUploads['error'] as $key => $err) {
+					if ($err == UPLOAD_ERR_NO_FILE)
+						continue;
+
+					list($fname, $mime, $size, $tmpfile) = array(
+						$fileUploads['name'][$key], $fileUploads['type'][$key], $fileUploads['size'][$key], $fileUploads['tmp_name'][$key]
+					);
+
+					$fname = (isset($fname) && (string)$fname !== '') ? basename($fname) : 'unknown-filename';
+
+					if (
+						strlen($fname) > $this->config['filesMaxFileLength'] ||
+						($fname = $this->filenameAllowed($fname, true)) === false
+					) {
+						$this->errmsgs[] = "Filename for one of the uploaded files is invalid. Upload skipped.";
+						continue;
+					}
+
+					$pathExists = $userfiles->rootExists("{$handle->root}{$fname}", 'any');
+					if ($pathExists === true) {
+						$this->errmsgs[] = "A file or folder with the name '{$fname}' already exists in this folder. Upload skipped.";
+						continue;
+					}
+
+					switch ($err) {
+						case UPLOAD_ERR_INI_SIZE:
+						case UPLOAD_ERR_FORM_SIZE:
+							$this->errmsgs[] = "Filesize of '{$fname}' exceeds maximum limit. Upload skipped.";
+							break;
+						case UPLOAD_ERR_PARTIAL:
+							$this->errmsgs[] = "Only received partial contents of '{$fname}'. Upload skipped.";
+							break;
+						case UPLOAD_ERR_NO_TMP_DIR:
+							$this->errmsgs[] = "Encountered server-side error: no temporary directory defined. Upload skipped.";
+							break;
+						case UPLOAD_ERR_OK:
+							if ($size == 0 || $tmpfile == '')
+								continue;
+							if ($size > $this->config['filesMaxFileSize']) {
+								$this->errmsgs[] = "Filesize of '{$fname}' exceeds maximum limit. Upload skipped.";
+								break;
+							}
+							if ($userfiles->ttlsize + $size > $userfiles->config['maxTotal']) {
+								$this->errmsgs[] = "Uploading '{$fname}' would exceed your files quota. Upload skipped.";
+								break;
+							}
+
+							$this->adminlog("upload file;{$handle->root}{$fname}");
+							$userfiles->uploadFile($tmpfile, "{$handle->root}{$fname}");
+							$this->errmsgs[] = "Uploaded file '{$fname}'.";
+					}
+				}
+			}
+
+			$userfiles->ttlsize = $userfiles->getTotalSize('/');
+			$this->filesIndex();
+		}
+
+		function filesCreate ($action, $newFiles) {
+			$userfiles = $this->userfiles;
+
+			if (! $userfiles->canWrite)
+				return $this->showError('You do not have permission to modify this user\'s files.');
+
+			$handle = $userfiles->getHandle($this->root);
+			if ($handle === false || $handle->type == 'File')
+				return $this->showError('The folder specified for location of new text file is invalid.');
+
+			foreach ($newFiles as $newFile) {
+				if (
+					strlen($newFile) > $this->config['filesMaxFileLength'] ||
+					($newFile = $this->filenameAllowed($newFile, true)) === false
+				)
+					$this->errmsgs[] = "The filename entered for a new text file is invalid.";
+
+				else if ($userfiles->rootExists("{$this->root}{$newFile}", 'any'))
+					$this->errmsgs[] = "A file or folder with the name '{$newFile}' already exists.";
+
+				else if ($userfiles->ttlsize + 1024 > $userfiles->config['maxTotal'])
+					$this->errmsgs[] = "Creating new text file '{$newFile}' would exceed your files quota. File creation skipped.";
+
+				else {
+					$this->adminlog("create file;{$this->root}{$newFile}");
+					$userfiles->touchFile("{$this->root}{$newFile}");
+					$this->errmsgs[] = "New text file '{$newFile}' created.";
+				}
+			}
+
+			$this->filesIndex();
+		}
+
+		function fileEdit ($action, $contents = null) {
+			$userfiles = $this->userfiles;
+
+			if (! $userfiles->canWrite)
+				return $this->showError('You do not have permission to modify this user\'s files.');
+
+			$handle = $userfiles->getHandle($this->root);
+			if ($handle === false || $handle->type == 'Folder')
+				return $this->showError('The file or folder chosen for editting purposes is invalid.');
+
+			$fileInfo = $handle->fileInfo;
+			$fileInfo['contents'] = is_null($contents) ? $handle->fileContents() : $contents;
+
+			$this->execTemplate('userfiles/editfile', array('fileInfo' => $fileInfo));
+		}
+
+		function fileSave ($action, $subaction, $contents) {
+			$userfiles = $this->userfiles;
+
+			if (! $userfiles->canWrite)
+				return $this->showError('You do not have permission to modify this user\'s files.');
+
+			if ($subaction != 'Save and Continue Editting' && $subaction != 'Save and Close' && $subaction != 'Discard Changes')
+				$subaction = 'Discard Changes';
+			
+			$handle = $userfiles->getHandle($this->root);
+			if ($handle === false || $handle->type == 'Folder')
+				return $this->showError('The file or folder chosen for editting purposes is invalid.');
+
+			if (substr($subaction, 0, 4) == 'Save') {
+				if (strlen($contents) > $this->config['filesMaxFileSize']) {
+					$this->errmsgs[] = "FILE NOT SAVED! Filesize of new contents exceeds maximum limit. The contents must be shortened before the file can be saved.";
+					return $this->fileEdit('Save and Continue Editting', $contents);
+				}
+				elseif ($userfiles->ttlsize - $handle->size + strlen($contents) > $userfiles->config['maxTotal']) {
+					$this->errmsgs[] = "FILE NOT SAVED! Saving the contents of this file would exceed your files quota. The contents must be shortened before the file can be saved.";
+					return $this->fileEdit('Save and Continue Editting', $contents);
+				}
+				else {
+					$this->adminlog("save file;{$handle->root}");
+					$handle->fileContents($contents);
+					$userfiles->ttlsize = $userfiles->getTotalSize('/');
+					$this->errmsgs[] = "Contents of '{$handle->basename}' saved.";
+				}
+			}
+			else {
+				$this->errmsgs[] = "Discarded changes made to '{$handle->basename}'.";
+			}
+
+			if ($subaction == 'Save and Continue Editting') {
+				$this->fileEdit();
+			}
+			else {
+				$this->root = $userfiles->getHandle($userfiles->rootParent($this->root))->root;
+				$this->filesIndex();
+			}
+		}
+
+		function fileDownload ($action) {
+			$userfiles = $this->userfiles;
+
+			$handle = $userfiles->getHandle($this->root);
+			if ($handle === false || $handle->type == 'Folder')
+				return $this->showError('The file you are attempting to download could not be retrieved from the server.');
+
+			header("Content-type: application/octet-stream");
+			header("Content-disposition: attachment; filename=\"{$handle->basename}\"");
+			header("Content-length: {$handle->size}");
+			header("Connection: close");
+			header("Expires: 0");
+
+			set_time_limit(0);
+			$handle->readfile();
+		}
+		
+		function toolbarStatus ($action, $toolbars) {
+			global $usersdb;
+			$userfiles = $this->userfiles;
+
+			if ($toolbars > self::$constToolbars['all'])
+				$toolbars = self::$constToolbars['all'];
+
+			$usersdb->prepare_query('UPDATE users SET filestoolbar = # WHERE userid = %', $toolbars, $userfiles->ruid);
+
+			header('Content-type: text/xml');
+			$blank = new DOMDocument();
+			$blank->appendChild( $blank->createElement('root', htmlspecialchars(htmlspecialchars($toolbars))) );
+			echo $blank->saveXML();
+		}
+
+		function savePerms ($action, $perms) {
+			global $usersdb;
+
+			header('Content-type: text/xml');
+			$blank = new DOMDocument();
+
+			if ($this->root == '/' || ! in_array($perms, array('private', 'public', 'loggedin', 'friends')))
+				$blank->appendChild($blank->createElement('root', 'bad permissions'));
+			else {
+				$usersdb->prepare_query('UPDATE userfiles SET permissions = ? WHERE userid = % AND folderpath = ?', $perms, $this->userfiles->euid, $this->root);
+				$blank->appendChild($blank->createElement('root', 'saved'));
+			}
+
+			echo $blank->saveXML();
+		}
+
+		function showError ($errmsg) {
+			$this->execTemplate('userfiles/error', array('errmsg' => $errmsg));
+		}
+
+		function extensionAllowed ($fname) {
+			return ! in_array(substr($fname, strrpos($fname, '.') + 1), $this->config['filesRestrictExts']);
+		}
+
+		function filenameAllowed ($fname, $checkForFolder = false) {
+			$fname = preg_replace('!\./!', '', preg_replace('!/{2,}!', '/', trim($fname)));
+
+			$invalid = false;
+			foreach (array('..', '&', '\'', '"') as $badSeq)
+				if (strpos($fname, $badSeq) !== false)
+					$invalid = true;
+
+			if (
+				$invalid || ! preg_match('/\S/', $fname) || $fname{0} == '.' || substr($fname, -1) == '.' ||
+				! $this->extensionAllowed($fname) || ($checkForFolder && strpos($fname, '/') !== false)
+			)
+				return false;
+
+			return $fname;
 		}
 	}
 
-	return false;
-}
+	$page = new pageUserFiles;
+	$page->runPage();
+?>
 

@@ -35,16 +35,14 @@
 
 	$page = getREQval('page', 'int');
 
-	$forums->db->prepare_query("SELECT DISTINCT SQL_CALC_FOUND_ROWS
+	$res = $forums->db->prepare_query("SELECT DISTINCT SQL_CALC_FOUND_ROWS
 						forumread.threadid,
 						forumthreads.forumid,
 						forumthreads.title as threadtitle,
 						forums.name as forumtitle,
 						forumread.time as readtime,
 						forumthreads.time as threadtime,
-						forumthreads.lastauthor,
 						forumthreads.lastauthorid,
-						forumthreads.author,
 						forumthreads.authorid,
 						forumthreads.locked,
 						forumread.time < forumthreads.time AS new
@@ -59,72 +57,42 @@
 			, $uid);
 
 	$rows = array();
-	while($line = $forums->db->fetchrow())
+	$uids = array();
+	while($line = $res->fetchrow()){
 		$rows[] = $line;
+		$uids[$line['authorid']] = $line['authorid'];
+		$uids[$line['lastauthorid']] = $line['lastauthorid'];
+	}
 
-	$forums->db->query("SELECT FOUND_ROWS()");
-
-	$numthreads = $forums->db->fetchfield();
-
+	$numthreads = $res->totalrows();
 	$numpages = ceil($numthreads / $config['linesPerPage']);
 
-
-	incHeader();
-
-	echo "<table width=100%>";
-	if($uid == $userData['userid'])
-		echo "<form action=$_SERVER[PHP_SELF] method=post>";
-
-	echo "<tr>";
-		if($uid == $userData['userid'])
-			echo "<td class=header width=25></td>";
-		makeSortTableHeader($sortlist,"Thread Title","threadtitle");
-		makeSortTableHeader($sortlist,"Forum Title","forumtitle");
-		echo "<td class=header>Author</td>";
-		makeSortTableHeader($sortlist,"New Posts","new");
-		makeSortTableHeader($sortlist,"Last Post","threadtime");
-	echo "</tr>";
-
-	$classes = array('body','body2');
-	$i=1;
-
-	foreach($rows as $line){
-		$i = !$i;
-		echo "<tr>";
-		if($uid == $userData['userid'])
-			echo "<td class=$classes[$i]><input class=body type=checkbox name=deleteID[] value=$line[threadid]></td>";
-		echo "<td class=$classes[$i]>";
-		if($line['locked']=='y')
-			echo "<img src=$config[imageloc]locked.png> ";
-		echo "<a class=body href=forumviewthread.php?tid=$line[threadid]>$line[threadtitle]</a></td>";
-		echo "<td class=$classes[$i]><a class=body href=forumthreads.php?fid=$line[forumid]>$line[forumtitle]</a></td>";
-		echo "<td class=$classes[$i]>";
-		if($line['lastauthorid']!=0)
-			echo "<a class=body href=profile.php?uid=$line[authorid]>$line[author]</a>";
-		else
-			echo $line['author'];
-		echo "</td>";
-		echo "<td class=$classes[$i]>" . ($line['new'] ? "Yes" : "" ) . "</td>";
-		echo "<td class=$classes[$i]>";
-		echo userdate("M j, y g:i a",$line['threadtime']) . " by ";
-		if($line['lastauthorid']!=0)
-			echo "<a class=body href=profile.php?uid=$line[lastauthorid]>$line[lastauthor]</a>";
-		else
-			echo $line['lastauthor'];
-		echo "</td>";
-		echo "</tr>";
+	$usernames = getUserName($uids);
+	
+	foreach($rows as $k => $v){
+		$rows[$k]['author'] = ($v['authorid'] ? $usernames[$v['authorid']] : '');
+		$rows[$k]['lastauthor'] = ($v['lastauthorid'] ? $usernames[$v['lastauthorid']] : '');
 	}
-	echo "<tr><td class=header colspan=6>";
-	echo "<table width=100%><tr>";
-	if($uid == $userData['userid'])
-		echo "<td class=header><input class=body name=selectall type=checkbox value='Check All' onClick=\"this.value=check(this.form,'deleteID')\"><input class=body type=submit name=action value=Unsubscribe></td>";
-	echo "<td class=header align=right>Page: " . pageList("$_SERVER[PHP_SELF]?sortt=$sortt&sortd=$sortd",$page,$numpages,'header') . "</td>";
-	echo "</tr></table>";
-	echo "</td></tr>";
 
-	if($uid == $userData['userid'])
-		echo "</form>";
-	echo "</table>";
-
-	incFooter();
-
+	$template = new template('managesubscriptions/managesubscriptions');
+	$template->set('sortHeaderThread', makeSortTableHeader("Thread Title","threadtitle"));
+	$template->set('sortHeaderForum',  makeSortTableHeader("Forum Title","forumtitle"));
+	$template->set('sortHeaderNew',    makeSortTableHeader("New Posts","new"));
+	$template->set('sortHeaderTime',   makeSortTableHeader("Last Post","threadtime"));
+	$template->set('rows', $rows);
+	$template->set('uid', $uid);
+	$template->set('config', $config);
+	$template->set('userData', $userData);
+	
+	$classes = array('body','body2');
+	$i=-1;
+	foreach($rows as $line){
+		$i++;
+		if ($i > 1)
+			$classes[$i] = $classes[$i%2];
+	}
+	
+	$template->set('classes',$classes);
+	$template->set('pageList', pageList("$_SERVER[PHP_SELF]?sortt=$sortt&sortd=$sortd",$page,$numpages,'header'));
+	
+	$template->display();

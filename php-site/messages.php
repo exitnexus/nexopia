@@ -3,13 +3,15 @@
 	$login=1;
 
 	require_once("include/general.lib.php");
-
+	require_once("include/template.php");
 	$folder = getREQval('folder', 'int', MSG_INBOX);
 
 	$page = getREQval('page', 'int');
 
+	$uid = getREQval('uid', 'int');
+
 	$isAdmin = $mods->isAdmin($userData['userid'], 'viewmessages');
-	if(!isset($uid) || !$isAdmin)
+	if(!$uid || !$isAdmin)
 		$uid = $userData['userid'];
 
 	switch($action){
@@ -26,8 +28,9 @@
 				viewPrev($id, getREQval('fid', 'int', MSG_INBOX));	//exit
 			break;
 		case "view":
+			$parse_bbcode = $userData['parse_bbcode'];
 			if($id = getREQval('id', 'int'))
-				viewMsg($id);	//exit
+				viewMsg($id, $parse_bbcode);	//exit
 			break;
 		case "reply":
 			if($id = getREQval('id', 'int'))
@@ -45,12 +48,17 @@
 
 		case "Write Message":
 		case "write":
+			$parse_bbcode = $userData['parse_bbcode'];
 		case "Preview":
 			$to 	 = getREQval('to');
 			$subject = getREQval('subject');
 			$msg 	 = getPOSTval('msg');
 			$replyto = getPOSTval('replyto', 'int');
-			writeMsg($to, $subject, $msg, $replyto, ($action == "Preview"));	//exit
+
+			if(!isset($parse_bbcode))
+				$parse_bbcode = getPOSTval('parse_bbcode', 'bool');
+
+			writeMsg($to, $subject, $msg, $replyto, ($action == "Preview"),  $parse_bbcode);	//exit
 			break;
 
 		case "Send Message":
@@ -59,7 +67,9 @@
 			$subject = getPOSTval('subject');
 			$msg 	 = getPOSTval('msg');
 			$replyto = getPOSTval('replyto', 'int');
-			sendMesg($to, $subject, $msg, $replyto);
+			$parse_bbcode = getPOSTval('parse_bbcode', 'bool');
+
+			sendMesg($to, $subject, $msg, $replyto,  $parse_bbcode);
 			header("location: $_SERVER[PHP_SELF]");
 			exit;
 
@@ -67,11 +77,19 @@
 		case "mark":
 			if(($checkID = getREQval('checkID', 'array')))
 				$messaging->markMsg($checkID);
+
+			if(getREQval('noreload', 'bool'))
+				exit;
+
 			break;
 		case "UnMark":
 		case "unmark":
 			if(($checkID = getREQval('checkID', 'array')))
 				$messaging->unMarkMsg($checkID);
+
+			if(getREQval('noreload', 'bool'))
+				exit;
+
 			break;
 
 		case "Move":
@@ -125,8 +143,8 @@
 
 
 function listFolders(){
-	global $userData, $config, $uid, $messaging;
-
+	global $userData, $config, $uid, $messaging, $usersdb;
+	$template = new template("messages/listfolders");
 	$folders = $messaging->getMsgFolders($uid);
 
 	$folderdata = array();
@@ -135,75 +153,49 @@ function listFolders(){
 
 	unset($folders);
 
-	$messaging->db->prepare_query($uid, "SELECT folder, count(*) as count FROM msgs WHERE userid = # GROUP BY folder", $uid);
+	$res = $usersdb->prepare_query("SELECT folder, count(*) as count FROM msgs WHERE userid = % GROUP BY folder", $uid);
 
-	while($line = $messaging->db->fetchrow())
+	while($line = $res->fetchrow())
 		$folderdata[$line['folder']]['count'] = $line['count'];
 
-	incHeader();
-
-	echo "<table>";
-	echo "<tr><td class=header>Name</td>";
-	echo "<td class=header>Messages</td>";
-	if($userData['userid'] == $uid)
-		echo "<td class=header></td></tr>";
+	$template->set("is_current_user", ($userData['userid'] == $uid));
 
 	$total=0;
-	foreach($folderdata as $id => $folder){
-		echo "<tr>";
-		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?folder=$id>$folder[name]</a></td>";
-		echo "<td class=body align=right>$folder[count]</td>";
-		echo "<td class=body>";
-		if($userData['userid'] == $uid && $id != MSG_INBOX && $id != MSG_SENT && $id != MSG_TRASH){
-			echo "<a class=body href=\"javascript: if(name = prompt('Rename folder to what?','$folder[name]')) location.href= '/$_SERVER[PHP_SELF]?action=renamefolder&id=$id&new=' + name\"><img src=$config[imageloc]rename.gif border=0></a>";
-			echo "<a class=body href=$_SERVER[PHP_SELF]?action=deletefolder&id=$id><img src=$config[imageloc]delete.gif border=0></a>";
-		}
-		echo "</td>";
-		echo "</tr>";
+	$template->set("rename_img_src", "$config[imageloc]rename.gif");
+	$template->set("delete_img_src", "$config[imageloc]delete.gif");
+	foreach($folderdata as $id => &$folder)
+	{
+
+		$folder['folder_options'] = ($userData['userid'] == $uid && $id != MSG_INBOX && $id != MSG_SENT && $id != MSG_TRASH);
 		$total += $folder['count'];
 	}
-
-	echo "<tr><td class=header></td>";
-	echo "<td class=header align=right>$total</td>";
-	if($userData['userid'] == $uid)
-		echo "<td class=header></td>";
-	echo "</tr>";
-	echo "</table>";
-	echo "<br>";
-
-	if($userData['userid'] == $uid){
-		echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
-		echo "<tr><td class=header colspan=2 align=center>Create New Folder</td></tr>";
-		echo "<tr><td class=body>Name:</td><td class=body><input class=body type=text name=name></td></tr>";
-		echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value=\"Create Folder\"></td></tr>";
-		echo "</form></table>";
-	}
-
-	incFooter();
+	$template->set("folderdata", $folderdata);
+	$template->set("total", $total);
+	$template->display();
 	exit;
 }
 
-function sendMesg($to, $subject, $msg, $replyto){
+function sendMesg($to, $subject, $msg, $replyto,  $parse_bbcode){
 	global $msgs, $userData, $sortt, $sortd, $messaging;
 
 	if(!is_numeric($to)){
 		$touser=$to;
 		$to=getUserID($to);
 		if(!$to){
-			$msgs->addMsg("Invalid User, $to");
-			writeMsg($to,$subject,$msg, $replyto,"Preview");
+			$msgs->addMsg("Invalid User");
+			writeMsg($to,$subject,$msg, $replyto,"Preview", $parse_bbcode);
 		}
 	}
 
 	$spam = spamfilter(trim($msg));
 
-	if(!$spam || !$messaging->deliverMsg($to, $subject, $msg, $replyto))
-		writeMsg($to, $subject, $msg, $replyto);
+	if(!$spam || !$messaging->deliverMsg($to, $subject, $msg, $replyto, false, false, true, false,  $parse_bbcode ))
+		writeMsg($to, $subject, $msg, $replyto, null, $parse_bbcode);
 }
 
-function writeMsg($to="",$subject="",$msg="",$replyto=0, $preview = false){
-	global $msgs, $userData, $sortt, $sortd, $config, $db, $messaging;
-
+function writeMsg($to="",$subject="",$msg="",$replyto=0, $preview = false, $parse_bbcode = true ){
+	global $msgs, $userData, $sortt, $sortd, $config, $usersdb, $messaging;
+	$template = new Template("messages/writemsg");
 	if(is_numeric($to)){
 		$to = getUserName($to);
 		if(!$to){
@@ -213,53 +205,50 @@ function writeMsg($to="",$subject="",$msg="",$replyto=0, $preview = false){
 	}
 
 	$friends = getFriendsList($userData['userid']);
+    $template->set("preview", $preview);
 
-	$nmsg = removeHTML(trim($msg));
+/*    if(!isset($parse_bbcode))
+        $template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', true));
+    else
+        $template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $parse_bbcode));*/
+	$template->set("checkbox_parsebbcode", '<input type="hidden" name="parse_bbcode" value="y"/>');
 
-	incHeader();
 
-	echo "<table align=center>";
+
+
+    $nmsg = html_sanitizer::sanitize(trim($msg));
+
 
 	if($preview){
 		$nsubject = trim(removeHTML($subject));
 
-		$nmsg2 = parseHTML($nmsg);
-		$nmsg3 = smilies($nmsg2);
+		if($parse_bbcode)
+		{
+			$nmsg2 = parseHTML($nmsg);
+			$nmsg3 = smilies($nmsg2);
 
-		echo "<tr><td colspan=2 class=body>";
-
-		echo "Here is a preview of what the message will look like:";
-
-		echo "<table width=100%>";
-		echo "<tr><td class=header>Subject:</td><td class=header>$nsubject</td></tr>";
-		echo "<tr><td class=body colspan=2>" . nl2br($nmsg3) . "</td></tr>";
-
-		echo "</table><hr>";
-		echo "</td></tr>";
+		}
+		else
+			$nmsg3	= $nmsg;
+		$template->set("nsubject", $nsubject);
+		$template->set("msg", nl2br($nmsg3));
 	}
-	echo "</table>";
+	$template->set("replyto", $replyto);
+	$template->set("to", $to);
+	$template->set("select_list_friends", make_select_list($friends));
+	$template->set("subject", $subject);
 
-	echo "<table align=center>";
-	echo "<form action=$_SERVER[PHP_SELF] method=post name=editbox>\n";
-	echo "<input type=hidden name=replyto value=$replyto>";
-//	echo "<tr><td class=body colspan=2 align=center><b>Please do not share personal or financial information while using Nexopia.com.<br>All information passed through the use of this site, is at the risk of the user.<br>Nexopia.com will assume no liability for any users' actions.</b></td></tr>";
-	echo "<tr><td class=body>To: </td><td class=body><input class=body type=text name=to value=\"$to\" style=\"width:120\"><select name=friends style=\"width:120\" class=body onChange=\"if(this.selectedIndex!=0) this.form.to.value=this.options[this.selectedIndex].value;this.selectedIndex=0\"><option>Choose a Friend" . make_select_list($friends) . "</select></td></tr>\n";
-	echo "<tr><td class=body>Subject: </td><td class=body><input class=body type=text name=\"subject\" value=\"" . htmlentities($subject) . "\" style=\"width:300\" maxlength=64></td></tr>\n";
-	echo "<tr><td class=body colspan=2>";
-
+	ob_start();
 	editbox($msg);
+	$template->set("editbox",ob_get_contents() );
+	ob_end_clean();
 
-	echo "</td></tr>\n";
-	echo "<tr><td class=body colspan=2 align=center><input class=body type=submit name=action value=Preview> <input class=body type=submit name=action accesskey='s' value=\"Send Message\"></td></tr>\n";
-
-	echo "</form></table>";
-
-	incFooter();
+	$template->display();
 	exit();
 }
 
 function forward($id){
-	global $messaging, $uid;
+	global $messaging, $uid, $userData;
 
 	$msg = $messaging->getMsg($uid, $id);
 
@@ -269,92 +258,230 @@ function forward($id){
 	$subject = "Fw: $msg[subject]";
 	$message = "\n\n";
 
-	$message .= str_replace("\n","\n>",	"\n----- Original Message -----\n" .
+	if(fckeditor::IsCompatible() && !$userData['bbcode_editor'])
+	{
+
+		$message .= str_replace("\n","<br>",	"\n----- Original Message -----\n" .
+										"To: <a href='/profile.php?uid=".$msg['toname']."'>" . $msg['toname'] . "</a>\n" .
+										"From: <a href='/profile.php?uid=" . $msg['fromname']."'>"  .$msg['fromname']. "</a>\n" .
+										"Sent: " . userdate("D M j, Y g:i a", $msg['date']) . "\n" .
+										"Subject: $msg[subject]\n\n" .
+										"$msg[msg]");
+
+		$message = "<br><div class=editboxquote>".$message."</div><br>";
+	}
+	else
+	{
+		$message .= str_replace("\n","\n>",	"\n----- Original Message -----\n" .
 										"To: [user]" . $msg['toname'] . "[/user]\n" .
 										"From: [user]" . $msg['fromname'] . "[/user]\n" .
 										"Sent: " . userdate("D M j, Y g:i a", $msg['date']) . "\n" .
 										"Subject: $msg[subject]\n\n" .
 										"$msg[msg]");
 
+	}
 
 	if($msg['replyto']){
-		$rmsg = $messaging->getMsg($uid, $msg['replyto']);
 
-		$message .= "\n>" . str_replace("\n","\n>>",	"\n----- Original Message -----\n" .
+		$rmsg = $messaging->getMsg($uid, $msg['replyto']);
+		if(fckeditor::IsCompatible() && !$userData['bbcode_editor'])
+		{
+
+			$message .= "<br>" . str_replace("\n","<br>",	"\n----- Original Message -----\n" .
+														"To: <a href='/profile.php?uid=".$rmsg['toname']."'>".$rmsg['toname'] . "</a>\n" .
+														"From: <a href='/profile.php?uid=" . $rmsg['fromname'] ."'>".$rmsg['fromname'] . "</a>\n" .
+														"Sent: " . userdate("D M j, Y g:i a", $rmsg['date']) . "\n" .
+														"Subject: $rmsg[subject]\n\n" .	"$rmsg[msg]");
+			$message = "<br><div class=editboxquote>".$message."</div><br>";
+		}
+		else
+		{
+			$message .= "\n>" . str_replace("\n","\n>>",	"\n----- Original Message -----\n" .
 														"To: [user]" . $rmsg['toname'] . "[/user]\n" .
 														"From: [user]" . $rmsg['fromname'] . "[/user]\n" .
 														"Sent: " . userdate("D M j, Y g:i a", $rmsg['date']) . "\n" .
-														"Subject: $rmsg[subject]\n\n" .
-														"$rmsg[msg]");
+														"Subject: $rmsg[subject]\n\n" .	"$rmsg[msg]");
+		}
 	}
 
 	writeMsg("", $subject, $message);
 }
 
 function viewNext($id, $fid){
-	global $messaging, $uid;
+	global $messaging, $uid, $usersdb;
 
-	$messaging->db->prepare_query($uid, "SELECT id FROM msgs WHERE userid = # && folder = # && id > # ORDER BY id ASC LIMIT 1", $uid, $fid, $id);
+	$res = $usersdb->prepare_query("SELECT id FROM msgs WHERE userid = % && folder = # && id > # ORDER BY id ASC LIMIT 1", $uid, $fid, $id);
 
-	if($messaging->db->numrows()){
-		viewMsg($messaging->db->fetchfield());
+	if($msg = $res->fetchrow()){
+		viewMsg($msg['id']);
 	}else{
 		listMsgs();
 	}
 }
 
 function viewPrev($id, $fid){
-	global $messaging, $uid;
-	$messaging->db->prepare_query($uid, "SELECT id FROM msgs WHERE userid = # && folder = # && id < # ORDER BY id DESC LIMIT 1", $uid, $fid, $id);
+	global $messaging, $uid, $usersdb;
+	$res = $usersdb->prepare_query("SELECT id FROM msgs WHERE userid = % && folder = # && id < # ORDER BY id DESC LIMIT 1", $uid, $fid, $id);
 
-	if($messaging->db->numrows()){
-		viewMsg($messaging->db->fetchfield());
+	if($msg = $res->fetchrow()){
+		viewMsg($msg['id']);
 	}else{
 		listMsgs();
 	}
 }
 
 function viewNew(){
-	global $messaging, $userData, $db, $cache, $config;
+	global $messaging, $userData, $usersdb, $cache, $config;
 
-	$messaging->db->prepare_query($userData['userid'], "SELECT id FROM msgs WHERE userid = # && folder = # && `to` = # && status='new' ORDER BY id ASC LIMIT 1", $userData['userid'], MSG_INBOX, $userData['userid']);
+	$res = $messaging->db->prepare_query("SELECT id FROM msgs WHERE userid = % && folder = # && `to` = # && status='new' ORDER BY id ASC LIMIT 1", $userData['userid'], MSG_INBOX, $userData['userid']);
 
-	if($messaging->db->numrows()){
-		viewMsg($messaging->db->fetchfield());
+	if($msg = $res->fetchrow()){
+		viewMsg($msg['id']);
 	}else{
 		if($userData['newmsgs']){
-			$db->prepare_query("UPDATE users SET newmsgs = ? WHERE userid = ?", 0, $userData['userid']);
+			$usersdb->prepare_query("UPDATE users SET newmsgs = 0 WHERE userid = %", $userData['userid']);
 			$userData['newmsgs'] = 0;
-//			$cache->put(array($userData['userid'], "newmsgs-$userData[userid]"), 0, $config['maxAwayTime']);
-			$cache->remove(array($userData['userid'], "newmsglist-$userData[userid]"));
+//			$cache->put("newmsgs-$userData[userid]", 0, $config['maxAwayTime']);
+			$cache->remove("newmsglist-$userData[userid]");
 		}
 
 		listMsgs();
 	}
 }
 
-function viewMsg($id){
-	global $msgs, $userData, $db, $messaging, $uid, $config, $mods, $cache;
+function viewMsg($id, $parse_bbcode = true){
+	viewMsg1($id, $parse_bbcode); //original
+//	viewMsg2($id); //threaded below, email style
+//	viewMsg3($id); //collapsing above
+}
+
+function viewMsg1($id, $parse_bbcode = true){
+	global $msgs, $userData, $usersdb, $messaging, $uid, $config, $mods, $cache;
+	$template = new Template("messages/viewMsg1");
+	if(empty($id))
+		return false;
+
+	$msg = $messaging->getMsg($uid, $id);
+
+
+	if(!$msg)
+		listMsgs();
+
+	if($msg['replyto'])
+		$rmsg = $messaging->getMsg($uid, $msg['replyto'], true);
+
+	if($msg['status']=='new' && $msg['to'] == $userData['userid']){
+		$usersdb->prepare_query("UPDATE msgs SET status='read' WHERE (userid = % && id = #) || (userid = % && id = #)", $msg['to'], $msg['id'], $msg['from'], $msg['othermsgid']);
+		$usersdb->prepare_query("UPDATE users SET newmsgs = newmsgs - 1 WHERE userid = %", $userData['userid']);
+		$userData['newmsgs']--;
+//		$cache->decr(array($userData['userid'], "newmsgs-$userData[userid]"));
+		$cache->remove("newmsglist-$userData[userid]");
+	}
+
+	if($uid != $userData['userid']){
+		$mods->adminlog("view message","View Userid $uid message $id");
+	}
+
+	$template->set("id", $id);
+
+
+	$links = array();
+
+	if($uid == $userData['userid']){
+		$template->set("is_curr_user", true);
+		if($msg['from'] && $msg['from'] != $uid)
+		{
+		  $template->set("from_key", makeKey($msg['from']));
+		  $template->set("from", true);
+		}
+		else
+		   $template->set("from", false);
+
+	}else{
+		$template->set("uid", $uid);
+	}
+
+	$msg['msg'] = html_sanitizer::sanitize($msg['msg']);
+	if($msg['parse_bbcode'] != false)
+		$msg['msg'] = nl2br(parseHTML(smilies($msg['msg'])));
+
+
+	if($msg['replyto'] && $rmsg)
+	{
+		$msg['replyto'] = $msg['replyto'] && $rmsg;
+		$rmsg['msg'] = html_sanitizer::sanitize($rmsg['msg']);
+		if($rmsg['parse_bbcode'] != false)
+			$rmsg['msg'] = nl2br(parseHTML(smilies($rmsg['msg'])));
+		$template->set("rmsg", $rmsg);
+	}
+	else
+	  $template->set("rmsg", null);
+	$template->set("replyto", $msg['replyto']) ;
+	if($msg['from']){
+		if(substr($msg['subject'],0,4)=='Re: '){
+			$subject = "Re (2): " . substr($msg['subject'],4);
+		}elseif(substr($msg['subject'],0,4)=='Re ('){
+			$loc = strpos($msg['subject'],")");
+			$subject = "Re (" . (substr($msg['subject'],4,$loc-4)+1)  . "): " . substr($msg['subject'],$loc+3);
+		}else{
+			$subject = "Re: $msg[subject]";
+		}
+		$template->set("subject", $subject);
+		ob_start();
+		editbox("");
+		$template->set("editbox", ob_get_contents() );
+		ob_end_clean();
+	}
+
+/*	if(!isset($parse_bbcode))
+        $template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $userData['parse_bbcode']));
+    else
+        $template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $parse_bbcode));*/
+	$template->set("checkbox_parsebbcode", '<input type="hidden" name="parse_bbcode" value="y"/>');
+
+	$template->set("msg", $msg);
+	$template->display();
+	exit;
+}
+
+function viewMsg2($id){
+	global $msgs, $userData, $usersdb, $messaging, $uid, $config, $mods, $cache;
+
+die("This function doesn't work. It needs to be ported to the new db layout");
+
 
 	if(empty($id))
 		return false;
 
 	$msg = $messaging->getMsg($uid, $id);
 
+$maxdepth = 5;
+
 	if(!$msg)
 		listMsgs();
 
-	if($msg['replyto'])
-		$rmsg = $messaging->getMsg($uid, $msg['replyto']);
-
 	if($msg['status']=='new' && $msg['to'] == $userData['userid']){
 		$ids = array($id, $msg['othermsgid']);
-		$messaging->db->prepare_query(array($msg['to'], $msg['from']), "UPDATE msgs SET status = 'read' WHERE id IN (#)", $ids);
-		$db->prepare_query("UPDATE users SET newmsgs = newmsgs - 1 WHERE userid = #", $userData['userid']);
+
+		//ERROR!
+		$messaging->db->squery(array($msg['to'], $msg['from']), $messaging->db->prepare("UPDATE msgs SET status = 'read' WHERE id IN (#)", $ids));
+		$usersdb->prepare_query("UPDATE users SET newmsgs = newmsgs - 1 WHERE userid = %", $userData['userid']);
 		$userData['newmsgs']--;
 //		$cache->decr(array($userData['userid'], "newmsgs-$userData[userid]"));
-		$cache->remove(array($userData['userid'], "newmsglist-$userData[userid]"));
+		$cache->remove("newmsglist-$userData[userid]");
 	}
+
+	$reply = $msg['replyto'];
+
+	$depth = 0;
+	$rmsgs = array();
+
+	while($depth < $maxdepth && $reply){
+		$rmsgs[$depth] = $messaging->getMsg($uid, $reply, true);
+		$reply = $rmsgs[$depth]['replyto'];
+		$depth++;
+	}
+
 	if($uid != $userData['userid']){
 		$mods->adminlog("view message","View Userid $uid message $id");
 	}
@@ -382,26 +509,15 @@ function viewMsg($id){
 	echo "<tr><td class=body colspan=2>" . implode(" | ", $links) . "</td></tr>";
 
 
-	echo "<tr><td class=header>To:</td><td class=header>" . ($msg['to'] ? "<a class=header href=profile.php?uid=$msg[to]>$msg[toname]</a>" : "$msg[toname]" ) . "</td></tr>";
-	echo "<tr><td class=header>From:</td><td class=header>" . ($msg['from'] ? "<a class=header href=profile.php?uid=$msg[from]>$msg[fromname]</a>" : "$msg[fromname]" ) . "</td></tr>";
+	echo "<tr><td class=header>To:</td><td class=header>" . ($msg['to'] ? "<a class=header href=/profile.php?uid=$msg[to]>$msg[toname]</a>" : "$msg[toname]" ) . "</td></tr>";
+	echo "<tr><td class=header>From:</td><td class=header>" . ($msg['from'] ? "<a class=header href=/profile.php?uid=$msg[from]>$msg[fromname]</a>" : "$msg[fromname]" ) . "</td></tr>";
 	echo "<tr><td class=header>Date:</td><td class=header>" . userdate("D M j, Y g:i a", $msg['date']) . "</td></tr>";
 	echo "<tr><td class=header>Subject:</td><td class=header>$msg[subject]</td></tr>";
 	echo "<tr><td class=body valign=top colspan=2>" . nl2br(parseHTML(smilies($msg['msg']))) . "<br><br></td></tr>";
 
-	if($msg['replyto'] && $rmsg){
-//		echo "<tr><td class=body colspan=2 align=right><table width=97%>";
-//		echo "<tr><td class=header colspan=2 align=center>Original Message</td></tr>";
-//		echo "<tr><td class=header>To:</td><td class=header>" . ($rmsg['to'] ? "<a class=header href=profile.php?uid=$rmsg[to]>$rmsg[toname]</a>" : "$rmsg[toname]" ) . "</td></tr>";
-//		echo "<tr><td class=header>From:</td><td class=header>" . ($rmsg['from'] ? "<a class=header href=profile.php?uid=$rmsg[from]>$rmsg[fromname]</a>" : "$rmsg[fromname]" ) . "</td></tr>";
-		echo "<tr><td class=header>Date:</td><td class=header>" . userdate("D M j, Y g:i a", $rmsg['date']) . "</td></tr>";
-		echo "<tr><td class=header>Subject:</td><td class=header>$rmsg[subject]</td></tr>";
-		echo "<tr><td class=body valign=top colspan=2>" . nl2br(parseHTML(smilies($rmsg['msg']))) . "<br><br></td></tr>";
-//		echo "</table></td></tr>";
-	}
-
-	echo "</table>";
-
 	if($msg['from']){
+		echo "<tr><td class=body colspan=2>";
+
 		if(substr($msg['subject'],0,4)=='Re: '){
 			$subject = "Re (2): " . substr($msg['subject'],4);
 		}elseif(substr($msg['subject'],0,4)=='Re ('){
@@ -428,7 +544,168 @@ function viewMsg($id){
 		echo "<tr><td class=body colspan=2 align=center><input class=body type=submit name=action value=Preview> <input class=body type=submit name=action accesskey='s' value=\"Send Message\"></td></tr>\n";
 
 		echo "</form></table>";
+		echo "</td></tr>";
 	}
+
+	$classes = array('body','body2');
+	$i=0;
+
+	$indent = 0;
+
+	foreach($rmsgs as $depth => $rmsg){
+
+		echo "<tr><td class=body colspan=2 align=right><table width=" . (100 - $indent*($depth+1)) . "%>";
+
+		echo "<tr><td class=header>" . ($rmsg['from'] ? "<a class=header href=/profile.php?uid=$rmsg[from]>$rmsg[fromname]</a>" : "$rmsg[fromname]" ) . " => " . ($rmsg['to'] ? "<a class=header href=/profile.php?uid=$rmsg[to]>$rmsg[toname]</a>" : "$rmsg[toname]" ) . "</td>";
+		echo "<td class=header align=right>" . userdate("D M j, Y g:i a", $rmsg['date']) . "</td></tr>";
+		echo "<tr><td class=header colspan=2>Subject: $rmsg[subject]</td></tr>";
+		echo "<tr><td class=body valign=top colspan=2>" . nl2br(parseHTML(smilies($rmsg['msg']))) . "<br><br></td></tr>";
+		echo "</table></td></tr>";
+	}
+
+	echo "</table>";
+
+
+	incFooter();
+	exit;
+}
+
+function viewMsg3($id){
+	global $msgs, $userData, $usersdb, $messaging, $uid, $config, $mods, $cache;
+
+die("This function doesn't work. It needs to be ported to the new db layout");
+
+	if(empty($id))
+		return false;
+
+	$msg = $messaging->getMsg($uid, $id);
+
+$maxdepth = 5;
+
+	if(!$msg)
+		listMsgs();
+
+	if($msg['status']=='new' && $msg['to'] == $userData['userid']){
+		$ids = array($id, $msg['othermsgid']);
+		//ERROR!
+		$messaging->db->squery(array($msg['to'], $msg['from']), $messaging->db->prepare("UPDATE msgs SET status = 'read' WHERE id IN (#)", $ids));
+		$usersdb->prepare_query("UPDATE users SET newmsgs = newmsgs - 1 WHERE userid = %", $userData['userid']);
+		$userData['newmsgs']--;
+//		$cache->decr(array($userData['userid'], "newmsgs-$userData[userid]"));
+		$cache->remove("newmsglist-$userData[userid]");
+	}
+
+	$reply = $msg['replyto'];
+
+	$depth = 5;
+	$rmsgs = array();
+
+	while($depth && $reply){
+		$rmsgs[$depth] = $messaging->getMsg($uid, $reply, true);
+		$reply = $rmsgs[$depth]['replyto'];
+		$depth--;
+	}
+
+	ksort($rmsgs);
+
+	if($uid != $userData['userid']){
+		$mods->adminlog("view message","View Userid $uid message $id");
+	}
+
+	incHeader();
+
+?>
+<script>
+
+function swap(name){
+	el = document.getElementById(name);
+
+	if (el.style.display == 'none'){
+		el.style.display = "";
+	} else {
+		el.style.display = "none";
+	}
+}
+
+</script>
+<?
+
+	echo "<table width=100%>\n";
+
+	$links = array();
+
+	if($uid == $userData['userid']){
+		$links[] = "<a class=body href=\"$_SERVER[PHP_SELF]\">Message list</a>";
+		$links[] = "<a class=body href=\"$_SERVER[PHP_SELF]?action=forward&id=$id\">Forward</a>";
+		$links[] = "<a class=body href=\"$_SERVER[PHP_SELF]?action=delete&checkID[]=$id\">Delete</a>";
+		if($msg['from'] && $msg['from'] != $uid)
+			$links[] = "<a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?action=ignore&id=$msg[from]&k=" . makeKey($msg['from']) . "','ignore this user')\">Ignore User</a>";
+		$links[] = "<a class=body href=\"$_SERVER[PHP_SELF]?action=next&fid=$msg[folder]&id=$id\">Next</a>";
+		$links[] = "<a class=body href=\"$_SERVER[PHP_SELF]?action=prev&fid=$msg[folder]&id=$id\">Previous</a>";
+	}else{
+		$links[] = "<a class=body href=\"$_SERVER[PHP_SELF]?uid=$uid\">Message list</a>";
+		$links[] = "<a class=body href=\"$_SERVER[PHP_SELF]?action=next&uid=$uid&fid=$msg[folder]&id=$id\">Next</a>";
+		$links[] = "<a class=body href=\"$_SERVER[PHP_SELF]?action=prev&uid=$uid&fid=$msg[folder]&id=$id\">Previous</a>";
+	}
+
+	echo "<tr><td class=body colspan=2>" . implode(" | ", $links) . "</td></tr>";
+
+	foreach($rmsgs as $depth => $rmsg){
+		echo "<tr><td class=header colspan=2><table width=100%>";
+		echo "<tr><td class=header>" . ($rmsg['from'] ? "<a class=header href=/profile.php?uid=$rmsg[from]><b>$rmsg[fromname]</b></a>" : "<b>$rmsg[fromname]</b>" ) . ": ";
+		echo "<a class=header href=\"javascript: swap('msg$depth');\">$rmsg[subject]</a></td>";
+		echo "<td class=header align=right>" . userdate("D M j, Y g:i a", $rmsg['date']) . "</td></tr>";
+		echo "</table></td></tr>";
+		echo "<tr id=msg$depth style=\"display: none\"><td class=body valign=top colspan=2>" . nl2br(parseHTML(smilies($rmsg['msg']))) . "<br><br></td></tr>";
+	}
+
+
+	echo "<tr><td class=header colspan=2><table width=100%>";
+	echo "<tr><td class=header>" . ($msg['from'] ? "<a class=header href=/profile.php?uid=$rmsg[from]><b>$msg[fromname]</b></a>" : "<b>$msg[fromname]</b>" ) . ": ";
+	echo "$msg[subject]</td>";
+	echo "<td class=header align=right>" . userdate("D M j, Y g:i a", $msg['date']) . "</td></tr>";
+	echo "</table></td></tr>";
+
+/*
+	echo "<tr><td class=header>From:</td><td class=header>" . ($msg['from'] ? "<a class=header href=/profile.php?uid=$msg[from]>$msg[fromname]</a>" : "$msg[fromname]" ) . "</td></tr>";
+	echo "<tr><td class=header>Date:</td><td class=header>" . userdate("D M j, Y g:i a", $msg['date']) . "</td></tr>";
+	echo "<tr><td class=header>Subject:</td><td class=header>$msg[subject]</td></tr>";
+*/
+	echo "<tr><td class=body valign=top colspan=2>" . nl2br(parseHTML(smilies($msg['msg']))) . "<br><br></td></tr>";
+
+	if($msg['from']){
+		echo "<tr><td class=body colspan=2>";
+
+		if(substr($msg['subject'],0,4)=='Re: '){
+			$subject = "Re (2): " . substr($msg['subject'],4);
+		}elseif(substr($msg['subject'],0,4)=='Re ('){
+			$loc = strpos($msg['subject'],")");
+			$subject = "Re (" . (substr($msg['subject'],4,$loc-4)+1)  . "): " . substr($msg['subject'],$loc+3);
+		}else{
+			$subject = "Re: $msg[subject]";
+		}
+
+		echo "<table align=center><form action=$_SERVER[PHP_SELF] method=post name=editbox>\n";
+		echo "<input type=hidden name=replyto value=$msg[id]>";
+		echo "<input type=hidden name=to value=$msg[from]>";
+
+	//	echo "<tr><td class=body colspan=2 align=center><b>Please do not share personal or financial information while using Nexopia.com.<br>All information passed through the use of this site, is at the risk of the user.<br>Nexopia.com will assume no liability for any users' actions.</b></td></tr>";
+
+		echo "<tr><td class=header colspan=2 align=center>Reply</td></tr>";
+
+		echo "<tr><td class=body>Subject: </td><td class=body><input class=body type=text name=\"subject\" value=\"" . htmlentities($subject) . "\" style=\"width:300\" maxlength=64></td></tr>\n";
+		echo "<tr><td class=body colspan=2>";
+
+		editbox("");
+
+		echo "</td></tr>\n";
+		echo "<tr><td class=body colspan=2 align=center><input class=body type=submit name=action value=Preview> <input class=body type=submit name=action accesskey='s' value=\"Send Message\"></td></tr>\n";
+
+		echo "</form></table>";
+		echo "</td></tr>";
+	}
+
+	echo "</table>";
 
 
 	incFooter();
@@ -436,7 +713,10 @@ function viewMsg($id){
 }
 
 function listMsgs(){
-	global $msgs, $new, $marked, $other, $folder, $userData, $page, $config, $messaging, $uid, $mods;
+	global $msgs, $new, $folder, $userData, $page, $config, $messaging, $uid, $mods, $cache, $usersdb;
+	$template = new Template("messages/listmessages");
+	$marked = getREQval('marked', 'bool');
+	$other = getREQval('other');
 
 	if(!isset($uid))
 		$uid = $userData['userid'];
@@ -448,7 +728,7 @@ function listMsgs(){
 
 	$params = array();
 
-	$query = "SELECT SQL_CALC_FOUND_ROWS id, folder, `to`, toname, `from`, fromname, date, mark, status, subject FROM msgs WHERE userid = #";
+	$query = "SELECT SQL_CALC_FOUND_ROWS id, folder, `to`, toname, `from`, fromname, date, mark, status, subject FROM msgs WHERE userid = %";
 
 	$params[] = $uid;
 
@@ -462,7 +742,7 @@ function listMsgs(){
 		$params[] = $folder;
 	}
 
-	if(isset($other) && $other != ""){
+	if($other){
 		$otherid = getUserID($other);
 
 		if($otherid){
@@ -470,35 +750,43 @@ function listMsgs(){
 			$params[] = $otherid;
 			$pageparams[] = "other=$other";
 		}else{
-			$msgs->addMsg("User $other doesn't exist");
+			$msgs->addMsg("User doesn't exist");
 			$other = "";
 		}
 	}
 
-	if(isset($marked)){
+	if($marked){
 	 	$query .= " && mark = 'y'";
 		$pageparams[] = "marked=$marked";
 	}
 
-	$query .= " ORDER BY date DESC LIMIT ".$page*$config['linesPerPage'].", $config[linesPerPage]";
 
-	$messaging->db->prepare_array_query($uid, $query, $params);
+	$query .= " ORDER BY date DESC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]";
+
+	$res = $usersdb->prepare_array_query($query, $params);
 
 	$showto = false;
 	$showfrom = false;
 
+	$pruneSoon = array();
 	$messages = array();
-	while($line = $messaging->db->fetchrow()){
+	while($line = $res->fetchrow()){
 		$messages[] = $line;
 		if($line['to'] != $uid)
 			$showto = true;
 		if($line['from'] != $uid)
 			$showfrom = true;
+		if ($line['date'] - (time()- 86400*$messaging->prunelength) <= $messaging->warning_threshold*86400)
+			$pruneSoon[] = "style='color:red;'";
+		else
+			$pruneSoon[] = '';
 	}
+	$template->set('pruneSoon', $pruneSoon);
 
-	$messaging->db->query($uid, "SELECT FOUND_ROWS()");
-	$numrows = $messaging->db->fetchfield();
+
+	$numrows = $res->totalrows();
 	$numpages =  ceil($numrows / $config['linesPerPage']);
+
 
 	if(!$showto && !$showfrom)
 		$showfrom = true;
@@ -514,208 +802,100 @@ function listMsgs(){
 	if(count($pageparams))
 		$pagestr = "?" . implode("&", $pageparams);
 
-	addRefreshHeaders();
 
-	incHeader();
-
-	echo "<table width=100%>\n";
-	echo "<tr><td class=body colspan=$cols>&nbsp;";
-
+	$template->set("cols", $cols);
 
 	if($uid == $userData['userid'])
-		echo "<a class=body href=$_SERVER[PHP_SELF]?action=write" . ($uid == $userData['userid'] ? "" : "&uid=$uid") . ">Write Message</a> | ";
-	echo "<a class=body href=$_SERVER[PHP_SELF]?action=ignorelist" . ($uid == $userData['userid'] ? "" : "&uid=$uid") . ">Ignore List</a> | ";
-	foreach($folders as $id => $foldername)
-		echo "<a class=body href=$_SERVER[PHP_SELF]?folder=$id" . ($uid == $userData['userid'] ? "" : "&uid=$uid") . ">$foldername</a> | ";
-	echo "<a class=body href=$_SERVER[PHP_SELF]?action=folders" . ($uid == $userData['userid'] ? "" : "&uid=$uid") . ">Manage Folders</a>";
+	   $template->set("is_curr_user", true);
 
-	echo "</td></tr>";
-
-	echo "<tr><td class=header colspan=$cols>";
-
-	echo "<table width=100% cellspacing=0 cellpadding=0>";
-	echo "<form action=$_SERVER[PHP_SELF]>";
-	echo "<tr><td class=header>";
-
-	if($uid != $userData['userid'])
-		echo "<input type=hidden name=uid value=$uid>";
-
-	echo "&nbsp;Only show ";
-	echo makeCheckBox('marked', 'Marked', isset($marked)) . ", ";
-	echo "messages to or from ";
-	echo "<input class=body type=text name=other size=10 value=\"$other\"> in ";
-	echo "<select class=body name=folder><option value=0>All Folders" . make_select_list_key($folders, $folder) . "</select> ";
-	echo "<input class=body type=submit name=action value=Filter>";
-
-	echo "</td>";
-	echo "</form>";
-
-	echo "<td class=header align=right>";
-	echo "Page: " . pageList($_SERVER['PHP_SELF'] . $pagestr, $page, $numpages, 'header');
-	echo "</td></tr></table>";
-	echo "</td></tr>";
-
-	echo "<form action=$_SERVER[PHP_SELF] method=post>";
-
-	if($uid != $userData['userid'])
-		echo "<input type=hidden name=uid value=$uid>";
-
-	echo "<input type=hidden name=folder value=$folder>";
-	echo "<tr>\n";
-		echo "<td class=header width=25></td>\n";
-		echo "<td class=header width=25>Mark</td>\n";
-		echo "<td class=header width=15%>Status</td>\n";
-		if($showto)
-			echo "<td class=header width=15%>To</td>\n";
-		if($showfrom)
-			echo "<td class=header width=15%>From</td>\n";
-		if(!$folder)
-			echo "<td class=header width=15%>Folder</td>\n";
-		echo "<td class=header width=50%>Subject</td>\n";
-		echo "<td class=header width=20%>Received</td>\n";
-	echo "</tr>\n";
+	$template->set('folders', $folders);
+	$template->set('url_uid', ($uid == $userData['userid'] ? "" : "&uid=$uid"));
+	$template->set('uid', $uid);
+	$template->set('checkbox_marked', makeCheckBox('marked', 'Marked', $marked));
+	$template->set('other', $other);
+	$template->set('select_list_folder', make_select_list_key($folders, $folder) );
+	$template->set('pagelist',pageList($_SERVER['PHP_SELF'] . $pagestr, $page, $numpages, 'header') );
+	$template->set('showto', $showto);
+	$template->set('showfrom', $showfrom);
+	$template->set('folder', $folder);
+	$template->set('pruneLength', $messaging->prunelength);
 
 	$classes = array('body','body2');
 	$i=1;
 
-	foreach($messages as $line){
+	foreach($messages as &$line){
 		$i = !$i;
-		echo "<tr><td class=$classes[$i]><input type=checkbox name=checkID[] value=\"$line[id]\"></td>";
-		echo "<td class=$classes[$i] align=center>";
-		if($line['mark']=='y')
-			echo "<a class=body href=$_SERVER[PHP_SELF]?action=unmark&checkID[]=$line[id]><img src=$config[imageloc]flag.gif border=0 alt=Mark></a>";
-		else
-			echo "<a class=body href=$_SERVER[PHP_SELF]?action=mark&checkID[]=$line[id]><img src=$config[imageloc]dot.gif border=0></a>";
-		echo "</td>";
-
-		echo "<td class=$classes[$i]>";
-
+		$line["show_status"] = $line['to'] == $userData['userid'] || $userData['premium'];
+		$status = "";
 		if($line['to'] == $userData['userid'] || $userData['premium']){
 			switch($line['status']){
-				case 'new': 	echo "<b>New</b>";	break;
-				case 'read': 	echo "Read";		break;
-				case 'replied':	echo "Replied";		break;
-				default:	echo $line['status'];
+				case 'new': 	$status = "<b>New</b>";	break;
+				case 'read': 	$status = "Read";		break;
+				case 'replied':	$status = "Replied";		break;
+				default:	$status =  $line['status'];
 			}
+
 		}
 
-		echo "</td>";
-
-		if($showto){
-			echo "<td class=$classes[$i]>";
-			if($line['to'])
-				echo "<a class=body href=profile.php?uid=$line[to]>$line[toname]</a>";
-			else
-				echo "$line[toname]";
-			echo "</td>";
-		}
-		if($showfrom){
-			echo "<td class=$classes[$i]>";
-			if($line['from'])
-				echo "<a class=body href=profile.php?uid=$line[from]>$line[fromname]</a>";
-			else
-				echo "$line[fromname]";
-			echo "</td>";
-		}
-		if(!$folder)
-			echo "<td class=$classes[$i]>" . $folders[$line['folder']] . "</td>";
-
-		echo "<td class=$classes[$i]><a class=body href=\"$_SERVER[PHP_SELF]?action=view&id=$line[id]" . ($uid == $userData['userid'] ? "" : "&uid=$uid") . "\">";
 		if(($line['to']==$userData['userid'] || $userData['premium']) && $line['status']=='new')
-		 	echo"<b>$line[subject]</b>";
+			$line['showsubject'] = true;
 		else
-			echo "$line[subject]";
-
-		echo "</a></td>";
-		echo "<td class=$classes[$i] nowrap>" . userdate("D M j, Y g:i a",$line['date']) . "</td></tr>\n";
+			$line['showsubject'] = false;
+		$line['status'] = $status;
 	}
-
-	echo "<tr><td class=header colspan=$cols><table width=100% cellpadding=0 cellspacing=0><tr><td class=header>";
-
-//echo "<table cellpadding=0 cellspacing=0><tr><td class=header>";
-	echo "<input class=body name=selectall type=checkbox value='Check All' onClick=\"this.value=check(this.form,'check')\">";
-
-//echo "</td><td class=header>";
-
-	echo "<input class=body type=submit name=action value=Delete>";
-
-//echo "</td><td class=header>";
-	echo "<select class=body name=moveto><option> Move to:" . make_select_list_key($folders) . "</select>";
-
-	echo "<input class=body type=submit name=action value=Move>";
-	echo "<input class=body type=submit name=action value=Archive>";
-
-//echo "</td><td class=header>";
-
-
-//echo "</td></tr></table>";
-
-	echo "</td>\n<td class=header></td></form>";
-
-	echo "<td align=right class=header>Page: " . pageList($_SERVER['PHP_SELF'] . $pagestr, $page, $numpages, 'header');
-
-	echo "</td></tr></table>";
-	echo "</table>\n";
-
-	incFooter();
+	$template->set("select_list_move_to_folder",make_select_list_key($folders));
+	$template->set("classes", $classes);
+	$template->set("messages", $messages);
+	$template->display();
 	exit();
 }
 
 function ignorelist(){
-	global $db, $userData, $config, $uid;
+	global $usersdb, $userData, $config, $uid;
+	$template= new template("messages/ignorelist");
 
-	incHeader();
+	$res = $usersdb->prepare_query("SELECT ignoreid FROM `ignore` WHERE userid = %", $uid);
 
-	$db->prepare_query("SELECT ignoreid, username FROM `ignore`,users WHERE `ignore`.userid = # && `ignore`.ignoreid=users.userid", $uid);
+	$uids = array();
+	while($line = $res->fetchrow())
+		$uids[] = $line['ignoreid'];
 
-	$rows = array();
-	while($line = $db->fetchrow())
-		$rows[] = $line;
+	$rows = getUserInfo($uids);
 
 	sortCols($rows, SORT_ASC, SORT_CASESTR, 'username');
 
-	echo "<table>";
-	echo "<tr><td class=header>Username</td><td class=header></td></tr>";
-
-	foreach($rows as $line){
-		echo "<tr><td class=body><a class=body href='profile.php?uid=$line[ignoreid]'>$line[username]</a></td>";
-		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=unignore&id=$line[ignoreid]&k=" . makeKey($line['ignoreid']) . ($uid == $userData['userid'] ? "" : "&uid=$uid") . "><img src=$config[imageloc]delete.gif border=0></a></td></tr>";
-	}
-	echo "</table><br>";
-
-	echo "<table><form action=$_SERVER[PHP_SELF]>";
-	echo "<tr><td class=header colspan=2>Add to ignore list</td></tr>";
-	if($uid != $userData['userid'])
-		echo "<input type=hidden name=uid value=$uid>";
-	echo "<tr><td class=body>Username:</td><td class=body><input class=body type=text name=id></td></tr>";
-	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value=Ignore></td></tr>";
-	echo "</form></table>";
-
-	incFooter();
+	$template->set("url_uid", ($uid == $userData['userid'] ? "" : "&uid=$uid"));
+	$template->set("delete_img_src", "$config[imageloc]delete.gif");
+	foreach($rows as &$line)
+		$line['key'] =  makeKey($line['userid']);
+	$template->set("rows", $rows);
+	$template->set("uid",$uid);
+	$template->set("is_curr_user", $uid == $userData['userid']);
+	$template->display();
 	exit;
 }
 
 function ignore($id){
-	global $db, $uid, $cache;
+	global $usersdb, $uid, $cache;
 
 	if(!is_numeric($id))
 		$id = getUserID($id);
 
-	$db->prepare_query("INSERT IGNORE INTO `ignore` SET userid = #, ignoreid = #", $uid, $id);
-	$cache->remove(array($uid, "ignorelist-$uid"));
+	$usersdb->prepare_query("INSERT IGNORE INTO `ignore` SET userid = %, ignoreid = #", $uid, $id);
+	$cache->remove("ignorelist-$uid");
 
 	ignorelist();
 }
 
 function unignore($id){
-	global $db, $uid, $cache;
+	global $usersdb, $uid, $cache;
 
 	if(!is_numeric($id))
 		$id = getUserID($id);
 
-	$db->prepare_query("DELETE FROM `ignore` WHERE userid = # && ignoreid = #", $uid, $id);
+	$usersdb->prepare_query("DELETE FROM `ignore` WHERE userid = % && ignoreid = #", $uid, $id);
 
-	$cache->remove(array($uid, "ignorelist-$uid"));
+	$cache->remove("ignorelist-$uid");
 
 	ignorelist();
 }
@@ -744,9 +924,8 @@ function archive($checkID){
 
 	$subject = "Archive messages from $config[title]";
 
-	$email = getUserInfo("email",$userData['userid']);
-
-	smtpmail("$email", $subject, $output, "From: $config[title] <no-reply@$emaildomain>");
+	$email = $useraccounts->getEmail($userData["userid"]);
+	smtpmail($email, $subject, $output, "From: $config[title] <no-reply@$emaildomain>");
 
 	incHeader();
 
@@ -757,5 +936,3 @@ function archive($checkID){
 	incFooter();
 	exit;
 }
-
-

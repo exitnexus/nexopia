@@ -2,23 +2,32 @@
 
 
 class messages{
-	var $msgs;
+	public $msgs;
 
-	function messages(){
+	function __construct(){
 		settype($this->msgs,"array");
+	}
+
+	function clearMsgs(){
+		$this->msgs = array();
 	}
 
 	function addMsg($msg){
 		$this->msgs[] = $msg;
 	}
 
-	function display(){
+	function get(){
+		$ret = "";
 		if(count($this->msgs)){
-			echo "<table width=100%>";
+			$ret = "<table width=100%>";
 			foreach($this->msgs as $msg)
-				echo "<tr><td class=msg align=center>$msg</td></tr>";
-			echo "</table>";
+				$ret .= "<tr><td class=msg align=center>$msg</td></tr>";
+			$ret .= "</table>";
 		}
+		return $ret;
+	}
+	function display(){
+		print $this->get();
 	}
 }
 

@@ -1,0 +1,84 @@
+#!/bin/sh
+# Monitoring script for Lighttpd
+
+HOST=`hostname`
+MAILTO=timo@nexopia.com
+LOGFILE=/data/nexopia/logs/bannerserver.log
+MYPIDFILE=/var/run/banner-monitor.pid
+SERVER=/home/nexopia/public_html/bannerserver.php
+SERVERSTART="$SERVER"
+
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+test -x $SERVER || exit 0
+
+case "$1" in
+	start)
+
+		TODAYLOGFILE="$LOGFILE.`date +%F`"
+
+# don't start if it is already running
+		if [ -e $MYPIDFILE ]
+		then
+			oldpid=`cat $MYPIDFILE`
+
+			if [ "a$oldpid" != "a" ]
+			then
+
+				count=`ps -p $oldpid | wc -l`
+				if [ "c$count" = "c2" ]
+				then
+					exit 0
+				fi
+			fi
+		fi
+
+		echo $$ > $MYPIDFILE
+
+		echo "`date +'%d-%m-%Y %H:%M:%S'` Monitor starting" >> $TODAYLOGFILE
+
+		while [ true ]
+		do
+			sleep 15
+		# Write a mark in the log every hour
+			if [ "`date +%M`" = "00" ]
+			then
+				echo "`date +'%d-%m-%Y %H:%M:%S'` Monitor -- MARK --" >> $TODAYLOGFILE
+			fi
+
+			check=`ps aux | grep $SERVER | grep -v grep`
+			if [ "x$check" = "x" ]
+			then
+				TODAYLOGFILE="$LOGFILE.`date +%F`"
+
+				echo "`date +'%d-%m-%Y %H:%M:%S'` Banner server is not running! Restarting." >> $TODAYLOGFILE
+
+				$SERVERSTART >> $TODAYLOGFILE 2>&1
+				tail -20 $TODAYLOGFILE | mail -s "Banner Server on $HOST had to be restarted!" $MAILTO
+			fi
+		done
+	;;
+	stop)
+		TODAYLOGFILE="$LOGFILE.`date +%F`"
+
+		if [ -f $MYPIDFILE ]
+		then
+			echo "`date +'%d-%m-%Y %H:%M:%S'` Stop issued, monitor terminating" >> $TODAYLOGFILE
+			pid=`cat $MYPIDFILE`
+			kill $pid
+			rm $MYPIDFILE
+		fi
+	;;
+	restart|reload|force-reload)
+		$0 stop
+		$0 start &
+	;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+		;;
+esac
+
+
+
+

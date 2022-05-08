@@ -14,7 +14,7 @@
 		exit;
 	}
 
-	if($contact = getPOSTval('contact')){
+	if($contact = getPOSTval('contact', 'array')){
 
 		$str = "";
 		foreach($contact as $name => $v)

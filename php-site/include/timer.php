@@ -1,11 +1,11 @@
 <?
 
 class timer{
-	var $times = array();
-	var $names = array();
-	var $num = 0;
+	public $times = array();
+	public $names = array();
+	public $num = 0;
 
-	function timer($name = false){
+	function __construct($name = false){
 		if($name !== false)
 			$this->start($name);
 	}

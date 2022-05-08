@@ -6,8 +6,9 @@
 
 
 	$numposts = $forums->db->nextAuto("forumposts");
-	$db->query("SELECT count(*) FROM users");
-	$numusers = $db->fetchfield();
+
+	$res = $usersdb->query("SELECT count(*) FROM users");
+	$numusers = $res->fetchfield();
 
 	echo "Users: $numusers<br>\nPosts: $numposts";
 

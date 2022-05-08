@@ -103,7 +103,7 @@ class memcached {
 	 * @var	  array
 	 * @access  public
 	 */
-	var $stats;
+	public $stats;
 
 	// }}}
 	// {{{ private
@@ -114,7 +114,7 @@ class memcached {
 	 * @var	  array
 	 * @access  private
 	 */
-	var $_cache_sock;
+	public $_cache_sock;
 
 	/**
 	 * Current debug status; 0 - none to 9 - profiling
@@ -122,7 +122,7 @@ class memcached {
 	 * @var	  boolean
 	 * @access  private
 	 */
-	var $_debug;
+	public $_debug;
 
 	/**
 	 * Dead hosts, assoc array, 'host'=>'unixtime when ok to check again'
@@ -130,7 +130,7 @@ class memcached {
 	 * @var	  array
 	 * @access  private
 	 */
-	var $_host_dead;
+	public $_host_dead;
 
 	/**
 	 * Is compression available?
@@ -138,7 +138,7 @@ class memcached {
 	 * @var	  boolean
 	 * @access  private
 	 */
-	var $_have_zlib;
+	public $_have_zlib;
 
 	/**
 	 * Do we want to use compression?
@@ -146,7 +146,7 @@ class memcached {
 	 * @var	  boolean
 	 * @access  private
 	 */
-	var $_compress_enable;
+	public $_compress_enable;
 
 	/**
 	 * At how many bytes should we compress?
@@ -154,7 +154,7 @@ class memcached {
 	 * @var	  interger
 	 * @access  private
 	 */
-	var $_compress_threshold;
+	public $_compress_threshold;
 
 	/**
 	 * Are we using persistant links?
@@ -162,7 +162,7 @@ class memcached {
 	 * @var	  boolean
 	 * @access  private
 	 */
-	var $_persistant;
+	public $_persistant;
 
 	/**
 	 * If only using one server; contains ip:port to connect to
@@ -170,7 +170,7 @@ class memcached {
 	 * @var	  string
 	 * @access  private
 	 */
-	var $_single_sock;
+	public $_single_sock;
 
 	/**
 	 * Array containing ip:port or array(ip:port, weight)
@@ -178,7 +178,7 @@ class memcached {
 	 * @var	  array
 	 * @access  private
 	 */
-	var $_servers;
+	public $_servers;
 
 	/**
 	 * Our bit buckets
@@ -186,7 +186,7 @@ class memcached {
 	 * @var	  array
 	 * @access  private
 	 */
-	var $_buckets;
+	public $_buckets;
 
 	/**
 	 * Total # of bit buckets we have
@@ -194,7 +194,7 @@ class memcached {
 	 * @var	  interger
 	 * @access  private
 	 */
-	var $_bucketcount;
+	public $_bucketcount;
 
 	/**
 	 * # of total servers we have
@@ -202,7 +202,20 @@ class memcached {
 	 * @var	  interger
 	 * @access  private
 	 */
-	var $_active;
+	public $_active;
+
+
+	/*
+	 * caching functions to save state about the memcached servers. If a machine goes down, 
+	 * we won't be hitting it from EVERY page, only once every couple seconds per machine.
+	 * $_localget should be of the form: get("key");
+	 * $_localput should be of the form: put("key", $value, $ttyl);
+	 * set to false if not in use.
+	 */
+
+	public $_localget;
+	public $_localput;
+
 
 	// }}}
 	// }}}
@@ -218,11 +231,12 @@ class memcached {
 	 * @return  mixed
 	 * @access  public
 	 */
-	function memcached ($args){
+	function __construct($args){
 		$this->set_servers($args['servers']);
 		$this->_debug = (isset($args['debug']) ? $args['debug'] : 0 );
 		$this->stats = array(	'add' => 0,
 								'set' => 0,
+								'append' => 0,
 								'replace' => 0,
 								'get' => 0,
 								'get_multi' => 0,
@@ -231,14 +245,18 @@ class memcached {
 								'incr' => 0,
 								'decr' => 0
 								);
-		$this->_compress_threshold = (isset($args['compress_threshold']) ? $args['compress_threshold'] : 10240 );
+		$this->_compress_threshold = (isset($args['compress_threshold']) ? $args['compress_threshold'] : 8000 ); //if it won't fit in a 8kb slot, compress, use 8000 instead of 8192 due to the key and flags
 		$this->_persistant = isset($args['persistant']) ? $args['persistant'] : false;
 		$this->_compress_enable = $args['compress_threshold'] > 0;
 		$this->_have_zlib = function_exists("gzcompress") && function_exists("gzuncompress");
 
+		$this->_localget = (function_exists("apc_fetch") ? 'apc_fetch' : false);
+		$this->_localput = (function_exists("apc_store") ? 'apc_store' : false);
+
 		$this->_cache_sock = array();
 		$this->_host_dead = array();
-		register_shutdown_function(array(&$this, "disconnect_all"));
+		if(!$this->_persistant)
+			register_shutdown_function(array(&$this, "disconnect_all"));
 	}
 
 	// }}}
@@ -258,6 +276,11 @@ class memcached {
 	function add ($key, $val, $exp = 0){
 		return $this->_set('add', $key, $val, $exp);
 	}
+
+	function append ($key, $val, $exp = 0){
+		return $this->_set('append', $key, $val, $exp);
+	}
+
 
 	// }}}
 	// {{{ decr()
@@ -448,23 +471,28 @@ class memcached {
 		if(!is_array($keys))
 			$keys = array($keys);
 
+		if(!$keys)
+			return array();
+
 		$this->stats['get_multi']++;
 
+		$socks = array();
 		foreach ($keys as $key) {
 			$sock = $this->get_sock($key);
 			if (!is_resource($sock)) continue;
 			$key = is_array($key) ? $key[1] : $key;
-			if (!isset($sock_keys[$sock])) {
-				$sock_keys[$sock] = array();
+			if (!isset($sock_keys[(int)$sock])) {
+				$sock_keys[(int)$sock] = array();
 				$socks[] = $sock;
 			}
-			$sock_keys[$sock][] = $key;
+			$sock_keys[(int)$sock][] = $key;
 		}
 
+		$gather = array();
 		// Send out the requests
 		foreach ($socks as $sock) {
 			$cmd = "get";
-			foreach ($sock_keys[$sock] as $key)
+			foreach ($sock_keys[(int)$sock] as $key)
 				$cmd .= " ". $key;
 			$cmd .= "\r\n";
 
@@ -690,7 +718,7 @@ class memcached {
 	 */
 	function _connect_sock(&$sock, $host, $timeout = 0.25)	{
 		list ($ip, $port) = explode(":", $host);
-		if ($this->_persistant == 1){
+		if ($this->_persistant){
 			$sock = @pfsockopen($ip, $port, $errno, $errstr, $timeout);
 		} else	{
 			$sock = @fsockopen($ip, $port, $errno, $errstr, $timeout);
@@ -721,9 +749,19 @@ class memcached {
 			return;
 		}
 
+		$retry = time() + intval(rand(1, 5));
+
 		list ($ip, $port) = explode(":", $host);
-		$this->_host_dead[$ip] = time() + 30 + intval(rand(0, 10));
-		$this->_host_dead[$host] = $this->_host_dead[$ip];
+
+		$this->_host_dead[$ip] = $retry;
+		$this->_host_dead[$host] = $retry;
+		
+		if($this->_localput){
+			$localput = $this->_localput;
+			$localput("deadhost-$host", $retry, 10);
+			$localput("deadhost-$ip", $retry, 10);
+		}
+		
 		unset($this->_cache_sock[$host]);
 	}
 
@@ -738,7 +776,7 @@ class memcached {
 	 * @return  mixed	 resource on success, false on failure
 	 * @access  private
 	 */
-	function & get_sock($key){
+	function get_sock($key){
 		if(!$this->_active)
 			return false;
 
@@ -868,7 +906,7 @@ class memcached {
 					return false;
 				}
 
-				$ret[$rkey] = rtrim($ret[$rkey]);
+				$ret[$rkey] = substr($ret[$rkey], 0, -2);
 
 				if($this->_have_zlib && ($flags & MEMCACHE_COMPRESS))
 					$ret[$rkey] = gzuncompress($ret[$rkey]);
@@ -879,8 +917,9 @@ class memcached {
 			}elseif(preg_match('/^STAT (\S+) (\S+)\r\n$/', $decl, $match)){
 				$ret[$match[1]] = rtrim($match[2]);
 			}else{
-				trigger_error("Error parsing memcached response from " . array_search($sock, $this->_cache_sock) . ": $decl", E_USER_ERROR);
-				return 0;
+				trigger_error("Error parsing memcached response from " . array_search($sock, $this->_cache_sock) . ": $decl", E_USER_NOTICE);
+				$this->_close_sock ($sock); //reset the connection
+				return false;
 			}
 		}
 	}
@@ -962,7 +1001,7 @@ class memcached {
 	 * @return  mixed	 IO Stream or false
 	 * @access  private
 	 */
-	function & sock_to_host($host){
+	function sock_to_host($host){
 		if (isset($this->_cache_sock[$host]))
 			return $this->_cache_sock[$host];
 
@@ -971,6 +1010,15 @@ class memcached {
 		if (isset($this->_host_dead[$host]) && $this->_host_dead[$host] > $now ||
 			isset($this->_host_dead[$ip]) && $this->_host_dead[$ip] > $now)
 			return null;
+		
+		if(($localget = $this->_localget) &&
+		    ((($ret = $localget("deadhost-$host")) && $ret > $now) ||
+		     (($ret = $localget("deadhost-$ip")) && $ret > $now)   ) ){
+
+			$this->_host_dead[$host] = $ret;
+			$this->_host_dead[$ip] = $ret;
+			return null;
+		}
 
 		if (!$this->_connect_sock($sock, $host))
 			return $this->_dead_sock($host);

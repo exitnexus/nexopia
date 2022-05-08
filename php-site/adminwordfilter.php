@@ -20,8 +20,8 @@
 			break;
 		case "edit":
 			if(isset($id)){
-				$db->prepare_query("SELECT * FROM bannedwords WHERE id = ?", $id);
-				$line = $db->fetchrow();
+				$res = $db->prepare_query("SELECT * FROM bannedwords WHERE id = ?", $id);
+				$line = $res->fetchrow();
 
 				incHeader();
 
@@ -58,7 +58,7 @@
 	echo "  <td class=header>Word</td>\n";
 	echo "  <td class=header>Type</td>\n";
 	echo "</tr>\n";
-	while($line = $db->fetchrow($result))
+	while($line = $result->fetchrow())
 		echo "<tr><td class=body><input type=checkbox name=check[] value=\"$line[id]\"></td><td class=body><a class=body href=\"$_SERVER[PHP_SELF]?id=$line[id]&action=edit\">$line[word]</a></td><td class=body>$line[type]</td></tr>\n";
 	echo "<tr><td class=header colspan=6>";
 	echo "<input class=body name=selectall type=checkbox value='Check All' onClick=\"this.value=check(this.form,'check')\">";

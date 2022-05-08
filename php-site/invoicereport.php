@@ -12,23 +12,16 @@
 
 	$invoices = array();
 
-	if(empty($methods))
-		$methods = array();
-	if(empty($contacts))
-		$contacts = array();
-	if(empty($startmonth))
-		$startmonth = userdate("n");
-	if(empty($startday))
-		$startday = 1;
-	if(empty($startyear))
-		$startyear = userdate("Y");
+	$methods = getREQval('methods', 'array');
+	$contacts = getREQval('contacts', 'array');
 
-	if(empty($endmonth))
-		$endmonth = userdate("n");
-	if(empty($endday))
-		$endday = 31;
-	if(empty($endyear))
-		$endyear = userdate("Y");
+	$startmonth = getREQval('startmonth', 'int', userdate("n"));
+	$startday = getREQval('startday', 'int', 1);
+	$startyear = getREQval('startyear', 'int', userdate("Y"));
+
+	$endmonth = getREQval('endmonth', 'int', userdate("n"));
+	$endday = getREQval('endday', 'int', 31);
+	$endyear = getREQval('endyear', 'int', userdate("Y"));
 
 
 	$reports = array(	0 => "Full",
@@ -37,6 +30,7 @@
 						3 => "Summary by Type",
 						4 => "Summary by Contact",
 						5 => "Daily Summary",
+						6 => "Moneris Summary",
 
 						);
 
@@ -51,7 +45,7 @@
 		if(!isset($sortt) || ($sortt != 'creationdate' && $sortt != 'paymentdate'))
 			$sortt = 'creationdate';
 
-		$query = "SELECT SQL_CALC_FOUND_ROWS id, userid, username, amountpaid, paymentdate, paymentmethod, paymentcontact, txnid, total, completed FROM invoice WHERE completed = 'y' &&";
+		$query = "SELECT SQL_CALC_FOUND_ROWS id, userid, amountpaid, paymentdate, paymentmethod, paymentcontact, txnid, total, completed FROM invoice WHERE completed = 'y' &&";
 
 		if(count($methods)){
 			$query .= "paymentmethod IN (?) && ";
@@ -66,10 +60,18 @@
 		$params[] = $start;
 		$params[] = $end;
 
-		$shoppingcart->db->prepare_array_query($query, $params);
+		$res = $shoppingcart->db->prepare_array_query($query, $params);
 
-		while($line = $shoppingcart->db->fetchrow())
+		$uids = array();
+		while($line = $res->fetchrow()){
 			$invoices[] = $line;
+			$uids[$line['userid']] = $line['userid'];
+		}
+		
+		$usernames = getUserName($uids);
+		
+		foreach($invoices as $k => $v)
+			$invoices[$k]['username'] = $usernames[$v['userid']];
 	}
 
 	if(count($invoices) == 0){
@@ -167,7 +169,7 @@
 				$total = 0;
 				foreach($invoices as $invoice){
 					echo "<tr>";
-					echo "<td class=body nowrap><a class=body href=invoice.php?id=$invoice[id]>$invoice[id]</a></td>";
+					echo "<td class=body nowrap><a class=body href=/invoice.php?id=$invoice[id]>$invoice[id]</a></td>";
 					echo "<td class=body nowrap>$invoice[username]</td>";
 					echo "<td class=body nowrap>" . ($invoice['paymentdate'] ? gmdate("M j, y, g:i a", $invoice['paymentdate']) . " GMT" : "" ) . "</td>";
 					echo "<td class=body nowrap align=right>\$$invoice[amountpaid]</td>";
@@ -212,7 +214,7 @@
 				foreach($invoices as $invoice){
 					if($invoice['completed'] == 'y' && $invoice['total'] != $invoice['amountpaid']){
 						echo "<tr>";
-						echo "<td class=body nowrap><a class=body href=invoice.php?id=$invoice[id]>$invoice[id]</a></td>";
+						echo "<td class=body nowrap><a class=body href=/invoice.php?id=$invoice[id]>$invoice[id]</a></td>";
 						echo "<td class=body nowrap>$invoice[username]</td>";
 						echo "<td class=body nowrap>" . ($invoice['paymentdate'] ? gmdate("M j, y, g:i a", $invoice['paymentdate']) . " GMT" : "" ) . "</td>";
 						echo "<td class=body nowrap align=right>\$$invoice[amountpaid] / \$$invoice[total]</td>";
@@ -230,18 +232,25 @@
 				break;
 			case 3: //By Type
 
-				$totals = array();
-				$num = array();
-				$methods = array();
-				foreach($invoices as $invoice){
-					if(!isset($methods[$invoice['paymentmethod']])){
-						$totals[$invoice['paymentmethod']] = 0;
-						$num[$invoice['paymentmethod']] = 0;
-						$methods[$invoice['paymentmethod']] = $invoice['paymentmethod'];
-					}
+				if(!count($methods)) //set above
+					$methods = array_keys($shoppingcart->paymentmethods);
 
+				$totals = array();
+				$nums = array();
+				foreach($methods as $v){
+					$totals[$v] = 0;
+					$nums[$v] = 0;
+				}
+
+				$total = 0;
+				$num = 0;
+				foreach($invoices as $invoice){
 					$totals[$invoice['paymentmethod']] += $invoice['amountpaid'];
-					$num[$invoice['paymentmethod']]++;
+					$nums[$invoice['paymentmethod']]++;
+
+					$total += $invoice['amountpaid'];
+					$num++;
+
 				}
 
 				echo "<table align=center>";
@@ -252,14 +261,20 @@
 				echo "<td class=header align=center>Revenue</td>";
 				echo "</tr>";
 
+
 				foreach($methods as $method){
 					echo "<tr>";
 					echo "<td class=body>" . $shoppingcart->paymentmethods[$method] . "</td>";
-					echo "<td class=body align=right>$num[$method]</td>";
+					echo "<td class=body align=right>$nums[$method]</td>";
 					echo "<td class=body align=right>\$" . number_format($totals[$method],2) . "</td>";
 					echo "</tr>";
-
 				}
+
+				echo "<tr>";
+				echo "<td class=header></td>";
+				echo "<td class=header align=right>$num</td>";
+				echo "<td class=header align=right>\$" . number_format($total,2) . "</td>";
+				echo "</tr>";
 
 				echo "</table>";
 				break;
@@ -373,16 +388,44 @@
 				echo "<table align=center>";
 
 				echo "<tr>";
-				echo "<td class=header align=center>Date</td>";
+				echo "<td class=header align=center rowspan=2>Date</td>";
+				echo "<td class=header align=center colspan=2>Absolute</td>";
+				echo "<td class=header align=center colspan=2>Week Average</td>";
+				echo "</tr>";
+
+				echo "<tr>";
+				echo "<td class=header align=center>Invoices</td>";
+				echo "<td class=header align=center>Revenue</td>";
 				echo "<td class=header align=center>Invoices</td>";
 				echo "<td class=header align=center>Revenue</td>";
 				echo "</tr>";
+
+				$nums = array();
+				$totals = array();
 
 				foreach($days as $date => $day){
 					echo "<tr>";
 					echo "<td class=body>$date</td>";
 					echo "<td class=body align=right>$day[num]</td>";
 					echo "<td class=body align=right>\$" . number_format($day['total'], 2) . "</td>";
+
+					array_push($nums, $day['num']);
+					array_push($totals, $day['total']);
+
+					$avgnum = 0;
+					$avgtotal = 0;
+
+					if(count($nums) >= 7){
+						$avgnum = array_sum($nums) / 7;
+						$avgtotal = array_sum($totals) / 7;
+
+						array_shift($nums);
+						array_shift($totals);
+					}
+
+					echo "<td class=body align=right>" . number_format($avgnum) . "</td>";
+					echo "<td class=body align=right>\$" . number_format($avgtotal, 2) . "</td>";
+
 					echo "</tr>";
 
 				}
@@ -391,7 +434,107 @@
 				echo "<td class=header></td>";
 				echo "<td class=header align=right>$num</td>";
 				echo "<td class=header align=right>\$" . number_format($total, 2) . "</td>";
+				echo "<td class=header align=right></td>";
+				echo "<td class=header align=right></td>";
 				echo "</tr>";
+
+				if(time() > $end){
+					echo "<tr>";
+					echo "<td class=header>Expected</td>";
+					echo "<td class=header align=right>" . number_format((($end-$start)/(time()-$start)) * $num) . "</td>";
+					echo "<td class=header align=right>\$" . number_format((($end-$start)/(time()-$start)) * $total, 2) . "</td>";
+					echo "<td class=header align=right></td>";
+					echo "<td class=header align=right></td>";
+					echo "</tr>";
+				}
+
+				echo "</table>";
+				break;
+
+			case 6: // visa/mc/debit daily totals
+
+				$days = array();
+
+				foreach($invoices as $invoice){
+
+					if(!($invoice['paymentmethod'] == 'visa' || $invoice['paymentmethod'] == 'mc' || $invoice['paymentmethod'] == 'debit'))
+						continue;
+
+					$batch = substr($invoice['txnid'], 0, -4);
+					$id = ltrim(substr($invoice['txnid'], -4, -1), '0');
+
+
+					if(!isset($days[$batch]))
+						$days[$batch] = array(	"total" => 0, "num" => 0,
+												'firstid' => $id, 'lastid' => $id,
+												'firstdate' => $invoice['paymentdate'],
+												'lastdate' => $invoice['paymentdate'],
+												'visa' => array("total" => 0, "num" => 0),
+												'mc' => array("total" => 0, "num" => 0),
+												'debit' => array("total" => 0, "num" => 0),
+												);
+
+					$days[$batch]['total'] += $invoice['amountpaid'];
+					$days[$batch]['num']++;
+
+					$days[$batch][$invoice['paymentmethod']]['total'] += $invoice['amountpaid'];
+					$days[$batch][$invoice['paymentmethod']]['num']++;
+
+					if($id < $days[$batch]['firstid'])		$days[$batch]['firstid'] = $id;
+					if($id > $days[$batch]['lastid'])		$days[$batch]['lastid'] = $id;
+
+					if($invoice['paymentdate'] < $days[$batch]['firstdate'])	$days[$batch]['firstdate'] = $invoice['paymentdate'];
+					if($invoice['paymentdate'] > $days[$batch]['lastdate'])		$days[$batch]['lastdate'] = $invoice['paymentdate'];
+
+				}
+
+				echo "<table align=center>";
+
+				echo "<tr>";
+				echo "<td class=header align=center rowspan=2>Batch set</td>";
+				echo "<td class=header align=center colspan=2>IDs</td>";
+				echo "<td class=header align=center colspan=2>Total</td>";
+				echo "<td class=header align=center colspan=2>Visa</td>";
+				echo "<td class=header align=center colspan=2>MC</td>";
+				echo "<td class=header align=center colspan=2>Debit</td>";
+				echo "<td class=header align=center colspan=2>Dates GMT</td>";
+				echo "</tr>";
+
+				echo "<tr>";
+				echo "<td class=header align=center>First</td>"; //ids
+				echo "<td class=header align=center>Last</td>";
+				echo "<td class=header align=center>Invoices</td>"; //total
+				echo "<td class=header align=center>Revenue</td>";
+				echo "<td class=header align=center>Invoices</td>"; //visa
+				echo "<td class=header align=center>Revenue</td>";
+				echo "<td class=header align=center>Invoices</td>"; //mc
+				echo "<td class=header align=center>Revenue</td>";
+				echo "<td class=header align=center>Invoices</td>"; //debit
+				echo "<td class=header align=center>Revenue</td>";
+				echo "<td class=header align=center>Start</td>"; //dates
+				echo "<td class=header align=center>End</td>";
+				echo "</tr>";
+
+				foreach($days as $batch => $day){
+					echo "<tr>";
+					echo "<td class=body>$batch</td>";
+					echo "<td class=body align=right>" . $day['firstid'] . "</td>";
+					echo "<td class=body align=right>" . $day['lastid'] . "</td>";
+					echo "<td class=body align=right>" . $day['num'] . "</td>";
+					echo "<td class=body align=right>\$" . number_format($day['total'], 2) . "</td>";
+					echo "<td class=body align=right>" . $day['visa']['num'] . "</td>";
+					echo "<td class=body align=right>\$" . number_format($day['visa']['total'], 2) . "</td>";
+					echo "<td class=body align=right>" . $day['mc']['num'] . "</td>";
+					echo "<td class=body align=right>\$" . number_format($day['mc']['total'], 2) . "</td>";
+					echo "<td class=body align=right>" . $day['debit']['num'] . "</td>";
+					echo "<td class=body align=right>\$" . number_format($day['debit']['total'], 2) . "</td>";
+
+					echo "<td class=body align=right>" . gmdate("M j, G:i", $day['firstdate']) . "</td>";
+					echo "<td class=body align=right>" . gmdate("M j, G:i", $day['lastdate']) . "</td>";
+
+					echo "</tr>";
+
+				}
 
 				echo "</table>";
 				break;

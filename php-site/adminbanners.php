@@ -5,7 +5,7 @@
 	require_once("include/general.lib.php");
 
 	$bannerAdmin = $mods->isAdmin($userData['userid'],"listbanners");
-
+	
 	if(!$bannerAdmin)
 		die("You don't have permission to see this");
 
@@ -17,18 +17,41 @@
 	$defaults = array(ALL_EXCEPT => 'All except', ONLY => 'Only');
 	$sexes = array(SEX_UNKNOWN => "Unknown", SEX_MALE => "Male", SEX_FEMALE => "Female");
 
-
 	$scope = array('Active', 'All');
+	$size = getREQval('size', 'int');
+	$type = getREQval('type', 'int');
+	$clientid = getREQval('clientid', 'int');
+	$all = getREQval('all', 'int', 1);
+	$campaignid = getREQval('campaignid', 'int');
+	$previousaction = getREQval('previousaction');
+	$filterData = array('size' => $size,
+						'type' => $type,
+						'clientid' => $clientid,
+						'all' => $all,
+						'campaignid' => $campaignid);
+	$data = getREQval('data', 'array');
 
 	switch($action){
+		case "Add Campaign":
+		case "addcampaign":
+			addCampaign($id = getREQval('id', 'int'), $data); //exit
+			break;
+		case "editcampaign":
+			if($id = getREQval('id', 'int'))
+				addCampaign($id);
+		case "insertcampaign";
+			if($data) {
+				insertCampaign($data);
+			}
+			break;
+		case "updatecampaign":
+			if(($id = getREQval('id', 'int')) && $data)
+				updateCampaign($id, $data);
+			break;
 		case "listbanners":
-			$size = getREQval('size', 'int');
-			$type = getREQval('type', 'int');
-			$clientid = getREQval('clientid', 'int');
-			$all = getREQval('all', 'int');
-
-			listBanners($size, $type, $clientid, $all); //exit
-
+			listBanners($size, $type, $clientid, $all, $campaignid); //exit
+		case "listcampaigns":
+			listCampaigns(); //exit
 		case "viewbanner":
 			if($id = getREQval('id', 'int'))
 				viewBanner($id); //exit
@@ -39,13 +62,17 @@
 //			editBanner($id); //exit
 			break;
 		case "updatebanner":
-			if(($id = getREQval('id', 'int')) && ($data = getPOSTval('data', 'array')))
+			if(($id = getREQval('id', 'int')) && $data)
 				updateBanner($id, $data);
 			break;
 
 		case "deletebanner":
 			if($id = getREQval('id', 'int'))
 				deleteBanner($id);
+			break;
+		case "deletecampaign":
+			if($id = getREQval('id', 'int'))
+				deleteCampaign($id);
 			break;
 
 		case "bannerstats":
@@ -69,11 +96,15 @@
 
 		case "addbanner":
 		case "Add Banner":
-			if(($type = getREQval('type', 'int')) && isset($banner->types[$type]))
-				addBanner($type);	//exit
+			if(($newtype = getREQval('newtype', 'int')) && isset($banner->types[$newtype])) {
+				$data = getREQval('data', 'array');
+				addBanner($newtype, 0, $data);	//exit
+			}
 			break;
+
 		case "insertbanner":
-			insertBanner($data);
+			if($data)
+				insertBanner($data);
 			break;
 
 		case "listclients":
@@ -84,6 +115,10 @@
 
 		case "Add Client":
 		case "insertclient":
+			$clientusername = getREQval('clientusername');
+			$clientname = getREQval('clientname');
+			$clienttype = getREQval('clienttype');
+			$clientnotes = getREQval('clientnotes');
 			insertClient(getUserID($clientusername), $clientname, $clienttype, $clientnotes);
 			listClients();	//exit
 
@@ -93,6 +128,11 @@
 
 		case "updateclient":
 		case "Update Client":
+			$id = getREQval('id', 'int');
+			$clientusername = getREQval('clientusername');
+			$clientname = getREQval('clientname');
+			$clienttype = getREQval('clienttype');
+			$clientnotes = getREQval('clientnotes');
 			updateClient($id, getUserID($clientusername), $clientname, $clienttype, $clientnotes);
 			listClients();	//exit
 
@@ -100,6 +140,17 @@
 			if($id = getREQval('id', 'int'))
 				deleteClient($id);
 			listClients();	//exit
+			
+		case "creditclient":
+			if($id = getREQval('id', 'int'))
+				creditClient($id); //exit
+
+		case "Update Credits":
+			if($id = getREQval('id', 'int')) {
+				$credits = getREQval('credits', 'int');
+				updateCredits($id, $credits); 
+			}
+			listClients(); //exit
 
 		case "typestats":
 			$size = getREQval('size', 'int', BANNER_BANNER);
@@ -119,27 +170,35 @@
 			}
 			bannerTypeStats($size, $start);
 	}
+	//if we break and had a previous action we should return to that page
+	//this occurs after things like banner adds and deletes that can
+	//be initiated from multiple pages
+	switch ($previousaction) {
+		case "addcampaign":
+		case "editcampaign":
+			addCampaign($data['campaignid']); //exit
+			break;
+		case "listbanners":
+			listBanners($size, $type, $clientid, $all, $campaignid);
+			break;
+	}
 
-	listBanners();
+	listClients();
 
 
-function listBanners($size = false, $type = false, $clientid = false, $all = false){
-	global $banner, $scope;
+function listBanners($size = false, $type = false, $clientid = false, $all = false, $campaignid = false){
+	global $banner, $scope, $filterData;
 
 	$params = array();
 	$where = array("1");
 
 	if($size){
-		$where[] = "bannersize = ?";
+		$where[] = "bannersize = #";
 		$params[] = $size;
 	}
 	if($type){
-		$where[] = "bannertype = ?";
+		$where[] = "bannertype = #";
 		$params[] = $type;
-	}
-	if($clientid){
-		$where[] = "clientid = ?";
-		$params[] = $clientid;
 	}
 	switch($all){
 		case 1:
@@ -149,134 +208,382 @@ function listBanners($size = false, $type = false, $clientid = false, $all = fal
 			$where[] = "enabled = 'y'";
 	}
 
-	$banner->db->query("SELECT id, clientname FROM bannerclients");
-
+	//collect information from the clients table
+	$res = $banner->db->query("SELECT id, clientname FROM bannerclients");
 	$clients = array();
-	while($line = $banner->db->fetchrow())
+	while($line = $res->fetchrow())
 		$clients[$line['id']] = $line['clientname'];
-
 	uasort($clients, 'strcasecmp');
 
+	//collect information from the bannercampaigns table
+	$res = $banner->db->query("SELECT id, clientid, title FROM bannercampaigns");
+	$clientids = array();
+	while($line = $res->fetchrow()) {
+		$clientids[$line['id']] = $line['clientid'];
+		$campaignnames[$line['id']] = $line['title'];
+	}
+	uasort($campaignnames, 'strcasecmp');
 
-	$banner->db->prepare_array_query("SELECT * FROM banners WHERE " . implode(" && ", $where), $params);
+	//collect information from the bannerstats table
+	$endstatstime = usermktime(0, 0, 0, userdate('n'), userdate('d'), userdate('Y'));
+	$res = $banner->db->prepare_query("SELECT bannerid, views, clicks, passbacks FROM bannerstats WHERE time >= # && time <= # ORDER BY time ASC", $endstatstime-86400, $endstatstime);
+	$stats = array();
+	while($line = $res->fetchrow()){
+		if(!isset($stats[$line['bannerid']]))
+			$stats[$line['bannerid']] = array('start' => $line);
 
+		$stats[$line['bannerid']]['end'] = $line;
+	}
+
+
+	$maxviewsperday = 0;
+	$totalviews = 0;
+	$totalclicks = 0;
+	$totalpassbacks = 0;
+	$totalyestviews = 0;
+	$totalyestclicks = 0;
+	$totalyestpassbacks = 0;
+	$classes = array('body','body2');
 	$banners = array();
-	while($line = $banner->db->fetchrow()){
-		$line['clientname'] = $clients[$line['clientid']];
+
+	//construct our array of data for the template, this will hold all
+	//relevant information about the banners
+	$res = $banner->db->prepare_array_query("SELECT * FROM banners WHERE " . implode(" && ", $where), $params);
+	while($line = $res->fetchrow()){
+		if ($clientid) {
+			if ($clientid != $clientids[$line['campaignid']]) {
+				continue;
+			}
+		}
+		if ($campaignid) {
+			if ($campaignid != $line['campaignid']) {
+				continue;
+			}
+		}
+		$line['clientname'] = $clients[$clientids[$line['campaignid']]];
+		$line['campaignname'] = $campaignnames[$line['campaignid']];
+
+		//do all total calculations before we start modifying the line
+		$statviews = (isset($stats[$line['id']]) ? $stats[$line['id']]['end']['views'] - $stats[$line['id']]['start']['views'] : 0 );
+		$statclicks = (isset($stats[$line['id']]) ? $stats[$line['id']]['end']['clicks'] - $stats[$line['id']]['start']['clicks'] : 0 );
+		$statpassbacks = (isset($stats[$line['id']]) ? $stats[$line['id']]['end']['passbacks'] - $stats[$line['id']]['start']['passbacks'] : 0 );
+		$maxviewsperday += $line['viewsperday'];
+		$totalviews += $line['views']/* - $line['passbacks']*/;
+		$totalclicks += $line['clicks'];
+		$totalpassbacks += $line['passbacks'];
+		$totalyestviews += $statviews/* - $statpassbacks*/;
+		$totalyestclicks += $statclicks;
+		$totalyestpassbacks += $statpassbacks;
+
+		switch ($line['paytype']) {
+			case BANNER_CPM:
+				$line['paytype'] = "CPM";
+				break;
+			case BANNER_CPC:
+				$line['paytype'] = "CPC";
+				break;
+			case BANNER_INHERIT:
+				$line['paytype'] = "Inherited";
+				break;
+		}
+		if ($line['payrate'] < 0) {
+			$line['payrate'] = 'Inherited';
+		} else {
+			$line['payrate'] = $line['payrate'] . ' c';
+		}
+		$line['viewsperday'] = ($line['enabled'] == 'y' ? ($line['viewsperday'] ? number_format($line['viewsperday']) : "unlim" ) : 'disabled');
+		if ($line['viewsperuser']) {
+			if ($line['limitbyperiod']%86400 == 0) {
+				$freqtype = 'd'; //days
+				$freqperiod = $line['limitbyperiod']/86400;
+			} elseif ($line['limitbyperiod']%3600 == 0) {
+				$freqtype = 'h'; //hours
+				$freqperiod = $line['limitbyperiod']/3600;
+			} elseif ($line['limitbyperiod']%60 == 0) {
+				$freqtype = 'm'; //minutes
+				$freqperiod = $line['limitbyperiod']/60;
+			} else {
+				$freqtype = 's'; //seconds
+				$freqperiod = $line['limitbyperiod'];
+			}
+			$line['viewsperuser'] = number_format($line['viewsperuser']) . "/$freqperiod$freqtype";
+		} else {
+			$line['viewsperuser'] = "";
+		}
+		$line['maxviews'] = ($line['maxviews'] ? number_format($line['maxviews']) : "unlim");
+		$line['startdate'] = ($line['startdate'] > 0 ? userdate("M j", $line['startdate']) : "");
+		$line['enddate'] = ($line['enddate'] > 0 ? userdate("M j", $line['enddate']) : "");
+		
+		$line['clickthru'] = ($line['link'] && $line['views'] ? number_format(($line['clicks']/$line['views'])*100, 3) . "%" : "N/A");
+		$line['views'] = number_format($line['views']/* - $line['passbacks']*/);
+		$line['clicks'] = ($line['link'] ? number_format($line['clicks']) : "N/A");
+		$line['passbacks'] = number_format($line['passbacks']);
+		
+		$line['yestviews'] = number_format($statviews/* - $statpassbacks*/);
+		$line['yestclicks'] = ($line['link'] ? number_format($statclicks) : "N/A");
+		$line['yestpassbacks'] = number_format($statpassbacks);
+
 		$banners[] = $line;
 	}
+	sortCols($banners, SORT_ASC, SORT_CASESTR, 'title', SORT_ASC, SORT_CASESTR, 'campaignname', SORT_ASC, SORT_CASESTR, 'clientname', SORT_ASC, SORT_STRING, 'bannersize');
 
-	sortCols($banners, SORT_ASC, SORT_CASESTR, 'title', SORT_ASC, SORT_CASESTR, 'clientname', SORT_ASC, SORT_STRING, 'bannersize');
 
-	incHeader();
+	$cols = 27;
 
-	echo "<table align=center>";
-
-	$cols = 22;
-
-	echo "<tr>";
-	echo "<form action=$_SERVER[PHP_SELF]>";
-	echo "<td class=header colspan=$cols align=center>";
-	echo "<a class=header href=$_SERVER[PHP_SELF]?action=listclients>List Clients</a> | ";
-	echo "<a class=header href=$_SERVER[PHP_SELF]?action=typestats>Type Stats</a> ";
-	echo "<select class=body name=size><option value=0>Size" . make_select_list_key($banner->sizes, $size) . "</select>";
-	echo "<select class=body name=type><option value=0>Type" . make_select_list_key($banner->types, $type) . "</select>";
-	echo "<select class=body name=clientid><option value=0>Client" . make_select_list_key($clients, $clientid) . "</select>";
-	echo "<select class=body name=all>" . make_select_list_key($scope, $all) . "</select>";
-	echo "<input type=hidden name=action value=listbanners>";
-	echo "<input class=body type=submit value=Go>";
-	echo "</td>";
-	echo "</form>";
-	echo "</tr>";
-
-	echo "<tr>";
-	echo "<td class=header>Client</td>";
-	echo "<td class=header>Title</td>";
-	echo "<td class=header>Size</td>";
-	echo "<td class=header>Type</td>";
-	echo "<td class=header>Pay Rate</td>"; // $ CPC | $ CPM
-	echo "<td class=header>Views/day</td>";
-	echo "<td class=header>Freq Cap</td>"; // x/day | x/h
-	echo "<td class=header>Max Views</td>";
-	echo "<td class=header>Start</td>";
-	echo "<td class=header>End</td>";
-	echo "<td class=header>Views</td>";
-	echo "<td class=header>Clicks</td>";
-	echo "<td class=header>Clickthru</td>";
-	echo "<td class=header>Pass</td>";
-	echo "<td class=header>Age</td>";
-	echo "<td class=header>Sex</td>";
-	echo "<td class=header>Loc</td>";
-	echo "<td class=header>Page</td>";
-	echo "<td class=header>Inter</td>";
-//	echo "<td class=header>Moded</td>";
-	echo "<td class=header></td>";
-	echo "<td class=header></td>";
-	echo "<td class=header></td>";
-	echo "</tr>";
-	$maxviewsperday = 0;
-	$views = 0;
-	$clicks = 0;
-
-	$classes = array('body','body2');
-	$i=1;
-
-	foreach($banners as $line){
-		$i = !$i;
-		echo "<tr>";
-		echo "<td class=$classes[$i]><a class=body href=$_SERVER[PHP_SELF]?action=listclients&id=$line[clientid]>" . $clients[$line['clientid']] . "</a></td>";
-		echo "<td class=$classes[$i]>$line[title]</td>";
-		echo "<td class=$classes[$i]>" . $banner->sizes[$line['bannersize']] . "</td>";
-		echo "<td class=$classes[$i]>" . $banner->types[$line['bannertype']] . "</td>";
-		echo "<td class=$classes[$i] align=right nowrap>$line[payrate] c " . ($line['paytype'] == BANNER_CPC ? "CPC" : "CPM") . "</td>";
-		echo "<td class=$classes[$i] align=right>" . ($line['enabled'] == 'y' ? ($line['viewsperday'] ? number_format($line['viewsperday']) : "unlim" ) : 'disabled') . "</td>";
-		echo "<td class=$classes[$i] align=right>" . ($line['viewsperuser'] ? number_format($line['viewsperuser']) . ($line['limitbyhour'] == 'y' ? "/h" : "/d") : "" ) . "</td>";
-
-		echo "<td class=$classes[$i] align=right>" . ($line['maxviews'] ? number_format($line['maxviews']) : "unlim") . "</td>";
-		echo "<td class=$classes[$i] nowrap>" . ($line['startdate'] > 0 ? userdate("M j", $line['startdate']) : "") . "</td>";
-		echo "<td class=$classes[$i] nowrap>" . ($line['enddate'] > 0 ? userdate("M j", $line['enddate']) : "")  . "</td>";
-
-		echo "<td class=$classes[$i] align=right>" . number_format($line['views']) . "</td>";
-		echo "<td class=$classes[$i] align=right>" . ($line['link'] ? number_format($line['clicks']) : "N/A") . "</td>";
-		echo "<td class=$classes[$i] align=right>" . ($line['link'] && $line['views'] ? number_format($line['clicks']/$line['views']*100, 3) . "%" : "N/A") . "</td>";
-
-		echo "<td class=$classes[$i] align=right>" . number_format($line['passbacks']) . "</td>";
-
-		echo "<td class=$classes[$i]>" . ($line['age'] == '' ? "" : "Yes") . "</td>";
-		echo "<td class=$classes[$i]>" . ($line['sex'] == '' ? "" : "Yes") . "</td>";
-		echo "<td class=$classes[$i]>" . ($line['loc'] == '' ? "" : "Yes") . "</td>";
-		echo "<td class=$classes[$i]>" . ($line['page']== '' ? "" : "Yes") . "</td>";
-		echo "<td class=$classes[$i]>" . ($line['interests']== '' ? "" : "Yes") . "</td>";
-
-//		echo "<td class=$classes[$i]>" . ($line['moded'] == 'n' ? "No" : "") . "</td>";
-		echo "<td class=$classes[$i]><a class=body href=$_SERVER[PHP_SELF]?action=editbanner&id=$line[id]>Edit</a></td>";
-		echo "<td class=$classes[$i]><a class=body href=$_SERVER[PHP_SELF]?action=bannerstats&id=$line[id]>Stats</a></td>";
-		echo "<td class=$classes[$i]><a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?action=deletebanner&id=$line[id]','delete this ad?')\">Delete</a></td>";
-
-		echo "</tr>";
-		$maxviewsperday += $line['viewsperday'];
-		$views += $line['views'];
-		$clicks += $line['clicks'];
-	}
-	echo "<form action=$_SERVER[PHP_SELF]>";
-	echo "<tr><td class=header colspan=5></td>";
-	echo "<td class=header align=right>" . number_format($maxviewsperday) . "</td>";
-	echo "<td class=header colspan=4></td>";
-	echo "<td class=header align=right>" . number_format($views) . "</td>";
-	echo "<td class=header align=right>" . number_format($clicks) . "</td>";
-	echo "<td class=header align=right>" . ($views ? number_format($clicks/$views*100, 3) . "%" : "N/A") . "</td>";
-	echo "<td class=header colspan=10 align=right><select class=body name=type>" . make_select_list_key($banner->types) . "</select><input class=body type=submit name=action value='Add Banner'></td></tr>";
-	echo "</form>";
-	echo "</table>";
-
-	incFooter();
+	$template = new template('admin/adminbanners/listBanners');
+	$template->set('cols', $cols);
+	$template->setMultiple($filterData);
+	$template->set('selectCampaign', make_select_list_key($campaignnames, $campaignid));
+	$template->set('selectBannerSize', make_select_list_key($banner->sizes, $size));
+	$template->set('selectBannerType', make_select_list_key($banner->types, $type));
+	$template->set('selectClientID', make_select_list_key($clients, $clientid));
+	$template->set('selectScope', make_select_list_key($scope, $all));
+	$template->set('classes', $classes);
+	$template->set('banners', $banners);
+	$template->set('banner', $banner);
+	$template->set('maxviewsperday', number_format($maxviewsperday));
+	$template->set('totalviews', number_format($totalviews));
+	$template->set('totalclicks', number_format($totalclicks));
+	$template->set('totalclickthru',  ($totalviews ? number_format($totalclicks/$totalviews*100, 3) . "%" : "N/A"));
+	$template->set('totalpassbacks', number_format($totalpassbacks));
+	$template->set('totalyestviews',  number_format($totalyestviews));
+	$template->set('totalyestclicks', number_format($totalyestclicks));
+	$template->set('totalyestpassbacks', number_format($totalyestpassbacks));
+	$template->set('selectNewBannerType', make_select_list_key($banner->types));
+	$template->display();
 	exit;
 }
 
-function addBanner($bannertype, $id = 0, $data = array()){
-	global $banner, $defaults, $sexes;
+function listCampaigns(){
+	global $banner, $scope, $filterData;
 
-	$bannersize		= "";
+	$params = array();
+	$where = array("1");
+
+	if ($filterData['clientid']) {
+		$where[] = "clientid = #";
+		$params[] = $filterData['clientid'];
+	}
+	switch($filterData['all']){
+		case 1:
+			break;
+		case 0:
+		default:
+			$where[] = "enabled = 'y'";
+	}
+
+	//collect information about what clients we have
+	$res = $banner->db->query("SELECT id, clientname FROM bannerclients");
+	$clients = array();
+	while($line = $res->fetchrow())
+		$clients[$line['id']] = $line['clientname'];
+	uasort($clients, 'strcasecmp');
+
+	//Get our list of campaigns and add clientname to it before we sort it
+	$res = $banner->db->prepare_array_query("SELECT * FROM bannercampaigns WHERE " . implode(" && ", $where), $params);
+	$campaigns = array();
+	while($line = $res->fetchrow()){
+		$line['clientname'] = $clients[$line['clientid']];
+		$campaigns[] = $line;
+		$bannercount[$line['id']] = 0;
+	}
+	sortCols($campaigns, SORT_ASC, SORT_CASESTR, 'title', SORT_ASC, SORT_CASESTR, 'clientname');
+
+	$endstatstime = usermktime(0, 0, 0, userdate('n'), userdate('d'), userdate('Y'));
+	$res = $banner->db->prepare_query("SELECT bannerid, views, clicks, passbacks FROM bannerstats WHERE time >= # && time <= # ORDER BY time ASC", $endstatstime-86400, $endstatstime);
+	$stats = array();
+	while($line = $res->fetchrow()){
+		if(!isset($stats[$line['bannerid']]))
+			$stats[$line['bannerid']] = array('start' => $line);
+
+		$stats[$line['bannerid']]['end'] = $line;
+	}
+	//How many banners per campaign?
+	$banner->db->prepare_query("SELECT * FROM banners WHERE enabled = 'y'");
+	while ($line = $banner->db->fetchrow()) {
+		$bannerslist[$line['campaignid']][$line['id']] = $line;
+		if ($line['enabled'] == 'y') {
+			if (!isset($bannercount[$line['campaignid']])) $bannercount[$line['campaignid']] = 0;
+			$bannercount[$line['campaignid']]++;
+		}
+	}
+
+	$template = new template('admin/adminbanners/listCampaigns');
+	$template->set('bannercount', $bannercount);
+	$cols = 24;
+	$template->set('cols', $cols);
+
+	$template->set('selectClientID', make_select_list_key($clients, $filterData['clientid']));
+	$template->set('selectScope', make_select_list_key($scope, $filterData['all']));
+	$template->setMultiple($filterData);
+	$classes = array('body','body2');
+	$template->set('classes', $classes);
+	$template->set('campaigns', $campaigns);
+
+	$maxviewsperday = 0;
+	$totalviews = 0;
+	$totalclicks = 0;
+	$totalpassbacks = 0;
+
+	$totalyestviews = 0;
+	$totalyestclicks = 0;
+	$totalyestpassbacks = 0;
+
+	$views = array();
+	$clicks = array();
+	$clickthru = array();
+	$passbacks = array();
+	$yestviews = array();
+	$yestpassbacks = array();
+	$enabled = array();
+	$paytype = array();
+	$viewsperday = array();
+	$viewsperuser = array();
+	$maxviews = array();
+	$startdate = array();
+	$enddate = array();
+	
+	$j = -1;
+	foreach($campaigns as $line){
+		$j++;
+
+		$statviews = 0;
+		if (isset($bannerslist[$line['id']])) {
+			foreach ($bannerslist[$line['id']] as $bannerid => $bannerline) {
+				if (isset($stats[$bannerid])) {
+					$statviews += $stats[$bannerid]['end']['views'] - $stats[$bannerid]['start']['views'];
+				}
+			}
+		}
+		$statclicks = 0;
+		if (isset($bannerslist[$line['id']])) {
+			foreach ($bannerslist[$line['id']] as $bannerid => $bannerline) {
+				if (isset($stats[$bannerid])) {
+					$statclicks += $stats[$bannerid]['end']['clicks'] - $stats[$bannerid]['start']['clicks'];
+				}
+			}
+		}
+		$statpassbacks = 0;
+		if (isset($bannerslist[$line['id']])) {
+			foreach ($bannerslist[$line['id']] as $bannerid => $bannerline) {
+				if (isset($stats[$bannerid])) {
+					$statpassbacks += $stats[$bannerid]['end']['passbacks'] - $stats[$bannerid]['start']['passbacks'];
+				}
+			}
+		}
+		
+		$enabled[$j] = $line['enabled'] == 'y' ? "Yes" : "No";
+		$paytype[$j] = ($line['paytype'] == BANNER_CPC ? "CPC" : "CPM");
+		$viewsperday[$j] = ($line['enabled'] == 'y' ? ($line['viewsperday'] ? number_format($line['viewsperday']) : "unlim" ) : 'disabled');
+		if ($line['viewsperuser']) {
+			if ($line['limitbyperiod']%86400 == 0) {
+				$freqtype = 'd'; //days
+				$freqperiod = $line['limitbyperiod']/86400;
+			} elseif ($line['limitbyperiod']%3600 == 0) {
+				$freqtype = 'h'; //hours
+				$freqperiod = $line['limitbyperiod']/3600;
+			} elseif ($line['limitbyperiod']%60 == 0) {
+				$freqtype = 'm'; //minutes
+				$freqperiod = $line['limitbyperiod']/60;
+			} else {
+				$freqtype = 's'; //seconds
+				$freqperiod = $line['limitbyperiod'];
+			}
+			$viewsperuser[$j] = number_format($line['viewsperuser']) . "/$freqperiod$freqtype";
+		} else {
+			$viewsperuser[$j] = "";
+		}
+		
+
+		$maxviews[$j] = ($line['maxviews'] ? number_format($line['maxviews']) : "unlim");
+		$startdate[$j] = ($line['startdate'] > 0 ? userdate("M j", $line['startdate']) : "");
+		$enddate[$j] = ($line['enddate'] > 0 ? userdate("M j", $line['enddate']) : "");
+
+		$views[$j] = 0;
+		if (isset($bannerslist[$line['id']])) {
+			foreach ($bannerslist[$line['id']] as $bannerid => $bannerline) {
+				$views[$j] += $bannerline['views'];
+			}
+		}
+		$unformattedviews = $views[$j];
+		$views[$j] = number_format($views[$j]);
+		$clicks[$j] = "N/A";
+		if (isset($bannerslist[$line['id']])) {
+			foreach ($bannerslist[$line['id']] as $bannerid => $bannerline) {
+			if ($bannerline['link'] && $clicks[$j] == "N/A") {
+					$clicks[$j] = 0;
+				}
+				if ($clicks[$j] !== "N/A") {
+					$clicks[$j] += $bannerline['clicks'];
+				}
+			}
+		}
+		if ($clicks[$j] !== "N/A") {
+			$clickthru[$j] =  ($views[$j] ? number_format($clicks[$j]/$unformattedviews*100, 3) . '%' : "Undefined");
+			$clicks[$j] = number_format($clicks[$j]);
+		} else {
+			$clickthru[$j] = "N/A";
+		}
+		$passbacks[$j] = 0;
+		if (isset($bannerslist[$line['id']])) {
+			foreach ($bannerslist[$line['id']] as $bannerid => $bannerline) {
+				$passbacks[$j] += $bannerline['passbacks'];
+			}
+		}
+		$passbacks[$j] = number_format($passbacks[$j]);
+
+		$yestviews[$j] = number_format($statviews);
+		$yestclicks[$j] = ($clicks[$j] !== "N/A" ? number_format($statclicks) : "N/A");
+		$yestpassbacks[$j] = number_format($statpassbacks);
+
+		if (isset($bannerslist[$line['id']]) && is_array($bannerslist[$line['id']])) {
+			foreach ($bannerslist[$line['id']] as $bannerid => $bannerline) {
+				$totalviews += $bannerline['views'];
+				$totalclicks += $bannerline['clicks'];
+				$totalpassbacks += $bannerline['passbacks'];
+			}
+		}
+		$maxviewsperday += $line['viewsperday'];
+
+		
+		$totalyestviews += $statviews;
+		$totalyestclicks += $statclicks;
+		$totalyestpassbacks += $statpassbacks;
+		
+	}
+	$template->set('views', $views);
+	$template->set('clicks', $clicks);
+	$template->set('clickthru', $clickthru);
+	$template->set('passbacks', $passbacks);
+
+	$template->set('yestviews', $yestviews);
+	$template->set('yestclicks', $yestclicks);
+	$template->set('yestpassbacks', $yestpassbacks);
+
+	$template->set('maxviewsperday', number_format($maxviewsperday));
+	$template->set('totalviews', number_format($totalviews));
+	$template->set('totalclicks', number_format($totalclicks));
+	$template->set('totalpassbacks', number_format($totalpassbacks));
+	$template->set('totalyestviews', number_format($totalyestviews));
+	$template->set('totalyestclicks', number_format($totalyestclicks));
+	$template->set('totalyestpassbacks', number_format($totalyestpassbacks));
+	
+	$template->set('banner', $banner);
+	$template->set('enabled', $enabled);
+	$template->set('paytype', $paytype);
+	$template->set('viewsperday', $viewsperday);
+	$template->set('viewsperuser', $viewsperuser);
+	$template->set('maxviews', $maxviews);
+	$template->set('startdate', $startdate);
+	$template->set('enddate', $enddate);
+	$template->display();
+	exit;
+}
+
+function addCampaign($id = 0, $data = array()) {
+	global $banner, $defaults, $sexes, $usersdb, $configdb, $filterData, $userData;
+
+
 	$clientid		= 0;
 	$viewsperday	= 0;
 	$clicksperday	= 0;
@@ -290,31 +597,77 @@ function addBanner($bannertype, $id = 0, $data = array()){
 	$endday			= 0;
 	$endyear		= 0;
 	$title			= "";
-	$image			= "";
-	$link			= "";
-	$alt			= "";
 
 	$sex			= array();
-	$agedefault		= ALL_EXCEPT;
+	$agedefault		= ONLY;
 	$age 			= array();
-	$locdefault		= ALL_EXCEPT;
+	$locdefault		= ONLY;
 	$loc			= array();
 	$interests		= array();
-	$pagedefault	= ALL_EXCEPT;
-	$pages			= '';
+	$pagedefault	= ONLY;
+	$page			= '';
 	$paytype		= 0;
 	$viewsperuser	= 0;
-	$freqperiod		= 'y';
-
+	$freqtype		= 3; //days
+	$freqperiod		= 0;
 	$enabled		= 'y';
-
-	$refresh = 30;
+	$refresh		= 30;
+	$edit = false;
+	$cols = 2;
 
 	if($id){
-		$banner->db->prepare_query("SELECT * FROM banners WHERE id = ?", $id);
+		//This means we'll be displaying a list of banners in the campaign
+		$edit = true;
+		$cols = 11;
+		$res = $banner->db->prepare_query("SELECT * FROM banners WHERE campaignid = #", $id);
+		while ($line = $res->fetchrow()) {
+			switch ($line['paytype']) {
+				case BANNER_CPM:
+				$line['paytype'] = "CPM";
+				break;
+				case BANNER_CPC:
+				$line['paytype'] = "CPC";
+				break;
+				case BANNER_INHERIT:
+				$line['paytype'] = "Inherited";
+				break;
+			}
+			if ($line['payrate'] < 0) {
+				$line['payrate'] = "Inherited";
+			} else {
+				$line['payrate'] = $line['payrate'] . ' c';
+			}
+			$line['type'] = $banner->types[$line['bannertype']];
+			$line['size'] = $banner->sizes[$line['bannersize']];
 
-		if($banner->db->numrows()){
-			$line = $banner->db->fetchrow();
+			$line['viewsperday'] = ($line['enabled'] == 'y' ? ($line['viewsperday'] ? number_format($line['viewsperday']) : "unlim" ) : 'disabled');
+			if ($line['viewsperuser']) {
+				if ($line['limitbyperiod']%86400 == 0) {
+					$freqtype = 'd'; //days
+					$freqperiod = $line['limitbyperiod']/86400;
+				} elseif ($line['limitbyperiod']%3600 == 0) {
+					$freqtype = 'h'; //hours
+					$freqperiod = $line['limitbyperiod']/3600;
+				} elseif ($line['limitbyperiod']%60 == 0) {
+					$freqtype = 'm'; //minutes
+					$freqperiod = $line['limitbyperiod']/60;
+				} else {
+					$freqtype = 's'; //seconds
+					$freqperiod = $line['limitbyperiod'];
+				}
+				$line['viewsperuser'] = number_format($line['viewsperuser']) . "/$freqperiod$freqtype";
+			} else {
+				$line['viewsperuser'] = "";
+			}
+			$line['maxviews'] = ($line['maxviews'] ? number_format($line['maxviews']) : "unlim");
+			$line['startdate'] = ($line['startdate'] > 0 ? userdate("M j", $line['startdate']) : "");
+			$line['enddate'] = ($line['enddate'] > 0 ? userdate("M j", $line['enddate']) : "");
+			$banners[] = $line;
+		}
+
+		$res = $banner->db->prepare_query("SELECT * FROM bannercampaigns WHERE id = #", $id);
+		if($line = $res->fetchrow())
+		{
 			extract($line);
 
 			if($startdate){
@@ -327,8 +680,6 @@ function addBanner($bannertype, $id = 0, $data = array()){
 				$endday			= userdate("j", $enddate);
 				$endyear		= userdate("Y", $enddate);
 			}
-
-			$freqperiod = $limitbyhour;
 
 			if($sex == ''){
 				$sex = array();
@@ -366,6 +717,370 @@ function addBanner($bannertype, $id = 0, $data = array()){
 			}else{
 				$interests = explode(',', $interests);
 			}
+			if ($limitbyperiod%86400 == 0) {
+				$freqtype = 3; //days
+				$freqperiod = $limitbyperiod/86400;
+			} elseif ($limitbyperiod%3600 == 0) {
+				$freqtype = 2; //hours
+				$freqperiod = $limitbyperiod/3600;
+			} elseif ($limitbyperiod%60 == 0) {
+				$freqtype = 1; //minutes
+				$freqperiod = $limitbyperiod/60;
+			} else {
+				$freqtype = 0; //seconds
+				$freqperiod = $limitbyperiod;
+			}
+			
+			if($allowedtimes != '') {
+				$timetable = new timetable($allowedtimes);
+				$allowedTimesTable = $timetable->getTimeTable();
+			}
+		}
+	}else{
+		if(count($data))
+			extract($data);
+	}
+
+	//We need client names in order to make a select box with them
+	$res = $banner->db->query("SELECT id, clientname FROM bannerclients");
+	while($line = $res->fetchrow())
+		$clients[$line['id']]=$line['clientname'];
+	uasort($clients, 'strcasecmp');
+
+	for($i=1;$i<=12;$i++)
+		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+
+	$template = new template('admin/adminbanners/addCampaign');
+	if (!isset($allowedTimesTable)) $allowedTimesTable = '';
+	$template->set('allowedTimesTable', $allowedTimesTable);
+	$template->set('classes', array('body', 'body2'));
+	if (!isset($banners)) $banners = array();
+	$template->set('banners', $banners);
+	$template->set('edit', $edit);
+	$template->set('cols', $cols);
+	$template->set('id', $id);
+
+	if (!$id) $selectClient = make_select_list_key($clients, $filterData['clientid']);
+	else $selectClient = make_select_list_key($clients, $clientid);
+	$template->set('selectClient', $selectClient);
+	$template->set('checkEnabled', makeCheckBox('data[enabled]','Enabled', $enabled == 'y'));
+	$template->set('enabled', $enabled == 'y');
+	$template->set('title', $title);
+
+
+	$template->set('selectSex', make_select_list_multiple_key($sexes, $sex));
+	$template->set('selectAgeType', make_select_list_key($defaults, $agedefault));
+	$template->set('selectAgeRange', make_select_list_multiple(range(14,65), $age));
+
+	$locations = new category( $configdb, "locs");
+	$template->set('selectLocationType', make_select_list_key($defaults, $locdefault));
+	$template->set('selectLocations', makeCatSelect_multiple($locations->makeBranch(), $loc));
+	$template->set('selectPagesType', make_select_list_key($defaults, $pagedefault));
+	$template->set('page', $page);
+
+	$interestcats = new category( $usersdb, "interests");
+	$template->set('selectInterests', makeCatSelect_multiple($interestcats->makeBranch(), $interests));
+
+	$template->set('payrate', $payrate);
+	$template->set('selectPayType', make_select_list_key(array(BANNER_CPM => "CPM", BANNER_CPC => "CPC"), $paytype));
+
+	$template->set('maxviews', $maxviews);
+	$template->set('minviewsperday', $minviewsperday);
+	$template->set('maxclicks', $maxclicks);
+	$template->set('viewsperday', $viewsperday);
+	$template->set('clicksperday', $clicksperday);
+
+	$template->set('viewsperuser', $viewsperuser);
+	$template->set('selectFrequencyPeriod', make_select_list_key(array("Seconds", "Minutes", "Hours", "Days"), $freqtype));
+	$template->set('freqperiod', $freqperiod);
+
+	$template->set('allowedtimes', (isset($allowedtimes) ? $allowedtimes : ''));
+	$template->set('refresh', $refresh);
+	$template->set('selectNewBannerType', make_select_list_key($banner->types));
+	$template->set('selectStartMonth', make_select_list_key($months, $startmonth));
+	$template->set('selectStartDay', make_select_list(range(1,31), $startday));
+	$template->set('selectStartYear', make_select_list(range(userdate("Y"),userdate("Y")+1), $startyear));
+	$template->set('selectEndMonth', make_select_list_key($months, $endmonth));
+	$template->set('selectEndDay', make_select_list(range(1,31), $endday));
+	$template->set('selectEndYear', make_select_list(range(userdate("Y"),userdate("Y")+1), $endyear));
+	$template->setMultiple($filterData);
+	$template->display();
+	exit;
+}
+
+function insertCampaign($data){
+	global $banner, $msgs, $docRoot, $config;
+
+	if(empty($data['clientid'])){
+		$msgs->addMsg("Bad Client");
+		addCampaign(0, $data); //exit
+	}
+	$timetable = new timetable($data['allowedtimes']);
+	$data['allowedtimes']=$timetable->allowedtimes; //construction automatically cleans input
+	
+	if (isset($timetable->invalidRanges) && is_array($timetable->invalidRanges)) {
+		foreach ($timetable->invalidRanges as $range) {
+			$msgs->addMsg("$range is an invalid day/time range.");
+		}
+	}
+
+
+	$start = ($data['startmonth'] == 0 && $data['startday'] == 0 && $data['startyear'] == 0 ? 0 : usermktime(0,0,0,$data['startmonth'],$data['startday'],$data['startyear']));
+	$end   = ($data['endmonth'] == 0 && $data['endday'] == 0 && $data['endyear'] == 0 ? 0 : usermktime(23,59,59,$data['endmonth'],$data['endday'],$data['endyear']));
+
+	$sex		= (!isset($data['sexes'])		|| !count($data['sexes'])		? "" : implode(",", $data['sexes']));
+	$age		= (!isset($data['ages'])		|| !count($data['ages'])		? "" : ($data['agedefault']			== ALL_EXCEPT ? "0," : "") . implode(",", $data['ages'])); //if it includes anon, start with 0. This is all except
+	$loc		= (!isset($data['locs'])		|| !count($data['locs'])		? "" : ($data['locdefault']			== ALL_EXCEPT ? "0," : "") . implode(",", $data['locs']));
+	$page		= (!isset($data['pages'])		|| !strlen($data['pages'])		? "" : ($data['pagedefault']		== ALL_EXCEPT ? "0," : "") . implode(",", array_map('trim', explode("\n", $data['pages']))));
+	$interests	= (!isset($data['interests'])	|| !strlen($data['interests'])	? "" : implode(",", $data['interests']));
+
+	switch ($data['freqtype']) {
+		case 0:
+			$limitbyseconds = $data['freqperiod'];
+			break;
+		case 1:
+			$limitbyseconds = $data['freqperiod']*60;
+			break;
+		case 2:
+			$limitbyseconds = $data['freqperiod']*60*60;
+			break;
+		case 3:
+			$limitbyseconds = $data['freqperiod']*60*60*24;
+			break;
+	}
+
+	$set[] = "clientid = #"; 		$params[] = $data['clientid'];
+	$set[] = "maxviews = #"; 		$params[] = $data['maxviews'];
+	$set[] = "maxclicks = #"; 		$params[] = $data['maxclicks'];
+	$set[] = "minviewsperday = #"; 	$params[] = $data['minviewsperday'];
+	$set[] = "viewsperday = #"; 	$params[] = $data['viewsperday'];
+	$set[] = "clicksperday = #";	$params[] = $data['clicksperday'];
+	$set[] = "viewsperuser = #";	$params[] = $data['viewsperuser'];
+	$set[] = "limitbyperiod = #";	$params[] = $limitbyseconds;
+	$set[] = "limitbyhour = ?"; 	$params[] = $data['freqperiod'];
+	$set[] = "startdate = #"; 		$params[] = $start;
+	$set[] = "enddate = #"; 		$params[] = $end;
+	$set[] = "payrate = #"; 		$params[] = $data['payrate'];
+	$set[] = "paytype = #"; 		$params[] = $data['paytype'];
+	$set[] = "title = ?"; 			$params[] = $data['title'];
+	$set[] = "dateadded = #"; 		$params[] = time();
+	$set[] = "age = ?"; 			$params[] = $age;
+	$set[] = "sex = ?"; 			$params[] = $sex;
+	$set[] = "loc = ?"; 			$params[] = $loc;
+	$set[] = "page = ?"; 			$params[] = $page;
+	$set[] = "interests = ?"; 		$params[] = $interests;
+	$set[] = "allowedtimes = ?";	$params[] = $data['allowedtimes'];
+	$set[] = "enabled = ?"; 		$params[] = (isset($data['enabled']) ? 'y' : 'n');
+	$set[] = "refresh = #"; 		$params[] = $data['refresh'];
+	
+	$banner->db->prepare_array_query("INSERT INTO bannercampaigns SET " . implode(", ", $set), $params);
+
+	$id = $banner->db->insertid();
+
+	$banner->addCampaign($id);
+
+	$msgs->addMsg("Campaign Added");
+	addCampaign($id);
+}
+
+function updateCampaign($id, $data){
+	global $banner, $msgs, $config, $docRoot;
+
+	if(empty($data['clientid'])){
+		$msgs->addMsg("Bad Client");
+		addCampaign(0, $data); //exit
+	}
+	
+	$res = $banner->db->prepare_query("SELECT * FROM bannercampaigns WHERE id = #", $id);
+	if ($line = $res->fetchrow()) {
+		$previouslyenabled = $line['enabled'] == 'y';
+	}
+
+	$timetable = new timetable($data['allowedtimes']);
+	$data['allowedtimes']=$timetable->allowedtimes; //construction automatically cleans input
+	
+	if (isset($timetable->invalidRanges) && is_array($timetable->invalidRanges)) {
+		foreach ($timetable->invalidRanges as $range) {
+			$msgs->addMsg("$range is an invalid day/time range.");
+		}
+	}
+	$start = ($data['startmonth'] == 0 && $data['startday'] == 0 && $data['startyear'] == 0 ? 0 : usermktime(0,0,0,$data['startmonth'],$data['startday'],$data['startyear']));
+	$end   = ($data['endmonth'] == 0 && $data['endday'] == 0 && $data['endyear'] == 0 ? 0 : usermktime(23,59,59,$data['endmonth'],$data['endday'],$data['endyear']));
+
+	$sex		= (!isset($data['sexes'])		|| !count($data['sexes'])		? "" : implode(",", $data['sexes']));
+	$age		= (!isset($data['ages'])		|| !count($data['ages'])		? "" : ($data['agedefault']			== ALL_EXCEPT ? "0," : "") . implode(",", $data['ages'])); //if it includes anon, start with 0. This is all except
+	$loc		= (!isset($data['locs'])		|| !count($data['locs'])		? "" : ($data['locdefault']			== ALL_EXCEPT ? "0," : "") . implode(",", $data['locs']));
+	$page		= (!isset($data['pages']) 		|| !strlen($data['pages'])		? "" : ($data['pagedefault']		== ALL_EXCEPT ? "0," : "") . implode(",", array_map('trim', explode("\n", $data['pages']))));
+	$interests	= (!isset($data['interests'])	|| !strlen($data['interests'])	? "" : implode(",", $data['interests']));
+
+	switch ($data['freqtype']) {
+		case 0:
+			$limitbyseconds = $data['freqperiod'];
+			break;
+		case 1:
+			$limitbyseconds = $data['freqperiod']*60;
+			break;
+		case 2:
+			$limitbyseconds = $data['freqperiod']*60*60;
+			break;
+		case 3:
+			$limitbyseconds = $data['freqperiod']*60*60*24;
+			break;
+	}
+
+	$set[] = "clientid = #"; 		$params[] = $data['clientid'];
+	$set[] = "maxviews = #"; 		$params[] = $data['maxviews'];
+	$set[] = "maxclicks = #"; 		$params[] = $data['maxclicks'];
+	$set[] = "minviewsperday = #"; 	$params[] = $data['minviewsperday'];
+	$set[] = "viewsperday = #"; 	$params[] = $data['viewsperday'];
+	$set[] = "clicksperday = #";	$params[] = $data['clicksperday'];
+	$set[] = "viewsperuser = #";	$params[] = $data['viewsperuser'];
+	$set[] = "limitbyperiod = #";	$params[] = $limitbyseconds;
+	$set[] = "limitbyhour = ?"; 	$params[] = $data['freqperiod'];
+	$set[] = "startdate = #"; 		$params[] = $start;
+	$set[] = "enddate = #"; 		$params[] = $end;
+	$set[] = "payrate = #"; 		$params[] = $data['payrate'];
+	$set[] = "paytype = #"; 		$params[] = $data['paytype'];
+	$set[] = "title = ?"; 			$params[] = $data['title'];
+	$set[] = "dateadded = #"; 		$params[] = time();
+	$set[] = "age = ?"; 			$params[] = $age;
+	$set[] = "sex = ?"; 			$params[] = $sex;
+	$set[] = "loc = ?"; 			$params[] = $loc;
+	$set[] = "page = ?"; 			$params[] = $page;
+	$set[] = "interests = ?"; 		$params[] = $interests;
+	$set[] = "allowedtimes = ?";	$params[] = $data['allowedtimes'];
+	$set[] = "enabled = ?"; 		$params[] = (isset($data['enabled']) ? 'y' : 'n');
+	$set[] = "refresh = #"; 		$params[] = $data['refresh'];
+
+	$params[] = $id;
+	
+	if (isset($data['enabled']) && !$previouslyenabled) {
+		$banner->db->prepare_query("UPDATE banners SET enabled = 'y' WHERE campaignid = #", $id);
+	}
+	
+	$banner->db->prepare_array_query("UPDATE bannercampaigns SET " . implode(", ", $set) . " WHERE id = #", $params);
+
+	$banner->updateCampaign($id);
+
+	$msgs->addMsg("Campaign Updated");
+	addCampaign($id);
+}
+
+
+function addBanner($bannertype, $id = 0, $data = array()){
+	global $banner, $defaults, $sexes, $usersdb, $configdb, $filterData, $previousaction;
+
+	$bannersize		= "";
+	$campaignid		= $filterData['campaignid'];
+	$freqtype		= 3; //days
+	$freqperiod		= 0;
+	$viewsperday	= 0;
+	$minviewsperday	= 0;
+	$clicksperday	= 0;
+	$payrate		= -1;
+	$maxviews		= 0;
+	$maxclicks		= 0;
+	$startmonth		= 0;
+	$startday		= 0;
+	$startyear		= 0;
+	$endmonth		= 0;
+	$endday			= 0;
+	$endyear		= 0;
+	$title			= "";
+	$image			= "";
+	$link			= "";
+	$alt			= "";
+
+	$sex			= array();
+	$agedefault		= ONLY;
+	$age 			= array();
+	$locdefault		= ONLY;
+	$loc			= array();
+	$interests		= array();
+	$pagedefault	= ONLY;
+	$page			= '';
+	$paytype		= BANNER_INHERIT;
+	$viewsperuser	= 0;
+	
+	$enabled		= 'y';
+
+	$refresh = -1;
+
+	$cols = 2;
+
+	if($id){
+		$res = $banner->db->prepare_query("SELECT * FROM banners WHERE id = #", $id);
+
+		if($line = $res->fetchrow())
+		{
+			extract($line);
+
+			if($startdate){
+				$startmonth		= userdate("m", $startdate);
+				$startday		= userdate("j", $startdate);
+				$startyear		= userdate("Y", $startdate);
+			}
+			if($enddate){
+				$endmonth		= userdate("m", $enddate);
+				$endday			= userdate("j", $enddate);
+				$endyear		= userdate("Y", $enddate);
+			}
+
+			if($sex == ''){
+				$sex = array();
+			}else{
+				$sex = explode(',', $sex);
+			}
+
+			if($age == ''){
+				$age = array();
+			}else{
+				$age = explode(',', $age);
+				$agedefault = (isset($age[0]) && $age[0] == '0' ? ALL_EXCEPT : ONLY);
+			}
+
+			if($loc == ''){
+				$loc = array();
+			}else{
+				$loc = explode(',', $loc);
+				$locdefault = (isset($loc[0]) && $loc[0] == '0' ? ALL_EXCEPT : ONLY);
+			}
+
+			if($page != ''){
+				$page = explode(',', $page);
+				if(isset($page[0]) && $page[0] == '0'){
+					$pagedefault = ALL_EXCEPT;
+					unset($page[0]);
+				}else{
+					$pagedefault = ONLY;
+				}
+				$page = implode("\n", $page);
+			}
+
+			if($interests == ''){
+				$interests = array();
+			}else{
+				$interests = explode(',', $interests);
+			}
+
+			if ($limitbyperiod%86400 == 0) {
+				$freqtype = 3; //days
+				$freqperiod = $limitbyperiod/86400;
+			} elseif ($limitbyperiod%3600 == 0) {
+				$freqtype = 2; //hours
+				$freqperiod = $limitbyperiod/3600;
+			} elseif ($limitbyperiod%60 == 0) {
+				$freqtype = 1; //minutes
+				$freqperiod = $limitbyperiod/60;
+			} else {
+				$freqtype = 0; //seconds
+				$freqperiod = $limitbyperiod;
+			}
+			
+			if($allowedtimes != '') {
+				$timetable = new timetable($allowedtimes);
+				$allowedTimesTable = $timetable->getTimeTable();
+			}
 		}
 	}else{
 		if(count($data))
@@ -373,204 +1088,106 @@ function addBanner($bannertype, $id = 0, $data = array()){
 	}
 
 
-	$banner->db->query("SELECT id, clientname FROM bannerclients");
-
-	while($line = $banner->db->fetchrow())
-		$clients[$line['id']]=$line['clientname'];
-
-	uasort($clients, 'strcasecmp');
+	//get a list of campaigns so we can create a selection box with them
+	$res = $banner->db->query("SELECT id, title FROM bannercampaigns");
+	while($line = $res->fetchrow())
+		$campaigns[$line['id']]=$line['title'];
+	uasort($campaigns, 'strcasecmp');
 
 	for($i=1;$i<=12;$i++)
 		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
 
-	incHeader();
-
-	echo "<table align=center><form action=\"$_SERVER[PHP_SELF]\" method=post>\n";
+	$template = new template('admin/adminbanners/addBanner');
 
 	if($id){
-		echo "<tr><td class=body colspan=2 align=center>" . $banner->getBannerID($id) . "</td></tr>";
-		echo "<tr><td class=header colspan=2 align=center>Edit Banner</td></tr>";
-	}else{
-		echo "<tr><td class=header colspan=2 align=center>Add Banner</td></tr>";
+		$template->set('displayBanner', $banner->getBannerID($id));
 	}
-	echo "<input type=hidden name=data[bannertype] value=$bannertype>";
-
-	echo "<tr><td class=body>Client:</td><td class=body><select class=body name=data[clientid]>";
-	echo "<option value=0>Client";
-	echo make_select_list_key($clients, $clientid);
-	echo "</select></td></tr>";
-
-	echo "<tr><td class=body valign=top>Banner Size:</td><td class=body>";
-	echo "<select class=body name=data[bannersize]>" . make_select_list_key($banner->sizes, $bannersize) . "</select> ";
-	echo makeCheckBox('data[enabled]','Enabled', $enabled == 'y');
-	echo "</td></tr>\n";
-
-	echo "<tr><td class=body>Title:</td><td class=body>";
-	echo "<input class=body type=text name=data[title] value=\"$title\" size=20 maxlength=32> For reference only";
-	echo "</td></tr>\n";
-
+	//$template->setMultiple($filterData);
+	$template->set('cols', $cols);
+	$template->set('id', $id);
+	$template->set('bannertype', $bannertype);
+	$template->set('selectCampaign', make_select_list_key($campaigns, $campaignid));
+	$template->set('selectBannerSize', make_select_list_key($banner->sizes, $bannersize));
+	$template->set('checkEnabled', makeCheckBox('data[enabled]','Enabled', $enabled == 'y'));
+	$template->set('title', $title);
+	$template->set('image', $image);
+	$template->set('link', $link);
+	$template->set('alt', $alt);
+	$template->set('previousaction', $previousaction);
+	if (!isset($allowedTimesTable)) $allowedTimesTable = '';
+	$template->set('allowedTimesTable', $allowedTimesTable);
+	
 	switch($bannertype){
 		case BANNER_IMAGE:
-			echo "<tr><td class=body>Banner:</td><td class=body>";
-			echo "<input class=body type=text name=data[image] value=\"$image\" size=40 maxlength=128>";
-			echo "</td></tr>\n";
-
-			echo "<tr><td class=body valign=top>Link:</td><td class=body>";
-			echo "<input class=body type=text name=data[link] value=\"$link\" size=40 maxlength=128>";
-			echo "</td></tr>\n";
-
-			echo "<tr><td class=body valign=top>Alt Text:</td><td class=body>";
-			echo "<input class=body type=text name=data[alt] value=\"$alt\" size=40 maxlength=255>";
-			echo "</td></tr>\n";
-			break;
-
+			$template->set('BANNER_IMAGE', true); break;
 		case BANNER_FLASH:
-			echo "<tr><td class=body>Flash Banner:</td><td class=body>";
-			echo "<input class=body type=text name=data[alt] value=\"$alt\" size=40 maxlength=255>";
-			echo "</td></tr>\n";
-
-			echo "<tr><td class=body valign=top>Backup Image Banner:</td><td class=body>";
-			echo "<input class=body type=text name=data[image] value=\"$image\" size=40 maxlength=255>";
-			echo "</td></tr>\n";
-
-			echo "<tr><td class=body valign=top>Backup Image Link:</td><td class=body>";
-			echo "<input class=body type=text name=data[link] value=\"$link\" size=40 maxlength=255>";
-			echo "</td></tr>\n";
-
-			echo "<tr><td class=body colspan=2>The backup image and link won't be used unless the user doesn't have flash installed</td></tr>";
-
-			break;
-
+			$template->set('BANNER_FLASH', true); break;
 		case BANNER_IFRAME:
-			echo "<tr><td class=body>Banner:</td><td class=body>";
-			echo "<input class=body type=text name=data[image] value=\"$image\" size=40 maxlength=255>";
-			echo "</td></tr>\n";
-			echo "<input class=body type=hidden name=data[alt] value=''>";
-			echo "<input class=body type=hidden name=data[link] value=''>";
-
-			break;
-
+			$template->set('BANNER_IFRAME', true); break;
 		case BANNER_HTML:
-			echo "<tr><td class=body valign=top>HTML:</td><td class=body>";
-			echo "<textarea class=body cols=60 rows=10 name=data[alt]>$alt</textarea>";
-			echo "</td></tr>\n";
-			echo "<input class=body type=hidden name=data[image] value=''>";
-			echo "<input class=body type=hidden name=data[link] value=''>";
-
-			break;
-
+			$template->set('BANNER_HTML', true); break;
 		case BANNER_TEXT:
-			echo "<tr><td class=body>Link Title</td><td class=body>";
-			echo "<input class=body type=text name=data[image] size=30 value=\"$image\" maxlength=32>";
-			echo "</td></tr>\n";
-
-			echo "<tr><td class=body valign=top>Link:</td><td class=body>";
-			echo "<input class=body type=text name=data[link] value=\"$link\" size=40 maxlength=255>";
-			echo "</td></tr>\n";
-
-			echo "<tr><td class=body valign=top>Text:</td><td class=body>";
-			echo "<input class=body type=text name=data[alt] value=\"$alt\" size=40 maxlength=255>";
-			echo "</td></tr>\n";
-
-			break;
+			$template->set('BANNER_TEXT', true); break;
 	}
 
-//targetting
-	echo "<tr><td class=header colspan=2 align=center>Targetting</td></tr>";
-
-	echo "<tr><td class=body colspan=2>";
-
-	echo "<table width=100%><tr>\n";
-//sex
-	echo "<td class=body valign=top>Sexes:<br>";
-	echo "<select class=body name=data[sexes][] size=3 multiple=multiple>" . make_select_list_multiple_key($sexes, $sex) . "</select>";
-	echo "</td>\n";
-//age
-	echo "<td class=body valign=top>Ages:<br>";
-	echo "<select class=body name=data[agedefault] style=\"width:75px\">" . make_select_list_key($defaults, $agedefault) . "</select><br>";
-	echo "<select class=body name=data[ages][] size=15 multiple=multiple style=\"width:75\">" . make_select_list_multiple(range(14,65), $age) . "</select>";
-	echo "</td>\n";
-
-//loc
-	$locations = & new category( $db, "locs");
-	echo "<td class=body valign=top>Locations:<br>";
-	echo "<select class=body name=data[locdefault] style=\"width:75px\">" . make_select_list_key($defaults, $locdefault) . "</select><br>";
-	echo "<select class=body name=data[locs][] size=15 multiple=multiple>" . makeCatSelect_multiple($locations->makeBranch(), $loc) . "</select>";
-	echo "</td>\n";
-
-//page
-	echo "<td class=body valign=top>Pages:<br>";
-	echo "<select class=body name=data[pagedefault] style=\"width:75px\">" . make_select_list_key($defaults, $pagedefault) . "</select><br>";
-	echo "<textarea class=body name=data[pages] rows=13 cols=10>$page</textarea><br>One page per line";
-	echo "</td>\n";
-
-//interests
-	$interestcats = & new category( $db, "interests");
-	echo "<td class=body valign=top>Interests:<br>";
-	echo "<select class=body name=data[interests][] size=16 multiple=multiple>" . makeCatSelect_multiple($interestcats->makeBranch(), $interests) . "</select>";
-	echo "</td>\n";
-
-	echo "</tr>";
-	echo "<tr><td class=body colspan=5>Choosing 'Only' for ages or locations makes it only viewable to logged in users</td></tr>";
-
-	echo "</table>";
-	echo "</td></tr>\n";
-
-
-//limits
-	echo "<tr><td class=header colspan=2 align=center>Limiting Conditions</td></tr>";
-
-	echo "<tr><td class=body>Refresh Rate:</td><td class=body><input class=body type=text name=data[refresh] value=$refresh size=5> seconds. 0 to disable</td></tr>";
-
-	echo "<tr><td class=body>Pay Rate:</td><td class=body><input class=body type=text name=data[payrate] value=$payrate size=5>";
-	echo "<select class=body name=data[paytype]>" . make_select_list_key(array(BANNER_CPM => "CPM", BANNER_CPC => "CPC"), $paytype) . "</select></td></tr>";
-
-
-	echo "<tr><td class=body valign=top>Max Views:</td><td class=body><input class=body type=text name=data[maxviews] size=10 value=$maxviews> 0 for unlimited</td></tr>\n";
-	echo "<tr><td class=body valign=top>Max Clicks:</td><td class=body><input class=body type=text name=data[maxclicks] size=10 value=$maxclicks> 0 for unlimited</td></tr>\n";
-	echo "<tr><td class=body valign=top>Max Views per Day:</td><td class=body><input class=body type=text name=data[viewsperday] size=10 value=$viewsperday> 0 for unlimited</td></tr>\n";
-	echo "<tr><td class=body valign=top>Max Clicks per Day:</td><td class=body><input class=body type=text name=data[clicksperday] size=10 value=$clicksperday> 0 for unlimited</td></tr>\n";
-
-	echo "<tr><td class=body valign=top>Max Views Per User:</td><td class=body>";
-	echo "<input class=body type=text name=data[viewsperuser] size=10 value=$viewsperuser>";
-	echo "<select class=body name=data[freqperiod]>" . make_select_list_key(array( 'y' => "Hour", 'n' => "Day"), $freqperiod) . "</select> 0 for unlimited";
-	echo "</td></tr>\n";
-
-	echo "<tr><td class=body valign=top>Start Date:</td><td class=body>";
-		echo "<select class=body name=data[startmonth]><option value=0>Month" . make_select_list_key($months, $startmonth) . "</select>";
-		echo "<select class=body name=data[startday]><option value=0>Day" . make_select_list(range(1,31), $startday) . "</select>";
-		echo "<select class=body name=data[startyear]><option value=0>Year" . make_select_list(range(userdate("Y"),userdate("Y")+1), $startyear) . "</select>";
-	echo "</td></tr>\n";
-
-	echo "<tr><td class=body valign=top>End Date:</td><td class=body>";
-		echo "<select class=body name=data[endmonth]><option value=0>Month" . make_select_list_key($months, $endmonth) . "</select>";
-		echo "<select class=body name=data[endday]><option value=0>Day" . make_select_list(range(1,31), $endday) . "</select>";
-		echo "<select class=body name=data[endyear]><option value=0>Year" . make_select_list(range(userdate("Y"),userdate("Y")+1), $endyear) . "</select>";
-	echo "</td></tr>\n";
-
-	echo "<tr><td class=body></td><td class=body>";
-
-	if($id){ //edit
-		echo "<input type=hidden name=id value=$id>";
-		echo "<input type=hidden name=action value=updatebanner><input class=body type=submit value='Update Banner'><input class=body type=submit name=action value=Cancel>";
-	}else{ //add
-		echo "<input type=hidden name=action value=insertbanner><input class=body type=submit value='Add Banner'><input class=body type=submit name=action value=Cancel>";
+	if($id){
+		$template->set('bannersize', $bannersize);
 	}
-	echo "</td></tr>\n";
 
-	echo "</form></table>\n";
+	$template->set('selectSex', make_select_list_multiple_key($sexes, $sex));
+	$template->set('selectAgeType', make_select_list_key($defaults, $agedefault));
+	$template->set('selectAgeRange', make_select_list_multiple(range(14,65), $age));
+	$locations = new category( $configdb, "locs");
+	$template->set('selectLocationType', make_select_list_key($defaults, $locdefault));
+	$template->set('selectLocations', makeCatSelect_multiple($locations->makeBranch(), $loc));
+	$template->set('selectPagesType', make_select_list_key($defaults, $pagedefault));
+	$template->set('page', $page);
+	$interestcats = new category( $usersdb, "interests");
+	$template->set('selectInterests', makeCatSelect_multiple($interestcats->makeBranch(), $interests));
+	$template->set('allowedtimes', (isset($allowedtimes) ? $allowedtimes : ''));
+	
+	$template->set('refresh', $refresh);
 
+	$template->set('payrate', $payrate);
+	$template->set('selectPayType', make_select_list_key(array(BANNER_INHERIT => "Inherit", BANNER_CPM => "CPM", BANNER_CPC => "CPC"), $paytype));
 
-	incFooter();
+	$template->set('maxviews', $maxviews);
+	$template->set('maxclicks', $maxclicks);
+	$template->set('minviewsperday', $viewsperday);
+	$template->set('viewsperday', $viewsperday);
+	$template->set('clicksperday', $clicksperday);
+
+	$template->set('viewsperuser', $viewsperuser);
+	$template->set('freqperiod', $freqperiod);
+	$template->set('selectFrequencyPeriod', make_select_list_key(array("Seconds", "Minutes", "Hours", "Days"), $freqtype));
+
+	$template->set('selectStartMonth', make_select_list_key($months, $startmonth));
+	$template->set('selectStartDay', make_select_list(range(1,31), $startday));
+	$template->set('selectStartYear', make_select_list(range(userdate("Y"),userdate("Y")+1), $startyear));
+	$template->set('selectEndMonth', make_select_list_key($months, $endmonth));
+	$template->set('selectEndDay', make_select_list(range(1,31), $endday));
+	$template->set('selectEndYear', make_select_list(range(userdate("Y"),userdate("Y")+1), $endyear));
+	$template->setMultiple($filterData);
+
+	$template->display();
 	exit;
 }
 
 function insertBanner($data){
-	global $banner, $msgs;
+	global $banner, $msgs, $docRoot, $config, $previousaction;
 
-	if(empty($data['clientid'])){
-		$msgs->addMsg("Bad Client");
+	if(empty($data['campaignid'])){
+		$msgs->addMsg("Bad Campaign");
 		addBanner($data['bannertype'], 0, $data); //exit
+	}
+
+	$timetable = new timetable($data['allowedtimes']);
+	$data['allowedtimes']=$timetable->allowedtimes; //construction automatically cleans input
+	
+	if (isset($timetable->invalidRanges) && is_array($timetable->invalidRanges)) {
+		foreach ($timetable->invalidRanges as $range) {
+			$msgs->addMsg("$range is an invalid day/time range.");
+		}
 	}
 
 	$start = ($data['startmonth'] == 0 && $data['startday'] == 0 && $data['startyear'] == 0 ? 0 : usermktime(0,0,0,$data['startmonth'],$data['startday'],$data['startyear']));
@@ -582,47 +1199,90 @@ function insertBanner($data){
 	$page		= (!isset($data['pages'])		|| !strlen($data['pages'])		? "" : ($data['pagedefault']		== ALL_EXCEPT ? "0," : "") . implode(",", array_map('trim', explode("\n", $data['pages']))));
 	$interests	= (!isset($data['interests'])	|| !strlen($data['interests'])	? "" : implode(",", $data['interests']));
 
-	$set[] = "clientid = ?"; 		$params[] = $data['clientid'];
-	$set[] = "bannersize = ?"; 		$params[] = $data['bannersize'];
-	$set[] = "bannertype = ?"; 		$params[] = $data['bannertype'];
-	$set[] = "maxviews = ?"; 		$params[] = $data['maxviews'];
-	$set[] = "maxclicks = ?"; 		$params[] = $data['maxclicks'];
-	$set[] = "viewsperday = ?"; 	$params[] = $data['viewsperday'];
-	$set[] = "clicksperday = ?";	$params[] = $data['clicksperday'];
-	$set[] = "viewsperuser = ?";	$params[] = $data['viewsperuser'];
+	switch ($data['freqtype']) {
+		case 0:
+			$limitbyseconds = $data['freqperiod'];
+			break;
+		case 1:
+			$limitbyseconds = $data['freqperiod']*60;
+			break;
+		case 2:
+			$limitbyseconds = $data['freqperiod']*60*60;
+			break;
+		case 3:
+			$limitbyseconds = $data['freqperiod']*60*60*24;
+			break;
+	}
+
+	//$set[] = "clientid = ?"; 		$params[] = $data['clientid'];
+	$set[] = "bannersize = #"; 		$params[] = $data['bannersize'];
+	$set[] = "bannertype = #"; 		$params[] = $data['bannertype'];
+	$set[] = "maxviews = #"; 		$params[] = $data['maxviews'];
+	$set[] = "maxclicks = #"; 		$params[] = $data['maxclicks'];
+	$set[] = "minviewsperday = #"; 	$params[] = $data['minviewsperday'];
+	$set[] = "viewsperday = #"; 	$params[] = $data['viewsperday'];
+	$set[] = "clicksperday = #";	$params[] = $data['clicksperday'];
+	$set[] = "viewsperuser = #";	$params[] = $data['viewsperuser'];
+	$set[] = "limitbyperiod = #";	$params[] = $limitbyseconds;
 	$set[] = "limitbyhour = ?"; 	$params[] = $data['freqperiod'];
-	$set[] = "startdate = ?"; 		$params[] = $start;
-	$set[] = "enddate = ?"; 		$params[] = $end;
-	$set[] = "payrate = ?"; 		$params[] = $data['payrate'];
-	$set[] = "paytype = ?"; 		$params[] = $data['paytype'];
-	$set[] = "moded = ?"; 			$params[] = 'y';
+	$set[] = "startdate = #"; 		$params[] = $start;
+	$set[] = "enddate = #"; 		$params[] = $end;
+	$set[] = "payrate = #"; 		$params[] = $data['payrate'];
+	$set[] = "paytype = #"; 		$params[] = $data['paytype'];
+	$set[] = "moded = ?"; 			$params[] = 'approved';
 	$set[] = "title = ?"; 			$params[] = $data['title'];
 	$set[] = "image = ?"; 			$params[] = (isset($data['image']) ? $data['image'] : "");
 	$set[] = "link = ?"; 			$params[] = (isset($data['link']) ? $data['link'] : "");
 	$set[] = "alt = ?"; 			$params[] = (isset($data['alt']) ? $data['alt'] : "");
-	$set[] = "dateadded = ?"; 		$params[] = time();
+	$set[] = "dateadded = #"; 		$params[] = time();
 	$set[] = "age = ?"; 			$params[] = $age;
 	$set[] = "sex = ?"; 			$params[] = $sex;
 	$set[] = "loc = ?"; 			$params[] = $loc;
 	$set[] = "page = ?"; 			$params[] = $page;
 	$set[] = "interests = ?"; 		$params[] = $interests;
+	$set[] = "allowedtimes = ?";	$params[] = $data['allowedtimes'];
 	$set[] = "enabled = ?"; 		$params[] = (isset($data['enabled']) ? 'y' : 'n');
-	$set[] = "refresh = ?"; 		$params[] = $data['refresh'];
-
+	$set[] = "refresh = #"; 		$params[] = $data['refresh'];
+	$set[] = "campaignid = #"; 		$params[] = $data['campaignid'];
+	
 	$banner->db->prepare_array_query("INSERT INTO banners SET " . implode(", ", $set), $params);
 
 	$id = $banner->db->insertid();
+	$uploadedBanner = getFILEval('uploadbanner');
+	$target_path = $docRoot . $config['bannerdir'] . $id . '.jpg';
+	if (!empty($uploadedBanner['tmp_name'])) {
+		if(!move_uploaded_file($uploadedBanner['tmp_name'], $target_path)) {
+			$msgs->addMsg("Banner upload failed, please try again or specify a banner link.");
+		} else {
+			$msgs->addMsg('Upload successful.');
+		}
+	}
 
 	$banner->addBanner($id);
 
 	$msgs->addMsg("Banner Added");
+
 }
 
 
 
 function updateBanner($id, $data){
-	global $banner, $msgs;
+	global $banner, $msgs, $config, $docRoot, $previousaction;
 
+	if(empty($data['campaignid'])){
+		$msgs->addMsg("Bad Campaign");
+		addBanner($data['bannertype'], 0, $data); //exit
+	}
+
+	$timetable = new timetable($data['allowedtimes']);
+	$data['allowedtimes']=$timetable->allowedtimes; //construction automatically cleans input
+	
+	if (isset($timetable->invalidRanges) && is_array($timetable->invalidRanges)) {
+		foreach ($timetable->invalidRanges as $range) {
+			$msgs->addMsg("$range is an invalid day/time range.");
+		}
+	}
+	
 	$start = ($data['startmonth'] == 0 && $data['startday'] == 0 && $data['startyear'] == 0 ? 0 : usermktime(0,0,0,$data['startmonth'],$data['startday'],$data['startyear']));
 	$end   = ($data['endmonth'] == 0 && $data['endday'] == 0 && $data['endyear'] == 0 ? 0 : usermktime(23,59,59,$data['endmonth'],$data['endday'],$data['endyear']));
 
@@ -632,60 +1292,114 @@ function updateBanner($id, $data){
 	$page		= (!isset($data['pages']) 		|| !strlen($data['pages'])		? "" : ($data['pagedefault']		== ALL_EXCEPT ? "0," : "") . implode(",", array_map('trim', explode("\n", $data['pages']))));
 	$interests	= (!isset($data['interests'])	|| !strlen($data['interests'])	? "" : implode(",", $data['interests']));
 
-	$set[] = "clientid = ?"; 		$params[] = $data['clientid'];
-	$set[] = "bannersize = ?"; 		$params[] = $data['bannersize'];
-	$set[] = "bannertype = ?"; 		$params[] = $data['bannertype'];
-	$set[] = "maxviews = ?"; 		$params[] = $data['maxviews'];
-	$set[] = "maxclicks = ?"; 		$params[] = $data['maxclicks'];
-	$set[] = "viewsperday = ?"; 	$params[] = $data['viewsperday'];
-	$set[] = "clicksperday = ?";	$params[] = $data['clicksperday'];
-	$set[] = "viewsperuser = ?";	$params[] = $data['viewsperuser'];
+	//$res = $banner->db->prepare_query("SELECT clientid FROM bannercampaigns WHERE id = ?", $data['campaignid']);
+	//$line = $res->fetchrow();
+
+	//$set[] = "clientid = ?"; 		$params[] = $line['clientid'];
+	switch ($data['freqtype']) {
+		case 0:
+			$limitbyseconds = $data['freqperiod'];
+			break;
+		case 1:
+			$limitbyseconds = $data['freqperiod']*60;
+			break;
+		case 2:
+			$limitbyseconds = $data['freqperiod']*60*60;
+			break;
+		case 3:
+			$limitbyseconds = $data['freqperiod']*60*60*24;
+			break;
+	}
+
+	$set[] = "bannersize = #"; 		$params[] = $data['bannersize'];
+	$set[] = "bannertype = #"; 		$params[] = $data['bannertype'];
+	$set[] = "maxviews = #"; 		$params[] = $data['maxviews'];
+	$set[] = "maxclicks = #"; 		$params[] = $data['maxclicks'];
+	$set[] = "minviewsperday = #"; 	$params[] = $data['minviewsperday'];
+	$set[] = "viewsperday = #"; 	$params[] = $data['viewsperday'];
+	$set[] = "clicksperday = #";	$params[] = $data['clicksperday'];
+	$set[] = "viewsperuser = #";	$params[] = $data['viewsperuser'];
+	$set[] = "limitbyperiod = #";	$params[] = $limitbyseconds;
 	$set[] = "limitbyhour = ?"; 	$params[] = $data['freqperiod'];
-	$set[] = "startdate = ?"; 		$params[] = $start;
-	$set[] = "enddate = ?"; 		$params[] = $end;
-	$set[] = "payrate = ?"; 		$params[] = $data['payrate'];
-	$set[] = "paytype = ?"; 		$params[] = $data['paytype'];
-	$set[] = "moded = ?"; 			$params[] = 'y';
+	$set[] = "startdate = #"; 		$params[] = $start;
+	$set[] = "enddate = #"; 		$params[] = $end;
+	$set[] = "payrate = #"; 		$params[] = $data['payrate'];
+	$set[] = "paytype = #"; 		$params[] = $data['paytype'];
+	$set[] = "moded = ?"; 			$params[] = 'approved';
 	$set[] = "title = ?"; 			$params[] = $data['title'];
 	$set[] = "image = ?"; 			$params[] = (isset($data['image']) ? $data['image'] : "");
 	$set[] = "link = ?"; 			$params[] = (isset($data['link']) ? $data['link'] : "");
 	$set[] = "alt = ?"; 			$params[] = (isset($data['alt']) ? $data['alt'] : "");
-	$set[] = "dateadded = ?"; 		$params[] = time();
+	$set[] = "dateadded = #"; 		$params[] = time();
 	$set[] = "age = ?"; 			$params[] = $age;
 	$set[] = "sex = ?"; 			$params[] = $sex;
 	$set[] = "loc = ?"; 			$params[] = $loc;
 	$set[] = "page = ?"; 			$params[] = $page;
 	$set[] = "interests = ?"; 		$params[] = $interests;
+	$set[] = "allowedtimes = ?";	$params[] = $data['allowedtimes'];
 	$set[] = "enabled = ?"; 		$params[] = (isset($data['enabled']) ? 'y' : 'n');
-	$set[] = "refresh = ?"; 		$params[] = $data['refresh'];
+	$set[] = "refresh = #"; 		$params[] = $data['refresh'];
+	$set[] = "campaignid = #"; 		$params[] = $data['campaignid'];
 
 	$params[] = $id;
 
-	$banner->db->prepare_array_query("UPDATE banners SET " . implode(", ", $set) . " WHERE id = ?", $params);
+	$banner->db->prepare_array_query("UPDATE banners SET " . implode(", ", $set) . " WHERE id = #", $params);
 
 	$banner->updateBanner($id);
+
+	$uploadedBanner = getFILEval('uploadbanner');
+	$target_path = $docRoot . $config['bannerdir'] . $id . '.jpg';
+	if (!empty($uploadedBanner['tmp_name'])) {
+		if(!move_uploaded_file($uploadedBanner['tmp_name'], $target_path)) {
+			$msgs->addMsg("Banner upload failed, please try again or specify a banner link.");
+		} else {
+			$msgs->addMsg('Upload successful.');
+		}
+	}
 
 	$msgs->addMsg("Banner Updated");
 }
 
 function deleteBanner($id){
-	global $banner;
+	global $banner, $docRoot, $config;
 
-	$banner->db->prepare_query("DELETE FROM banners WHERE id = ?", $id);
-	$banner->db->prepare_query("DELETE FROM bannerstats WHERE bannerid = ?", $id);
+	$banner->db->prepare_query("DELETE FROM banners WHERE id = #", $id);
+	$banner->db->prepare_query("DELETE FROM bannerstats WHERE bannerid = #", $id);
+	if (file_exists($docRoot . $config['bannerdir'] . $id . '.jpg'))
+		if (!unlink($docRoot . $config['bannerdir'] . $id . '.jpg'))
+			$msgs->add("Deletion of banner image failed.");
 
 	$banner->deleteBanner($id);
 }
+
+//delete campaign and all banners it contains
+function deleteCampaign($id){
+	global $banner, $docRoot, $config;
+	$result = $banner->db->prepare_query("SELECT id FROM banners WHERE campaignid = #", $id);
+	while ($line = $result->fetchrow()) {
+		if (file_exists($docRoot . $config['bannerdir'] . $line['id'] . '.jpg')) {
+			if (!unlink($docRoot . $config['bannerdir'] . $line['id'] . '.jpg')) {
+				$msgs->add("Deletion of banner image ".$line['id'].".jpg failed.");
+			}
+		}
+		$banner->db->prepare_query("DELETE FROM bannerstats WHERE bannerid = #", $line['id']);
+	}
+	$banner->db->prepare_query("DELETE FROM banners WHERE campaignid = #", $id);
+	$banner->db->prepare_query("DELETE FROM bannercampaigns WHERE id = #", $id);
+
+	$banner->deleteCampaign($id);
+}
+
 
 function bannerStats($id, $start){
 	global $banner;
 
 	$end = $start + 86400;
 
-	$banner->db->prepare_query("SELECT time, views, clicks, passbacks FROM bannerstats WHERE bannerid = ? && time >= ? && time <= ? ORDER BY time", $id, $start, $end);
+	$res = $banner->db->prepare_query("SELECT time, views, clicks, passbacks FROM bannerstats WHERE bannerid = # && time >= # && time <= # ORDER BY time", $id, $start, $end);
 
 	$stats = array();
-	while($line = $banner->db->fetchrow())
+	while($line = $res->fetchrow())
 		$stats[] = $line;
 
 	$month= userdate("n",$start);
@@ -700,7 +1414,8 @@ function bannerStats($id, $start){
 
 	echo "<table align=center>";
 
-	echo "<form action=$_SERVER[PHP_SELF]><tr><td class=header colspan=8 align=center>";
+	echo "<form action=$_SERVER[PHP_SELF]><tr><td class=header colspan=9 align=center>";
+	preserveFilterData();
 	echo "<input type=submit class=body name=action2 value=\"<--\">";
 	echo "<select class=body name=\"month\"><option value=0>Month" . make_select_list_key($months, $month) . "</select>";
 	echo "<select class=body name=\"day\"><option value=0>Day" . make_select_list(range(1,31),$day) . "</select>";
@@ -718,6 +1433,7 @@ function bannerStats($id, $start){
 	echo "<td class=header>Clicks</td>";
 	echo "<td class=header>Click Thru</td>";
 	echo "<td class=header>Passbacks</td>";
+	echo "<td class=header>PB Rate</td>";
 	echo "<td class=header>Total Views</td>";
 	echo "<td class=header>Total Clicks</td>";
 	echo "<td class=header>Total Click Thru</td>";
@@ -734,6 +1450,7 @@ function bannerStats($id, $start){
 			echo "<td class=body align=right>" . number_format($line['clicks'] - $last['clicks']) . "</td>";
 			echo "<td class=body align=right>" . (($line['views'] - $last['views']) ? number_format(100*($line['clicks'] - $last['clicks']) / ($line['views'] - $last['views']),3) . "%" : "N/A" ) ."</td>";
 			echo "<td class=body align=right>" . number_format($line['passbacks'] - $last['passbacks']) . "</td>";
+			echo "<td class=body align=right>" . (($line['views'] - $last['views']) ? number_format(($line['passbacks'] - $last['passbacks'])/($line['views'] - $last['views'])*100, 2) . "%" : "N/A") . "</td>";
 			echo "<td class=body align=right>" . number_format($last['views']) . "</td>";
 			echo "<td class=body align=right>" . number_format($last['clicks']) . "</td>";
 			echo "<td class=body align=right>" . ($last['views'] ? number_format(100*$last['clicks'] / $last['views'],3) . "%" : "N/A" ) ."</td>";
@@ -750,6 +1467,8 @@ function bannerStats($id, $start){
 		echo "<td class=header align=right>" . number_format($last['clicks'] - $first['clicks']) . "</td>";
 		echo "<td class=header align=right>" . (($last['views'] - $first['views']) ? number_format(100*($last['clicks'] - $first['clicks']) / ($last['views'] - $first['views']),3) . "%" : "N/A" ) ."</td>";
 		echo "<td class=header align=right>" . number_format($last['passbacks'] - $first['passbacks']) . "</td>";
+		echo "<td class=header align=right>" . number_format(($last['passbacks'] - $first['passbacks'])/($last['views'] - $first['views'])*100, 2) . "%</td>";
+
 		echo "<td class=header colspan=3></td>";
 		echo "</tr>";
 	}
@@ -762,6 +1481,9 @@ function bannerStats($id, $start){
 
 function array_merge_recursive_sum($array, $second){
 	foreach($second as $key => $value){
+		if($value === null)
+			$value = array();
+
 		if(is_array($value)){
 			if(!isset($array[$key]))
 				$array[$key] = array();
@@ -778,15 +1500,15 @@ function array_merge_recursive_sum($array, $second){
 }
 
 function bannerTypeStats($size, $date = false){
-	global $banner;
+	global $banner, $configdb;
 
 
-	$banner->db->prepare_query("SELECT * FROM bannertypestats WHERE size = ? && time >= ? && time <= ?", $size, $date, $date + 86400);
+	$res = $banner->db->prepare_query("SELECT * FROM bannertypestats WHERE size = # && time >= # && time <= #", $size, $date, $date + 86400);
 
 	$views = array();
 	$clicks = array();
 
-	while($line = $banner->db->fetchrow()){
+	while($line = $res->fetchrow()){
 		$views = array_merge_recursive_sum($views, unserialize(gzuncompress($line['viewsdump'])));
 		$clicks = array_merge_recursive_sum($clicks, unserialize(gzuncompress($line['clicksdump'])));
 	}
@@ -803,6 +1525,7 @@ function bannerTypeStats($size, $date = false){
 
 	echo "<table align=center>";
 	echo "<form action=$_SERVER[PHP_SELF]>";
+	preserveFilterData();
 	echo "<tr><td class=header align=center colspan=4>";
 	echo "<input type=submit class=body name=action2 value=\"<--\">";
 	echo "<select class=body name=\"month\"><option value=0>Month" . make_select_list_key($months, $month) . "</select>";
@@ -894,8 +1617,8 @@ function bannerTypeStats($size, $date = false){
 				echo "<td class=header align=center>Views / Clicks</td>";
 				echo "</tr>";
 
-				global $db;
-				$locations = & new category( $db, "locs");
+				global $usersdb;
+				$locations = new category( $configdb, "locs");
 
 				arsort($views['loc']);
 
@@ -968,8 +1691,8 @@ function bannerTypeStats($size, $date = false){
 
 				arsort($views['interests']);
 
-				global $db;
-				$interests = & new category( $db, "locs");
+				global $usersdb;
+				$interests = new category( $configdb, "locs");
 
 
 				$tv = 0;
@@ -1025,46 +1748,78 @@ function bannerTypeStats($size, $date = false){
 
 
 function listClients(){
-	global $banner;
+	global $banner, $filterData;
 
-	$banner->db->query("SELECT id, userid, clientname, type, dateadded FROM bannerclients ORDER BY clientname");
+	//collect information about what clients we have
+	$res = $banner->db->query("SELECT id, clientname FROM bannerclients");
+	$res = $banner->db->query("SELECT id, userid, clientname, type, dateadded, credits FROM bannerclients ORDER BY clientname");
 
 	$clients = array();
 	$userids = array();
-	while($line = $banner->db->fetchrow()){
-		$clients[] = $line;
+	while($line = $res->fetchrow()){
+		$line['bannercount'] = 0;
+		$line['campaigncount'] = 0;
+		$line['views'] = 0;
+		$line['clicks'] = "N/A";
+		$clients[$line['id']] = $line;
 		$userids[] = $line['userid'];
+	}
+	sortCols($clients, SORT_ASC, SORT_CASESTR, 'clientname');
+	
+	//Get our list of campaigns and add clientname to it before we sort it
+	$res = $banner->db->prepare_query("SELECT * FROM bannercampaigns");
+	$campaigns = array();
+	while($line = $res->fetchrow()){
+		$line['clientname'] = $clients[$line['clientid']];
+		$campaigns[] = $line;
+	}
+	
+	$res = $banner->db->prepare_query("SELECT * FROM banners");
+	$banners = array();
+	while($line = $res->fetchrow()){
+		$banners[] = $line;
+	}
+	
+	$endstatstime = usermktime(0, 0, 0, userdate('n'), userdate('d'), userdate('Y'));
+	$res = $banner->db->prepare_query("SELECT bannerid, views, clicks, passbacks FROM bannerstats WHERE time >= # && time <= # ORDER BY time ASC", $endstatstime-86400, $endstatstime);
+	$stats = array();
+	while($line = $res->fetchrow()){
+		if(!isset($stats[$line['bannerid']]))
+			$stats[$line['bannerid']] = array('start' => $line);
+		$stats[$line['bannerid']]['end'] = $line;
 	}
 
 	getUserName($userids); //get all at once, cache them
 
-	incHeader();
+	$template = new template('admin/adminbanners/listClients');
 
-	echo "<table align=center>";
-
-	echo "<tr>";
-	echo "<td class=header>Client Name</td>";
-	echo "<td class=header>User</td>";
-	echo "<td class=header>Type</td>";
-	echo "<td class=header>Date Added</td>";
-	echo "<td class=header></td>";
-	echo "<td class=header></td>";
-	echo "</tr>";
-
-	foreach($clients as $line){
-		echo "<tr>";
-		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=listbanners&clientid=$line[id]&all=2>$line[clientname]</a></td>";
-		echo "<td class=body><a class=body href=profile.php?uid=$line[userid]>" . getUserName($line['userid']) . "</td>";
-		echo "<td class=body>$line[type]</td>";
-		echo "<td class=body>" . userdate("M j, Y", $line['dateadded']) . "</td>";
-		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=editclient&id=$line[id]>Edit</a></td>";
-		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=deleteclient&id=$line[id]>Delete</a></td>";
-		echo "</tr>";
+	foreach($clients as &$line){
+		$line['username'] = getUserName($line['userid']);
+		$line['credits'] = number_format($line['credits']);
+		foreach($campaigns as $campaign) {
+			if ($campaign['clientid'] != $line['id']) {
+				continue;
+			}
+			$line['campaigncount']++;
+			foreach ($banners as $b) {
+				if ($b['campaignid'] != $campaign['id']) {
+					continue;
+				}
+				if ($line['clicks'] == "N/A" && $b['link']) {
+					$line['clicks'] = 0;
+				}
+				if (isset($stats[$b['id']])) {
+					$line['views'] += $stats[$b['id']]['end']['views'] - $stats[$b['id']]['start']['views'];
+					if ($line['clicks'] != "N/A") $line['clicks'] += $stats[$b['id']]['end']['clicks'] - $stats[$b['id']]['start']['clicks'];
+				}
+				$line['bannercount']++;
+			}
+		}
 	}
-	echo "<tr><td class=header colspan=6 align=right><a class=header href=$_SERVER[PHP_SELF]?action=addclient>Add Client</a></td></tr>";
-	echo "</table>";
 
-	incFooter();
+	$template->set("clients", $clients);
+	$template->setMultiple($filterData);
+	$template->display();
 	exit;
 }
 
@@ -1074,6 +1829,7 @@ function addClient(){
 	incHeader();
 
 	echo "<table align=center><form action=$_SERVER[PHP_SELF] method=post>";
+	preserveFilterData();
 	echo "<tr><td class=header colspan=2 align=center>Add Client</td></tr>";
 
 	echo "<tr><td class=body>Client Name:</td><td class=body><input class=body type=text name=clientname></td></tr>";
@@ -1090,13 +1846,14 @@ function addClient(){
 function editClient($id){
 	global $banner;
 
-	$banner->db->prepare_query("SELECT userid, clientname, type, dateadded, notes FROM bannerclients WHERE id = ?", $id);
+	$res = $banner->db->prepare_query("SELECT userid, clientname, type, dateadded, notes FROM bannerclients WHERE id = #", $id);
 
-	$line = $banner->db->fetchrow();
+	$line = $res->fetchrow();
 
 	incHeader();
 
 	echo "<table align=center><form action=$_SERVER[PHP_SELF] method=post>";
+	preserveFilterData();
 	echo "<tr><td class=header colspan=2 align=center>Edit Client</td></tr>";
 	echo "<input type=hidden name=id value=$id>";
 
@@ -1114,24 +1871,74 @@ function editClient($id){
 function insertClient($userid, $name, $type, $notes){
 	global $banner;
 
-	$banner->db->prepare_query("INSERT INTO bannerclients SET userid = ?, clientname = ?, type = ?, dateadded = ?, notes = ?", $userid, $name, $type, time(), $notes);
+	$banner->db->prepare_query("INSERT INTO bannerclients SET userid = #, clientname = ?, type = ?, dateadded = #, notes = ?", $userid, $name, $type, time(), $notes);
 }
 
 function updateClient($id, $userid, $name, $type, $notes){
 	global $banner;
 
-	$banner->db->prepare_query("UPDATE bannerclients SET userid = ?, clientname = ?, type = ?, notes = ? WHERE id = ?", $userid, $name, $type, $notes, $id);
+	$banner->db->prepare_query("UPDATE bannerclients SET userid = #, clientname = ?, type = ?, notes = ? WHERE id = #", $userid, $name, $type, $notes, $id);
+}
+
+
+function updateCredits($id, $credits) {
+	global $banner, $msgs;
+	$banner->db->prepare_query("UPDATE bannerclients SET credits = # WHERE id = #", $credits, $id);
+	$msgs->addMsg("Credits updated.");
 }
 
 function deleteClient($id){
-	global $msgs;
-	$this->db->prepare_query("SELECT id FROM banners WHERE clientid = ?", $id);
+	global $msgs, $banner;
+	$res = $banner->db->prepare_query("SELECT id FROM banners WHERE clientid = #", $id);
 
-	if($this->db->numrows()){
+	if($res->fetchrow()){
 		$msgs->addMsg("Client has banners remaining. Remove them first.");
 		return false;
 	}
 
-	$this->db->prepare_query("DELETE FROM bannerclients WHERE id = ?", $id);
+	$banner->db->prepare_query("DELETE FROM bannerclients WHERE id = #", $id);
+}
+
+function creditClient($id) {
+	global $banner;
+	
+	$res = $banner->db->prepare_query("SELECT id, clientname, type, credits FROM bannerclients WHERE id = #", $id);
+	$client = $res->fetchrow();
+	if (!$client) {
+		$msgs->addMsg("No such client.");
+		listClients(); //exit
+	} elseif ($client['type'] != "payinadvance") {
+		$msgs->addMsg("Credits are only available for payinadvance clients.");
+		listClients(); //exit
+	} else {
+		incHeader();
+		echo "<form action=$_SERVER[PHP_SELF] method=post><table><tr><td class=\"header\">Credits for ".$client['clientname']."</td></tr>";
+		echo "<tr><td class=\"body\"><input class=body type=\"text\" size=\"10\" name=\"credits\" value=\"$client[credits]\"> 1 credit = 1/1000 of a cent</td></tr>";
+		echo "<tr><td class=\"header\" align=\"right\"><input class=body type=\"submit\" name=\"action\" value=\"Update Credits\"></td></tr></table><input type=\"hidden\" name=\"id\" value=\"$client[id]\"></form>";
+		incFooter();
+		exit;
+	}
+}
+
+function preserveFilterData() {
+	global $filterData;
+	echo "<input type=hidden name=size value=" . $filterData['size'] . ">";
+	echo "<input type=hidden name=type value=" . $filterData['type'] . ">";
+	echo "<input type=hidden name=clientid value=" . $filterData['clientid'] . ">";
+	echo "<input type=hidden name=all value=" . $filterData['all'] . ">";
+}
+
+function filterDataURLString() {
+	global $filterData;
+	$dataString = '';
+	$i = 0;
+	foreach($filterData as $name => $value) {
+		if ($i>0) {
+			$dataString .= '&';
+		}
+		$i++;
+		$dataString .= "$name=$value";
+	}
+	return $dataString;
 }
 

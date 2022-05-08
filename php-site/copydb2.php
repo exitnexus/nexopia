@@ -14,25 +14,25 @@
 	set_time_limit(0);
 	ignore_user_abort(true);
 
-	$db2 = & new sql_db("192.168.0.231", "root", 'pRlUvi$t', "nexopia2");
-	$newdb = & new sql_db("192.168.0.231", "root", 'pRlUvi$t', "nexopia");
+	$db2 = new sql_db("192.168.0.231", "root", 'pRlUvi$t', "nexopia2");
+	$newdb = new sql_db("192.168.0.231", "root", 'pRlUvi$t', "nexopia");
 
 	$tables = array();
 	$skiptables = array();
 
     $tableresult = $db2->listtables();
-    while(list($name) = $db2->fetchrow($tableresult,DB_NUM))
+    while(list($name) = $tableresult->fetchrow(DB_NUM))
 		$skiptables[] = $name;
 
     $tableresult = $db->listtables();
-    while(list($name) = $db->fetchrow($tableresult,DB_NUM))
+    while(list($name) = $tableresult->fetchrow(DB_NUM))
 		$tables[] = $name;
 
 
-	$newdb->query("SHOW TABLE STATUS");
+	$res = $newdb->query("SHOW TABLE STATUS");
 
 	$tablestatus = array();
-	while($line = $newdb->fetchrow())
+	while($line = $res->fetchrow())
 		$tablestatus[$line['Name']] = $line;
 
 
@@ -42,7 +42,7 @@
 			continue;
 
 		$result = $db->query("SHOW CREATE TABLE `$name`");
-		$create = $db->fetchfield(1,0,$result);
+		$create = $result->fetchfield(1,0);
 
 		$create = str_replace("InnoDB", "MyISAM", $create);
 

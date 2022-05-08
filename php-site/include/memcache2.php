@@ -19,24 +19,27 @@ public:
 */
 
 class cache{
-	var $basedir;
-	var $cachedb;
+	public $basedir;
+	public $cachedb;
 
-	var $values; //hdget values
-	var $locksuccess;
+	public $values; //hdget values
+	public $locksuccess;
+	public $debug;
 
-	var $memcache;
+	public $memcache;
 
-	var $actions = array();
-	var $time = 0;
+	public $actions = array();
+	public $time = 0;
 
-	function cache( & $memcache, $basedir){
+	function __construct( & $memcache, $basedir, $debug = true){
 		$this->values = array();
 		$this->memexpire = false;
 
 		$this->basedir = $basedir;
 
 		$this->memcache = & $memcache;
+
+		$this->debug = $debug;
 	}
 
 
@@ -52,7 +55,7 @@ class cache{
 		if($refresh === false){
 			$ret = $this->memcache->get($key);
 
-			$this->action("get", $name, gettime() - $time1);
+			$this->action("get " . ($ret === false ? '-' : '+'), $name, gettime() - $time1);
 
 			return $ret;
 		}
@@ -96,6 +99,58 @@ class cache{
 		return $rows;
 	}
 
+	function get_multi($keys, $prefix = ''){
+		$time1 = gettime();
+
+		$realkeys = array();
+		$mapkeys = array();
+		if ($prefix)
+		{
+			foreach ($keys as $key)
+			{
+				if (is_array($key))
+				{
+					$realkeys[] = $prefix . implode(':', $key);
+					$mapkeys[$prefix . implode(':', $key)] = implode(':', $key);
+				} else {
+					$realkeys[] = $prefix.$key;
+					$mapkeys[$prefix.$key] = $key;
+				}
+			}
+			$keys = $realkeys;
+		}
+
+		$ret = $this->memcache->get_multi($keys);
+
+		if ($prefix)
+		{
+			$realret = array();
+			foreach ($ret as $key => $val)
+			{
+				$realret[ $mapkeys[$key] ] = $val;
+			}
+			$ret = $realret;
+		}
+
+		// TODO: make this work correctly for when prefix is not specified (currently outputs empty keylist)
+		$this->action("get_multi (" . count($ret) . "/" . count($keys) . ")", $prefix.'('.implode(',',array_values($mapkeys)).')', gettime() - $time1);
+
+		return $ret;
+	}
+
+	function get_multi_missing($keys, $prefix, &$missing){
+		$ret = $this->get_multi($keys, $prefix);
+		foreach ($keys as $key)
+		{
+			$stringkey = implode(':',$key);
+			if (!isset($ret[$stringkey]))
+			{
+				$missing[] = $key;
+			}
+		}
+		return $ret;
+	}
+
 	function put($key, $value, $refresh, $wrap = false){
 		$time1 = gettime();
 		$name = (is_array($key) ? $key[1] : $key);
@@ -107,6 +162,13 @@ class cache{
 			$this->memcache->set($key, $value, $refresh);
 			$this->action("put", $name, gettime() - $time1);
 		}
+	}
+
+	function append($key, $value, $refresh){
+		$time1 = gettime();
+		$name = (is_array($key) ? $key[1] : $key);
+		$this->memcache->append($key, $value, $refresh);
+		$this->action("append", $name, gettime() - $time1);
 	}
 
 	function incr($key, $value = 1){
@@ -141,8 +203,20 @@ class cache{
 	function cleanup(){
 	}
 
+	function flush()
+	{
+		$this->memcache->flush();
+		$dir = dir($this->basedir);
+		while ($file = $dir->read())
+		{
+			if ($file{0} != '.')
+				unlink("{$this->basedir}/$file");
+		}
+	}
+
 	function action($action, $name, $time){
-		$this->actions[] = array('action' => $action, 'key' => $name, 'time' => $time);
+		if($this->debug)
+			$this->actions[] = array('action' => $action, 'key' => $name, 'time' => $time);
 		$this->time += $time;
 	}
 
@@ -151,10 +225,11 @@ class cache{
 		echo "<tr><td class=header>MemCache</td><td class=header colspan=2>" . count($this->actions) . " actions</td></tr>";
 		echo "<tr><td class=header>Total Time</td><td class=header colspan=2>" . number_format($this->time/10, 3) . " ms</td></tr>";
 
-		$class = 'body2';
+		foreach($this->actions as $row){
+			$class = (strpos($row['action'], 'get') !== false ? 'body' : 'body2');
 
-		foreach($this->actions as $row)
-			echo "<tr><td class=$class align=right>" . number_format($row['time']/10, 3) . " ms</td><td class=$class>$row[action]</td><td class=$class>$row[key]</td></tr>";
+			echo "<tr><td class=$class align=right>" . number_format($row['time']/10, 3) . " ms</td><td class=$class>$row[action]</td><td class=$class>" . htmlentities($row['key']) . "</td></tr>";
+		}
 
 		echo "</table>";
 	}
@@ -163,20 +238,30 @@ class cache{
 
 
 	function hdget($name, $refresh, $callback, $default = false){
-//		if(strlen($name) > 12)
-//			trigger_error("cache name: '$name' is too long", E_USER_ERROR);
+		$time1 = gettime();
+
+//		$filename = "$name.php";
+		$filename = "$name.txt";
 
 		if(isset($this->values[$name])){
 			$line = $this->values[$name];
 		}else{
-			if(file_exists($this->basedir . "/$name.php")){
-				$this->values[$name] = $line = include_once($this->basedir . "/$name.php");
-			}else{
-				$this->values[$name] = $line = array('time' => 0, 'expire' => 1, 'value' => $default);
+			$line = false;
+
+			if(file_exists($this->basedir . "/$filename")){
+//				$line = include_once($this->basedir . "/$filename");
+				$line = unserialize(file_get_contents($this->basedir . "/$filename"));
 			}
+
+			if($line == false)
+				$line = array('time' => 0, 'expire' => 1, 'value' => $default);
+
+			$this->values[$name] = $line;
 		}
 
 		$result = $line['value'];
+
+		$this->action("hdget", $name, gettime() - $time1);
 
 		$time = time();
 
@@ -197,9 +282,10 @@ class cache{
 
 				$this->values[$name] = $dump;
 
-				$output = "<?\nreturn " . var_export($dump, true) . ";\n";
+//				$output = "<?\nreturn " . var_export($dump, true) . ";\n";
+				$output = serialize($dump);
 
-				flockwrite($output, $this->basedir . "/$name.php");
+				flockwrite($output, $this->basedir . "/$filename", 0777);
 			}
 		}
 
@@ -207,7 +293,7 @@ class cache{
 	}
 }
 
-function flockwrite($str, $file){
+function flockwrite($str, $file, $mode = false){
 
 	clearstatcache();
 
@@ -232,6 +318,10 @@ function flockwrite($str, $file){
 
 	fwrite($fh, $str);
 	fflush($fh);
+
+	if($mode !== false)
+		chmod($file, $mode);
+
 	flock($fh, LOCK_UN);
 	fclose($fh);
 

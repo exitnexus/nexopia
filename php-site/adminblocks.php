@@ -39,7 +39,7 @@ function delete($id){
 	global $msgs, $db;
 	if(!isset($id)) return false;
 
-	setMaxPriority($db, "blocks", $id));
+	setMaxPriority($db, "blocks", $id);
 
 	$db->prepare_query("DELETE FROM blocks WHERE id = ?", $id);
 
@@ -87,9 +87,9 @@ function edit($id){
 	global $msgs, $db;
 	if(!isset($id)) return false;
 
-	$db->prepare_query("SELECT side,enabled,funcname FROM blocks WHERE id = ?", $id);
+	$res = $db->prepare_query("SELECT side,enabled,funcname FROM blocks WHERE id = ?", $id);
 
-	$line = $db->fetchrow();
+	$line = $res->fetchrow();
 
 	incHeader();
 

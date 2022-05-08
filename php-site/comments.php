@@ -4,6 +4,14 @@
 
 	require_once("include/general.lib.php");
 
+	$id = getREQval('id', 'int');
+	$msg = getPOSTval('msg');
+	$checkID = getREQval('checkID', 'array');
+	$action = getREQval('action');
+	$postaction = getPOSTval('postaction');
+	$usedb = getREQval('db');
+	$parse_bbcode = getPOSTval('parse_bbcode', 'bool');
+
 	if(empty($id))
 		die("Bad id");
 
@@ -13,131 +21,118 @@
 
 //add comment
 	if($userData['loggedIn'] && isset($postaction) && isset($msg) && isset($id))
-		addComment($id,$msg,$postaction);
-
-	$db->prepare_query("SELECT title,category FROM articles WHERE id = ?", $id);
-	if($db->numrows()==0)
+		addComment($id,$msg,$postaction, array(), $parse_bbcode, $usedb);
+	if($usedb == 'polls')
+	{
+		$res = $polldb->prepare_query("SELECT question FROM polls WHERE id = ?", $id);
+		$data = $res->fetchrow();
+	}
+	else
+	{
+		$res = $articlesdb->prepare_query("SELECT title,category FROM articles WHERE id = ?", $id);
+		$data = $res->fetchrow();
+	}
+	if(!$data)
 		die("Bad id");
-	$data = $db->fetchrow();
 
 //delete
 	if($isAdmin && $action=="Delete" && isset($checkID) && is_array($checkID)){
+		if($usedb == 'polls')
+		{
+			$polldb->prepare_query("DELETE pollcomments, pollcommentstext FROM pollcomments LEFT JOIN pollcommentstext ON pollcomments.id = pollcommentstext.id WHERE itemid = ? && pollcomments.id IN (?)", $id, $checkID);
 
-		$db->prepare_query("DELETE comments, commentstext FROM comments LEFT JOIN commentstext ON comments.id = commentstext.id WHERE itemid = ? && comments.id IN (?)", $id, $checkID);
+			$polldb->prepare_query("UPDATE polls SET comments = comments - ? WHERE id = ?", count($checkID), $id);
+			$mods->adminlog("delete poll comments", "Delete poll comments: poll $id");
+		}
+		else
+		{
+			$articlesdb->prepare_query("DELETE comments, commentstext FROM comments LEFT JOIN commentstext ON comments.id = commentstext.id WHERE itemid = ? && comments.id IN (?)", $id, $checkID);
 
-		$db->prepare_query("UPDATE articles SET comments = comments - ? WHERE id = ?", count($checkID), $id);
-		$mods->adminlog("delete article comments", "Delete article comments: article $id");
+			$articlesdb->prepare_query("UPDATE articles SET comments = comments - ? WHERE id = ?", count($checkID), $id);
+			$mods->adminlog("delete article comments", "Delete article comments: article $id");
+		}
 	}
 
+	$uids = array();
 	$page = getREQval('page', 'int');
+	if($usedb == 'polls')
+	{
 
-	$db->prepare_query("SELECT SQL_CALC_FOUND_ROWS comments.id, author, authorid, time, nmsg FROM comments, commentstext WHERE itemid = ?  && comments.id = commentstext.id ORDER BY comments.id ASC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]", $id);
+		$res = $polldb->prepare_query("SELECT SQL_CALC_FOUND_ROWS pollcomments.id, authorid, time, msg, nmsg, parse_bbcode FROM pollcomments, pollcommentstext WHERE itemid = ?  && pollcomments.id = pollcommentstext.id ORDER BY pollcomments.id ASC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]", $id);
 
-	$comments = array();
-	while($line = $db->fetchrow())
-		$comments[] = $line;
+		$comments = array();
+		while($line = $res->fetchrow())
+		{
+			$line['nmsg'] = html_sanitizer::sanitize($line['msg']);
+			if($line['parse_bbcode'] == 'y')
+			{
+				$line['nmsg'] = parseHTML($line['nmsg']);
+				$line['nmsg'] = smilies($line['nmsg']);
+				$line['nmsg'] = wrap($line['nmsg']);
+				$line['nmsg'] = nl2br($line['nmsg']);
+			}
+			$comments[] = $line;
+			$uids[$line['authorid']] = $line['authorid'];
+		}
+		$numrows = $res->totalrows();
+	}
+	else
+	{
 
-	$db->query("SELECT FOUND_ROWS()");
-	$numrows = $db->fetchfield();
+		$res = $articlesdb->prepare_query("SELECT SQL_CALC_FOUND_ROWS comments.id, authorid, time, msg, nmsg, parse_bbcode FROM comments, commentstext WHERE itemid = ?  && comments.id = commentstext.id ORDER BY comments.id ASC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]", $id);
+
+		$comments = array();
+		while($line = $res->fetchrow())
+		{
+			$line['nmsg'] = html_sanitizer::sanitize($line['msg']);
+			if($line['parse_bbcode'] == 'y')
+			{
+				$line['nmsg'] = parseHTML($line['nmsg']);
+				$line['nmsg'] = smilies($line['nmsg']);
+				$line['nmsg'] = wrap($line['nmsg']);
+				$line['nmsg'] = nl2br($line['nmsg']);
+			}
+			$comments[] = $line;
+			$uids[$line['authorid']] = $line['authorid'];
+		}
+
+		$numrows = $res->totalrows();
+	}
+
+	if(count($uids)){
+		$usernames = getUserName($uids);
+
+		foreach($comments as $k => $v)
+			$comments[$k]['author'] = $usernames[$v['authorid']];
+	}
+
 	$numpages =  ceil($numrows / $config['linesPerPage']);
-
-	incHeader(0);
-
-	echo "<table width=100% cellpadding=3>";
-
-
-	echo "<tr><td class=header colspan=2>";
-	echo "<table width=100%><tr><td class=header>";
-
-	$cats = & new category( $db, "cats");
-	$root = $cats->makeroot($data['category']);
-
-	foreach($root as $cat)
-		echo "<a class=header href=articlelist.php?cat=$cat[id]>$cat[name]</a> > ";
-
-	echo "<a class=header href=\"article.php?id=$id\">$data[title]</a> > ";
-	echo "<a class=header href=$_SERVER[PHP_SELF]?id=$id>Comments</a>";
-
-	echo "</td>";
-
-	echo "<form>";
-	echo "<td class=header align=right>";
-
-	echo "Page:";
-	echo pageList("$_SERVER[PHP_SELF]?id=$id",$page,$numpages,'header');
-
-	echo "</td></tr></table></td></tr>";
-
-	if(count($comments)==0)
-		echo "<tr><td class=body colspan=2 align=center>No Comments</td>";
-
-	if($isAdmin){
-		echo "<form action=$_SERVER[PHP_SELF] method=post>";
-		echo "<input type=hidden name=id value='$id'>";
+	if($usedb == 'polls')
+		$root = 0;
+	else
+	{
+		$cats = new category( $articlesdb, "cats");
+		$root = $cats->makeroot($data['category']);
 	}
 
-	foreach($comments as $line){
-		echo "<tr><td class=header>";
+	$template = new template('comments/comments');
 
-		if($isAdmin)
-			echo "<input type=checkbox name=checkID[] value=$line[id]>";
-
-		echo "By: ";
-
-		if($line['authorid'])	echo "<a class=header href=profile.php?uid=$line[authorid]>$line[author]</a>";
-		else					echo "$line[author]";
-
-		echo "</td><td class=header>Date: " . userdate("F j, Y, g:i a",$line['time']) . "</td>";
-		echo "</tr>";
-
-		echo "<td class=body colspan=2>";
-
-		echo $line['nmsg'] . "&nbsp;";
-
-		echo "</td></tr>";
-//		echo "<tr><td colspan=2 class=header2>&nbsp;</td></tr>";
-	}
-	echo "<tr><td class=header colspan=2>";
-	echo "<table width=100%><tr>";
-
-	if($isAdmin){
-		echo "<td class=header>";
-		echo "<input class=body name=selectall type=checkbox value='Check All' onClick=\"this.value=check(this.form,'check')\">";
-		echo "<input class=body type=submit name=action value=Delete></td></form>";
-	}
-
-	echo "<form>";
-	echo "<td class=header align=right>";
-
-	echo "Page:";
-	echo pageList("$_SERVER[PHP_SELF]?id=$id",$page,$numpages,'header');
-
-	echo "</td>";
-	echo "</form>";
-	echo "</tr></table>";
-
-	echo "</td></tr>";
-
-
-	if($userData['loggedIn']){
-		echo "<tr><td colspan=3>";
-		echo "<table  cellspacing=0 align=center>";
-		echo "<tr><td class=header2><a name=reply>Post a Comment:</a></td></tr>\n";
-
-		echo "<form action=$_SERVER[PHP_SELF] method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
-		echo "<input type=hidden name=id value=$id>\n";
-
-		echo "<tr><td class=header2 align=center>";
-
-		editBox("",true);
-
-		echo "</td></tr>\n";
-		echo "<tr><td class=header2 align=center><select class=body name=postaction><option value=changed>Preview if changes made<option value=Post>Post without previewing<option value=Preview>Preview</select><input class=body type=submit value=Post accesskey='s' onClick='checksubmit()'></td></tr>\n";
-		echo "</form>";
-		echo "</table>\n";
-		echo "</td></tr>";
-	}
-	echo "</table>\n";
-
-	incFooter();
+	$template->set('root', $root);
+	if($usedb=='polls')
+		$template->set('pageList', pageList("$_SERVER[PHP_SELF]?id=$id&db=polls",$page,$numpages,'header'));
+	else
+		$template->set('pageList', pageList("$_SERVER[PHP_SELF]?id=$id",$page,$numpages,'header'));
+	$template->set('noComment', count($comments) == 0);
+//	$template->set('checkParseBB', makeCheckBox('parse_bbcode', 'Parse BBcode', $userData['parse_bbcode']));
+	$template->set("checkParseBB", '<input type="hidden" name="parse_bbcode" value="y"/>');
+	$template->set('data', $data);
+	$template->set('isAdmin', $isAdmin);
+	$template->set('comments', $comments);
+	$template->set('userData', $userData);
+	$template->set('id', $id);
+	$template->set('db', $usedb);
+	ob_start();
+	editBox("");
+	$template->set('editBox', ob_get_clean());
+	$template->display();
 

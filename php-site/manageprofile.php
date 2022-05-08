@@ -9,19 +9,20 @@
 	$uid = ($isAdmin ? getREQval('uid', 'int', $userData['userid']) : $userData['userid']);
 
 	$maxlengths['tagline'] = 300;
-	$maxlengths['about'] = 10000;
-	$maxlengths['likes'] = 10000;
-	$maxlengths['dislikes'] = 10000;
 	$maxlengths['signiture'] = 1000;
+	$maxlengths['numProfileBlocks'] = 3;
+	$maxlengths['blockLength'] = 10000;
 
 
-	$locations = & new category( $db, "locs");
-	$interests = & new category( $db, "interests");
+	$locations = new category( $configdb, "locs");
+	$interests = new category( $configdb, "interests");
 
 	$section = getREQval('section');
 
-	$db->prepare_query("SELECT userid, username, age, sex, premiumexpiry, dob, forumrank FROM users WHERE userid = #", $uid);
-	$user = $db->fetchrow();
+
+	$result = $usersdb->prepare_query("SELECT userid, age, sex, premiumexpiry, dob, forumrank FROM users WHERE userid=%", $uid);
+	$user = $result->fetchrow();
+	$user['username'] = getUserName($uid);
 
 	if(!$user)
 		die("Bad User");
@@ -30,9 +31,8 @@
 	$plus = $user['premiumexpiry'] > time();
 
 	if($plus){
-		$maxlengths['about'] = 20000;
-		$maxlengths['likes'] = 20000;
-		$maxlengths['dislikes'] = 20000;
+//		$maxlengths['numProfileBlocks'] = 5;
+		$maxlengths['blockLength'] = 20000;
 	}
 
 	if($action && $section && (!isset($HTTP_REFERER) || strpos($HTTP_REFERER, $_SERVER['PHP_SELF']) !== false)){
@@ -62,42 +62,60 @@
 						$msgs->addMsg("Invalid Year");
 					}else{
 						if($dob != $user['dob']){
-							$commands[] = $db->prepare("dob = #", $dob);
-							$commands[] = $db->prepare("age = #", $age);
-							$db->prepare_query("UPDATE pics SET v1=0, v2=0, v3=0, v4=0, v5=0, v6=0, v7=0, v8=0, v9=0, v10=0, votes=0, score=0, age = ? WHERE itemid = ?", $age, $uid);
+							$commands[] = $usersdb->prepare("dob = #", $dob);
+							$commands[] = $usersdb->prepare("age = #", $age);
 						}
 					}
 				}
 
 				if(isset($data['loc']) && $locations->isValidCat($data['loc']))
-					$commands[] = $db->prepare("loc = ?", $data['loc'] );
+					$commands[] = $usersdb->prepare("loc = ?", $data['loc'] );
 
 				if(is_array($prof) && count($prof) == count($profile)){
-					$commands[] = $db->prepare("profile = ?", encodeProfile($prof) );
-					$commands[] = $db->prepare("single = ?", (in_array($prof[3], array('1','2','6')) ? 'y' : 'n') );
-					$commands[] = $db->prepare("sexuality = #", $prof[2] );
+					$commands[] = $usersdb->prepare("single = ?", (in_array($prof[3], array('1','2','6')) ? 'y' : 'n') );
+					$commands[] = $usersdb->prepare("sexuality = #", $prof[2] );
 				}
-
-				$commands[] = $db->prepare("profileupdatetime = ?", time());
-
-				$db->query("UPDATE users SET " . implode(", ", $commands) . $db->prepare(" WHERE userid = #", $uid));
-
-				$db->prepare_query("INSERT IGNORE INTO newestprofile SET userid = #, username = ?, age = #, sex = ?", $user['userid'], $user['username'], $user['age'], $user['sex']);
 
 				$set = array();
 
 				if($plus){
 					$profileskin = getPOSTval('profileskin', 'int');
+					$commentskin = getPOSTval('commentskin', 'int');
+					$blogskin = getPOSTval('blogskin', 'int');
+					$friendskin = getPOSTval('friendskin', 'int');
+					$galleryskin = getPOSTval('galleryskin', 'int');
 
-					if($profileskin != 0){
-						$db->prepare_query("SELECT id FROM profileskins WHERE id = # && userid IN (0,#)", $profileskin, $uid);
+					$profileskins = array(&$profileskin, &$commentskin, &$blogskin, &$friendskin, &$galleryskin);
 
-						if($db->numrows() == 0)
-							$profileskin = 0;
+					if($profileskins){
+
+						$res = $db->prepare_query("SELECT DISTINCT id FROM profileskins WHERE id IN (#) && userid IN (0,#)", $profileskins, $uid);
+
+						$validskins = array();
+						while ($result = $res->fetchrow())
+							$validskins[] = $result['id'];
+
+						foreach ($profileskins as &$skinid)
+						{
+							if (!in_array($skinid, $validskins))
+								$skinid = 0;
+						}
 					}
 
-					$set[] = $db->prepare("skin = #", $profileskin);
+					// ugly, but set goes to profile and commands goes to users.
+					$set[] = $usersdb->prepare("skin = #", $profileskin);
+					$commands[] = $usersdb->prepare("commentskin = #, blogskin = #, friendskin = #, galleryskin = #", $commentskin, $blogskin, $friendskin, $galleryskin);
 				}
+
+
+
+				$usersdb->query("UPDATE users SET " . implode(", ", $commands) . $usersdb->prepare(" WHERE userid=%", $uid));
+
+
+				$db->prepare_query("INSERT IGNORE INTO newestprofile SET userid = %, username = ?, time= #, age = #, sex = ?", $user['userid'], $user['username'], time(), $user['age'], $user['sex']);
+
+				if(is_array($prof) && count($prof) == count($profile))
+					$set[] = $usersdb->prepare("profile = ?", encodeProfile($prof) );
 
 				if(isset($data['tagline'])){
 
@@ -133,7 +151,10 @@
 					$set[] = $db->prepare("aim = ?", $data['aim']);
 				}
 
-				$profiledb->query($uid, "UPDATE profile SET " . implode(", ", $set) . $db->prepare(" WHERE userid = #", $uid));
+				$set[] = $db->prepare("profileupdatetime = ?", time());
+
+
+				$usersdb->query("UPDATE profile SET " . implode(", ", $set) . $usersdb->prepare(" WHERE userid=%", $uid));
 
 				if($isAdmin && $uid != $userData['userid']){
 					$reportaction = ABUSE_ACTION_PROFILE_EDIT;
@@ -144,8 +165,10 @@
 					$abuselog->addAbuse($uid, $reportaction, $reportreason, $reportsubject, $reporttext);
 				}
 
-				$cache->remove(array($uid, "profile-$uid"));
-				$cache->remove(array($uid, "userprefs-$uid"));
+				$cache->remove("profile-$uid");
+				$cache->remove("userinfo-$uid");
+				$cache->remove("userprefs-$uid");
+				$cache->remove("tagline-$uid");
 
 				if($uid != $userData['userid']){
 					$mods->adminlog("update profile", "Update user profile: userid $uid");
@@ -153,42 +176,88 @@
 					exit;
 				}
 
-				$msgs->addMsg("Updated. Check <a class=body href='profile.php?uid=$uid'>your profile</a> to see the changes");
+				$msgs->addMsg("Updated. Check <a class=body href='/profile.php?uid=$uid'>your profile</a> to see the changes");
 
 				break;
 
 			case "details":
-				if(!($data = getPOSTval('data', 'array')))
-					break;
+				//if the user is using the fck editor they need more characters
+				//to account for all the hidden html.
+				$length_offset = 0;
+				$oFCKeditor = new FCKeditor('blank') ;
+				if(!$userData['bbcode_editor'] && $oFCKeditor->IsCompatible())
+					$length_offset = 2000;
 
-				if($plus){
-					$maxlengths['about'] = 20000;
-					$maxlengths['likes'] = 20000;
-					$maxlengths['dislikes'] = 20000;
+				$titles = getPOSTval('blockTitle', 'array', array());
+				$permissions = getPOSTval('permission', 'array', array());
+				$positions = getPOSTval('blockOrder', 'array', array());
+
+				$newBlocks = array();
+				foreach ($titles as $blockid => $title) {
+					$title = removeHTML(trim($title));
+					$content = getPOSTval("blockTxt_${blockid}", 'string', '');
+					$content = html_sanitizer::sanitize(substr(trim($content), 0, $maxlengths['blockLength'] + $length_offset));
+					$position = isset($positions[$blockid]) ? $positions[$blockid] : 0;
+					$permission = isset($permissions[$blockid]) ? $permissions[$blockid] : 'anyone';
+					if (! in_array($permission, array('anyone', 'loggedin', 'friends')))
+						$permission = 'anyone';
+
+					$newBlocks[] = array(
+						'blockid'		=> $blockid,
+						'title'			=> $title,
+						'content'		=> $content,
+						'position'		=> $position,
+						'permission'	=> $permission
+					);
 				}
 
-				if(isset($data['about'])){
-					$about = removeHTML(trim(substr($data['about'],0,$maxlengths['about']))); //censor(
-		//			$nabout = nl2br(wrap(parseHTML(smilies($about))));
-					$set[] = $db->prepare("about = ?", $about);
-		//			$set[] = $db->prepare("nabout = ?", $nabout);
+				sortCols($newBlocks, SORT_ASC, SORT_NUMERIC, 'position');
+				$blockPos = 0;
+
+				$profBlocks = new profileBlocks($uid);
+
+				foreach ($newBlocks as $block) {
+					// this is a new block (since blockid begins with zero)
+					if ($block['blockid']{0} == '0') {
+						// no content, skip
+						if (! strlen($block['content']))
+							continue;
+
+						// have content, so add block
+						$profBlocks->saveBlocks(array(array(
+							'blocktitle'	=> strlen($block['title']) ? $block['title'] : 'Untitled',
+							'blockcontent'	=> $block['content'],
+							'blockorder'	=> ++$blockPos,
+							'permission'	=> $block['permission']
+						)));
+					}
+
+					// this is an update to an existing block
+					else {
+						// no content, delete the block
+						if (! strlen($block['content'])) {
+							$profBlocks->delBlocks(array($block['blockid']));
+							continue;
+						}
+
+						// have content, so save new content
+						else {
+							$profBlocks->saveBlocks(array(array(
+								'blockid'		=> $block['blockid'],
+								'blocktitle'	=> strlen($block['title']) ? $block['title'] : 'Untitled',
+								'blockcontent'	=> $block['content'],
+								'blockorder'	=> ++$blockPos,
+								'permission'	=> $block['permission']
+							)));
+						}
+					}
+
+					// we've already saved the user's maximum allotted blocks, so skip the rest
+					if ($blockPos == $maxlengths['numProfileBlocks'])
+						break;
 				}
 
-				if(isset($data['likes'])){
-					$likes = removeHTML(trim(substr($data['likes'],0,$maxlengths['likes'])));
-		//			$nlikes = nl2br(wrap(parseHTML(smilies($likes))));
-					$set[] = $db->prepare("likes = ?", $likes);
-		//			$set[] = $db->prepare("nlikes = ?", $nlikes);
-				}
-
-				if(isset($data['dislikes'])){
-					$dislikes = removeHTML(trim(substr($data['dislikes'],0,$maxlengths['dislikes'])));
-		//			$ndislikes = nl2br(wrap(parseHTML(smilies($dislikes))));
-					$set[] = $db->prepare("dislikes = ?", $dislikes);
-		//			$set[] = $db->prepare("ndislikes = ?", $ndislikes);
-				}
-
-				$profiledb->query($uid, "UPDATE profile SET " . implode(", ", $set) . $db->prepare(" WHERE userid = #", $uid));
+				$usersdb->prepare_query("UPDATE profile SET profileupdatetime = # WHERE userid = %", time(), $uid);
 
 				if($isAdmin && $uid != $userData['userid']){
 					$reportaction = ABUSE_ACTION_PROFILE_EDIT;
@@ -199,7 +268,7 @@
 					$abuselog->addAbuse($uid, $reportaction, $reportreason, $reportsubject, $reporttext);
 				}
 
-				$cache->remove(array($uid, "profile-$uid"));
+				$cache->remove("profile-$uid");
 
 				if($uid != $userData['userid']){
 					$mods->adminlog("update profile", "Update user profile: userid $uid");
@@ -207,7 +276,7 @@
 					exit;
 				}
 
-				$msgs->addMsg("Updated. Check <a class=body href='profile.php?uid=$uid'>your profile</a> to see the changes");
+				$msgs->addMsg("Updated. Check <a class=body href='/profile.php?uid=$uid'>your profile</a> to see the changes");
 
 				break;
 
@@ -223,7 +292,7 @@
 
 				unset($check[0]);
 
-				$db->prepare_query("DELETE FROM userinterests WHERE userid = #", $uid);
+				$usersdb->prepare_query("DELETE FROM userinterests WHERE userid=%", $uid);
 
 				$set = array();
 				$ids = array();
@@ -231,15 +300,17 @@
 					$root = $interests->makeroot($id, false);
 
 					foreach($root as $row){
-						$set[$row['id']] = $db->prepare("(#,#)", $uid, $row['id']);
+						$set[$row['id']] = $usersdb->prepare("(%,#)", $uid, $row['id']);
 						$ids[$row['id']] = $row['id'];
 					}
 				}
 
 				if(count($set))
-					$db->query("INSERT IGNORE INTO userinterests (userid, interestid) VALUES " . implode(", ", $set));
+					$usersdb->query("INSERT IGNORE INTO userinterests (userid, interestid) VALUES " . implode(", ", $set));
 
-				$cache->remove(array($uid, "userinterests-$uid"));
+
+
+				$cache->remove("userinterests-$uid");
 
 				$userData['interests'] = implode(',', $ids);
 
@@ -260,45 +331,37 @@
 					$set[] = $db->prepare("signiture = ?", $signiture);
 					$set[] = $db->prepare("nsigniture = ?", $nsigniture);
 
-					$profiledb->query($uid, "UPDATE profile SET " . implode(", ", $set) . $db->prepare(" WHERE userid = #", $uid));
+
+					$usersdb->query("UPDATE profile SET " . implode(", ", $set) . $usersdb->prepare(" WHERE userid=%", $uid));
+
+
+					$cache->remove("forumusersigs-$uid");
 				}
 
 				if($plus){
-					$db->prepare_query("SELECT id, forumrank FROM forumrankspending WHERE userid = #", $uid);
-					$newforumrank = array('id' => 0, 'forumrank' => "");
-					if($db->numrows())
-						$newforumrank = $db->fetchrow();
-
-
-					$forumrank = removeHTML(trim(getPOSTval('forumrank')));
 
 					$forumrankchoice = getPOSTval('forumrankchoice');
+					$forumrank = removeHTML(trim(getPOSTval('forumrank')));
 
 					switch($forumrankchoice){
-						case "default":
-							$db->prepare_query("UPDATE users SET forumrank = '' WHERE userid = ?", $uid);
 		        		case "current":
-							if($newforumrank['forumrank'] != ""){
-								$db->prepare_query("DELETE FROM forumrankspending WHERE userid = ?", $uid);
-								$mods->deleteItem("forumrank",$newforumrank['id']);
-							}
 							break;
+
+						case "default":
+							$forumrank = '';
+
 		              	case "new":
-		              		if($forumrank != $newforumrank['forumrank']){
-		              			if($newforumrank['forumrank'] != ""){
-			              			$db->prepare_query("DELETE FROM forumrankspending WHERE userid = ?", $uid);
-									$mods->deleteItem("forumrank",$newforumrank['id']);
-								}
-			              		if($forumrank == ""){
-			              			$db->prepare_query("UPDATE users SET forumrank = '' WHERE userid = ?", $uid);
-			              		}else{
-				              		$db->prepare_query("INSERT INTO forumrankspending SET userid = ?, forumrank = ?", $uid, $forumrank);
-				              		$id = $db->insertid();
-				              		$mods->newItem(MOD_FORUMRANK, $id);
-				              	}
+	              			$usersdb->prepare_query("UPDATE users SET forumrank = ? WHERE userid = %", $forumrank, $uid);
+
+		              		if($forumrank == ""){
+		              			$mods->deleteItem(MOD_FORUMRANK, $uid);
+			              	}else{
+								$mods->newItem(MOD_FORUMRANK, $uid);
 				            }
 							break;
 					}
+
+					$cache->remove("userinfo-$uid");
 				}
 
 				if($isAdmin && $uid != $userData['userid']){
@@ -308,6 +371,16 @@
 					$reporttext   = getPOSTval('reporttext');
 
 					$abuselog->addAbuse($uid, $reportaction, $reportreason, $reportsubject, $reporttext);
+
+					$reportreminder = getPOSTval('reportreminder', 'int');
+
+					if($reportreminder){
+
+						$message = 	"[url=manageprofile.php?section=forums&uid=$uid]Check/re-enable[/url] the signature for [url=profile.php?uid=$uid]" . $user['username'] . "[/url].\n\n" .
+									"The report was for " . $abuselog->reasons[$reportreason] . ": $reportsubject\n[quote]" . $reporttext. "[/quote]";
+
+						$usernotify->newNotify($userData['userid'], time() + $reportreminder, 'Signature Checkup', $message);
+					}
 				}
 
 				if($uid != $userData['userid'])
@@ -333,13 +406,13 @@
 
 
 function editBasics(){
-	global $userData, $uid, $db, $profiledb, $locations, $profile, $maxlengths, $isAdmin, $config, $abuselog;
+	global $userData, $uid, $db, $usersdb, $locations, $profile, $maxlengths, $isAdmin, $config, $abuselog, $config;
 
-	$db->prepare_query("SELECT dob, loc, forumrank, posts, profile, premiumexpiry FROM users WHERE userid = #", $uid);
-	$user = $db->fetchrow();
+	$result = $usersdb->query("SELECT dob, loc, forumrank, posts, premiumexpiry, blogskin, commentskin, friendskin, galleryskin FROM users" . $usersdb->prepare(" WHERE userid=%", $uid));
+	$user = $result->fetchrow();
 
-	$profiledb->prepare_query($uid, "SELECT icq, msn, yahoo, aim, tagline, skin FROM profile WHERE userid = #", $uid);
-	$user += $profiledb->fetchrow();
+	$result = $usersdb->query("SELECT icq, msn, yahoo, aim, tagline, skin, profile FROM profile" . $usersdb->prepare(" WHERE userid=%", $uid));
+	$user += $result->fetchrow();
 
 	$prof = decodeProfile($user['profile']);
 
@@ -347,425 +420,188 @@ function editBasics(){
 		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
 
 
-	incHeader();
 
-?>
-<script>
+
+	$template = new template('profiles/manageprofile/editBasics');
+	$template->set('jsSetLength', "<script>
 function setLength(field, maxlimit, output) {
 	if(field.value.length > maxlimit)
 		field.value = field.value.substring(0, maxlimit);
-	putinnerHTML(output, "Length: " + field.value.length + " / " + maxlimit );
+	putinnerHTML(output, \"Length: \" + field.value.length + \" / \" + maxlimit );
 }
-</script>
-<?
+</script>");
 
-	echo "<table align=center width=750><form method=post action=$_SERVER[PHP_SELF]>\n";
-
-	if($uid != $userData['userid'])
-		echo "<input type=hidden name=uid value=$uid>";
-
-	echo "<input type=hidden name=section value=basics>";
-
-	echo "<tr><td class=body colspan=2>";
-	echo "<b>Basics</b> | ";
-	echo "<a class=body href=$_SERVER[PHP_SELF]?section=details" . ($uid != $userData['userid'] ? "&uid=$uid" : "") . "><b>Details</b></a> | ";
-	if($uid == $userData['userid'])
-		echo "<a class=body href=$_SERVER[PHP_SELF]?section=interests" . ($uid != $userData['userid'] ? "&uid=$uid" : "") . "><b>Interests</b></a> | ";
-	echo "<a class=body href=$_SERVER[PHP_SELF]?section=forums" . ($uid != $userData['userid'] ? "&uid=$uid" : "") . "><b>Forums</b></a>";
-	echo "</td></tr>";
-
-	echo "<tr><td class=header colspan=2 align=center>Basics</td></tr>\n";
-
-	echo "<tr><td class=body>Date of Birth:</td><td class=body>";
-	echo "<select class=body name=\"data[month]\"><option value=0>Month" . make_select_list_key($months,gmdate("m",$user['dob'])) . "</select>";
-	echo "<select class=body name=\"data[day]\"><option value=0>Day" . make_select_list(range(1,31),gmdate("j",$user['dob'])) . "</select>";
-	echo "<select class=body name=\"data[year]\"><option value=0>Year" . make_select_list(array_reverse(range(date("Y")-$config['maxAge'],date("Y")-$config['minAge'])),gmdate("Y",$user['dob'])) . "</select><br>Changing your age will reset your votes</td></tr>\n";
-
-	echo "<tr><td class=body>Location:</td><td class=body><select class=body name=\"data[loc]\">" . makeCatSelect($locations->makeBranch(),$user['loc']) . "</select></td></tr>\n";
-
-	echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
-
-	echo "<tr><td class=header colspan=2 align=center>Contact</td></tr>\n";
-
-	echo "<tr><td class=body>ICQ:</font></td><td class=body><input class=body type=text name=\"data[icq]\" size=40 value=\"" . ($user['icq']==0 ? "" : $user['icq']) . "\"></td></tr>\n";
-	echo "<tr><td class=body>MSN:</font></td><td class=body><input class=body type=text name=\"data[msn]\" size=40 value=\"$user[msn]\"></td></tr>\n";
-	echo "<tr><td class=body>Yahoo:</font></td><td class=body><input class=body type=text name=\"data[yahoo]\" size=40 value=\"$user[yahoo]\"></td></tr>\n";
-	echo "<tr><td class=body>AIM:</font></td><td class=body><input class=body type=text name=\"data[aim]\" size=40 value=\"$user[aim]\"></td></tr>\n";
-
-	echo "<tr><td class=body colspan=2>&nbsp;</td></tr>\n";
-
-	echo "<tr><td class=header colspan=2 align=center>Profile</td></tr>\n";
-
-	foreach($profile as $qnum => $val){
-		echo "<tr><td class=body>What is your $val[question]?</td>";
-		echo "<td><select class=body name=\"prof[$qnum]\" style=\"width:250px\">";
-
-		echo make_select_list_key($val['answers'], $prof[$qnum]);
-
-/*		echo "	<option value=0" . ($prof[$qnum]==0 ? " selected" : "" ) . ">No Comment";
-		foreach($val['answers'] as $anum => $ans)
-			echo "	<option value=" . ($anum+1) . ($prof[$qnum]==$anum+1 ? " selected" : "" ) . ">$ans";
-*/
-		echo "</select>";
-		echo "</td></tr>\n";
-
+	$template->set('uidGetString', ($uid != $userData['userid'] ? "&uid=$uid" : ""));
+	$template->set('uid', $uid);
+	$template->set('user', $user);
+	$template->set('selectMonth', make_select_list_key($months,gmdate("m",$user['dob'])));
+	$template->set('selectDay', make_select_list(range(1,31),gmdate("j",$user['dob'])));
+	$template->set('selectYear', make_select_list(array_reverse(range(date("Y")-$config['maxAge'],date("Y")-$config['minAge'])),gmdate("Y",$user['dob'])));
+	$template->set('selectLocation', makeCatSelect($locations->makeBranch(),$user['loc']));
+	$template->set('profile', $profile);
+	foreach ($profile as $qnum => $val) {
+		$selectAnswers[$qnum] = make_select_list_key($val['answers'], $prof[$qnum]);
 	}
-
-	echo "<tr><td class=body colspan=2>&nbsp;</td></tr>\n";
-
-	echo "<tr><td class=header colspan=2 align=center>Tag Line</td></tr>\n";
-
-	echo "<tr><td class=body><div id=taglinelength>Length: " . strlen($user['tagline']) . " / $maxlengths[tagline]</div></td><td class=body>This is shown in the user search page. Only text and smilies are allowed.<br>No images, fonts, etc are allowed. Anything past 5 lines will be removed.</td></tr>";
-	echo "<tr><td class=body colspan=2><textarea class=body cols=100 rows=5 style=\"width:100%\" name=data[tagline] onchange=\"setLength(this,$maxlengths[tagline],'taglinelength')\" onkeydown=\"setLength(this,$maxlengths[tagline],'taglinelength')\" onkeyup=\"setLength(this,$maxlengths[tagline],'taglinelength')\">$user[tagline]</textarea></td></tr>\n";
-	echo "<tr><td class=body colspan=2>&nbsp;</td></tr>\n";
+	$template->set('selectAnswers', $selectAnswers);
+	$template->set('taglineLength', strlen($user['tagline']));
+	$template->set('maxlengths', $maxlengths);
+	$template->set('time', time());
+	$template->set('userData', $userData);
 
 	if($user['premiumexpiry'] > time()){
 
-		$db->prepare_query("SELECT id, name FROM profileskins WHERE userid = #", $uid); // userid IN (0,#) ORDER BY userid, name
-
+		$res = $db->prepare_query("SELECT id, name FROM profileskins WHERE userid = %", $uid); // userid IN (0,#) ORDER BY userid, name
 		$profileskins = array();
-		while($line = $db->fetchrow())
+		while($line = $res->fetchrow())
 			$profileskins[$line['id']] = $line['name'];
 
 		sortCols($profileskins, SORT_ASC, SORT_CASESTR, 'name');//, SORT_ASC, SORT_NUMERIC, 'userid'
 
-		echo "<tr><td class=header colspan=2 align=center>Profile Skin</td></tr>";
-
-		echo "<tr><td class=body>Choose a profile skin:</td><td class=body><select class=body name=profileskin><option value=0>User Default";
-		echo make_select_list_key($profileskins, $user['skin']);
-		echo "</select></td></tr>";
-
-		echo "<tr><td class=body colspan=2 align=center>Don't like the presets? <a class=body href=manageprofileskins.php>Create your own</a></td></tr>";
-
-		echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
+		$template->set('selectSkin', make_select_list_key($profileskins, $user['skin']));
+		$template->set('selectCommentsSkin', make_select_list_key($profileskins, $user['commentskin']));
+		$template->set('selectBlogSkin', make_select_list_key($profileskins, $user['blogskin']));
+		$template->set('selectFriendsSkin', make_select_list_key($profileskins, $user['friendskin']));
+		$template->set('selectGallerySkin', make_select_list_key($profileskins, $user['galleryskin']));
 	}
-
-
 	if($isAdmin && $uid != $userData['userid']){
-		echo "<tr><td colspan=2 class=header align=center>New Abuse Log Entry</td></tr>";
-		echo "<tr><td colspan=2 class=body align=center>";
-//		echo "<select class=body name=reportaction>" . make_select_list_key(array(0 => "Action", ABUSE_ACTION_PROFILE_EDIT => 'Profile Edit', ABUSE_ACTION_SIG_EDIT => 'Signature Edit')) . "</select>";
-		echo "<select class=body name=reportreason><option value=0>Reason" . make_select_list_key($abuselog->reasons) . "</select>";
-		echo "<input class=body type=text name=reportsubject size=45><br>";
-		echo "Removed Text:<br>";
-		echo "<textarea class=body name=reporttext cols=70 rows=8></textarea><br>";
-
-		echo "<input class=body type=submit name=action value=Update onClick=\"if(document.editbox.reportreason.selectedIndex==0 || document.editbox.reportsubject.value==''){alert('You must specify a reason.'); return false;}\">";
-		echo "</td></tr>\n";
-	}else{
-		echo "<tr><td colspan=2 class=body align=center>";
-		echo "<input class=body type=submit name=action value=Update>";
-		echo "</td></tr>\n";
+		$template->set('displayAdmin', true);
+		$template->set('selectAbuseReason', make_select_list_key($abuselog->reasons));
+		$template->set('abuseJavaScript', "if(document.editbox.reportreason.selectedIndex==0 || document.editbox.reportsubject.value==''){alert('You must specify a reason.'); return false;}");
+	} else {
+		$template->set('displayAdmin', false);
 	}
+	$template->display();
 
-
-	echo "</form></table>";
-
-
-	incFooter();
 	exit;
 }
 
 function editDetails(){
-	global $userData, $uid, $profiledb, $locations, $profile, $maxlengths, $isAdmin, $abuselog;
+	global $userData, $uid, $locations, $profile, $maxlengths, $isAdmin, $abuselog;
 
+	$template = new template('profiles/manageprofile/editDetails');
 
-	$profiledb->prepare_query($uid, "SELECT about, likes, dislikes FROM profile WHERE userid = #", $uid);
-	$user = $profiledb->fetchrow();
-
-	incHeader();
-
-?>
-<script>
+	$template->set('jsSetLength', "<script>
 function setLength(field, maxlimit, output) {
 	if(field.value.length > maxlimit)
 		field.value = field.value.substring(0, maxlimit);
-	putinnerHTML(output, "Length: " + field.value.length + " / " + maxlimit );
+	putinnerHTML(output, \"Length: \" + field.value.length + \" / \" + maxlimit );
 }
-</script>
-<?
+</script>");
 
-	echo "<table align=center width=750><form method=post action=$_SERVER[PHP_SELF]>\n";
+	$template->setMultiple(array(
+		'uid'			=> $uid,
+		'userData'		=> $userData,
+		'maxlengths'	=> $maxlengths
+	));
 
-	if($uid != $userData['userid'])
-		echo "<input type=hidden name=uid value=$uid>";
+	$profBlocks = new profileBlocks($uid);
 
-	echo "<input type=hidden name=section value=details>";
+	$blocks = $profBlocks->getBlocks();
+	$maxnum = ($maxnum = end($blocks)) === false ? 0 : $maxnum['blockorder'];
+	reset($blocks);
 
+	$prefBlocks = array();
+	foreach (range(1, $maxlengths['numProfileBlocks']) as $count) {
+		$block = count($blocks) ? array_shift($blocks) : array(
+			'blockid' => '0' . uniqid(), 'blocktitle' => '', 'blockcontent' => '', 'blockorder' => ++$maxnum, 'permission' => 'anyone'
+		);
 
-
-	echo "<tr><td class=body colspan=2>";
-	echo "<a class=body href=$_SERVER[PHP_SELF]?section=basics" . ($uid != $userData['userid'] ? "&uid=$uid" : "") . "><b>Basics</b></a> | ";
-	echo "<b>Details</b> | ";
-	if($uid == $userData['userid'])
-		echo "<a class=body href=$_SERVER[PHP_SELF]?section=interests" . ($uid != $userData['userid'] ? "&uid=$uid" : "") . "><b>Interests</b></a> | ";
-	echo "<a class=body href=$_SERVER[PHP_SELF]?section=forums" . ($uid != $userData['userid'] ? "&uid=$uid" : "") . "><b>Forums</b></a>";
-	echo "</td></tr>";
-
-	echo "<tr><td class=header colspan=2 align=center>Details</td></tr>\n";
-
-	echo "<tr><td class=body colspan=2 align=center><b>Please do not share personal or financial information while using Nexopia.com.<br>All information passed through the use of this site, is at the risk of the user.<br>Nexopia.com will assume no liability for any users' actions.</b><br><br></td></tr>";
-
-	echo "<tr><td class=body>About you:</td><td class=body><div id=aboutlength>Length: " . strlen($user['about']) . " / $maxlengths[about]</div></td></tr>";
-	echo "<tr><td class=body colspan=2><textarea class=body cols=100 rows=20 style=\"width:100%\" name=data[about] onchange=\"setLength(this,$maxlengths[about],'aboutlength')\" onkeydown=\"setLength(this,$maxlengths[about],'aboutlength')\" onkeyup=\"setLength(this,$maxlengths[about],'aboutlength')\">$user[about]</textarea></td></tr>\n";
-	echo "<tr><td class=body colspan=2>&nbsp;</td></tr>\n";
-
-	echo "<tr><td class=body>Likes:</td><td class=body><div id=likeslength>Length: " . strlen($user['likes']) . " / $maxlengths[likes]</div></tr>";
-	echo "<tr><td class=body colspan=2><textarea class=body cols=100 rows=20 style=\"width:100%\" name=data[likes] onchange=\"setLength(this,$maxlengths[likes],'likeslength')\" onkeydown=\"setLength(this,$maxlengths[likes],'likeslength')\" onkeyup=\"setLength(this,$maxlengths[likes],'likeslength')\">$user[likes]</textarea></td></tr>\n";
-	echo "<tr><td class=body colspan=2>&nbsp;</td></tr>\n";
-
-	echo "<tr><td class=body>Dislikes:</td><td class=body><div id=dislikeslength>Length: " . strlen($user['dislikes']) . " / $maxlengths[dislikes]</div></tr>";
-	echo "<tr><td class=body colspan=2><textarea class=body cols=100 rows=20 style=\"width:100%\" name=data[dislikes] onchange=\"setLength(this,$maxlengths[dislikes],'dislikeslength')\" onkeydown=\"setLength(this,$maxlengths[dislikes],'dislikeslength')\" onkeyup=\"setLength(this,$maxlengths[dislikes],'dislikeslength')\">$user[dislikes]</textarea></td></tr>\n";
-	echo "<tr><td class=body colspan=2>&nbsp;</td></tr>\n";
-
-	if($isAdmin && $uid != $userData['userid']){
-		echo "<tr><td colspan=2 class=header align=center>New Abuse Log Entry</td></tr>";
-		echo "<tr><td colspan=2 class=body align=center>";
-//		echo "<select class=body name=reportaction>" . make_select_list_key(array(0 => "Action", ABUSE_ACTION_PROFILE_EDIT => 'Profile Edit', ABUSE_ACTION_SIG_EDIT => 'Signature Edit')) . "</select>";
-		echo "<select class=body name=reportreason><option value=0>Reason" . make_select_list_key($abuselog->reasons) . "</select>";
-		echo "<input class=body type=text name=reportsubject size=45><br>";
-		echo "Removed Text:<br>";
-		echo "<textarea class=body name=reporttext cols=70 rows=8></textarea><br>";
-
-		echo "<input class=body type=submit name=action value=Update onClick=\"if(document.editbox.reportreason.selectedIndex==0 || document.editbox.reportsubject.value==''){alert('You must specify a reason.'); return false;}\">";
-		echo "</td></tr>\n";
-	}else{
-		echo "<tr><td colspan=2 class=body align=center>";
-		echo "<input class=body type=submit name=action value=Update>";
-		echo "</td></tr>\n";
+		$block['contentLength'] = strlen($block['blockcontent']);
+		$block['editBox'] = editBoxStr($block['blockcontent'], "blockTxt_{$block['blockid']}", "block_{$block['blockid']}", 300, 700, $maxlengths['blockLength']);
+		$prefBlocks[ $block['blockid'] ] = $block;
 	}
+	$template->set('blocks', $prefBlocks);
 
+	if ($isAdmin && $uid != $userData['userid']) {
+		$template->set('displayAdmin', true);
+		$template->set('selectAbuseReason', make_select_list_key($abuselog->reasons));
+		$template->set('abuseJavaScript', "if(document.editbox.reportreason.selectedIndex==0 || document.editbox.reportsubject.value==''){alert('You must specify a reason.'); return false;}");
+	}
+	else
+		$template->set('displayAdmin', false);
 
-	echo "</form></table>";
-
-
-	incFooter();
+	$template->display();
 	exit;
 
 }
 
 
 function editForumDetails(){
-	global $userData, $uid, $db, $profiledb, $locations, $profile, $maxlengths, $forums, $isAdmin, $abuselog;
+	global $userData, $uid, $usersdb, $forums, $locations, $profile, $maxlengths, $forums, $isAdmin, $abuselog;
 
 
-	$db->prepare_query("SELECT forumrank, posts, premiumexpiry FROM users WHERE userid = #", $uid);
-	$user = $db->fetchrow();
+	$res = $usersdb->prepare_query("SELECT forumrank, posts, premiumexpiry FROM users WHERE userid = %", $uid);
+	$user = $res->fetchrow();
 
-	$profiledb->prepare_query($uid, "SELECT enablesignature, nsigniture, signiture FROM profile WHERE userid = #", $uid);
-	$user += $profiledb->fetchrow();
+	$res = $usersdb->prepare_query("SELECT enablesignature, nsigniture, signiture FROM profile WHERE userid = %", $uid);
+	$user += $res->fetchrow();
 
+	$template = new template('profiles/manageprofile/editForumDetails');
 
-	if($user['premiumexpiry'] > time()){
-		$db->prepare_query("SELECT forumrank FROM forumrankspending WHERE userid = #", $uid);
-
-		$forumrank = "";
-		if($db->numrows())
-			$forumrank = $db->fetchfield();
-	}
-
-	incHeader();
-
-?>
-<script>
+	$template->set('jsSetLength', "<script>
 function setLength(field, maxlimit, output) {
 	if(field.value.length > maxlimit)
 		field.value = field.value.substring(0, maxlimit);
-	putinnerHTML(output, "Length: " + field.value.length + " / " + maxlimit );
+	putinnerHTML(output, \"Length: \" + field.value.length + \" / \" + maxlimit );
 }
-</script>
-<?
+</script>");
+	$template->set('uidGetString', ($uid != $userData['userid'] ? "&uid=$uid" : ""));
+	$template->set('uid', $uid);
+	$template->set('user', $user);
+	$template->set('userData', $userData);
+	$template->set('isAdmin', $isAdmin);
+	$template->set('checkEnableSignature', makeCheckBox("enablesignature", "Enable Signature", $user['enablesignature'] == 'y'));
+	$template->set('allowedSignature', ($user['enablesignature'] == 'y' || $isAdmin));
+	$template->set('maxlengths', $maxlengths);
+	$template->set('signitureLength', strlen($user['signiture']));
 
-	echo "<table align=center width=750><form method=post action=$_SERVER[PHP_SELF]>\n";
+	$maxwidth =600;
+	$maxheight=200;
+	$maxsize = "200 KB";
 
-	if($uid != $userData['userid'])
-		echo "<input type=hidden name=uid value=$uid>";
-
-	echo "<input type=hidden name=section value=forums>";
-
-
-	echo "<tr><td class=body colspan=2>";
-	echo "<a class=body href=$_SERVER[PHP_SELF]?section=basics" . ($uid != $userData['userid'] ? "&uid=$uid" : "") . "><b>Basics</b></a> | ";
-	echo "<a class=body href=$_SERVER[PHP_SELF]?section=details" . ($uid != $userData['userid'] ? "&uid=$uid" : "") . "><b>Details</b></a> | ";
-	if($uid == $userData['userid'])
-		echo "<a class=body href=$_SERVER[PHP_SELF]?section=interests" . ($uid != $userData['userid'] ? "&uid=$uid" : "") . "><b>Interests</b></a> | ";
-	echo "<b>Forums</b>";
-	echo "</td></tr>";
-
-	echo "<tr><td class=header colspan=2 align=center>Forum Signature</td></tr>";
-
-	if($isAdmin){
-		echo "<tr><td class=body colspan=2>" . makeCheckBox("enablesignature", "Enable Signature", $user['enablesignature'] == 'y') . "</td></tr>";
-	}
-	if($user['enablesignature'] == 'y' || $isAdmin){
-		$maxwidth =600;
-		$maxheight=200;
-
-		echo "<tr><td class=body>Forum Signature:</td><td class=body><div id=siglength>Length: " . strlen($user['signiture']) . " / $maxlengths[signiture]</div></tr>";
-		echo "<tr><td class=body colspan=2><textarea class=body cols=100 rows=8 name=data[signiture] style=\"width:100%\" onchange=\"setLength(this,$maxlengths[signiture],'siglength')\" onkeydown=\"setLength(this,$maxlengths[signiture],'siglength')\" onkeyup=\"setLength(this,$maxlengths[signiture],'siglength')\">$user[signiture]</textarea></td></tr>\n";
-
-		if($user['nsigniture']){
-			echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
-
-			echo "<tr><td class=body width=300>Signature Preview:</td><td class=body>Max size: $maxwidth x $maxheight px</td></tr>";
-			echo "<tr><td class=body colspan=2><div style=\"border: 1px solid #000000; padding: 2px; max-width:" . ($maxwidth+4) . "; max-height:" . ($maxheight+4) . "; overflow: auto; width:expression('" . ($maxwidth+4) . "px'); height:expression('" . ($maxheight+4) . "px')\">$user[nsigniture]</div></td></tr>";
-			echo "<tr><td class=body colspan=2>If the preview box scrolls, your signature is too big.</td></tr>";
-		}
-	}else
-		echo "<tr><td class=body colspan=2>Your Forum Signature has been disabled</td></tr>";
-
-	echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
-
-
-	if($user['premiumexpiry'] > time()){
-		echo "<tr><td class=header colspan=2 align=center>Forum Rank</td></tr>";
-
-		echo "<tr><td class=body>";
-
-		if($user['forumrank'] != "")
-			echo "<input type=radio name=forumrankchoice id=forumrankchoicecurrent value=current" . ($forumrank == "" ? " checked" : "" ) . "> <label for=forumrankchoicecurrent class=body>Keep your current:</label> $user[forumrank]<br>";
-		echo "<input type=radio name=forumrankchoice id=forumrankchoicedefault value=default" . ($user['forumrank'] == "" && $forumrank == "" ? " checked" : "" ) . "> <label for=forumrankchoicedefault class=body>Use the default:</label> " . $forums->forumrank($user['posts']) . "<br>";
-		echo "<input type=radio name=forumrankchoice id=forumrankchoicenew value=new" . ($forumrank != "" ? " checked" : "" ) . "> <label for=forumrankchoicenew class=body>New Forum Rank:</label> <input class=body type=text name=forumrank value=\"" . htmlentities($forumrank) . "\" maxlength=18></td></tr>";
-
-		echo "<tr><td class=body colspan=2>New Forum Ranks will be moderated, so may take a while to appear.<br>Excessive swearing, and impersonating a moderator or administrator will not be allowed";
-
-		echo "</td></tr>";
-	}
+	$template->set('maxwidth', $maxwidth);
+	$template->set('maxheight', $maxheight);
+	$template->set('maxPreviewWidth', ($maxwidth + 4));
+	$template->set('maxPreviewHeight', ($maxheight + 4));
+	$template->set('maxsize', $maxsize);
+	$template->set('forumRank', $forums->forumrank($user['posts']));
+	$template->set('time', time());
 
 	if($isAdmin && $uid != $userData['userid']){
-		echo "<tr><td colspan=2 class=header align=center>New Abuse Log Entry</td></tr>";
-		echo "<tr><td colspan=2 class=body align=center>";
-//		echo "<select class=body name=reportaction>" . make_select_list_key(array(0 => "Action", ABUSE_ACTION_PROFILE_EDIT => 'Profile Edit', ABUSE_ACTION_SIG_EDIT => 'Signature Edit')) . "</select>";
-		echo "<select class=body name=reportreason><option value=0>Reason" . make_select_list_key($abuselog->reasons) . "</select>";
-		echo "<input class=body type=text name=reportsubject size=45><br>";
-		echo "Removed Text:<br>";
-		echo "<textarea class=body name=reporttext cols=70 rows=8></textarea><br>";
+		$template->set('displayAdmin', true);
+		
+		$reminders = $forums->mutelength;
+		unset($reminders[0]);
 
-		echo "<input class=body type=submit name=action value=Update onClick=\"if(document.editbox.reportreason.selectedIndex==0 || document.editbox.reportsubject.value==''){alert('You must specify a reason.'); return false;}\">";
-		echo "</td></tr>\n";
-	}else{
-		echo "<tr><td colspan=2 class=body align=center>";
-		echo "<input class=body type=submit name=action value=Update>";
-		echo "</td></tr>\n";
+		$template->set('selectReminder', make_select_list_key($reminders));
+		$template->set('selectAbuseReason', make_select_list_key($abuselog->reasons));
+		$template->set('abuseJavaScript', "if(document.editbox.reportreason.selectedIndex==0 || document.editbox.reportsubject.value==''){alert('You must specify a reason.'); return false;}");
+	} else {
+		$template->set('displayAdmin', false);
 	}
-
-	echo "</form></table>";
-
-	incFooter();
+	$template->display();
 	exit;
 }
 
 
 function editInterests(){
-	global $userData, $uid, $db, $interests, $isAdmin, $config;
+	global $userData, $uid, $usersdb, $interests, $isAdmin, $config;
 
-	$db->prepare_query("SELECT interestid FROM userinterests WHERE userid = #", $uid);
+	$res = $usersdb->prepare_query("SELECT interestid FROM userinterests WHERE userid = %", $uid);
 
 	$userinterests = array();
-	while($line = $db->fetchrow())
+	while($line = $res->fetchrow())
 		$userinterests[$line['interestid']] = $line['interestid'];
-
-	incHeader();
-
 
 	$cols = 5;
 
-	echo "<table align=center width=750><form method=post action=$_SERVER[PHP_SELF]>\n";
-
-	if($uid != $userData['userid'])
-		echo "<input type=hidden name=uid value=$uid>";
-
-	echo "<input type=hidden name=section value=interests>";
-	echo "<input type=hidden name=check[0] value=1>";
-
-	echo "<tr><td class=body colspan=$cols>";
-	echo "<a class=body href=$_SERVER[PHP_SELF]?section=basics" . ($uid != $userData['userid'] ? "&uid=$uid" : "") . "><b>Basics</b></a> | ";
-	echo "<a class=body href=$_SERVER[PHP_SELF]?section=details" . ($uid != $userData['userid'] ? "&uid=$uid" : "") . "><b>Details</b></a> | ";
-	if($uid == $userData['userid'])
-		echo "<b>Interests</b> | ";
-	echo "<a class=body href=$_SERVER[PHP_SELF]?section=forums" . ($uid != $userData['userid'] ? "&uid=$uid" : "") . "><b>Forums</b></a>";
-	echo "</td></tr>";
-
-
-//	echo "<tr><td class=header colspan=$cols align=center>Interests</td></tr>\n";
-
-
-/*
-//single column tree
-
-	$branch = $interests->makebranch();
-
-
-	foreach($branch as $item){
-
-		echo "<tr><td class=body>";
-		echo str_repeat('&nbsp; &nbsp; &nbsp; ', ($item['depth']-1));
-		echo makeCheckBox("check[$item[id]]", $item['name'], isset($userinterests[$item['id']]));
-//		print_r($item);
-		echo "</td></tr>";
-	}
-//*/
-
-
-/*
-//full width, 5 columns, alphabetical across rows
-
-	$branch = $interests->makebranch();
-
-	$i = 0;
-	$first = true;
-
-	foreach($branch as $item){
-		if($item['depth'] == 1){
-			if($i > 0)
-				echo "</tr>\n";
-
-			if(!$first){
-				echo "<tr><td class=body colspan=$cols>&nbsp;</td></tr>\n";
-				$first = false;
-			}
-
-			echo "<tr><td class=header colspan=$cols align=center>$item[name]</td></tr>\n";
-			$i = 0;
-			continue;
-		}
-
-		if($i == 0)
-			echo "<tr>";
-
-		echo "<td class=body>";
-		echo makeCheckBox("check[$item[id]]", $item['name'], isset($userinterests[$item['id']]));
-		echo "</td>";
-
-		$i++;
-
-		if($i == $cols){
-			echo "</tr>\n";
-			$i = 0;
-		}
-
-
-	}
-	if($i > 0)
-		echo "</tr>\n";
-
-//*/
-
-
-
-
-//*
-//alphabetical down columns, full columns, minimum columns needed
-	$first = true;
-
 	$cats = $interests->makebranch(0,1); //only main categories
 
+	$index = -1;
 	foreach($cats as $item){
-		if(!$first)
-			echo "<tr><td class=body colspan=$cols>&nbsp;</td></tr>\n";
+		$index++;
 		$first = false;
 
-		echo "<tr><td class=header colspan=$cols align=center>$item[name]</td></tr>\n";
 		$i = 0;
 
 		$subcats = $interests->makebranch($item['id'],1); //only main categories
@@ -774,6 +610,7 @@ function editInterests(){
 		$rows = ceil($n/$cols);
 		$total = $rows * $cols;
 
+		ob_start();
 		for($i = 0; $i < $total; $i++){
 			$col = $i%$cols;
 			$row = floor($i/$cols);
@@ -796,24 +633,19 @@ function editInterests(){
 		}
 		if($i > 0)
 			echo "</tr>\n";
+		$checkList[$index] = ob_get_contents();
+		ob_end_clean();
 	}
 
 //*/
-
-	if($uid == $userData['userid']){
-		echo "<tr><td colspan=$cols class=body align=center>";
-		echo "<input class=body type=submit name=action value=Update>";
-		echo "</td></tr>\n";
-	}
-
-
-
-
-
-	echo "</form></table>";
-
-
-	incFooter();
+	$template = new template('profiles/manageprofile/editInterests');
+	$template->set('uidGetString', ($uid != $userData['userid'] ? "&uid=$uid" : ""));
+	$template->set('uid', $uid);
+	$template->set('userData', $userData);
+	$template->set('cols', $cols);
+	$template->set('cats', $cats);
+	$template->set('checkList', $checkList);
+	$template->display();
 	exit;
 }
 

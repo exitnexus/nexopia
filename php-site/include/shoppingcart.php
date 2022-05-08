@@ -1,22 +1,22 @@
 <?
-
+//*
 class shoppingcart{
 
-	var $db;
-/*
-tables:
- -productcats
- -productinputchoices
- -productpics
- -productprices
- -products
- -producttext
- -shoppingcart
- -invoice
- -invoiceitems
-*/
+	public $db;
 
-	var $paymentmethods = array(
+//tables:
+// -productcats
+// -productinputchoices
+// -productpics
+// -productprices
+// -products
+// -producttext
+// -shoppingcart
+// -invoice
+// -invoiceitems
+
+
+	public $paymentmethods = array(
 								'debit' => "Debit",
 								'cash' => "Cash",
 								'cheque' => "Cheque",
@@ -24,11 +24,12 @@ tables:
 								'moneyorder' => "Money Order",
 								'paypal' => "Paypal",
 								'visa' => "Visa",
+								'bp' => "Billing People",
 								'payg' => "Voucher",
 								'emailmoneytransfer' => "EMT",
 								);
 
-	var $paymentcontacts = array(
+	public $paymentcontacts = array(
 									"Petra",
 									"Mail",
 									"Blue Shift Gaming",
@@ -37,9 +38,10 @@ tables:
 									"Melina",
 									"Timo",
 									"Melissa",
+									"Automatic",
 									);
 
-	function shoppingcart( & $db ){
+	function __construct( & $db ){
 		$this->db = & $db;
 	}
 
@@ -55,9 +57,9 @@ tables:
 	function deletecat($id){
 		global $msgs;
 
-		$this->db->prepare_query("SELECT id FROM products WHERE category = ?", $id);
+		$res = $this->db->prepare_query("SELECT id FROM products WHERE category = ?", $id);
 
-		if($this->db->numrows()){
+		if($res->fetchrow()){
 			$msgs->addMsg("This category is not empty");
 			return false;
 		}
@@ -94,17 +96,17 @@ tables:
 	}
 
 	function moveupproduct($id){
-		$this->db->prepare_query("SELECT category FROM products WHERE id = #", $id);
+		$res = $this->db->prepare_query("SELECT category FROM products WHERE id = #", $id);
 
-		$cat = $this->db->fetchfield();
+		$cat = $res->fetchfield();
 
 		increasepriority($this->db, $id, "products", $this->db->prepare("category = #", $cat));
 	}
 
 	function movedownproduct($id){
-		$this->db->prepare_query("SELECT category FROM products WHERE id = #", $id);
+		$res = $this->db->prepare_query("SELECT category FROM products WHERE id = #", $id);
 
-		$cat = $this->db->fetchfield();
+		$cat = $res->fetchfield();
 
 		decreasepriority($this->db, $id, "products", $this->db->prepare("category = #", $cat));
 	}
@@ -113,8 +115,8 @@ tables:
 	function addtoCart($id, $quantity, $input){
 		global $userData, $msgs;
 
-		$this->db->prepare_query("SELECT unitprice, bulkpricing, input, validinput FROM products WHERE id = #", $id);
-		$line = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT unitprice, bulkpricing, input, validinput FROM products WHERE id = #", $id);
+		$line = $res->fetchrow();
 
 
 
@@ -126,10 +128,11 @@ tables:
 		$price = $line['unitprice'];
 
 		if($line['bulkpricing'] == 'y' && $quantity > 1){
-			$this->db->prepare_query("SELECT price FROM productprices WHERE productid = # && minimum <= # ORDER BY minimum DESC LIMIT 1", $id, $quantity);
+			$res = $this->db->prepare_query("SELECT price FROM productprices WHERE productid = # && minimum <= # ORDER BY minimum DESC LIMIT 1", $id, $quantity);
+			$product = $res->fetchrow();
 
-			if($this->db->numrows())
-				$price = $this->db->fetchfield();
+			if($product)
+				$price = $product['price'];
 		}
 
 		$this->db->prepare_query("INSERT INTO shoppingcart SET userid = #, productid = #, quantity = #, price = ?, input = ?", $userData['userid'], $id, $quantity, $price, $input);
@@ -142,16 +145,16 @@ tables:
 
 		$this->db->query("LOCK TABLES shoppingcart WRITE, invoice WRITE, invoiceitems WRITE");
 
-		$this->db->prepare_query("SELECT count(*) as count, SUM(ROUND(price*quantity,2)) as total FROM shoppingcart WHERE userid = #", $userData['userid']);
+		$res = $this->db->prepare_query("SELECT count(*) as count, SUM(ROUND(price*quantity,2)) as total FROM shoppingcart WHERE userid = #", $userData['userid']);
 
-		$line = $this->db->fetchrow();
+		$line = $res->fetchrow();
 
 		if($line['count'] == 0){
 			$this->db->query("UNLOCK TABLES");
 			return false;
 		}
 
-		$this->db->prepare_query("INSERT INTO invoice SET userid = #, username = ?, creationdate = #, total = ?", $userData['userid'], $userData['username'], time(), $line['total']);
+		$this->db->prepare_query("INSERT INTO invoice SET userid = #, creationdate = #, total = ?", $userData['userid'], time(), $line['total']);
 
 		$invoiceid = $this->db->insertid();
 
@@ -167,8 +170,8 @@ tables:
 //invoice
 
 	function updateInvoice($id, $method, $contact, $amount, $txnid, $completed){
-		$this->db->prepare_query("UPDATE invoice SET txnid = ?, paymentdate = #, paymentmethod = ?, paymentcontact = ?, amountpaid = ? WHERE id = #",
-			$txnid, time(), $method, $contact, $amount, $id);
+		$this->db->prepare_query("UPDATE invoice SET txnid = ?, paymentmethod = ?, paymentcontact = ?, amountpaid = ? WHERE id = #",
+			$txnid, $method, $contact, $amount, $id);
 
 		$output = "";
 
@@ -182,16 +185,16 @@ tables:
 
 		$this->db->query("LOCK TABLES invoice WRITE");
 
-		$this->db->prepare_query("SELECT completed FROM invoice WHERE id = #", $id);
+		$res = $this->db->prepare_query("SELECT userid, completed FROM invoice WHERE id = #", $id);
 
-		$line = $this->db->fetchrow();
+		$invoice = $res->fetchrow();
 
-		if($line['completed'] == 'y'){
+		if($invoice['completed'] == 'y'){
 			$this->db->query("UNLOCK TABLES");
 			return "Already complete";
 		}
 
-		$this->db->prepare_query("UPDATE invoice SET completed = 'y' WHERE id = #", $id);
+		$this->db->prepare_query("UPDATE invoice SET completed = 'y', paymentdate = # WHERE id = #", time(), $id);
 
 		$this->db->query("UNLOCK TABLES");
 
@@ -199,11 +202,34 @@ tables:
 
 		$output = "";
 
-		while($line = $this->db->fetchrow($result))
+		while($line = $result->fetchrow())
 			if(!empty($line['callback']))
-				$output .= $line['callback']($line['input'], $line['quantity']) . "\n"; //do callbacks
+				$output .= $line['callback'](array(	'input' => $line['input'],
+													'quantity' => $line['quantity'],
+													'buyer' => $invoice['userid'],
+													'invoice' => $id,
+												)
+											) . "\n"; //do callbacks
 
 		return $output . "Completed";
 	}
 }
+/*/
+class ShoppingCart {
+	private $id;
+	
+	function __construct($id=0) {
+		$this->id = $id;
+	}
+	
+	function getID() {
+		return $this->id;
+	}
+	
+	//return a decimal representation of the total
+	function getTotal() {
+		return 0;
+	}
+}
 
+//*/

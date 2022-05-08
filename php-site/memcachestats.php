@@ -3,7 +3,7 @@
 	$login=1;
 	require_once("include/general.lib.php");
 
-	if($userData['userid']!=5 && $userData['userid']!=1)
+	if(!in_array($userData['userid'], $debuginfousers))
 		die("error");
 
 
@@ -59,26 +59,26 @@ function dumpStats($name, $stats){
 				$total[$k] += $num;
 
 		echo "<tr>";
-		echo "<td class=header>$ip</td>";
-		echo "<td class=body align=right>" . ($stat['uptime'] < 86400 ? number_format($stat['uptime']/3600, 2) . " hours" : number_format($stat['uptime']/86400, 2) . " days" ) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['curr_items']) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['bytes']/(1024*1024), 2) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['limit_maxbytes']/(1024*1024)) . " MB</td>";
-		echo "<td class=body align=right>" . number_format(100*$stat['bytes']/$stat['limit_maxbytes'], 2) . "%</td>";
-		echo "<td class=body align=right>" . number_format($stat['bytes_read']/(1024*1024), 2) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['bytes_read']/(1024*$stat['uptime']), 2) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['bytes_written']/(1024*1024), 2) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['bytes_written']/(1024*$stat['uptime']), 2) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['curr_connections']) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['total_connections']) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['total_connections']/$stat['uptime'], 2) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['cmd_get']) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['get_misses']) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['cmd_get']/$stat['uptime'], 2) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['cmd_set']) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['cmd_set']/$stat['uptime'], 2) . "</td>";
-		echo "<td class=body align=right>" . number_format($stat['cmd_get']/$stat['cmd_set'], 2) . "</td>";
-		echo "<td class=body align=right>" . number_format(100*(1 - $stat['get_misses']/$stat['cmd_get']), 2) . " %</td>";
+		echo "<td class=header nowrap>$ip</td>";
+		echo "<td class=body align=right nowrap>" . ($stat['uptime'] < 86400 ? number_format($stat['uptime']/3600, 2) . " hours" : number_format($stat['uptime']/86400, 2) . " days" ) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['curr_items']) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['bytes']/(1024*1024), 2) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['limit_maxbytes']/(1024*1024)) . " MB</td>";
+		echo "<td class=body align=right nowrap>" . number_format(100*$stat['bytes']/$stat['limit_maxbytes'], 2) . "%</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['bytes_read']/(1024*1024), 2) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['bytes_read']/(1024*$stat['uptime']), 2) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['bytes_written']/(1024*1024), 2) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['bytes_written']/(1024*$stat['uptime']), 2) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['curr_connections']) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['total_connections']) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['total_connections']/$stat['uptime'], 2) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['cmd_get']) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['get_misses']) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['cmd_get']/$stat['uptime'], 2) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['cmd_set']) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['cmd_set']/$stat['uptime'], 2) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format($stat['cmd_get']/$stat['cmd_set'], 2) . "</td>";
+		echo "<td class=body align=right nowrap>" . number_format(100*(1 - $stat['get_misses']/$stat['cmd_get']), 2) . " %</td>";
 		echo "</tr>";
 	}
 
@@ -87,7 +87,7 @@ function dumpStats($name, $stats){
 	echo "<td class=header align=right></td>";
 	echo "<td class=header align=right>" . number_format($total['curr_items']) . "</td>";
 	echo "<td class=header align=right>" . number_format($total['bytes']/(1024*1024), 2) . "</td>";
-	echo "<td class=header align=right>" . number_format($total['limit_maxbytes']/(1024*1024)) . " MB</td>";
+	echo "<td class=header align=right nowrap>" . number_format($total['limit_maxbytes']/(1024*1024)) . " MB</td>";
 	echo "<td class=header align=right></td>";
 	echo "<td class=header align=right>" . number_format($total['bytes_read']/(1024*1024), 2) . "</td>";
 	echo "<td class=header align=right>" . number_format($total['bytes_read']*$n/(1024*$total['uptime']), 2) . "</td>";

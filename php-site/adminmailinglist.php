@@ -12,9 +12,9 @@ die("disabled");
 	switch($action){
 		case "Send":
 			$query = "SELECT username,email FROM users";
-			$result = $db->query($query);
+			$res = $db->query($query);
 
-			while($data = $db->fetchrow($result)){
+			while($data = $res->fetchrow()){
 				smtpmail("$data[email]", $subject, $message, "From: $config[title] <no-reply@$emaildomain>") or die("Error sending email");
 			}
 

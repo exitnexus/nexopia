@@ -24,7 +24,7 @@
 function createFAQ(){
 	global $mods;
 
-	$categories = & new category( $db, 'faqcats');
+	$categories = new category( $db, 'faqcats');
 
 	$branch = $categories->makeBranch();
 
@@ -50,7 +50,7 @@ function insertFAQ($title,$text,$category){
 
 	$id = $db->insertid();
 
-	$cache->remove(array($category, "faqquestions-$category"));
+	$cache->remove("faqquestions-$category");
 
 	$mods->adminlog('insert faq',"insert faq $id");
 
@@ -64,17 +64,18 @@ function deleteFAQ($id){
 
 	$mods->adminlog('delete faq',"delete faq $id");
 
-	$db->prepare_query("SELECT parent FROM faq WHERE id = ?", $id);
+	$res = $db->prepare_query("SELECT parent FROM faq WHERE id = #", $id);
 
-	if(!$db->numrows())
+	$row = $res->fetchfield();
+	if(!$row)
 		return false;
 
-	$category = $db->fetchfield();
+	$category = $row['parent'];
 
 	$db->prepare_query("DELETE FROM faq WHERE id = ?", $id);
 
-	$cache->remove(array($category, "faqquestions-$category"));
-	$cache->remove(array($id, "faqans-$id"));
+	$cache->remove("faqquestions-$category");
+	$cache->remove("faqans-$id");
 
 	$msgs->addMsg("Message Deleted");
 }
@@ -86,11 +87,11 @@ function editFAQ($id){
 
 	$mods->adminlog('edit faq',"edit faq $id");
 
-	$categories = & new category( $db, 'faqcats');
+	$categories = new category( $db, 'faqcats');
 	$branch = $categories->makeBranch();
 
-	$query = $db->prepare_query("SELECT title,text,parent FROM faq WHERE id = ?", $id);
-	$line = $db->fetchrow();
+	$res = $db->prepare_query("SELECT title,text,parent FROM faq WHERE id = ?", $id);
+	$line = $res->fetchrow();
 
 	incHeader();
 
@@ -113,8 +114,8 @@ function updateFAQ($id,$title,$text,$category){
 
 	$mods->adminlog('update faq',"update faq $id");
 
-	$cache->remove(array($category, "faqquestions-$category"));
-	$cache->remove(array($id, "faqans-$id"));
+	$cache->remove("faqquestions-$category");
+	$cache->remove("faqans-$id");
 
 	$db->prepare_query("UPDATE faq SET title = ?, text = ?, parent = ? WHERE id = ?", $title, $text, $category, $id);
 
@@ -128,7 +129,7 @@ function listFAQ(){
 
 	$mods->adminlog('list faq',"List FAQ");
 
-	$categories = & new category( $db, 'faqcats');
+	$categories = new category( $db, 'faqcats');
 
 	$branch = $categories->makeBranch();
 
@@ -161,7 +162,7 @@ function listFAQ(){
 			echo "</td>";
 			echo "<td class=body>$line[priority]</td>";
 			echo "<td class=body>" . str_repeat("- ", $category['depth']);
-			echo "<a class=body href=faq.php?cat=$category[id]&q=$line[id]>";
+			echo "<a class=body href=/faq.php?cat=$category[id]&q=$line[id]>";
 			echo substr($line['title'],0,100);
 			echo "</a>";
 			echo "</td>\n";

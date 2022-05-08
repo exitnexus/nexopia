@@ -35,6 +35,337 @@ exit;
 ///////////// Old Stuff //////////////////
 /////////////////////////////////////////
 
+//generate a whole bunch of batches for printing, output them all in csv format
+	$batches = array(
+						array( 'numbatches' => 150, 'value' => 5, 'batchsize' => 30),
+						array( 'numbatches' => 60, 'value' => 20, 'batchsize' => 10),
+						array( 'numbatches' => 60, 'value' => 30, 'batchsize' => 5),
+					);
+
+	$batcheids = array();
+
+	foreach($batches as $batch){
+		for($i = 0; $i < $batch['numbatches']; $i++){
+			$batchid = $payg->generateBatch($batch['batchsize'], $batch['value']);
+
+			$batcheids[] = $batchid;
+		}
+	}
+
+	$payg->db->prepare_query("SELECT id, value, batchid, secret FROM paygcards WHERE batchid IN (#) ORDER BY batchid, id", $batcheids);
+
+	$cards = $payg->db->fetchrowset();
+
+	$output = "";
+
+	foreach($cards as $card)
+		$output .= "$card[value],$card[batchid]-$card[id],$card[secret]\r\n";
+
+	echo "<pre>$output</pre>";
+
+
+
+//track the number of messages that were sent in a mass message
+	$msgsdb->query("SELECT userid FROM msgs WHERE date > 1138218000 && fromname = 'BirthdayTour' && subject = 'Nexopia Birthday Tour - This Weekend: Edmonton'");
+
+	echo "num: " . $msgsdb->numrows() . "<br>\n";
+
+	while($line = $msgsdb->fetchrow())
+		echo "$line[userid]<br>\n";
+
+
+//random queries used to update the plus and the forums
+	$shopdb->query("UPDATE products SET callback = 'plusCallback' WHERE id = 1");
+
+	$db->query("INSERT INTO pluslog (id, userid, time, duration) SELECT id, userid, time, duration FROM premiumlog ORDER BY id");
+
+
+
+	$forumdb->prepare_query("SELECT id, categoryid FROM forums WHERE official = 'y'");
+
+	while($line = $forumdb->fetchrow())
+		echo "UPDATE forums SET categoryid = $line[categoryid] WHERE id = $line[id] && official = 'y';<br>\n";
+
+
+// SELECT id, 5 AS ownerid, 1 AS priority, 'n' AS official, name FROM forums WHERE categoryid = 0 AND official = 'y';
+
+	// move official forums with parent = 0 to category table
+	$forums->db->query("INSERT INTO forumcats SELECT id, ownerid, priority, 'n' AS official, name FROM forums WHERE parent = 0 AND official = 'y'");
+	$forums->db->query("UPDATE forumcats SET official = 'y' WHERE id = 31");
+	$forums->db->query("DELETE FROM forums WHERE parent = 0 AND official = 'y'");
+	// alter parentid INT to categoryid TINYINT, remove priority column from forums
+	$forums->db->query("ALTER TABLE forums CHANGE parent categoryid INT(10) UNSIGNED NOT NULL DEFAULT '0', DROP COLUMN priority");
+	// add unofficial column to forums table, set inverted to official
+	$forums->db->query("ALTER TABLE forums ADD COLUMN unofficial ENUM('y', 'n') NOT NULL DEFAULT 'y'");
+	$forums->db->query("UPDATE forums SET unofficial = 'y' WHERE official = 'n'");
+	$forums->db->query("UPDATE forums SET unofficial = 'n' WHERE official = 'y'");
+	// add by* keys to forums table
+	$forums->db->query("ALTER TABLE forums ADD INDEX bytime (public,categoryid,unofficial,time,id), ADD INDEX byname (public,categoryid,official,name,id), ADD INDEX byposts (public,categoryid,unofficial,posts,id)");
+	// add enum options for editablility based on time.
+	$forums->db->query("ALTER TABLE `forums` CHANGE `edit` `edit` ENUM( 'n', 'y', '5', '15', '60' ) NOT NULL DEFAULT 'n'");
+	// add categoryid to the foruminvite table
+	$forums->db->query("ALTER TABLE foruminvite ADD COLUMN categoryid INT(10) UNSIGNED NOT NULL DEFAULT '0'");
+
+	$db->query("ALTER TABLE `users` ADD `orderforumsby` ENUM( 'mostactive', 'mostrecent', 'alphabetic' ) DEFAULT 'mostactive' NOT NULL AFTER `onlysubscribedforums`");
+
+
+
+
+
+//benchmark the different memcache libs at get and get_multi
+
+include_once("include/peclmemcached-client.php");
+	$peclmemcache = new peclmemcached($memcacheoptions);
+
+	$pecl = new Memcache;
+	$pecl->connect("10.0.2.5", "11211");
+
+
+# $cache - wrapper around $memcache/$peclmemcache
+# $memcache - php memcache client
+# $peclmemcache - php wrapper around $pecl
+# $pecl - pecl object
+
+
+
+	$num = 1000;
+	$n = 10;
+	$key = "asdf";
+	$vallength = 100;
+
+	$val = str_repeat("1", $vallength);
+
+	$cache->put(array(1, $key), $val, 60);
+
+	$cache->get(array(1, $key));
+	$memcache->get(array(1, $key));
+	$peclmemcache->get(array(1, $key));
+	$pecl->get($key);
+
+	$time1 = gettime();
+
+	for($i = 0; $i < $num; $i++)	$cache->get($key);//array(1, $key));
+
+	$time2 = gettime();
+
+	for($i = 0; $i < $num; $i++)	$memcache->get($key);//array(1, $key));
+
+	$time3 = gettime();
+
+	for($i = 0; $i < $num; $i++)	$peclmemcache->get($key);//array(1, $key));
+
+	$time4 = gettime();
+
+	for($i = 0; $i < $num; $i++)	$pecl->get($key);
+
+	$time5 = gettime();
+
+	echo "<br>single:<br>";
+	echo "cache: " . number_format(($time2 - $time1)/10, 3) . "<br>";
+	echo "memcache: " . number_format(($time3 - $time2)/10, 3) . "<br>";
+	echo "peclcache: " . number_format(($time4 - $time3)/10, 3) . "<br>";
+	echo "pecl: " . number_format(($time5 - $time4)/10, 3) . "<br>";
+
+
+	$keys = array();
+	$keys2 = array();
+
+	$val = str_repeat("1", $vallength/$n);
+
+	for($i = 0; $i < $n; $i++){
+		$k = "$key-$i";
+		$cache->put(array(1, $k), $val, 60);
+		$keys[] = array(1, $k);
+		$keys2[] = $k;
+	}
+
+//$num /= $n;
+
+	$time1 = gettime();
+
+	for($i = 0; $i < $num; $i++)	$cache->get_multi($keys2);
+
+	$time2 = gettime();
+
+	for($i = 0; $i < $num; $i++)	$memcache->get_multi($keys2);
+
+	$time3 = gettime();
+
+	for($i = 0; $i < $num; $i++)	$peclmemcache->get_multi($keys2);
+
+	$time4 = gettime();
+
+	for($i = 0; $i < $num; $i++)	$pecl->get($keys2);
+
+	$time5 = gettime();
+	echo "<br>multi:<br>";
+	echo "cache: " . number_format(($time2 - $time1)/10, 3) . "<br>";
+	echo "memcache: " . number_format(($time3 - $time2)/10, 3) . "<br>";
+	echo "peclcache: " . number_format(($time4 - $time3)/10, 3) . "<br>";
+	echo "pecl: " . number_format(($time5 - $time4)/10, 3) . "<br>";
+
+
+
+//convert from single db to hash balanced db
+	$tables = array("iplog" => "ip", "loginlog" => "userid", "userhitlog" => "userid");
+
+	foreach($tables as $table => $keycol){
+
+		$result = $logdb->query("SHOW CREATE TABLE `$table`");
+		$create = $logdb->fetchfield(1,0,$result);
+
+		$newlogdb->query(false, $create);
+
+		$logdb->unbuffered_query("SELECT * FROM $table");
+
+		while($line = $logdb->fetchrow()){
+			$query = "INSERT INTO $table SET ";
+
+			$parts = array();
+			foreach($line as $k => $v)
+				$parts[] = $newlogdb->prepare("$k = ?", $v);
+
+			$query .= implode(", ", $parts);
+
+			$newlogdb->query($line[$keycol], $query);
+		}
+	}
+
+//get table list
+	$tables = array();
+
+	$names = array_keys($dbs);
+
+	foreach($names as $dbname){
+		$tableresult = $dbs[$dbname]->listtables();
+
+		while(list($tname) = $dbs[$dbname]->fetchrow($tableresult, DB_NUM)){
+			$result = $dbs[$dbname]->query("SHOW CREATE TABLE `$tname`");
+			$output = $dbs[$dbname]->fetchfield(1,0,$result);
+
+			$tables["$dbname.$tname"] = "-- $dbname.$tname\n$output";
+		}
+	}
+
+	ksort($tables);
+
+	echo "<pre>";
+	echo implode("\n\n--------------------------------------------------------\n\n", $tables);
+	echo "</pre>";
+
+
+//convert tables to MyISAM
+	foreach($dbs as $dbname => $optdb){
+		$tableresult = $dbs[$dbname]->listtables();
+
+		while(list($tname) = $dbs[$dbname]->fetchrow($tableresult, DB_NUM)){
+
+			echo "$dbname.$tname";
+
+			$result = $dbs[$dbname]->query("SHOW CREATE TABLE `$tname`");
+			$output = $dbs[$dbname]->fetchfield(1,0,$result);
+
+			if(strpos($output, "InnoDB") !== 0){
+				echo " ... converting ... "; zipflush();
+
+				$dbs[$dbname]->query("ALTER TABLE `$tname` TYPE = MyISAM");
+
+				echo "Done";
+			}
+
+			echo "<br>\n"; zipflush();
+		}
+	}
+
+
+//convert from old to new message database format
+
+	//get my messages
+	INSERT INTO msgsold.msgs SELECT * FROM nexopia3.msgs WHERE nexopia3.msgs.userid = 1;
+	//get message headers
+	INSERT INTO msgsold.msgheader SELECT nexopia3.msgheader.* FROM nexopia3.msgs, nexopia3.msgheader WHERE nexopia3.msgs.msgheaderid = nexopia3.msgheader.id && nexopia3.msgs.userid = 1;
+	//get other side of my messages
+	INSERT INTO msgsold.msgs
+		SELECT
+				othermsgs.*
+			FROM
+				nexopia3.msgs,
+				nexopia3.msgheader,
+				nexopia3.msgs as othermsgs
+			WHERE
+				nexopia3.msgs.userid = 1 &&
+				nexopia3.msgs.msgheaderid = nexopia3.msgheader.id &&
+				othermsgs.msgheaderid = nexopia3.msgheader.id &&
+				othermsgs.userid != 1;
+
+
+
+	UPDATE msgsold.msgheader SET id1 = 0, id2 = 0, reply1 = 0, reply2 = 0;
+	TRUNCATE TABLE msgsnew.msgs;
+
+	ALTER TABLE `msgsold.msgheader`
+		ADD `id1` INT UNSIGNED NOT NULL ,
+		ADD `id2` INT UNSIGNED NOT NULL ,
+		ADD `reply1` INT UNSIGNED NOT NULL ,
+		ADD `reply2` INT UNSIGNED NOT NULL ;
+
+
+	ALTER TABLE `msgtext`
+		ADD `date` INT NOT NULL AFTER `id` ,
+		ADD `compressed` ENUM( 'n', 'y' ) NOT NULL AFTER `date` ,
+		ADD `html` ENUM( 'n', 'y' ) NOT NULL AFTER `compressed` ,
+		ADD INDEX ( `date` ) ,
+		MAX_ROWS=4294967295 AVG_ROW_LENGTH=50;
+
+
+
+	UPDATE msgsold.msgheader, msgsold.msgs
+		SET msgsold.msgheader.id1 = msgsold.msgs.id
+		WHERE msgsold.msgs.msgheaderid = msgsold.msgheader.id && userid = `to`;
+
+	UPDATE msgsold.msgheader, msgsold.msgs
+		SET msgsold.msgheader.id2 = msgsold.msgs.id
+		WHERE msgsold.msgs.msgheaderid = msgsold.msgheader.id && userid = `from`;
+
+
+
+
+	UPDATE	msgsold.msgheader as msgheader,
+			msgsold.msgheader as replyheader,
+			msgsold.msgs as msgs
+		SET msgheader.reply1 = msgs.id
+		WHERE
+			msgheader.replyto = replyheader.id &&
+			replyheader.id = msgs.msgheaderid &&
+			replyheader.`to` = msgs.userid;
+
+	UPDATE	msgsold.msgheader as msgheader,
+			msgsold.msgheader as replyheader,
+			msgsold.msgs as msgs
+		SET msgheader.reply2 = msgs.id
+		WHERE
+			msgheader.replyto = replyheader.id &&
+			replyheader.id = msgs.msgheaderid &&
+			replyheader.`from` = msgs.userid;
+
+
+
+
+
+	INSERT INTO msgsnew.msgs (id, userid, folder, otheruserid , `to`, toname, `from`, fromname, date, subject, msgtextid, status, othermsgid, replyto)
+		SELECT msgsold.msgs.id, userid, folder, other, `to`, toname, `from`, fromname, date, subject, msgtextid,
+			IF(replied = 'y', 'replied', IF(new = 'y', 'new', 'read')),
+			IF(userid = `to`, id2, id1),
+			IF(userid = `to`, reply2, reply1)
+		FROM msgsold.msgs, msgsold.msgheader
+		WHERE msgsold.msgs.msgheaderid = msgsold.msgheader.id;
+
+
+	$db->prepare_query("UPDATE msgtext SET date = #, html = 'n', compressed = 'n'", time());
+
+
+
+
 //get table list
 	$tables = array();
 
@@ -805,7 +1136,7 @@ form { display: inline; margin: 0; }
 
 
 	for($i = 0; $i < $con; $i++)
-		$bench[$i] = & new bannerclient( $bannerdb, BANNER_ADDR . ":" . BANNER_PORT );
+		$bench[$i] = new bannerclient( $bannerdb, BANNER_ADDR . ":" . BANNER_PORT );
 
 	$a = 1;
 
@@ -874,7 +1205,7 @@ form { display: inline; margin: 0; }
 
 
 echo "<pre>";
-$timer = & new timer("current");
+$timer = new timer("current");
 
 
 	$uids = array(444211);
@@ -888,7 +1219,7 @@ $timer = & new timer("current");
 
 	foreach($dates as $date){
 		$dbname = "nexopia" . implode("",explode(".", $date));
-		$localdb = & new sql_db(	"localhost",
+		$localdb = new sql_db(	"localhost",
 									"root",
 									'pRlUvi$t',
 									$dbname);
@@ -929,10 +1260,10 @@ echo "</pre>";
 //memcache testing
 
 include_once("include/memcached-client.php");
-	$phpmemcache = & new memcached($memcacheoptions);
+	$phpmemcache = new memcached($memcacheoptions);
 
 include_once("include/peclmemcached-client.php"); //include dl("memcached.so");
-	$phppeclmemcache = & new peclmemcached($memcacheoptions);
+	$phppeclmemcache = new peclmemcached($memcacheoptions);
 
 	$peclmemcache = new Memcache;
 	$peclmemcache->connect('localhost', 11211);
@@ -1044,7 +1375,7 @@ $memcacheoptions = array(
 	"compress" => 0);
 
 include_once("include/MemCachedClient.php");
-	$memcache = & new MemCachedClient($memcacheoptions);
+	$memcache = new MemCachedClient($memcacheoptions);
 
 
 */
@@ -1127,7 +1458,7 @@ $db->query("UNLOCK TABLES");
 		$db->prepare_query("INSERT IGNORE INTO msgdump2 SELECT msgs.id, msgs.userid, msgheader.to, msgheader.toname, msgheader.from, msgheader.fromname, msgheader.date, msgheader.subject, msgtext.msg FROM msgs,msgheader,msgtext WHERE msgheader.id=msgs.msgheaderid && msgheader.msgtextid=msgtext.id && msgs.userid IN (?)", $uids);
 
 	//nov 8
-		$localdb = & new sql_db(	"192.168.0.100",
+		$localdb = new sql_db(	"192.168.0.100",
 									"root",
 									'pRlUvi$t',
 									"enternexusnov8");
@@ -1526,7 +1857,7 @@ INSERT IGNORE INTO enternexus.forumupdated SELECT enternexusbackupaug6.forumupda
 
 	$errors = array();
 
-	$jpeg =& new JPEG('');
+	$jpeg = new JPEG('');
 
 	$picnum = 1;
 

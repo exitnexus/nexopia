@@ -1,19 +1,30 @@
 <?
-//Copyright Timo Ewalds 2004 all rights reserved.
+// Copyright Timo Ewalds 2004 all rights reserved.
 
 ini_set("precision","20");
 
 error_reporting (E_ALL);
 
+define("REQUIRE_ANY", 0);
+define("REQUIRE_LOGGEDIN", 1);
+define("REQUIRE_NOTLOGGEDIN", -1);
+define("REQUIRE_LOGGEDIN_PLUS", 2);
+define("REQUIRE_LOGGEDIN_ADMIN", 3);
+
+$revstr = '$Revision$';
+preg_match('/Revision: ([0-9]+)/', $revstr, $matches);
+$reporev = $matches[1];
 
 /*
 
 $acceptips = array(
 'local' => '10.',
-'timo'	=> '198.166.49.97',
-//'timo2'	=> '199.126.18.213',
+//'timo' => '198.166.49.97',
+//'timo2' => '199.126.18.213',
 'newservers' => '216.234.161.192',
 'newservers2' => '66.51.127.1',
+'office' => '142.179.205.97',
+'office2' => '142.179.204.201',
 );
 
 function isPriviligedIP(){
@@ -31,7 +42,9 @@ if(!isPriviligedIP()){
 }
 //*/
 
+
 $times = array('start' => gettime());
+$memory = array(get_memory_usage());
 
 
 
@@ -53,141 +66,155 @@ $userData = array(	'loggedIn' => false,
 					'limitads' => false,
 					'debug' => false);
 
-include_once("include/config.inc.php");
-include_once("include/defines.php");
 
+	// call with include_once inherit_config_profile('name');
+	function inherit_config_profile($profilename)
+	{
+		return "include/config.$profilename.inc.php";
+	}
+
+include_once("include/defines.php");
+include_once("include/config.inc.php");
 include_once("include/mirrors.php");
 
-include_once("include/mysql4.php");
+timeline('config', true);
 
-//*
-	$db 	= & new multiple_sql_db($databases['main'], $_SERVER['HTTP_HOST'] == $pluswwwdomain);
-	$fastdb = & new multiple_sql_db($databases['fast'], $_SERVER['HTTP_HOST'] == $pluswwwdomain); //load balancable
+if(isset($tidyoutput) && $tidyoutput && extension_loaded('tidy'))
+	ob_start('ob_tidyhandler');
 
-	$archivedb	= & new sql_db($databases['archive']);
-	$msgsdb 	= & new sql_db($databases['msgs']); //not balanced fully, check comments in messaging.php
-	$commentsdb = & new sql_db($databases['comments']); //balanced, but usercommentstext is balanced based on a value not in that table (ie userid), so rebuilding it will be difficult
-	$moddb  	= & new sql_db($databases['mods']);
-	$filesdb	= & new sql_db($databases['files']);
-	$polldb 	= & new sql_db($databases['polls']);
-	$shopdb 	= & new sql_db($databases['shop']);
-	$bannerdb	= & new sql_db($databases['banner']);
-	$contestdb	= & new sql_db($databases['contest']);
-	$weblogdb	= & new sql_db($databases['weblog']);
-	$sessiondb	= & new sql_db($databases['session']); //load balancable, but anonymous users are all on one server
-	$forumdb	= & new sql_db($databases['forums']);
-	$statsdb	= & new sql_db($databases['stats']); //single row, could split updates then add up deltas to get the actual values
-	$logdb		= & new sql_db($databases['logs']);
-//	$logdb		= & new multiple_sql_db_hash($databases['logsnew']); //load balancable
-	$profviewsdb= & new sql_db($databases['profviews']); //load balancable
-	$profiledb	= & new sql_db($databases['profile']); //load balancable
+	function inherit_database_profile($name)
+	{
+		return "include/dbconf.$name.php";
+	}
+
+	// taken from http://ca3.php.net/manual/en/function.array-merge-recursive.php,
+	// comment by (shemari75 at mixmail dot com)
+	function recursive_merge_config(&$array, &$array_i) {
+		// For each element of the array (key => value):
+		foreach ($array_i as $k => $v) {
+			// If the value itself is an array, the process repeats recursively:
+			if (is_array($v)) {
+				if (!isset($array[$k])) {
+					$array[$k] = array();
+				}
+				recursive_merge_config($array[$k], $v);
+
+			// Else, the value is assigned to the current element of the resulting array:
+			} else {
+				if (isset($array[$k]) && is_array($array[$k])) {
+					$array[$k][0] = $v;
+				} else {
+					if (isset($array) && !is_array($array)) {
+						$temp = $array;
+						$array = array();
+						$array[0] = $temp;
+					}
+					$array[$k] = $v;
+				}
+			}
+		}
+	}
+
+	// this produces a really nasty crowded config array, but the important thing
+	// is that everything is where it's supposed to be when the db object is initialized
+	function recursive_inherit_config(&$configtree, &$subtree, $sets = array())
+	{
+		foreach ($sets as $key => $value)
+		{
+			if (!isset($subtree[$key]))
+				$subtree[$key] = $value;
+		}
+
+		if (isset($subtree['inherit']) && isset($configtree[ $subtree['inherit'] ]))
+		{
+			$sourcename = $subtree['inherit'];
+			recursive_merge_config($subtree, $configtree[$sourcename]);
+		}
+		foreach ($subtree as $key => &$value)
+		{
+			if (!is_array($value) && $key != 'inherit')
+				$sets[$key] = $value;
+		}
+		foreach ($subtree as &$subsubtree)
+		{
+			if (is_array($subsubtree))
+				recursive_inherit_config($configtree, $subsubtree, $sets);
+		}
+	}
+
+	require_once "include/dbconf.$databaseprofile.php";
+	recursive_inherit_config($databases, $databases);
+
+	include_once("include/sql.php");
+	include_once("include/multisql.php");
+
+	if (!isset($databaselib) || !preg_match('/^(mysql|mysql4|pdo)$/', $databaselib))
+		$databaselib = 'mysql';
+
+	include_once("include/$databaselib.php");
+
+	function init_dbo($dbinfo, &$dbs) // already constructed dbs passed to $dbs
+	{
+		global $pluswwwdomain;
+
+		if ($dbinfo['type'] == 'single')
+		{
+			return new sql_db($dbinfo);
+
+		} else if ($dbinfo['type'] == 'multi') {
+			return new multiple_sql_db($dbinfo, $_SERVER['HTTP_HOST'] == $pluswwwdomain);
+
+		} else if ($dbinfo['type'] == 'split') {
+			$subdbos = array();
+			foreach ($dbinfo['sources'] as $source)
+			{
+				if (is_array($source))
+					$subdbos[] = init_dbo($source, $dbs);
+				else if (isset($dbs[$source]))
+					$subdbos[] = $dbs[$source];
+			}
+			return new multiple_sql_db_split($subdbos, $dbinfo['splitfunc'], $_SERVER['HTTP_HOST'] == $pluswwwdomain);
+		}
+		return null;
+	}
 
 
 	$dbs = array();
-	$dbs['main'] 		= & $db;
-	$dbs['fast'] 		= & $fastdb;
-	$dbs['msgs'] 		= & $msgsdb;
-	$dbs['comments']	= & $commentsdb;
-	$dbs['mods'] 		= & $moddb;
-	$dbs['files']		= & $filesdb;
-	$dbs['poll'] 		= & $polldb;
-	$dbs['shop'] 		= & $shopdb;
-	$dbs['banner']		= & $bannerdb;
-	$dbs['contest']		= & $contestdb;
-	$dbs['weblog']		= & $weblogdb;
-	$dbs['session']		= & $sessiondb;
-	$dbs['forums']		= & $forumdb;
-	$dbs['stats']		= & $statsdb;
-	$dbs['logs']		= & $logdb;
-	$dbs['profviews']	= & $profviewsdb;
-	$dbs['profile']		= & $profiledb;
-//	$dbs['newlogs']		= & $newlogdb;
-
-//	$dbs['archive'] = & $archivedb; //don't backup, note it also doesn't show in the debug output
-
-/*/
-	$db1 = & new multiple_sql_db($databases['db1'], $_SERVER['HTTP_HOST'] == $pluswwwdomain);
-	$db2 = & new multiple_sql_db($databases['db2'], $_SERVER['HTTP_HOST'] == $pluswwwdomain);
-	$db3 = & new multiple_sql_db($databases['db3'], $_SERVER['HTTP_HOST'] == $pluswwwdomain);
-	$db4 = & new multiple_sql_db($databases['db4'], $_SERVER['HTTP_HOST'] == $pluswwwdomain);
-//	$db5 = & new multiple_sql_db($databases['db5'], $_SERVER['HTTP_HOST'] == $pluswwwdomain);
-	$db6 = & new multiple_sql_db($databases['db6'], $_SERVER['HTTP_HOST'] == $pluswwwdomain);
-	$db7 = & new multiple_sql_db($databases['db7'], $_SERVER['HTTP_HOST'] == $pluswwwdomain);
-	$db8 = & new multiple_sql_db($databases['db8'], $_SERVER['HTTP_HOST'] == $pluswwwdomain);
-	$db9 = & new multiple_sql_db($databases['db9'], $_SERVER['HTTP_HOST'] == $pluswwwdomain);
-	$bannerdb = & new multiple_sql_db($databases['banner'], false);
-	$archivedb = & new multiple_sql_db($databases['archive'], false);
-
-
-	$db			= & $db1;
-	$moddb  	= & $db2;
-	$filesdb	= & $db2;
-	$polldb 	= & $db2;
-	$shopdb 	= & $db2;
-	$contestdb 	= & $db2;
-	$weblogdb 	= & $db2;
-	$forumdb 	= & $db2;
-	$msgsdb 	= & $db3;
-	$logdb		= & $db4;
-	$commentsdb	= & $db6;
-	$profiledb	= & $db7;
-	$profviewsdb= & $db8;
-	$sessiondb 	= & $db9;
-	$fastdb		= & $db9;
-	$statsdb	= & $db9;
-
-	$dbs = array();
-	$dbs['db1'] = & $db1;
-	$dbs['db2'] = & $db2;
-	$dbs['db3'] = & $db3;
-	$dbs['db4'] = & $db4;
-//	$dbs['db5'] = & $db5;
-	$dbs['db6'] = & $db6;
-	$dbs['db7'] = & $db7;
-	$dbs['db8'] = & $db8;
-	$dbs['db9'] = & $db9;
-	$dbs['bannerdb'] = & $bannerdb;
-//	$dbs['archive'] = & $archivedb; //don't backup, note it also doesn't show in the debug output
-
-//*/
-
-
-/*
-include_once("include/cache.php");
-	$cache = & new cache("$sitebasedir/cache");
-*/
-
-/*
-include_once("include/MemCachedClient.php");
-	$memcache = & new MemCachedClient($memcacheoptions);
-*/
+	foreach ($databases as $dbname => $dbinfo)
+	{
+		if (isset($dbinfo['instance']))
+		{
+			$dbo = init_dbo($dbinfo, $dbs);
+			if ($dbo)
+				$dbs[$dbname] = $dbo;
+		}
+	}
+	extract($dbs);
+timeline('dbs', true);
 
 //*
 include_once("include/memcached-client.php");
-	$memcache = & new memcached($memcacheoptions);
-	$pagememcache = & new memcached($pagecacheoptions);
+	$memcache = new memcached($memcacheoptions);
+	$pagememcache = new memcached($pagecacheoptions);
 
 /*/
 include_once("include/peclmemcached-client.php");
-	$memcache = & new peclmemcached($memcacheoptions);
-	$pagememcache = & new peclmemcached($pagecacheoptions);
+	$memcache = new peclmemcached($memcacheoptions);
+	$pagememcache = new peclmemcached($pagecacheoptions);
 
 //*/
 //include_once("include/memcache.php"); //hdget is bad!
 include_once("include/memcache2.php");
-	$cache 		= & new cache($memcache, "$sitebasedir/cache");
-	$pagecache	= & new cache($pagememcache, "$sitebasedir/cache");
+	$cache 		= new cache($memcache, "$sitebasedir/cache");
+	$pagecache	= new cache($pagememcache, "$sitebasedir/cache");
 
-	$config = $cache->hdget("config", 0, 'getConfig');
+timeline('cache', true);
 
-//*
-include_once("include/errorlog.php");
-/*/
-include_once("include/errorsyslog.php");
-//*/
+include_once("include/general.class.php");
+include_once("include/databaseobject.php");
 include_once("include/msgs.php");
 include_once("include/menu.php");
-include_once("include/auth.php");
+include_once("include/auth4.php");
 include_once("include/blocks.php");
 include_once("include/banner6.php");
 include_once("include/forums.php");
@@ -197,7 +224,6 @@ include_once("include/survey.php");
 include_once("include/stats.php");
 include_once("include/categories.php");
 include_once("include/polls.php");
-include_once("include/rating.php");
 include_once("include/shoppingcart.php");
 include_once("include/payg.php");
 include_once("include/messaging.php");
@@ -214,22 +240,43 @@ include_once("include/filesystem.php");
 include_once("include/terms.php");
 include_once("include/contests.php");
 include_once("include/weblog.php");
+include_once("include/gallery.php");
+include_once("include/pics.php");
+include_once("include/comment.php");
+include_once("include/wiki2.php");
+include_once("include/sourcepictures.php");
+include_once("include/template.php");
+include_once("include/fckeditor.php") ;
+include_once("include/html_sanitizer.php");
+include_once("include/userSearch.php");
+include_once('include/profileblocks.php');
+include_once("include/inlineDebug.php");
+
+timeline('parse', true);
 
 //declared after includes to allow to use all defines
-	$msgs = 		& new messages();
-	$banner = 		& new bannerclient( $bannerdb, $bannerservers );
-	$forums = 		& new forums ( $forumdb );
-	$mods = 		& new moderator( $moddb );
-	$abuselog = 	& new abuselog( $moddb );
-	$polls = 		& new polls( $polldb );
-	$shoppingcart = & new shoppingcart( $shopdb );
-	$payg = 		& new paygcards( $shopdb );
-	$messaging = 	& new messaging( $msgsdb, $archivedb );
-	$usernotify =   & new usernotify( $db );
-	$usercomments = & new usercomments( $commentsdb, $archivedb );
-	$filesystem = 	& new filesystem($filesdb, $THIS_IMG_SERVER);
-	$contests =		& new contests( $contestdb );
-	$weblog = 		& new weblog( $weblogdb );
+	$accounts = 	new accounts( $masterdb, $usersdb, $db );
+	$useraccounts = new useraccounts( $masterdb, $usersdb );
+	$auth = 		new authentication( $masterdb, $usersdb );
+
+	$msgs = 		new messages();
+	$banner = 		new bannerclient( $bannerdb, $bannerservers );
+	$forums = 		new forums ( $forumdb );
+	$mods = 		new moderator( $moddb );
+	$abuselog = 	new abuselog( $moddb );
+	$polls = 		new polls( $polldb );
+	$shoppingcart = new shoppingcart( $shopdb );
+	$payg = 		new paygcards( $shopdb );
+	$messaging = 	new messaging( $usersdb );
+	$usernotify =   new usernotify( $db );
+	$usercomments = new usercomments( $usersdb );
+	$filesystem = 	new filesystem($filesdb, $THIS_IMG_SERVER);
+	$contests =		new contests( $contestdb );
+	$weblog = 		new weblog( $usersdb );
+	$galleries = 	new galleries( $usersdb );
+	$wiki =		 	new wiki( $wikidb );
+	$sourcepictures=new sourcepictures( $usersdb );
+	$inlineDebug =	new inlineDebug();
 
 
 //	if($enableCompression)
@@ -238,40 +285,17 @@ include_once("include/weblog.php");
 
 	if(!isset($config['timezone']))
 		$config['timezone'] = 6;
-	putenv("TZ=GMT" . $config['timezone']);
+//	putenv("TZ=MST");
 
 	header("Vary: Cookie"); //helps fix caching
 
 
-	timeline('parse', true);
-
-	$mirrors = $cache->hdget("mirrors", 0, 'getMirrors');
-
-	if(!isset($forceserver)) //needed to allow pages to force the server
-		$forceserver = getREQval('forceserver', 'bool');
+	timeline('init', true);
 
 	$cachekey = getREQval('cachekey');
 
-	$cookiedomain = chooseRandomServer($mirrors['www'], true, 'cookie', $_SERVER['HTTP_HOST'], $forceserver); //assume $plus = true since this must be done before login
-
-//	echo "cookiedomain: $cookiedomain, host: $_SERVER[HTTP_HOST], force: $forceserver";
-
 	if(isset($login)){
-		if(!isset($userprefs))// || isset($_REQUEST['userprefs']))// && $_REQUEST['userprefs'] == $userprefs))
-			$userprefs = array();
-
-		if(!isset($simplepage))
-			$simplepage = !empty($cachekey); //equiv to (bool)$cachekey
-
-		$userid = getCOOKIEval('userid', 'int');
-		$key = getCOOKIEval('key');
-
-		$userData = auth($userid, $key, ($login > 0), $simplepage, $userprefs);
-
-		if($login == -1 && $userData['loggedIn'])
-			die("This is only viewable by people who haven't logged in");
-		if($login == 2 && !$userData['premium'])
-			die("You must be a plus member to view this page");
+		requireLogin($login);
 	}
 
 	if($cachekey){
@@ -285,63 +309,76 @@ include_once("include/weblog.php");
 		}
 	}
 
-
-	$action = getREQval('action');
-
-
-	$plusserv = ($userData['loggedIn'] && ($mods->isMod($userData['userid']) || $userData['premium']));
+	if(!isset($forceserver))
+		$forceserver = getREQval('forceserver', 'bool');
 
 	if(count($_POST) == 0 && !$forceserver){
-		$webserver = chooseRandomServer($mirrors['www'], $plusserv, 'domain', $_SERVER['HTTP_HOST']);
+		$webserver = ( ($userData['loggedIn'] && ($mods->isMod($userData['userid']) || $userData['premium'])) ? $pluswwwdomain : $wwwdomain );
 
-		if($webserver != "" && $webserver != $_SERVER['HTTP_HOST']){
-			header("location: http://" . $webserver . $_SERVER['REQUEST_URI']);
+		if($webserver != $_SERVER['HTTP_HOST']){
+			header("location: " . (isset($_SERVER['HTTPS']) ? 'https' : 'http') . "://" . $webserver . $_SERVER['REQUEST_URI']);
 			exit;
 		}
 	}
-
-	$imgserver = ($userData['loggedIn'] ? chooseImageServer($userData['userid']) : chooseRandomServer($mirrors['image'], $plusserv, 'domain') );
-
-	if($imgserver)
-		$imgserver = "http://$imgserver";
-
-	$config['bannerloc']		= $imgserver . $config['bannerdir'];
-	$config['uploadfileloc']	= "http://users.nexopia.com" . $config['basefiledir'];
-	$config['imageloc']			= $imgserver . $config['imagedir'];
-	$config['smilyloc']			= $imgserver . $config['smilydir'];
-	$config['imgserver']		= $imgserver;
-//	$config['imgserver'] = $imgserver = 'http://plus.img.nexopia.com';
 
 include_once("include/skin.php");
 
 timeline('auth done');
 
 
+$action = getREQval('action');
+
+//end of general stuff
+
+
 /////////////////////////////////////////////////////
 ////// Site Specific Functions //////////////////////
 /////////////////////////////////////////////////////
 
+function requireLogin($login = REQUIRE_LOGGEDIN, $adminpriv = "", $userid = false, $key = false) // called by default when $login is set pre-start
+{
+	global $simplepage, $userData, $mods, $auth;
+
+	if(!isset($simplepage))
+		$simplepage = !empty($cachekey); //equiv to (bool)$cachekey
+
+	if (!$userid)
+		$userid = getCOOKIEval('userid', 'int');
+	if (!$key)
+		$key = getCOOKIEval('key');
+
+	$userData = $auth->auth($userid, $key, ($login >= REQUIRE_LOGGEDIN), $simplepage);
+
+	if($login == REQUIRE_NOTLOGGEDIN && $userData['loggedIn'])
+		die("This is only viewable by people who haven't logged in");
+	if($login == REQUIRE_LOGGEDIN_PLUS && !($userData['premium'] || $mods->isAdmin($userData['userid'],$adminpriv)))
+		die("You must be a plus member to view this page");
+	if($login == REQUIRE_LOGGEDIN_ADMIN && !$mods->isAdmin($userData['userid'],$adminpriv))
+		die("You do not have permission to see this page");
+
+	return true;
+}
+
 function debugOutput(){
-	global $userData, $debuginfousers, $times, $dbs, $cache;
+	global $userData, $debuginfousers, $times, $memory, $dbs, $cache, $config, $revstr, $inlineDebug;
 	if($userData['loggedIn'] && in_array($userData['userid'],$debuginfousers)){
-		$times['end'] = gettime();
+		timeline('end');
 		$total = ($times['end'] - $times['start'])/10;
 		$parse = ($times['parse'] - $times['start'])/10;
 		$mysql = 0;
 
-		foreach($dbs as $name => $db){
-			if(!isset($db->insertdb)){
-				$mysql += $db->time;
-			}else{
-				$mysql += $db->insertdb->time;
-				if(isset($db->selectdb) && $db->selectdb !== $db->insertdb)
-					$mysql += $db->selectdb->time;
-			}
-		}
+		$outputmemory = function_exists('memory_get_usage');
+
+		foreach($dbs as $name => $db)
+			$mysql += $db->getquerytime();
 
 		$mysql /= 10;
 		$cachetime = $cache->time/10;
 		$php = $total - $parse - $mysql - $cachetime;
+
+		// first give output from inline debug, thus module specific debug messages will come before
+		// global site debug messages
+		echo $inlineDebug->outputItems();
 
 		echo "<table><tr><td valign=top>";
 
@@ -351,6 +388,12 @@ function debugOutput(){
 		echo "<tr><td class=body>Mysql time:</td><td class=body align=right>" . number_format($mysql, 2) . " ms</td></tr>";
 		echo "<tr><td class=body>Memcache time:</td><td class=body align=right>" . number_format($cachetime, 2) . " ms</td></tr>";
 		echo "<tr><td class=body>PHP time:</td><td class=body align=right>" . number_format($php, 2) . " ms</td></tr>";
+		if($outputmemory)
+			echo "<tr><td class=body>Memory usage:</td><td class=body align=right>" . number_format(get_memory_usage()/1024) . " KB</td></tr>";
+		if(isset($config['showsource']) && $config['showsource'])
+			echo "<tr><td class=body colspan=2><a class=body href=/source.php?file=$_SERVER[PHP_SELF]&k=" . makeKey($_SERVER['PHP_SELF']) . ">View Source</a></td></tr>";
+		echo "<tr><td class=body colspan=2>$revstr</td></tr>";
+
 		echo "</table>";
 
 		echo "</td><td valign=top>";
@@ -358,7 +401,8 @@ function debugOutput(){
 		echo "<table>";
 
 		$start = $times['start'];
-		unset($times['start']);
+//		unset($times['start']);
+//		unset($memory['start']);
 
 		$names = array_keys($times);
 		$times = array_values($times);
@@ -366,7 +410,11 @@ function debugOutput(){
 		$rows = 6;
 		$cols = ceil($num/$rows);
 
-		echo "<tr><td class=header colspan=" . (3*$cols-1) . " align=center>Timeline:</td></tr>";
+		$subcols = 3;
+		if($outputmemory)
+			$subcols++;
+
+		echo "<tr><td class=header colspan=" . ($subcols*$cols-1) . " align=center>Timeline:</td></tr>";
 
 		$total = $rows*$cols;
 		for($i = 0; $i < $total; $i++){
@@ -379,7 +427,10 @@ function debugOutput(){
 				echo "<tr>";
 
 			if($j < $num){
-				echo "<td class=body align=right>" . number_format(($times[$j] - $start)/10, 2) . " ms</td><td class=body>$names[$j]</td>";
+				echo "<td class=body align=right>" . number_format(($times[$j] - $start)/10, 2) . " ms</td>";
+				if($outputmemory)
+					echo "<td class=body align=right>" . number_format($memory[$j]/1024) . " KB</td>";
+				echo "<td class=body>$names[$j]</td>";
 				if($col < $cols-1)
 //					echo "<td width=1 bgcolor=#000000></td>";
 					echo "<td class=body>&nbsp; | &nbsp;</td>";
@@ -391,12 +442,19 @@ function debugOutput(){
 		if($i > 0)
 			echo "</tr>\n";
 
-
-//		foreach($times as $k => $v)
-//			echo "<tr><td class=body align=right>" . number_format(($v - $times['start'])/10, 2) . " ms</td><td class=body>$k</td></tr>";
 		echo "</table>";
 
 		echo "</td></tr></table>";
+
+		$headers = headers_list();
+
+		echo "<table>";
+		echo "<tr><td class=header colspan=2>HTTP Headers sent:</td></tr>";
+		foreach($headers as $line){
+			list($n, $v) = explode(":", $line, 2);
+			echo "<tr><td class=body>$n:</td><td class=body>$v</td></tr>";
+		}
+		echo "</table>";
 
 		outputQueries();
 	}else{
@@ -436,18 +494,21 @@ function makeKey($id, $myuserid = 0){
 		}
 	}
 
-	return strtoupper(substr(base_convert(md5("$myuserid:blah:$id"), 16, 36), 0, 10));
+	$result = strtoupper(substr(base_convert(md5("$myuserid:blah:$id"), 16, 36), 0, 10));
+	return $result;
 }
 
-function checkKey($id, $key){
-	return ($key == makeKey($id));
+function checkKey($id, $key, $myuserid = 0){
+	return ($key == makeKey($id, $myuserid));
 }
 
 function timeline($name, $force = false){
-	global $userData, $times;
+	global $userData, $times, $memory;
 
-	if($force || $userData['debug'])
+	if($force || $userData['debug']){
 		$times[$name] = gettime();
+		$memory[] = get_memory_usage();
+	}
 }
 
 function zipflush(){
@@ -459,6 +520,13 @@ function zipflush(){
 		echo " -->\n";
 	}
 	flush();
+}
+
+function addRefreshHeaders(){
+//	header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");    // Date in the past
+//	header("Last-Modified: " . gmdate("D, d M Y H:i:s") . " GMT");  // always modified
+	header("Cache-Control: must-revalidate, proxy-revalidate, no-cache");  // HTTP/1.1
+//	header("Pragma: no-cache");                          // HTTP/1.0
 }
 
 function capchatext($seed){
@@ -480,10 +548,10 @@ function getNews(){
 		$type="inside";
 	else
 		$type="outside";
-	$db->prepare_query("SELECT title, date, ntext FROM news WHERE type IN ('both',?) ORDER BY date DESC", $type);
+	$res = $db->prepare_query("SELECT title, date, ntext FROM news WHERE type IN ('both',?) ORDER BY date DESC", $type);
 
 	$ret=array();
-	while($line = $db->fetchrow())
+	while($line = $res->fetchrow())
 		$ret[]=$line;
 	return $ret;
 }
@@ -491,10 +559,10 @@ function getNews(){
 function getConfig(){
 	global $db;
 
-	$db->query("SELECT name,value FROM config");
+	$res = $db->query("SELECT name,value FROM config");
 
 	$config=array();
-	while($conf = $db->fetchrow())
+	while($conf = $res->fetchrow())
 		$config[$conf['name']] = $conf['value'];
 
 	return $config;
@@ -503,10 +571,10 @@ function getConfig(){
 function getBlocks(){
 	global $db;
 
-	$db->prepare_query("SELECT funcname, side FROM blocks WHERE enabled = 'y' ORDER BY priority ASC");
+	$res = $db->prepare_query("SELECT funcname, side FROM blocks WHERE enabled = 'y' ORDER BY priority ASC");
 
 	$blocks = array();
-	while($line = $db->fetchrow())
+	while($line = $res->fetchrow())
 		$blocks[$line['side']][] = $line['funcname'];
 
 	return $blocks;
@@ -522,24 +590,89 @@ function blocks($side){
 			$funcname($side);
 }
 //*
-function editBox($text = ""){
-	global $config, $cache;
-
-	$smilyusage = $cache->hdget("smilyuseage", 0, 'getSmileyCodesByUsage');
-
-	echo "<script>";
-	echo "var smileypics = new Array('" . implode("','", $smilyusage) . "');";
-	echo "var smileycodes = new Array('" . implode("','", array_keys($smilyusage)) . "');";
-	echo "var smileyloc = '$config[smilyloc]';";
-	echo "document.write(editBox(\"" . htmlentities(str_replace("\r","",str_replace("\n","\\n",$text))) . "\",true));</script>";
-	echo "<noscript><textarea cols=70 rows=10 name=msg></textarea></noscript>";
+function editBox($text = "", $id = 'msg', $formid = 'editbox', $height = 200, $width = 600, $maxlength=0, $parse_bbcode = true ){
+	echo editBoxStr($text, $id, $formid, $height, $width, $maxlength, $parse_bbcode);
 	return;
 }
+
+function editBoxStr($text = "", $id = 'msg', $formid = 'editbox', $height = 250, $width = 700, $maxlength=0, $parse_bbcode = true ){
+	global $config, $cache, $userData;
+
+	$userData['bbcode_editor'] = true; //here to disable for all, including anonymous viewers
+
+	$sBasePath = 'include/' ;
+
+	$output = '';
+
+	$oFCKeditor = new FCKeditor($id) ;
+	if($oFCKeditor->IsCompatible() && !$userData['bbcode_editor'] )
+	{
+		$oFCKeditor->BasePath	= $sBasePath ;
+		$oFCKeditor->Value		= $text ;
+		$oFCKeditor->Width		= $width;
+		$oFCKeditor->Height		= $height;
+		$oFCKeditor->MaxLength	= $maxlength;
+		$output = $oFCKeditor->Create();
+	}
+	else
+	{
+		$smilyusage = getSmilies();
+//		if($maxlength > 0)
+//			$maxlength = $maxlength + 200;
+
+		$mangledtext = htmlentities(str_replace("\r","",str_replace("\n","\\n",str_replace('\\', '\\\\', $text))));
+
+		$output = "<script>" .
+			"var smileypics = new Array('" . implode("','", $smilyusage) . "');" .
+			"var smileycodes = new Array('" . implode("','", array_keys($smilyusage)) . "');" .
+			"var smileyloc = '$config[smilyloc]';";
+
+		$output .= "document.write(editBox(\"$mangledtext\", true ,'$id','$formid', $maxlength, $height, $width)); </script>";
+
+		$output .= "<noscript><textarea cols=70 rows=10 name='$id'></textarea></noscript>";
+	}
+
+	return $output;
+}
+
+function weirdmap($input){
+	return $input;
+	//the rest of this function is not used, ignore it.
+
+
+	settype($input, 'integer');
+
+	// relayout to make the lsb the msb approximately reversed (real msb stays where it is to avoid overflowing 31 bits into sign bit)
+	$input = (($input & 0x7f000000) | (($input >> 16) & 0x000000ff) | ($input & 0x0000ff00) | (($input << 16) & 0x00ff0000));
+
+	$part1 = 0x2AAAAAAA; //b1010 (without sign bit)
+	$part2 = 0x55555555; //b0101
+	$new = ($input & $part1) | (((($input & $part2) << 23) & 0x7fffffff) | (($input & $part2) >> 8) & 0x7fffffff);
+
+	return sprintf("%x", $new);
+}
+
+function weirdunmap($input){
+	return $input;
+	// the rest of this function is not used, ignore it.
+
+	settype($input, 'integer');
+
+	$part1 = 0x2AAAAAAA; //b1010 (without sign bit)
+	$part2 = 0x55555555; //b0101
+	$input = ($input & $part1) | (((($input & $part2) >> 23) & 0x7fffffff) | (($input & $part2) << 8) & 0x7fffffff);
+
+	$input = (($input & 0x7f000000) | (($input >> 16) & 0x000000ff) | ($input & 0x0000ff00) | (($input << 16) & 0x00ff0000));
+//	var_dump(($input << 16) & 0x00ff0000);
+
+	return $input;
+}
+
 /*/
 function editBox($text = ""){
 	global $config, $cache;
 
-	$smilyusage = $cache->hdget("smilyuseage", 0, 'getSmileyCodesByUsage');
+	$smilyusage = getSmilies();
 
 	echo "<table cellspacing=0 align=center>";
 	echo "<tr><td align=center>";
@@ -630,20 +763,24 @@ function editBox($text = ""){
 }
 //*/
 
-function addComment($id,$msg,$preview="changed",$params=array()){
-	global $userData,$db;
-
+function addComment($id,$msg,$preview="changed",$params=array(),  $parse_bbcode, $usedb='article'){
+	global $userData, $articlesdb, $polldb;
 	if(!$userData['loggedIn'])
 		return;
 
 	if(trim($msg)=="")
 		return;
 
-	$nmsg = removeHTML($msg);
-	$nmsg2 = parseHTML($nmsg);
-	$nmsg3 = smilies($nmsg2);
-	$nmsg3 = wrap($nmsg3);
-	$nmsg3 = nl2br($nmsg3);
+	$nmsg = html_sanitizer::sanitize($msg);
+	if($parse_bbcode)
+	{
+		$nmsg2 = parseHTML($nmsg);
+		$nmsg3 = smilies($nmsg2);
+		$nmsg3 = wrap($nmsg3);
+		$nmsg3 = nl2br($nmsg3);
+	}
+	else
+		$nmsg3 = $nmsg;
 
 	if($preview=="Preview" || ($nmsg != $nmsg2 && $preview=="changed")){
 		incHeader();
@@ -654,47 +791,61 @@ function addComment($id,$msg,$preview="changed",$params=array()){
 
 		echo "</blockquote><hr>\n";
 
+		echo "<form action=$_SERVER[PHP_SELF] method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
 		echo "<table width=100% cellspacing=0>";
 
-
-
-		echo "<form action=$_SERVER[PHP_SELF] method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
-		echo "<input type=hidden name='id' value='$id'>\n";
+		echo "<input type=hidden name='id' value='" . htmlentities($id) . "'>\n";
 		echo "<input type=hidden name='action' value='comment'>\n";
+		echo "<input type=hidden name='db' value='" . htmlentities($usedb) . "'>\n";
 
 		foreach($params as $k => $v)
-			echo "<input type=hidden name='$k' value='$v'>\n";
+			echo "<input type=hidden name='$k' value='" . htmlentities($v) . "'>\n";
+
+		echo "<tr><td colspan=2><table width=100%><tr>\n";
+		echo "<td class=body width=25%><input type=hidden name=parse_bbcode value=y /></td>\n";
+
+		echo "</tr></table></td></tr>\n";
 
 		echo "<tr><td class=header>";
 
-		editBox($nmsg,true);
+		editBox($nmsg);
 
 		echo "</td></tr>\n";
 		echo "<tr><td class=header align=center><input type=submit name=postaction value=Preview> <input type=submit name=postaction value='Post' accesskey='s' onClick='checksubmit()'></td></tr>\n";
-		echo "</form>";
 
 		echo "</table>";
+		echo "</form>";
 
 		incFooter();
 		exit(0);
 	}
 
+	$parse_bbcode 	= $parse_bbcode ? 'y' : 'n';
+
+
 	$old_user_abort = ignore_user_abort(true);
+	if($usedb == 'polls'){
+		$result=$polldb->prepare_query("SELECT id FROM pollcomments WHERE itemid = # && time > # && authorid = #", $id, time() - 15, $userData['userid']);
+		if($result->fetchrow()) //double post
+			return false;
 
-	$result = $db->prepare_query("SELECT id FROM comments WHERE itemid = ? && time > ? && authorid = ?", $id, time() - 15, $userData['userid']);
+		$polldb->prepare_query("INSERT INTO pollcomments SET itemid = #, authorid = #, time = #", $id, $userData['userid'], time());
+		$insertid = $polldb->insertid();
 
-	if($db->numrows($result)>0) //double post
-		return false;
+		$polldb->prepare_query("INSERT INTO pollcommentstext SET id = #, msg = ?, nmsg = ?,  parse_bbcode = ?", $insertid, $msg, $nmsg3, $parse_bbcode);
+		$polldb->prepare_query("UPDATE polls SET comments = comments+1 WHERE id = #", $id);
+	}else{
+		$result = $articlesdb->prepare_query("SELECT id FROM comments WHERE itemid = # && time > # && authorid = #", $id, time() - 15, $userData['userid']);
+		if($result->fetchrow()) //double post
+			return false;
 
+		$articlesdb->prepare_query("INSERT INTO comments SET itemid = #, authorid = #, time = #", $id, $userData['userid'], time());
+		$insertid = $articlesdb->insertid();
 
-	$db->prepare_query("INSERT INTO comments SET itemid = ?, author = ?, authorid = ?, time = ?", $id, $userData['username'], $userData['userid'], time());
+		$articlesdb->prepare_query("INSERT INTO commentstext SET id = #, msg = ?, nmsg = ?,  parse_bbcode = ?", $insertid, $msg, $nmsg3, $parse_bbcode);
 
-	$insertid = $db->insertid();
-
-	$db->prepare_query("INSERT INTO commentstext SET id = ?, msg = ?, nmsg = ?", $insertid, $msg, $nmsg3);
-
-	$db->prepare_query("UPDATE articles SET comments = comments+1 WHERE id = ?", $id);
-
+		$articlesdb->prepare_query("UPDATE articles SET comments = comments+1 WHERE id = #", $id);
+	}
 	ignore_user_abort($old_user_abort);
 }
 
@@ -733,6 +884,20 @@ function pageList($link,$page,$numpages,$class='body'){
 	}
 
 	return implode(" ", $str);
+}
+
+function makeLinkBar($links, $class)
+{
+  	$implode = array();
+  	$class = ($class? " class=$class":"");
+  	foreach ($links as $link)
+  	{
+  		if (!empty($link[1]))
+  			$implode[] = "<a href=\"{$link[1]}\"" . $class . ">{$link[0]}</a>";
+  		else
+  			$implode[] = "<b>{$link[0]}</b>";
+	}
+	return implode(" | ", $implode);
 }
 
 /////////////////////////////////////////////////////
@@ -896,59 +1061,42 @@ function chooseWeight($items, $int = true){ //array($id => $weight);
 	return false;
 }
 
-function & getREQval($name, $type = 'string', $default = null){
+function getREQval($name, $type = 'string', $default = null){
 	$val = (isset($_REQUEST[$name]) ? $_REQUEST[$name] : $default);
 	settype($val, $type);
 	return $val;
 }
 
-function & getGETval($name, $type = 'string', $default = null){
+function getGETval($name, $type = 'string', $default = null){
 	$val = (isset($_GET[$name]) ? $_GET[$name] : $default);
 	settype($val, $type);
 	return $val;
 }
 
-function & getPOSTval($name, $type = 'string', $default = null){
+function getPOSTval($name, $type = 'string', $default = null){
 	$val = (isset($_POST[$name]) ? $_POST[$name] : $default);
 	settype($val, $type);
 	return $val;
 }
 
-function & getCOOKIEval($name, $type = 'string', $default = null){
+function getCOOKIEval($name, $type = 'string', $default = null){
 	$val = (isset($_COOKIE[$name]) ? $_COOKIE[$name] : $default);
 	settype($val, $type);
 	return $val;
 }
 
-function & getFILEval($name){
+function getFILEval($name){
 	return (isset($_FILES[$name]) ? $_FILES[$name] : false);
 }
 
-function & getSERVERval($name){
+function getSERVERval($name){
 	return (isset($_SERVER[$name]) ? $_SERVER[$name] : false);
 }
 
-/*
-function & getREQval($name, $default = ''){
-	return (!isset($_REQUEST[$name]) ? $default : $_REQUEST[$name]);
+//meant to be used with extract: extract(setDefaults($input, $defaults));
+function setDefaults($input, $defaults){
+	return array_merge($defaults, array_intersect_key($input, $defaults));
 }
-
-function & getGETval($name, $default = ''){
-	return (!isset($_GET[$name]) ? $default : $_GET[$name]);
-}
-
-function & getPOSTval($name, $default = ''){
-	return (!isset($_POST[$name]) ? $default : $_POST[$name]);
-}
-
-function & getCOOKIEval($name, $default = ''){
-	return (!isset($_COOKIE[$name]) ? $default : $_COOKIE[$name]);
-}
-
-function & getFILEval($name, $default = false){
-	return (!isset($_FILES[$name]) ? $default : $_FILES[$name]);
-}
-*/
 
 function arraydump($array){ //meant to take a 2 dimensional array dumped from $db->fetchrowset or equiv
 	echo "<table>";
@@ -980,14 +1128,29 @@ function arraydump($array){ //meant to take a 2 dimensional array dumped from $d
 }
 
 
-function getStaticValue($id, $restricted = true){ //default return restricted content
+function getStaticValue($id, $restricted = true, $full = false){ //default return restricted content
 	global $db, $cache;
 
-	$data = false;//$cache->get("staticpages-$id");
+	if(!is_numeric($id)){
+		$newid = $cache->get("staticpageslookup-$id");
+
+		if(!$newid){
+			$res = $db->prepare_query("SELECT id FROM staticpages WHERE name = ?", $id);
+			$newid = $res->fetchfield();
+
+			if(!$newid)
+				return false;
+
+			$cache->put("staticpageslookup-$id", $newid, 86400);
+		}
+		$id = $newid;
+	}
+
+	$data = $cache->get("staticpages-$id");
 
 	if(!$data){
-		$db->prepare_query("SELECT content, restricted FROM staticpages WHERE id = #", $id);
-		$data = $db->fetchrow();
+		$res = $db->prepare_query("SELECT content, restricted, html, autonewlines, pagewidth FROM staticpages WHERE id = #", $id);
+		$data = $res->fetchrow();
 
 		if(!$data)
 			return false;
@@ -998,12 +1161,27 @@ function getStaticValue($id, $restricted = true){ //default return restricted co
 	if(!$restricted && $data['restricted'] == 'y') //if calling from pages.php, and it's restricted content, don't show it.
 		return false;
 
-	return $data['content'];
+	if($data['html'] == 'n')
+		$data['content'] = parseHTML($data['content']);
+
+	if($data['autonewlines'] == 'y')
+		$data['content'] = nl2br($data['content']);
+
+	if($full) //pages.php can do more with it as needed (page with specifically)
+		return $data;
+	else
+		return $data['content'];
 }
 
 /////////////////////////////////////////////////////
 ////// PHP rewrite or general funcs /////////////////
 /////////////////////////////////////////////////////
+
+function swap(&$var1, &$var2){
+	$temp = $var1;
+	$var1 = $var2;
+	$var2 = $temp;
+}
 
 function strrposstr($haystack,$needle,$offset=0){
 	if($offset!=0)
@@ -1065,6 +1243,155 @@ function array_combine($a, $b) {
 }
 }
 
+function array_search_offset($needle, $haystack, $offset = 0, $strict = false){
+
+	for($i = 0; $i < $offset; $i++)
+		next($haystack);
+
+	while(list($k, $v) = each($haystack)){
+		if($strict){
+			if($v === $needle)
+				return $k;
+		}else{
+			if($v == $needle)
+				return $k;
+		}
+	}
+
+	return false;
+}
+
+function explode_keep($sep, $str){ //explodes only on single chars (can be an array of chars), and keeps the char at the beginning of the items
+	$array = array();
+
+	while(($pos = strpos_needle($str, $sep, 1)) !== false){
+		$array[] = substr($str, 0, $pos);
+		$str = substr($str, $pos);
+	}
+	if($str != '')
+		$array[] = $str;
+
+	return $array;
+}
+
+function strpos_needle(&$haystack, $needle, $offset = 0){
+	if(!is_array($needle))
+		$needle = array($needle);
+
+	$needle = array_flip($needle);
+	for($i = $offset; $i < strlen($haystack); $i++)
+		if(isset($needle[$haystack{$i}]))
+			return $i;
+
+	return false;
+}
+
+function diff($str1, $str2, $sep = "\n"){ //takes 2 strings, and returns array( array( $line1, $line2), ...), and null when either of those don't exist
+	$array1 = explode_keep($sep, $str1);
+	$weight1 = array_count_values($array1);
+
+	$array2 = explode_keep($sep, $str2);
+	$weight2 = array_count_values($array2);
+
+	$diff = array();
+
+	$pos1 = 0;
+	$pos2 = 0;
+
+
+	while(1){
+
+	//if we're at the end of a string, the other must all be additions.
+		if($pos1 == count($array1)){
+			for($i = $pos2; $i < count($array2); $i++)
+				$diff[] = array(null, $array2[$i]);
+			break;
+		}
+
+		if($pos2 == count($array2)){
+			for($i = $pos1; $i < count($array1); $i++)
+				$diff[] = array($array1[$i], null);
+			break;
+		}
+
+	//get the line
+		$line1 = $array1[$pos1];
+		$line2 = $array2[$pos2];
+
+	//matches
+		if($line1 == $line2){
+			$diff[] = array($line1, $line2);
+			$pos1++;
+			$pos2++;
+			continue;
+		}
+
+		$i = array_search_offset($line2, $array1, $pos1+1);
+		$j = array_search_offset($line1, $array2, $pos2+1);
+
+	//if both are unique, it's a change
+		if($i === false && $j === false ){ //change, not insert
+			$diff[] = array($line1, $line2);
+			$pos1++;
+			$pos2++;
+			continue;
+		}
+
+	//insert to str2
+		if($i == $pos1+1){
+			$diff[] = array($line1, null);
+			$pos1++;
+			continue;
+		}
+
+	 //insert to str1
+		if($j == $pos2+1){
+			$diff[] = array(null, $line2);
+			$pos2++;
+			continue;
+		}
+
+	//non-unique change
+
+	//find the dominant line
+		if($weight1[$line1] == 1 && $j !== false){ //ie is unique
+			for($i = $pos2; $i < $j; $i++)
+				$diff[] = array(null, $array2[$i]);
+
+			$diff[] = array($line1, $line1);
+			$pos1++;
+			$pos2 = $j+1;
+			continue;
+		}
+
+	//find the dominant line
+		if($weight2[$line2] == 1 && $i !== false){ //ie is unique
+			for($j = $pos1; $j < $i; $j++)
+				$diff[] = array($array1[$j], null);
+
+			$diff[] = array($line2, $line2);
+			$pos2++;
+			$pos1 = $i+1;
+			continue;
+		}
+
+	//assume change
+		$diff[] = array($line1, $line2);
+		$pos1++;
+		$pos2++;
+	}
+
+	return $diff;
+}
+
+function get_memory_usage(){
+	if(!function_exists('memory_get_usage')){
+		return 0;
+	}else{
+		return memory_get_usage();
+	}
+}
+
 function rmdirrecursive($dir){
 	$handle = opendir($dir);
 
@@ -1102,9 +1429,9 @@ function make_select_list( $list, $sel = "" ){
 	$str = "";
 	foreach($list as $k => $v){
 		if( $sel == $v )
-			$str .= "<option value=\"$v\" selected> $v";
+			$str .= "<option value=\"$v\" selected> $v</option>";
 		else
-			$str .= "<option value=\"$v\"> $v";
+			$str .= "<option value=\"$v\"> $v</option>";
 	}
 
 	return $str;
@@ -1114,9 +1441,9 @@ function make_select_list_multiple( $list, $sel = array() ){
 	$str = "";
 	foreach($list as $k => $v){
 		if(in_array($v, $sel))
-			$str .= "<option value=\"$v\" selected> $v";
+			$str .= "<option value=\"$v\" selected> $v</option>";
 		else
-			$str .= "<option value=\"$v\"> $v";
+			$str .= "<option value=\"$v\"> $v</option>";
 	}
 
 	return $str;
@@ -1126,9 +1453,9 @@ function make_select_list_key( $list, $sel = null ){
 	$str = "";
 	foreach($list as $k => $v){
 		if( $sel == $k )
-			$str .= "<option value=\"$k\" selected> $v";
+			$str .= "<option value=\"$k\" selected> $v</option>";
 		else
-			$str .= "<option value=\"$k\"> $v";
+			$str .= "<option value=\"$k\"> $v</option>";
 	}
 
 	return $str;
@@ -1138,9 +1465,9 @@ function make_select_list_multiple_key( $list, $sel = array() ){
 	$str = "";
 	foreach($list as $k => $v){
 		if(in_array($k, $sel))
-			$str .= "<option value=\"$k\" selected> $v";
+			$str .= "<option value=\"$k\" selected> $v</option>";
 		else
-			$str .= "<option value=\"$k\"> $v";
+			$str .= "<option value=\"$k\"> $v</option>";
 	}
 
 	return $str;
@@ -1150,9 +1477,9 @@ function make_select_list_key_key( $list, $sel = "" ){
 	$str = "";
 	foreach($list as $k => $v){
 		if( $sel == $v )
-			$str .= "<option value=\"$k\" selected> $k";
+			$str .= "<option value=\"$k\" selected> $k</option>";
 		else
-			$str .= "<option value=\"$k\"> $k";
+			$str .= "<option value=\"$k\"> $k</option>";
 	}
 
 	return $str;
@@ -1162,9 +1489,9 @@ function make_select_list_col_key( $list, $col, $sel = "" ){
 	$str = "";
 	foreach($list as $k => $v){
 		if( $sel == $k )
-			$str .= "<option value=\"$k\" selected> $v[$col]";
+			$str .= "<option value=\"$k\" selected> $v[$col]</option>";
 		else
-			$str .= "<option value=\"$k\"> $v[$col]";
+			$str .= "<option value=\"$k\"> $v[$col]</option>";
 	}
 
 	return $str;
@@ -1201,9 +1528,9 @@ function makeCatSelect($branch, $category = null){
 		$str .= "<option value='$cat[id]'";
 		if($cat['id'] == $category)
 			$str .= " selected";
-		$str .= ">";
-		$str .= str_repeat("- ", $cat['depth']) . $cat['name'];
+		$str .= ">" . str_repeat("- ", $cat['depth']) . $cat['name'] . "</option>";
 	}
+
 	return $str;
 }
 
@@ -1214,9 +1541,9 @@ function makeCatSelect_multiple($branch, $category = array()){
 		$str .= "<option value='$cat[id]'";
 		if(in_array($cat['id'], $category))
 			$str .= " selected";
-		$str .= ">";
-		$str .= str_repeat("- ", $cat['depth']) . $cat['name'];
+		$str .= ">" . str_repeat("- ", $cat['depth']) . $cat['name'] . "</option>";
 	}
+
 	return $str;
 }
 
@@ -1228,93 +1555,327 @@ function makeCheckBox($name, $title, $checked = false){
 ////// User Functions ///////////////////////////////
 /////////////////////////////////////////////////////
 
-function getFriendsList($uid){
-	global $cache, $db;
+function getFriendsListIDs($uid, $mode = USER_FRIENDS){
+	global $cache, $usersdb;
 
-	$friends = $cache->get(array($uid, "friends-$uid"));
+	$friendids = $cache->get("friends$mode-$uid");
 
-	if($friends === false){
-		$db->prepare_query("SELECT friendid, username FROM friends,users WHERE friends.userid = ? && users.userid=friendid && users.frozen = 'n'", $uid);
+	if($friendids === false){
+		if($mode == USER_FRIENDS){
+			$res = $usersdb->prepare_query("SELECT friendid FROM friends WHERE userid = %", $uid);
 
-		$friends = array();
-		while($line = $db->fetchrow())
-			$friends[$line['username']] = $line['friendid'];
+			$friendids = array();
+			while($line = $res->fetchrow())
+				$friendids[] = $line['friendid'];
+		}else{
+			$res = $usersdb->prepare_query("SELECT userid FROM friends WHERE friendid = #", $uid); //yes, all servers
+
+			$friendids = array();
+			while($line = $res->fetchrow())
+				$friendids[] = $line['userid'];
+
+		}
+
+		$cache->put("friendids$mode-$uid", $friendids, 86400);
+	}
+
+	if(count($friendids))
+		return array_combine($friendids, $friendids);
+	else
+		return array();
+}
+
+function getFriendsList($uid, $mode = USER_FRIENDS){
+	global $cache, $usersdb;
+
+	$friendids = getFriendsListIDs($uid, $mode);
+
+	$friends = array();
+
+	if(count($friendids)){
+		$users = getUserInfo($friendids);
+
+		foreach($users as $user)
+			if($user['state'] == 'new' || $user['state'] == 'active')
+				$friends[$user['username']] = $user['userid'];
 
 		uksort($friends,'strcasecmp');
 		$friends = array_flip($friends);
-
-		$cache->put(array($uid, "friends-$uid"), $friends, 86400*7);
 	}
 	return $friends;
 }
 
-function getUserInfo($cat,$user){
-	global $db;
-	if(is_numeric($user))
-		$query = $db->prepare("SELECT $cat FROM users WHERE userid = ?", $user);
-	else
-		$query = $db->prepare("SELECT $cat FROM users WHERE username = ?", $user);
+function getMutualFriendsList($uid, $mode = USER_FRIENDS){
 
-	$db->query($query);
+	$friends = getFriendsListIDs($uid, USER_FRIENDS);
+	$friendof = getFriendsListIDs($uid, USER_FRIENDOF);
 
-	$line = $db->fetchrow();
-	return $line[$cat];
+
+	$rows = array();
+
+	if($mode == USER_FRIENDS){
+		foreach($friends as $id)
+			$rows[$id] = isset($friendof[$id]);
+	}else{
+		foreach($friendof as $id)
+			$rows[$id] = isset($friends[$id]);
+
+	}
+
+	return $rows;
 }
 
-function getUserName($uid){
-	global $db;
+function getUserInfo($uids, $getactive = true){
+	global $usersdb, $cache, $config;
 
-	static $username = array();
+	$time = time();
 
-	if(is_array($uid)){
-		$getids = array();
-		foreach($uid as $id){
-			if(!isset($username[$id])){
-				$getids[] = $id;
-				$username[$id] = false;
+	$array = is_array($uids);
+
+	if(!$array)
+		$uids = array($uids);
+
+	$users = $cache->get_multi($uids, "userinfo-");
+
+	$missingids = array_diff($uids, array_keys($users));
+
+	if(count($missingids)){
+
+		$names = getUserName($missingids);
+
+		$res = $usersdb->prepare_query("SELECT * FROM users WHERE userid IN (%)", $missingids);
+
+		while($line = $res->fetchrow()){
+			$users[$line['userid']] = $line;
+			$users[$line['userid']]['username'] = $names[$line['userid']];
+			$line['username'] = $names[$line['userid']];
+			$cache->put("userinfo-$line[userid]", $line, 86400*7);
+		}
+
+		$missingids = array_diff($uids, array_keys($users));
+
+		foreach($missingids as $id){
+			foreach($uids as $k => $uid){
+				if($uid == $id){
+					unset($uids[$k]);
+					break;
+				}
 			}
 		}
 
-		if(count($getids)){
-			$db->prepare_query("SELECT userid, username FROM users WHERE userid IN (?)", $getids);
-
-			while($line = $db->fetchrow())
-				$username[$line['userid']] = $line['username'];
-		}
-
-		$uids = array();
-		foreach($uid as $id)
-			$uids[$id] = $username[$id];
-		return $uids;
-	}else{
-		if(isset($username[$uid]))
-			return $username[$uid];
-
-		$db->prepare_query("SELECT username FROM users WHERE userid = ?", $uid);
-
-		$username[$uid] = ($db->numrows() ? $db->fetchfield() : false);
-		return $username[$uid];
+		if(count($uids) == 0)
+			return ($array ? array() : false);
 	}
-	return false;
+
+	if($getactive){
+		$activetimes = $cache->get_multi($uids, "useractive-"); //don't need to set, as it is never removed, and should never be older than the above cached version
+
+		foreach($activetimes as $uid => $activetime)
+			if($activetime > $users[$uid]['activetime'])
+				$users[$uid]['activetime'] = $activetime;
+	}
+
+	foreach($uids as $uid){
+		if($getactive)
+			$users[$uid]['online'] = ($users[$uid]['activetime'] > $time - $config['friendAwayTime'] ? 'y' : 'n');
+		$users[$uid]['plus'] = ($users[$uid]['premiumexpiry'] > $time);
+		$users[$uid]['age'] = getAge($users[$uid]['dob']);
+	}
+
+	return ($array ? $users : array_pop($users));
 }
 
-function getUserID($username){
-	global $db;
+function getUserPics($uid){
+	global $usersdb, $cache;
 
-	if(is_numeric($username))
-		return $username;
+	$pics = $cache->get("pics-$uid");
 
-	$username = trim($username);
-	$db->prepare_query("SELECT userid FROM users WHERE username = ?", $username);
+	if(!$pics){
+		$res = $usersdb->prepare_query("SELECT id, description, priority FROM pics WHERE userid = %", $uid);
 
-	if($db->numrows())
-		return $db->fetchfield();
+		$pics = array();
+		while($line = $res->fetchrow())
+			$pics[$line['priority']] = $line;
 
-	return false;
+		ksort($pics);
+
+		$cache->put("pics-$uid", $pics, 86400*7);
+	}
+
+	return $pics;
+}
+
+function getUserName($uids){
+	global $usersdb, $masterdb, $cache;
+
+	static $usernames = array();
+
+	$array = is_array($uids);
+
+	if(!$array)
+		$uids = array($uids);
+
+//already have all except these
+	$missingids = array_diff($uids, array_keys($usernames));
+
+	if(count($missingids)){
+	//try to get them from memcache
+		$usernames += $cache->get_multi($missingids, "username-");
+
+		$missingids = array_diff($uids, array_keys($usernames));
+
+	//if all else fails, grab from the db
+		if(count($missingids)){
+			// this could be made to not touch the masterdb unless the id is not found.
+			$res = $masterdb->prepare_query("SELECT userid, username FROM usernames WHERE userid IN (#)", $missingids);
+
+			while($line = $res->fetchrow()){
+				$usernames[$line['userid']] = $line['username'];
+				$cache->put("username-$line[userid]", $line['username'], 86400*7);
+			}
+		}
+
+		$missingids = array_diff($uids, array_keys($usernames));
+
+	//still couldn't find them, must not exist
+		foreach($missingids as $id){
+			foreach($uids as $k => $uid){
+				if($uid == $id){
+					unset($uids[$k]);
+					break;
+				}
+			}
+		}
+	}
+
+	$ret = array();
+	foreach($uids as $id)
+		$ret[$id] = $usernames[$id];
+
+	return ($array ? $ret : array_pop($ret));
+}
+
+function getUserID($uids){ // $uids = (optionally an array of) usernames
+	global $masterdb, $usersdb, $cache;
+
+	static $userids = array(); // username => userid
+
+	$array = is_array($uids);
+
+	if(!$array)
+		$uids = array($uids);
+
+	foreach($uids as $k => $uname){
+		$uname = strtolower(trim($uname));
+
+		if(is_numeric($uname)) //if it's already a userid, just add it to the list of userids
+			$userids[$uname] = $uname;
+
+		$uids[$k] = $uname;
+	}
+
+//already have all except these
+	$missingids = array_diff($uids, array_keys($userids));
+
+	if(count($missingids)){
+	//try to get them from memcache
+		$userids += $cache->get_multi($missingids, "username2userid-");
+
+		$missingids = array_diff($uids, array_keys($userids));
+
+	//if all else fails, grab from the db
+		if(count($missingids)){
+			$res = $masterdb->prepare_query("SELECT userid, username FROM usernames WHERE live = 'y' && username IN (?)", $missingids);
+
+			while($line = $res->fetchrow()){
+				$userids[strtolower($line['username'])] = $line['userid'];
+				$cache->put("username2userid-" . strtolower($line['username']), $line['userid'], 86400*7);
+			}
+		}
+
+		$missingids = array_diff($uids, array_keys($userids));
+
+	//still couldn't find them, must not exist
+		foreach($missingids as $id)
+			if(($k = array_search($id, $uids)) !== false)
+				unset($uids[$k]);
+	}
+
+	$ret = array();
+	foreach($uids as $id)
+		$ret[$id] = $userids[$id];
+
+	if($array)
+		return $ret;
+
+	if(count($ret))
+		return array_pop($ret);
+	else
+		return false;
+}
+
+function getSpotlight(){
+	global $usersdb, $db, $cache, $messaging;
+
+	$spotlightmax = $cache->get("spotlightmax");
+
+	if(!$spotlightmax){
+		$res = $db->query("SELECT count(*) FROM spotlight");
+
+		$spotlightmax = $res->fetchfield();
+
+		$cache->put("spotlightmax", $spotlightmax, 86400);
+	}
+
+	randomize();
+
+	$i = 20;
+
+	while(--$i){
+		$res = $db->prepare_query("SELECT userid FROM spotlight WHERE id = #", rand(1,$spotlightmax));
+		$spotlight = $res->fetchrow();
+
+		if(!$spotlight)
+			continue;
+
+		$userid = $spotlight['userid'];
+
+		$user = getUserInfo($userid);
+
+		if($user['state'] != 'active' || !$user['plus'])
+			continue;
+
+		$pics = getUserPics($userid);
+
+		if(count($pics) == 0)
+			continue;
+
+		$pic = $pics[array_rand($pics)]['id'];
+
+		$ret = array(	'userid' => $userid,
+						'username' => $user['username'],
+						'pic' => $pic,
+						'age' => $user['age'],
+						'sex' => $user['sex']
+					);
+
+		break;
+	}
+
+	if($i){
+
+		$db->prepare_query("INSERT INTO spotlighthist SET userid = #, pic = #, time = #", $ret['userid'], $ret['pic'], time());
+
+		$messaging->deliverMsg($ret['userid'], "Spotlight", "You've been spotlighted!", 0, "Nexopia", 0);
+
+		return $ret;
+	}else{
+		return 0;
+	}
 }
 
 function userNameLegal($word){
-	global $msgs,$db;
+	global $msgs, $db, $config;
 
 	$orig = $word;
 
@@ -1330,16 +1891,17 @@ function userNameLegal($word){
 		$chars[] = chr($i);
 	$word = str_replace($chars,'',$word);
 
-	if(strlen($word)<4){
-		$msgs->addMsg("Username must be at least 4 characters long.");
-		return false;
-	}
-	if(strlen($word)>12){
-		$msgs->addMsg("Username cannot be more than 12 characters long");
-		return false;
-	}
 	if($word !== $orig){
 		$msgs->addMsg("Illegal characters have been removed. Changed to '$word'.");
+		return false;
+	}
+
+	if(strlen($word) < $config['minusernamelength']){
+		$msgs->addMsg("Username must be at least $config[minusernamelength] characters long.");
+		return false;
+	}
+	if(strlen($word) > $config['maxusernamelength']){
+		$msgs->addMsg("Username cannot be more than $config[maxusernamelength] characters long");
 		return false;
 	}
 
@@ -1348,15 +1910,14 @@ function userNameLegal($word){
 		return false;
 	}
 
-	$db->prepare_query("SELECT userid FROM users WHERE username = ?", $word);
-	if($db->numrows() >= 1){
+	if(getUserID($word) !== false){
 		$msgs->addMsg("That username is already in use");
 		return false;
 	}
 
-	$db->query("SELECT word,type FROM bannedwords");
+	$res = $db->query("SELECT word,type FROM bannedwords");
 
-	while($line = $db->fetchrow()){
+	while($line = $res->fetchrow()){
 		if($line['type']=='word' || $line['type']=='name'){
 			if(strtolower($word) == strtolower($line['word'])){
 				$msgs->addMsg("'$line[word]' isn't allowed in the username");
@@ -1373,36 +1934,31 @@ function userNameLegal($word){
 }
 
 function isIgnored($to, $from, $scope, $age = 0, $ignorelistonly = false){ //$from usually = $userData['userid'];
-	global $cache, $db, $mods;
+	global $cache, $usersdb, $mods;
 
 	if($mods->isAdmin($from))
 		return false;
 
 	if($scope && !$ignorelistonly){
-		$line = $cache->get(array($to, "userprefs-$to")); //only available when the user is online. Don't $cache->put the value from below
+		$line = getUserInfo($to, false);
 
-		if(!$line || !isset($line['onlyfriends'])){
-			$db->prepare_query("SELECT onlyfriends, ignorebyage, defaultminage, defaultmaxage FROM users WHERE userid = #", $to);
-			$line = $db->fetchrow();
-		}
-
-		if(($line['onlyfriends'] == 'both' || $line['onlyfriends']  == $scope) && !isFriend($from,$to))
+		if(($line['onlyfriends'] == 'both' || $line['onlyfriends'] == $scope) && !isFriend($from,$to))
 			return true;
 
 		if(($line['ignorebyage'] == 'both' || $line['ignorebyage'] == $scope) && $age && ($age < $line['defaultminage'] || $age > $line['defaultmaxage']) && !isFriend($from, $to))
 			return true;
 	}
 
-	$ignorelist = $cache->get(array($to, "ignorelist-$to"));
+	$ignorelist = $cache->get("ignorelist-$to");
 
 	if($ignorelist === false){
-		$db->prepare_query("SELECT ignoreid FROM `ignore` WHERE userid = ?", $to);
+		$res = $usersdb->prepare_query("SELECT ignoreid FROM `ignore` WHERE userid = %", $to);
 
 		$ignorelist = array();
-		while($line = $db->fetchrow())
+		while($line = $res->fetchrow())
 			$ignorelist[$line['ignoreid']] = $line['ignoreid'];
 
-		$cache->put(array($to, "ignorelist-$to"), $ignorelist, 86400*3); //3 days
+		$cache->put("ignorelist-$to", $ignorelist, 86400*3); //3 days
 	}
 
 	return isset($ignorelist[$from]);
@@ -1417,7 +1973,7 @@ function isFriend($friendid, $userid=0){
 	if($friendid == $userid)
 		return true;
 
-	$friends = getFriendsList($userid);
+	$friends = getFriendsListIDs($userid);
 
 	return isset($friends[$friendid]);
 }
@@ -1437,49 +1993,49 @@ function isValidEmail($email){
 }
 
 function isEmailInUse($email){
-	global $msgs,$db;
+	global $msgs, $masterdb;
 
-	$db->prepare_query("SELECT userid FROM users WHERE email = ?", $email);
+	$res = $masterdb->prepare_query("SELECT userid FROM useremails WHERE email = ?", $email);
 
-	if($db->numrows()){
+	if($res->fetchrow()){
 		$msgs->addMsg("Email Already in use");
 		return true;
 	}
 	return false;
 }
 
-function isBanned($val,$type){
+function isBanned($val){
 	global $db;
 
-	$db->prepare_query("SELECT id FROM bannedusers WHERE $type = ?", $val);
+	$res = $db->prepare_query("SELECT date FROM bannedusers WHERE banned = ?", $val);
 
-	return $db->numrows();
+	return $res->fetchrow() != false;
 }
 
 /////////////////////////////////////////////////////
 ////// Sorting Functions ////////////////////////////
 /////////////////////////////////////////////////////
 
-function isValidSortt($sortlist,&$sortt,$default=""){
+function isValidSortt($sortlist, &$sortt, $default = ""){
 	foreach($sortlist as $n => $v)
-		if($v!="" && $n == $sortt)
+		if($v && $n == $sortt)
 			return true;
-	if($default!=""){
-		$sortt=$n;
+	if($default){
+		$sortt = $default;
 		return false;
 	}
 	foreach($sortlist as $n => $v){
-		if($v!=""){
-			$sortt=$n;
+		if($v){
+			$sortt = $n;
 			return false;
 		}
 	}
 }
 
-function isValidSortd(&$sortd,$default='ASC'){
+function isValidSortd(&$sortd, $default = 'ASC'){
 	if($sortd == 'ASC' || $sortd == 'DESC')
 		return true;
-	$sortd=$default;
+	$sortd = $default;
 	return false;
 }
 
@@ -1498,16 +2054,16 @@ function makeSortSelect($sortlist){
 	return implode(', ',$s);
 }
 
-function makeSortTableHeader($sortlist,$name,$type,$varlist=array(),$href="",$align='left'){
+function makeSortTableHeader($name, $type, $varlist=array(), $href="", $align='left'){
 	global $sortt,$sortd,$config;
 	if($href=="")
 		$href=$_SERVER['PHP_SELF'];
-	echo "<td class=header align=$align nowrap><a class=header href=\"$href?sortd=" . ($sortt==$type ? ($sortd=="ASC" ? "DESC" : "ASC") : $sortd). "&sortt=$type";
+	$str = "<td class=header align=$align nowrap><a class=header href=\"$href?sortd=" . ($sortt==$type ? ($sortd=="ASC" ? "DESC" : "ASC") : $sortd). "&sortt=$type";
 	foreach($varlist as $k => $v)
-		echo "&$k=$v";
-	echo "\">$name</a>". ($sortt==$type ? "&nbsp<img src=$config[imageloc]$sortd.png>" : "") ."</td>\n";
+		$str .= "&$k=$v";
+	$str .= "\">$name</a>". ($sortt==$type ? "&nbsp<img src=$config[imageloc]$sortd.png>" : "") ."</td>\n";
+	return $str;
 }
-
 
 function sortCols(&$rows){
 	$numargs = func_num_args();
@@ -1537,6 +2093,7 @@ function sortCols(&$rows){
 		}
 	}
 
+	$first = true;
 	foreach($sorts as $sort){
 		list($key, $dir, $type) = $sort;
 		if($dir == SORT_ASC){
@@ -1559,7 +2116,13 @@ function sortCols(&$rows){
 			}
 		}
 		$compare = create_function('$a,$b',$func);
-		mergesort($rows, $compare);
+
+		if($first){ //use the first time only as the built in php sorts are not stable (ie if they have equal value, they may randomly change order)
+			uasort($rows, $compare);
+			$first = false;
+		}else{
+			mergesort($rows, $compare);
+		}
 	}
 }
 
@@ -1627,515 +2190,4 @@ function mergesort(&$array, $cmp_function = 'strcmp') {
    while ($ptr2 < count($array2)) $array[$keys2[$ptr2]] = $array2[$keys2[$ptr2++]];
    return;
 }
-
-
-/////////////////////////////////////////////////////
-////// Picture Functions For New Manage Pictures/////
-/////////////////////////////////////////////////////
-
-function uploadPic($uploadFile,$picID){
-	global $config, $docRoot, $msgs, $userData, $filesystem;
-
-	$picName = $config['picdir'] . floor($picID/1000) . "/" . $picID . ".jpg";
-	$thumbName = $config['thumbdir'] . floor($picID/1000) . "/" . $picID . ".jpg";
-
-	$size = @GetImageSize($uploadFile);
-	if ( !$size ){
-		$msgs->addMsg("Could not open picture");
-		return false;
-	}
-
-	include_once("include/JPEG.php");
-
-	$jpeg =& new JPEG($uploadFile);
-
-	$description = $jpeg->getExifField("ImageDescription");
-
-	if(!empty($description) && substr($description,0,strlen($config['picText'])) == $config['picText']){
-		$userid = substr($description,strlen($config['picText'])+1);
-		if(!empty($userid) && $userid != $userData['userid']){
-			$msgs->addMsg("You have been banned from uploading this image");
-			return false;
-		}
-	}
-
-	if($size[2] == 2)
-	    $sourceImg = @ImageCreateFromJPEG($uploadFile);
-	elseif($size[2] == 3)
-	    $sourceImg = @ImageCreateFromPNG($uploadFile);
-	else{
-		$msgs->addMsg("Wrong or unknown image type. Only JPG and PNG are supported");
-		return false;
-	}
-
-	if(!$sourceImg){
-		$msgs->addMsg("Bad or corrupt image.");
-		return false;
-	}
-
-	$aspectRat = (float)($size[0] / $size[1]);
-
-	if($config['maxPicWidth']>0 && $config['maxPicHeight'] >0 && $size[0] > $config['maxPicWidth'] && $size[1] > $config['maxPicHeight']){
-		$ratio = (float)($config['maxPicWidth'] / $config['maxPicHeight']);
-		if($ratio < $aspectRat){
-			$picX = $config['maxPicWidth'];
-			$picY = $config['maxPicWidth'] / $aspectRat;
-		}else{
-			$picY = $config['maxPicHeight'];
-			$picX = $config['maxPicHeight'] * $aspectRat;
-		}
-	}elseif($config['maxPicWidth'] >0 && $size[0]>$config['maxPicWidth']){
-		$picX = $config['maxPicWidth'];
-		$picY = $config['maxPicWidth'] / $aspectRat;
-	}elseif($config['maxPicHeight'] > 0 && $size[1]>$config['maxPicHeight']){
-		$picY = $config['maxPicHeight'];
-		$picX = $config['maxPicHeight'] * $aspectRat;
-	}else{
-		$picX = $size[0];
-		$picY = $size[1];
-	}
-
-	$picX = ceil($picX);
-	$picY = ceil($picY);
-
-	if($picX < $config['minPicWidth'] || $picY < $config['minPicHeight']){
-		$msgs->addMsg("Picture is too small");
-		return false;
-	}
-
-	if(!$config['gd2']){
-		$destImg = ImageCreate($picX, $picY );
-		ImageCopyResized($destImg, $sourceImg, 0,0,0,0, $picX, $picY, $size[0], $size[1]);
-	}else{
-		$destImg = ImageCreateTrueColor($picX, $picY );
-		ImageCopyResampled($destImg, $sourceImg, 0,0,0,0, $picX, $picY, $size[0], $size[1]);
-	}
-
-
-	$white = ImageColorClosest($destImg, 255, 255, 255);
-	$black = ImageColorClosest($destImg, 0, 0, 0);
-
-
-	$padding = 3;
-	$border = 1;
-	$offset = 10;
-	$textwidth = (strlen($config['picText'])*7)-1; // 6 pixels per character, 1 pixel space, 3 pixels padding
-	$textheight = 14;
-
-	ImageRectangle($destImg,$picX-$textwidth-$offset-$border*2-$padding*2,$picY-$textheight-$offset-$border,$picX-$offset,$picY-$offset,$black);
-	ImageFilledRectangle($destImg,$picX-$textwidth-$offset-$border-$padding*2,$picY-$textheight-$offset,$picX-$border-$offset,$picY-$border-$offset,$white);
-	ImageString ($destImg, 3, $picX-$textwidth-$offset-$padding, $picY-$textheight-$offset, $config['picText'], $black);
-
-	imagejpeg($destImg, $docRoot . $picName,80);
-
-
-//put in exif info
-	$jpeg =& new JPEG($docRoot . $picName);
-
-	$jpeg->setExifField("ImageDescription", "$config[picText]:$userData[userid]");
-	$jpeg->save();
-
-	if($config['thumbWidth']>0 && $config['thumbHeight'] >0 && $size[0] > $config['thumbWidth'] && $size[1] > $config['thumbHeight']){
-		$ratio = (float)($config['thumbWidth'] / $config['thumbHeight']);
-		if($ratio < $aspectRat){
-			$newX = $config['thumbWidth'];
-			$newY = $config['thumbWidth'] / $aspectRat;
-		}else{
-			$newY = $config['thumbHeight'];
-			$newX = $config['thumbHeight'] * $aspectRat;
-		}
-	}elseif($config['thumbWidth'] >0 && $size[0]>$config['thumbWidth']){
-		$newX = $config['thumbWidth'];
-		$newY = $config['thumbWidth'] / $aspectRat;
-	}elseif($config['thumbHeight'] > 0 && $size[1]>$config['thumbHeight']){
-		$newY = $config['thumbHeight'];
-		$newX = $config['thumbHeight'] * $aspectRat;
-	}else{
-		$newX = $size[0];
-		$newY = $size[1];
-	}
-
-	if(!$config['gd2']){
-		$thumbImg = ImageCreate($newX, $newY );
-		ImageCopyResized($thumbImg, $destImg, 0,0,0,0, $newX, $newY, $picX, $picY);
-	}else{
-		$thumbImg = ImageCreateTrueColor($newX, $newY );
-	    ImageCopyResampled($thumbImg, $destImg, 0,0,0,0, $newX, $newY, $picX, $picY);
-	}
-
-	imagejpeg($thumbImg, $docRoot . $thumbName, 80);
-
-	$jpeg =& new JPEG($docRoot . $thumbName);
-
-	$jpeg->setExifField("ImageDescription", "$config[picText]:$userData[userid]");
-	$jpeg->save();
-
-	$filesystem->add($picName);
-	$filesystem->add($thumbName);
-
-	return true;
-}
-
-function addPic($userfile,$vote,$description, $signpic){
-	global $userData,$msgs,$db,$config, $docRoot, $mods;
-
-	if(!file_exists($userfile)){
-		$msgs->addMsg("You must upload a file. If you tried, the file might be too big (1mb max).");
-		return false;
-	}
-
-	$md5 = md5_file($userfile);
-
-	$db->prepare_query("SELECT times FROM picbans WHERE md5 = ? && userid IN (0,#)", $md5, $userData['userid']);
-
-	if($db->numrows()){
-		$times = $db->fetchfield();
-
-		if($times > 1){
-			$msgs->addMsg("This picture has been banned");
-			return false;
-		}
-	}
-
-	$db->prepare_query("SELECT itemid FROM picspending WHERE md5 = ? && itemid = #", $md5, $userData['userid']);
-
-	if($db->numrows()){
-		$msgs->addMsg("You already uploaded this picture");
-		return false;
-	}
-
-	$db->prepare_query("INSERT INTO picspending SET itemid = #, vote = ?, description = ?, md5 = ?, signpic = ?, time = #", $userData['userid'], ($vote ? 'y' : 'n'), removeHTML(trim(str_replace("\n", ' ', $description))), $md5, ($signpic ? 'y' : 'n'), time());
-
-	$picID = $db->insertid();
-
-	umask(0);
-
-	if(!is_dir($docRoot . $config['picdir'] . floor($picID/1000)))
-		@mkdir($docRoot . $config['picdir'] . floor($picID/1000),0777);
-	if(!is_dir($docRoot . $config['thumbdir'] . floor($picID/1000)))
-		@mkdir($docRoot . $config['thumbdir'] . floor($picID/1000),0777);
-
-	if(uploadPic($userfile, $picID)){
-		$mods->newItem(MOD_PICS,$picID,$userData['premium']);
-
-		$msgs->addMsg("Picture uploaded successfully.");
-	}else{
-		$db->prepare_query("DELETE FROM picspending WHERE id = #", $picID);
-	}
-}
-
-function removePic($id){
-	global $msgs,$config,$db, $mods, $filesystem, $docRoot, $cache;
-
-	$db->begin();
-//	$db->query("LOCK TABLES pics WRITE");
-
-	$db->prepare_query("SELECT itemid FROM pics WHERE id = ?", $id);
-
-	if($db->numrows()==0){
-//		$db->query("UNLOCK TABLES");
-		$db->rollback();
-		return;
-	}
-
-	$line = $db->fetchrow();
-
-	setMaxPriority($db, "pics", $id, "itemid = '$line[itemid]'");
-
-	$db->prepare_query("DELETE FROM pics WHERE id = ?", $id);
-
-//	$db->query("UNLOCK TABLES");
-	$db->commit();
-
-	$cache->remove(array($line['itemid'],"pics-$line[itemid]"));
-
-	$db->prepare_query("DELETE FROM abuse WHERE type = ? && itemid = ?", MOD_PICABUSE, $id);
-
-	$mods->deleteItem(MOD_PICABUSE,$id);
-
-	$picName = $config['picdir'] . floor($id/1000) . "/" . $id . ".jpg";
-	$thumbName = $config['thumbdir'] . floor($id/1000) . "/" . $id . ".jpg";
-
-	$filesystem->delete($picName);
-	$filesystem->delete($thumbName);
-
-	if(file_exists($docRoot . $picName))
-			@unlink($docRoot . $picName);
-	if(file_exists($docRoot . $thumbName))
-			@unlink($docRoot . $thumbName);
-
-	$msgs->addMsg("Picture Deleted");
-}
-
-
-function removePicPending($ids, $deletemoditem = true){
-	global $msgs,$config,$db,$mods, $filesystem, $docRoot;
-
-	if(!is_array($ids))
-		$ids = array($ids);
-
-	$db->prepare_query("DELETE FROM picspending WHERE id IN (?)", $ids);
-
-	if($deletemoditem)
-		$mods->deleteItem(MOD_PICS,$ids);
-
-	foreach($ids as $id){
-		$picName = $config['picdir'] . floor($id/1000) . "/" . $id . ".jpg";
-		$thumbName = $config['thumbdir'] . floor($id/1000) . "/" . $id . ".jpg";
-
-		$filesystem->delete($picName);
-		$filesystem->delete($thumbName);
-
-		if(file_exists($docRoot . $picName))
-				unlink($docRoot . $picName);
-		if(file_exists($docRoot . $thumbName))
-				unlink($docRoot . $thumbName);
-	}
-
-	if(count($ids) > 1)
-		$msgs->addMsg(count($ids) . " Pictures Deleted");
-	else
-		$msgs->addMsg("Picture Deleted");
-}
-
-function setFirstPic($uids){
-	global $db, $cache;
-
-	$db->prepare_query("UPDATE users LEFT JOIN pics ON users.userid=pics.itemid && pics.priority=1 SET users.firstpic = pics.id WHERE users.userid IN (#)", $uids);
-
-	if(is_array($uids))
-		foreach($uids as $uid)
-			$cache->remove(array($uid, "pics-$uid"));
-	else
-		$cache->remove(array($uids, "pics-$uids"));
-}
-
-
-/////////////////////////////////////////////////////
-////// Gallery Picture Functions ////////////////////
-/////////////////////////////////////////////////////
-
-function uploadGalleryPic($uploadFile,$picID){
-	global $config, $docRoot, $msgs, $userData, $filesystem;
-
-	$picName = $config['gallerypicdir'] . floor($picID/1000) . "/" . $picID . ".jpg";
-	$thumbName = $config['gallerythumbdir'] . floor($picID/1000) . "/" . $picID . ".jpg";
-
-	$size = @GetImageSize($uploadFile);
-	if ( !$size ){
-		$msgs->addMsg("Could not open picture");
-		return false;
-	}
-
-	include_once("include/JPEG.php");
-
-	$jpeg =& new JPEG($uploadFile);
-
-	$description = $jpeg->getExifField("ImageDescription");
-
-	if(!empty($description) && substr($description,0,strlen($config['picText'])) == $config['picText']){
-		$userid = substr($description,strlen($config['picText'])+1);
-		if(!empty($userid) && $userid != $userData['userid']){
-			$msgs->addMsg("You have been banned from uploading this image");
-			return false;
-		}
-	}
-
-	if($size[2] == 2)
-	    $sourceImg = @ImageCreateFromJPEG($uploadFile);
-//	elseif($size[2] == 3)
-//	    $sourceImg = @ImageCreateFromPNG($uploadFile);
-	else{
-		$msgs->addMsg("Wrong or unknown image type. Only JPG and PNG are supported");
-		return false;
-	}
-
-	if(!$sourceImg){
-		$msgs->addMsg("Bad or corrupt image.");
-		return false;
-	}
-
-	$aspectRat = (float)($size[0] / $size[1]);
-
-	if($config['maxGalleryPicWidth']>0 && $config['maxGalleryPicHeight'] >0 && $size[0] > $config['maxGalleryPicWidth'] && $size[1] > $config['maxGalleryPicHeight']){
-		$ratio = (float)($config['maxGalleryPicWidth'] / $config['maxGalleryPicHeight']);
-		if($ratio < $aspectRat){
-			$picX = $config['maxGalleryPicWidth'];
-			$picY = $config['maxGalleryPicWidth'] / $aspectRat;
-		}else{
-			$picY = $config['maxGalleryPicHeight'];
-			$picX = $config['maxGalleryPicHeight'] * $aspectRat;
-		}
-	}elseif($config['maxGalleryPicWidth'] >0 && $size[0]>$config['maxGalleryPicWidth']){
-		$picX = $config['maxGalleryPicWidth'];
-		$picY = $config['maxGalleryPicWidth'] / $aspectRat;
-	}elseif($config['maxGalleryPicHeight'] > 0 && $size[1]>$config['maxGalleryPicHeight']){
-		$picY = $config['maxGalleryPicHeight'];
-		$picX = $config['maxGalleryPicHeight'] * $aspectRat;
-	}else{
-		$picX = $size[0];
-		$picY = $size[1];
-	}
-
-	$picX = ceil($picX);
-	$picY = ceil($picY);
-
-	if($picX < $config['minPicWidth'] || $picY < $config['minPicHeight']){
-		$msgs->addMsg("Picture is too small");
-		return false;
-	}
-
-
-	if(!$config['gd2']){
-		$destImg = ImageCreate($picX, $picY );
-		ImageCopyResized($destImg, $sourceImg, 0,0,0,0, $picX, $picY, $size[0], $size[1]);
-	}else{
-		$destImg = ImageCreateTrueColor($picX, $picY );
-		ImageCopyResampled($destImg, $sourceImg, 0,0,0,0, $picX, $picY, $size[0], $size[1]);
-	}
-
-
-	$white = ImageColorClosest($destImg, 255, 255, 255);
-	$black = ImageColorClosest($destImg, 0, 0, 0);
-
-
-	$padding = 3;
-	$border = 1;
-	$offset = 10;
-	$textwidth = (strlen($config['picText'])*7)-1; // 6 pixels per character, 1 pixel space, 3 pixels padding
-	$textheight = 14;
-
-	ImageRectangle($destImg,$picX-$textwidth-$offset-$border*2-$padding*2,$picY-$textheight-$offset-$border,$picX-$offset,$picY-$offset,$black);
-	ImageFilledRectangle($destImg,$picX-$textwidth-$offset-$border-$padding*2,$picY-$textheight-$offset,$picX-$border-$offset,$picY-$border-$offset,$white);
-	ImageString ($destImg, 3, $picX-$textwidth-$offset-$padding, $picY-$textheight-$offset, $config['picText'], $black);
-
-	imagejpeg($destImg, $docRoot . $picName,80);
-
-
-//put in exif info
-	$jpeg =& new JPEG($docRoot . $picName);
-
-	$jpeg->setExifField("ImageDescription", "$config[picText]:$userData[userid]");
-	$jpeg->save();
-
-	if($config['thumbWidth']>0 && $config['thumbHeight'] >0 && $size[0] > $config['thumbWidth'] && $size[1] > $config['thumbHeight']){
-		$ratio = (float)($config['thumbWidth'] / $config['thumbHeight']);
-		if($ratio < $aspectRat){
-			$newX = $config['thumbWidth'];
-			$newY = $config['thumbWidth'] / $aspectRat;
-		}else{
-			$newY = $config['thumbHeight'];
-			$newX = $config['thumbHeight'] * $aspectRat;
-		}
-	}elseif($config['thumbWidth'] >0 && $size[0]>$config['thumbWidth']){
-		$newX = $config['thumbWidth'];
-		$newY = $config['thumbWidth'] / $aspectRat;
-	}elseif($config['thumbHeight'] > 0 && $size[1]>$config['thumbHeight']){
-		$newY = $config['thumbHeight'];
-		$newX = $config['thumbHeight'] * $aspectRat;
-	}else{
-		$newX = $size[0];
-		$newY = $size[1];
-	}
-
-	if(!$config['gd2']){
-		$thumbImg = ImageCreate($newX, $newY );
-		ImageCopyResized($thumbImg, $destImg, 0,0,0,0, $newX, $newY, $picX, $picY);
-	}else{
-		$thumbImg = ImageCreateTrueColor($newX, $newY );
-	    ImageCopyResampled($thumbImg, $destImg, 0,0,0,0, $newX, $newY, $picX, $picY);
-	}
-
-	imagejpeg($thumbImg, $docRoot . $thumbName, 80);
-
-	$jpeg =& new JPEG($docRoot . $thumbName);
-
-	$jpeg->setExifField("ImageDescription", "$config[picText]:$userData[userid]");
-	$jpeg->save();
-
-	$filesystem->add($picName);
-	$filesystem->add($thumbName);
-
-	return true;
-}
-
-function addGalleryPic($userfile, $cat, $description){
-	global $userData, $msgs, $db, $config, $docRoot, $mods;
-
-	if(!file_exists($userfile)){
-		$msgs->addMsg("You must upload a file. If you tried, the file might be too big (1mb max).");
-		return false;
-	}
-
-	$priority = getMaxPriority($db, "gallery",$db->prepare("userid = ? && category = ?", $userData['userid'], $cat));
-	$db->prepare_query("INSERT INTO gallery SET userid = ?, category = ?, description = ?, priority = ?", $userData['userid'], $cat, removeHTML(trim(str_replace("\n", ' ', $description))), $priority);
-
-	$picID = $db->insertid();
-
-	umask(0);
-
-	if(!is_dir($docRoot . $config['gallerypicdir'] . floor($picID/1000)))
-		@mkdir($docRoot . $config['gallerypicdir'] . floor($picID/1000),0777);
-	if(!is_dir($docRoot . $config['gallerythumbdir'] . floor($picID/1000)))
-		@mkdir($docRoot . $config['gallerythumbdir'] . floor($picID/1000),0777);
-
-	if(uploadGalleryPic($userfile, $picID)){
-		$mods->newItem(MOD_GALLERY,$picID);
-		$msgs->addMsg("Picture uploaded successfully.");
-	}else{
-		$db->prepare_query("DELETE FROM gallery WHERE id = ?", $picID);
-	}
-}
-
-function removeGalleryPic($id){
-	global $msgs, $config, $db, $mods, $filesystem, $docRoot;
-
-//	$db->query("LOCK TABLES gallery WRITE");
-	$db->begin();
-
-	$db->prepare_query("SELECT userid,category FROM gallery WHERE id = ?", $id);
-
-	if($db->numrows()==0){
-//		$db->query("UNLOCK TABLES");
-		$db->rollback();
-		return;
-	}
-
-	$line = $db->fetchrow();
-
-	setMaxPriority($db, "gallery", $id, "userid = '$line[userid]' && category = '$line[category]'");
-
-	$db->prepare_query("DELETE FROM gallery WHERE id = ?", $id);
-
-//	$db->query("UNLOCK TABLES");
-	$db->commit();
-
-	$mods->deleteItem(MOD_GALLERYABUSE,$id);
-
-	$picName = $config['gallerypicdir'] . floor($id/1000) . "/" . $id . ".jpg";
-	$thumbName = $config['gallerythumbdir'] . floor($id/1000) . "/" . $id . ".jpg";
-
-	if(file_exists($docRoot . $picName))
-			unlink($docRoot . $picName);
-	if(file_exists($docRoot . $thumbName))
-			unlink($docRoot . $thumbName);
-
-	$filesystem->delete($picName);
-	$filesystem->delete($thumbName);
-
-	$msgs->addMsg("Picture Deleted");
-}
-
-function setFirstGalleryPic($uid,$cat){
-	global $db;
-
-	$db->prepare_query("SELECT id FROM gallery WHERE userid = ? && category = ? && priority = 1", $uid, $cat);
-	if($db->numrows() == 0)
-		$id = 0;
-	else
-		$id = $db->fetchfield();
-
-	$db->prepare_query("UPDATE gallerycats SET firstpicture = ? WHERE userid = ? && id = ?", $id, $uid, $cat);
-}
-
 

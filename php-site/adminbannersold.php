@@ -619,7 +619,7 @@ function listClients(){
 	foreach($clients as $line){
 		echo "<tr>";
 		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=listbanners&clientid=$line[id]&all=2>$line[clientname]</a></td>";
-		echo "<td class=body><a class=body href=profile.php?uid=$line[userid]>" . getUserName($line['userid']) . "</td>";
+		echo "<td class=body><a class=body href=/profile.php?uid=$line[userid]>" . getUserName($line['userid']) . "</td>";
 		echo "<td class=body>$line[type]</td>";
 		echo "<td class=body>" . userdate("M j, Y", $line['dateadded']) . "</td>";
 		echo "<td class=body align=right>\$$line[owed]</td>";

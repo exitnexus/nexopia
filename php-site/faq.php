@@ -22,19 +22,19 @@
 		}
 	}
 
-	$categories = & new category( $db, 'faqcats');
+	$categories = new category( $db, 'faqcats');
 
 	$branch = $categories->makeBranch();
 
 
 	if(!empty($q)){
-		$answer = $cache->get(array($q, "faqans-$q"));
+		$answer = $cache->get("faqans-$q");
 
 		if(!$answer){
-			$db->prepare_query("SELECT parent, title, text FROM faq WHERE id = ?", $q);
-			$answer = $db->fetchrow();
+			$res = $db->prepare_query("SELECT parent, title, text FROM faq WHERE id = ?", $q);
+			$answer = $res->fetchrow();
 
-			$cache->put(array($q, "faqans-$q"), $answer, 86400);
+			$cache->put("faqans-$q", $answer, 86400);
 		}
 
 		if($answer && !isset($cat))
@@ -48,16 +48,16 @@
 	}
 
 
-	$questions = $cache->get(array($cat, "faqquestions-$cat"));
+	$questions = $cache->get("faqquestions-$cat");
 
 	if(!$questions){
-		$db->query($query);
+		$res = $db->query($query);
 
 		$questions = array();
-		while($line = $db->fetchrow())
+		while($line = $res->fetchrow())
 			$questions[$line['id']] = $line;
 
-		$cache->put(array($cat, "faqquestions-$cat"), $questions, 86400);
+		$cache->put("faqquestions-$cat", $questions, 86400);
 	}
 
 	$catname = "Top Questions";

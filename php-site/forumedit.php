@@ -4,7 +4,7 @@
 
 	require_once("include/general.lib.php");
 
-	if(!isset($id) || $id==0)
+	if(!($id = getREQval('id')))
 		die("Bad forumid");
 
 	$perms = $forums->getForumPerms($id);	//checks it's a forum, not a realm
@@ -14,8 +14,13 @@
 		die("You don't have permission to edit this forum");
 
 	switch($action){
-		case "editforum":			editForum($id);				break;
-		case "Update Forum":		updateForum($data,$id);		break;
+		case "editforum":
+			editForum($id);
+			break;
+		case "Update Forum":
+			if($data = getPOSTVal('data', 'array'))
+				updateForum($data,$id);
+			break;
 		case "Delete":
 			$forums->deleteForum($id);
 			header("location: /forums.php");
@@ -26,71 +31,64 @@
 
 
 function editForum($id){
-	global $childdata, $forums, $db, $sorttimes;
+	global $childdata, $forums, $db, $sorttimes, $mods, $userData, $config;
 
-	$forums->db->prepare_query("SELECT name, description, autolock, edit, public, mute, ownerid FROM forums WHERE forums.id = ?", $id);
-	$data = $forums->db->fetchrow();
+	$data = $forums->getForums($id);
 
 	$ownername = getUserName($data['ownerid']);
 
+	$isForumAdmin = $mods->isAdmin($userData['userid'],'forums');
+
+	$cats = $forums->getCategories();
+	$outputcats = array(-1 => 'Select a category');
+	foreach ($cats as $catid => $cat)
+	{
+		if ($isForumAdmin || $cat['official'] != 'y')
+			$outputcats[$catid] = $cat['name'];
+	}
+
 	extract($data);
 
-	incHeader();
-
-	echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
-
-
-	echo "<tr><td class=body colspan=2>";
-	echo "<a class=body href=forumsusercreated.php>User Created Forums</a> > ";
-
-	echo "<a class=body href=forumthreads.php?fid=$id>$name</a> > ";
-	echo "<a class=body href=$_SERVER[PHP_SELF]?id=$id>Edit Forum</a>";
-	echo "</td></tr>";
-
-	echo "<input type=hidden name=id value='$id'";
-	echo "<tr><td class=header colspan=2 align=center>Edit Forum</td></tr>";
-
-	echo "<tr><td class=body>Name:</td><td class=body><input class=body type=text name=data[name] maxlength=32 value=\"$name\"></td></tr>";
-	echo "<tr><td class=body>Description:</td><td class=body><input class=body type=text name=data[description] maxlength=250 size=30 value=\"$description\"></td></tr>";
-	echo "<tr><td class=body>Owner:</td><td class=body><input class=body type=text name=data[ownername] maxlength=12 size=12 value=\"$ownername\"></td></tr>";
-	echo "<tr><td class=header colspan=2 align=center>Options</td></tr>";
-
-	echo "<tr><td class=body>Auto-lock time:</td><td class=body><input class=body type=text name=data[autolock] size=5 value=" . ($autolock/86400) . "> days. 0 to disable, otherwise time in days</td></tr>";
-	echo "<tr><td class=body>Allow Post Editing:</td><td class=body>" . make_radio_key("data[edit]", array('y'=>"Yes", 'n'=>"No"),$edit) . "</td></tr>";
-	echo "<tr><td class=body>Public:</td><td class=body>" . make_radio_key("data[public]", array('y'=>"Yes", 'n'=>"No"),$public) . "&nbsp; Only invited users can enter a private forum.</td></tr>";
-	echo "<tr><td class=body>Mute:</td><td class=body>" . make_radio_key("data[mute]", array('y'=>"Yes", 'n'=>"No"),$mute) . "&nbsp; Only mods can post in a mute forum.</td></tr>";
-//	echo "<tr><td class=body>Show threads from last</td><td class=body><select class=body name=sorttime>" . make_select_list_key($sorttimes,$sorttime) . "</select></td></tr>";
-
-	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value='Update Forum'></td></tr>";
-	echo "</form></table>";
-
-	echo "<br>";
-	echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
-	echo "<input type=hidden name=id value=$id>";
-	echo "<tr><td class=header align=center>Delete Forum</td></tr>";
-	echo "<tr><Td class=body>This will permanently delete the forum and all threads and posts associated with it</td></tr>";
-	echo "<tr><td class=body align=center><input class=body type=submit name=action value=Delete onClick=\"alert('This will permanently delete the forum and all threads and posts associated with it'); return confirm('Are you sure you want to delete this forum?');\"></td></tr>";
-	echo "</form></table>";
-
-	incFooter();
+	$template = new template('forums/forumedit');
+	
+	$template->set('forumTrail', $forums->getForumTrail($data, "body"));
+	$template->set('id', $id);
+	$template->set('name', $name);
+	$template->set('description', $description);
+	$template->set('categoriesSelection', make_select_list_key($outputcats, $categoryid));
+	$template->set('ownername', $ownername);
+	$template->set('maxusernamelength', $config['maxusernamelength']);
+	$template->set('autolock', $autolock/86400);
+	$template->set('allowPostEditingButtons', make_radio_key("data[edit]", $forums->editlengths, $edit));
+	$template->set('publicButtons', make_radio_key("data[public]", array('y'=>"Yes", 'n'=>"No"),$public));
+	$template->set('officialButtons', make_radio_key("data[official]", array('y'=>"Yes", 'n'=>"No"),$official));
+	$template->set('muteButtons', make_radio_key("data[mute]", array('y'=>"Yes", 'n'=>"No"),$mute));
+	$template->set('isForumAdmin', $isForumAdmin);
+	$template->set('lastThreadsSelection', make_select_list_key($forums->sorttimes,$sorttime));
+	$template->set('rules', $rules);
+	$template->display();
+	
 	exit;
 }
 
 function updateForum($data,$id){
-	global $msgs,$userData,$forums,$sorttime,$sorttimes, $cache;
+	global $msgs,$userData,$forums,$sorttime,$sorttimes, $cache, $mods;
 
 	$name="";
 	$description="";
-	$parent=0;
+	$catid=-1;
 	$autolock=0;
 	$edit='n';
 	$countposts='y';
 	$public='y';
+	$official='n';
 	$mute='n';
 	$sorttime = 14;
 	$ownername = "";
 
 	extract($data);
+
+	$isForumAdmin = $mods->isAdmin($userData['userid'],'forums');
 
 	$error=false;
 	if($name==""){
@@ -98,8 +96,8 @@ function updateForum($data,$id){
 		$error=true;
 	}
 
-	$forums->db->prepare_query("SELECT id FROM forums WHERE name = ? && id != ?", $name, $id);
-	if($forums->db->numrows() > 0){
+	$res = $forums->db->prepare_query("SELECT id FROM forums WHERE name = ? && id != #", $name, $id);
+	if($res->fetchrow()){
 		$msgs->addMsg("A forum already exists with that name");
 		$error=true;
 	}
@@ -107,6 +105,28 @@ function updateForum($data,$id){
 	if($description==""){
 		$msgs->addMsg("Forum needs a description");
 		$error=true;
+	}
+
+	$cats = $forums->getCategories();
+	if(!isset($cats[$catid])){
+		$msgs->addMsg("Forum needs an initial category");
+		$error=true;
+	}
+
+	if (!$isForumAdmin && $catid != -1 && $cats[$catid]['official'] == 'y')
+	{
+		$catid = -1;
+		$msgs->addMsg("You do not have permission to place a forum in '{$cats[$catid][name]}'");
+		$error=true;
+	}
+	if ($catid != -1 && $cats[$catid]['official'] == 'y')
+	{
+		$official = 'y'; // force official forums in official categories.
+	}
+	if (!$isForumAdmin && $official == 'y')
+	{
+		$msgs->addMsg("You do not have permission to create an official forum.");
+		$error = true;
 	}
 
 	$ownerid = getUserID($ownername);
@@ -125,21 +145,26 @@ function updateForum($data,$id){
 	$commands = array();
 	$commands[] = $forums->db->prepare("name = ?", removehtml($name));
 	$commands[] = $forums->db->prepare("description = ?", removehtml($description));
-	$commands[] = "parent='0'";
+	$commands[] = $forums->db->prepare("categoryid = #", $catid);
 	$commands[] = $forums->db->prepare("autolock = ?", ($autolock*86400) );
 	$commands[] = $forums->db->prepare("edit = ?", $edit);
 	$commands[] = $forums->db->prepare("public = ?", $public);
+	$commands[] = $forums->db->prepare("official = ?", $official);
+	$commands[] = $forums->db->prepare("unofficial = ?", ($official=='y')? 'n' : 'y');
 	$commands[] = $forums->db->prepare("mute = ?", $mute);
 	$commands[] = $forums->db->prepare("ownerid = ?", $ownerid);
-	$commands[] = "official='n'";
-	if(!in_array($sorttime, $forums->sorttimes))
-		$sorttime = 14;
-	$commands[] = "sorttime='$sorttime'";
+	if($isForumAdmin){
+		if(isset($sorttime) && !in_array($sorttime, $forums->sorttimes))
+			$sorttime = 14;
+		$commands[] = $forums->db->prepare("sorttime = #", $sorttime);
+	}
 
-	$query = "UPDATE forums SET " . implode(", ",$commands) . $forums->db->prepare(" WHERE id = ?", $id);
+	$commands[] = $forums->db->prepare("rules = ?", removeHTML(trim($rules)));
+
+	$query = "UPDATE forums SET " . implode(", ",$commands) . $forums->db->prepare(" WHERE id = #", $id);
 	$forums->db->query($query);
 
-	$cache->remove(array($id, "forumdata-$id"));
+	$forums->invalidateForums($id);
 
 	$msgs->addMsg("Forum Updated");
 }
@@ -184,10 +209,10 @@ function dispRoot(&$data){
 function & getForumData(){	//table of type id,parent,name
 	global $forums;
 	$query = "SELECT * FROM forums WHERE official='y' ORDER BY priority ASC";
-    $result = $forums->db->query($query);
+    $res = $result = $forums->db->query($query);
 
 	$data = array();
-	while($line = $forums->db->fetchrow($result))
+	while($line = $res->fetchrow($result))
 		$data[$line['parent']][$line['id']]=$line;
 
 	return $data;
@@ -195,10 +220,10 @@ function & getForumData(){	//table of type id,parent,name
 
 function & getForumParentData(){	//table of type id,parent,name
 	global $forums;
-    $forums->db->query("SELECT * FROM forums WHERE official='y' ORDER BY priority ASC");
+    $res = $forums->db->query("SELECT * FROM forums WHERE official='y' ORDER BY priority ASC");
 
 	$data = array();
-	while($line = $forums->db->fetchrow())
+	while($line = $res->fetchrow())
 		$data[$line['id']][$line['parent']]=$line;
  	return $data;
 }

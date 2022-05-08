@@ -20,22 +20,22 @@
 		if(!isset($databases[$name]['insert']))
 			continue;
 
-		$checkdb = & new sql_db($databases[$name]['insert']);
+		$checkdb = new sql_db($databases[$name]['insert']);
 
-		$checkdb->query("SHOW TABLE STATUS");
+		$res = $checkdb->query("SHOW TABLE STATUS");
 
 		$inserttablestatus = array();
-		while($line = $checkdb->fetchrow())
+		while($line = $res->fetchrow())
 			$inserttablestatus[$line['Name']] = $line['Rows'];
 
 
 		$selecttablestatus = array();
 		foreach($databases[$name]['select'] as $id => $testdb){
-			$checkdb = & new sql_db($databases[$name]['select'][$id]);
+			$checkdb = new sql_db($databases[$name]['select'][$id]);
 
-			$checkdb->query("SHOW TABLE STATUS");
+			$res = $checkdb->query("SHOW TABLE STATUS");
 
-			while($line = $checkdb->fetchrow())
+			while($line = $res->fetchrow())
 				$selecttablestatus[$id][$line['Name']] = $line['Rows'];
 
 

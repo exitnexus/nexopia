@@ -2,27 +2,39 @@
 
 class usercomments{
 
-	var $db;
-	var $archivedb;
+	public $db;
+
+	public $deletetime;
 /*
 tables
  -usercomments
  -usercommentstext
 */
 
-	function usercomments( & $db, & $archivedb ){
+	function __construct( & $db ){
 		$this->db = & $db;
-		$this->archivedb = & $archivedb;
+
+		$this->deletetime = time() - 86400*30;
 	}
 
 	function prune(){
-		$deletetime = time() - 86400*30;
-		$this->db->prepare_query(false, "DELETE FROM usercomments WHERE time <= #", $deletetime );
-		$this->db->prepare_query(false, "DELETE FROM usercommentstext WHERE time <= #", $deletetime );
+		$this->db->prepare_query("DELETE FROM usercomments WHERE time <= #", $this->deletetime );
 	}
 
-	function postUserComment($uid, $msg, $fromid, $fromname){
-		global $db, $config, $cache, $msgs;
+	function delete($uid, $ids){
+		global $cache, $userData, $mods;
+
+		$this->db->prepare_query("DELETE FROM usercomments WHERE userid = % && id IN (#)", $uid, $ids);
+
+		$cache->remove("comments5-$uid");
+
+		if($uid != $userData['userid'])
+			$mods->adminlog("delete user comments", "Delete user comments: userid $uid");
+
+	}
+
+	function postUserComment($uid, $msg, $fromid, $parse_bbcode){
+		global $usersdb, $config, $cache, $msgs, $userData;
 
 		$msg = trim($msg);
 
@@ -30,81 +42,67 @@ tables
 
 		if(!$spam)
 			return false;
-
-		$nmsg = removeHTML($msg);
-		$nmsg2 = parseHTML($nmsg);
-		$nmsg3 = smilies($nmsg2);
-		$nmsg3 = wrap($nmsg3);
-		$nmsg3 = nl2br($nmsg3);
+	
+		$nmsg = html_sanitizer::sanitize($msg);
+		
+		if($parse_bbcode)
+		{
+			$nmsg2 = parseHTML($nmsg);
+			$nmsg3 = smilies($nmsg2);
+			$nmsg3 = wrap($nmsg3);
+			$nmsg3 = nl2br($nmsg3);
+		}
+		else
+			$nmsg3 = $nmsg;
 
 
 		$time = time();
 
+
+		$dupe = $cache->get("usercommentdupe-$uid-$userData[userid]"); //should block fast dupes, like bots, use a short time since it blocks ALL posts by that user.
+
+		if($dupe){
+			$msgs->addMsg("Double post prevention");
+			return false;
+		}
+
+
 		$this->db->begin();
 
-		$this->db->prepare_query($uid, "SELECT id FROM usercomments WHERE itemid = # && authorid = # && time >= #", $uid, $fromid, $time - 10);
+		$res = $this->db->prepare_query("SELECT id FROM usercomments WHERE userid = % && authorid = # && time >= #", $uid, $fromid, $time - 10);
 
-		if($this->db->numrows() > 0){ //double post
+		if($res->fetchrow()){ //double post
 			$this->db->commit();
 			$msgs->addMsg("Double post prevention");
 			return false;
 		}
 
 
-		$this->db->prepare_query($uid, "INSERT INTO usercomments SET itemid = #, author = ?, authorid = #, time = #", $uid, $fromname, $fromid, $time);
+		$id = $this->db->getSeqID($uid, DB_AREA_USER_COMMENT);
 
-		$insertid = $this->db->insertid();
+		$this->db->prepare_query("INSERT INTO usercomments SET userid = %, id = #, authorid = #, time = #,  parse_bbcode = ?, nmsg = ?", $uid, $id, $fromid, $time, $parse_bbcode, $nmsg3);	
+		
+		$this->db->prepare_query("UPDATE users SET newcomments = newcomments + 1 WHERE userid = %", $uid);
 
-		$this->db->prepare_query($uid, "INSERT INTO usercommentstext SET id = #, time = #, nmsg = ?", $insertid, $time, $nmsg3);
+		$this->db->prepare_query("INSERT INTO usercommentsarchive SET userid = %, id = #, authorid = #, time = #, msg = ?",
+										$uid, $id, $fromid, $time, $nmsg);
 
 		$this->db->commit();
 
-		$db->prepare_query("UPDATE users SET newcomments = newcomments + 1 WHERE userid = #", $uid);
+		$cache->remove("comments5-$uid");
+		$cache->incr("newcomments-$uid");
 
-		$this->archivedb->prepare_query("INSERT INTO commentsarchive SET id = #, `to` = #, toname = ?, `from` = #, fromname = ?, date = #, msg = ?",
-										$insertid, $uid, getUserName($uid), $fromid, $fromname, $time, $nmsg);
+		$cache->put("usercommentdupe-$uid-$userData[userid]", 1, 3); //block dupes for 3 seconds
 
-		$this->archivedb->close();
-
-		$cache->remove(array($uid, "comments5-$uid"));
 /*
-		$new = $cache->incr(array($uid, "newcomments-$uid"));
+		$cache->put("comment-$insertid", array(	'id' => $insertid,
+												'author' => $fromname,
+												'authorid' => $fromid,
+												'time' => $time,
+												'nmsg' => $nmsg3), 86400*7);
 
-		if($new === false){
-			$db->prepare_query("SELECT newcomments WHERE userid = #", $uid)
-			$new = (int)$db->fetchfield() + 1;
-
-			$cache->put(array($uid, "newcomments-$uid"), $new, $config['maxAwayTime']);
-		}
+		$cache->append("commentids-$uid", ",$insertid", 86400*7);
 */
 		return true;
 	}
-
-	function archiveMonth($month, $year){
-		$month = (int)$month;
-		$year = (int)$year;
-
-		if($year < 100)
-			$year += 2000;
-
-		$table = "commentsarchive$year" . ($month < 10 ? '0' : '') . $month;
-
-		$start = gmmktime(0,0,0,$month,1,$year);
-		$end = gmmktime(23,59,59,$month,gmdate('t',$startdate),$year);
-
-		$this->archivedb->query(
-			"CREATE TABLE IF NOT EXISTS `$table` (
-			  `id` int(10) unsigned NOT NULL default '0',
-			  `to` int(10) unsigned NOT NULL default '0',
-			  `toname` varchar(12) NOT NULL default '',
-			  `from` int(10) unsigned NOT NULL default '0',
-			  `fromname` varchar(12) NOT NULL default '',
-			  `date` int(11) NOT NULL default '0',
-			  `msg` text NOT NULL
-			) TYPE=MyISAM MAX_ROWS=4294967295 AVG_ROW_LENGTH=50;");
-
-		$this->archivedb->prepare_query("INSERT IGNORE INTO $table SELECT * FROM commentsarchive WHERE date BETWEEN # AND #", $start, $end);
-		$this->archivedb->prepare_query("DELETE FROM commentsarchive WHERE date BETWEEN # AND #", $start, $end);
-	}
 }
-

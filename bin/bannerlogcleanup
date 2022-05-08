@@ -1,0 +1,25 @@
+#!/bin/sh
+#banner log cleanup script
+
+HOST=`hostname`
+MAILTO=timo@nexopia.com
+LOGDIR=/data/nexopia/logs/
+LOGNAME="bannerserver.log.[-0-9]*"
+LEN=7
+
+#PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+if [ $1 ]
+then
+	LEN=$1
+fi
+
+files=`find $LOGDIR -name "$LOGNAME" -atime +$LEN`
+
+#echo "$files"
+
+if [ "$files" ]
+then
+	echo $files | xargs rm
+	echo -e "deleting banner logs on $HOST older than $LEN days:\n$files\n\n`df -h`" | mail -s "banner log cleanup" $MAILTO
+fi

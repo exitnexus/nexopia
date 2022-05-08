@@ -1,0 +1,65 @@
+#!/bin/sh
+# Monitoring script for Raid
+
+HOST=`hostname`
+MAILTO=timo@nexopia.com
+MYPIDFILE=/var/run/raid-monitor.pid
+
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+
+case "$1" in
+        start)
+
+# don't start if it is already running
+                if [ -e $MYPIDFILE ]
+                then
+                        oldpid=`cat $MYPIDFILE`
+
+                        if [ "a$oldpid" != "a" ]
+                        then
+
+                                count=`ps -p $oldpid | wc -l`
+                                if [ "c$count" = "c2" ]
+                                then
+                                        exit 0
+                                fi
+                        fi
+                fi
+
+                echo $$ > $MYPIDFILE
+
+                while [ true ]
+                do
+                        check=`cat /proc/mdstat | grep '\[UUUUUUU\]'`
+                        if [ "x$check" = "x" ]
+                        then
+                        
+                                echo "Lost raid, restarting"
+                        
+                                echo "$HOST lost it's raid array and had to be restarted!" | mail -s "$HOST rebooted" $MAILTO
+                                sleep 15
+                                reboot
+                       fi
+
+                       sleep 1
+                done
+        ;;
+        stop)
+                if [ -f $MYPIDFILE ]
+                then
+                        pid=`cat $MYPIDFILE`
+                        kill $pid
+                        rm $MYPIDFILE
+                fi
+        ;;
+        restart|reload|force-reload)
+                $0 stop
+                $0 start &
+        ;;
+        *)
+                echo "Usage: $0 {start|stop|restart}"
+                exit 1
+                ;;
+esac
+

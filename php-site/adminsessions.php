@@ -22,17 +22,17 @@
 			$uid = getUserID($name);
 		}
 
-		if($action == 'logout' && ($id = getREQval('id', 'int'))){
-			$sessiondb->prepare_query($uid, "DELETE FROM sessions WHERE userid = # && id = #", $uid, $id);
-			$mods->adminlog('remove sessions',"Remove session $id for user $uid");
+		if($action == 'logout' && ($sessionid = getREQval('sessionid', 'int'))){
+			$usersdb->prepare_query("DELETE FROM sessions WHERE userid = % && sessionid = #", $uid, $sessionid);
+			$mods->adminlog('remove sessions',"Remove session $sessionid for user $uid");
 		}
 
 		$mods->adminlog('list sessions',"List sessions for user: $uid");
 
-		$sessiondb->prepare_query($uid, "SELECT id, userid, activetime, ip, sessionid, cachedlogin, lockip FROM sessions WHERE userid = #", $uid);
+		$res = $usersdb->prepare_query("SELECT userid, activetime, ip, sessionid, cachedlogin, lockip FROM sessions WHERE userid = %", $uid);
 
 		$rows = array();
-		while($line = $sessiondb->fetchrow())
+		while($line = $res->fetchrow())
 			$rows[] = $line;
 
 		sortCols($rows, SORT_ASC, SORT_NUMERIC, 'activetime');
@@ -59,12 +59,13 @@
 
 		foreach($rows as $row){
 			echo "<tr>";
-			echo "<td class=body><a class=body href=adminuser.php?search=" . long2ip($row['ip']) . "&type=ip>" . long2ip($row['ip']) . "</a></td>";
+			$ip = long2ip($row['ip']);
+			echo "<td class=body><a class=body href=/adminuser.php?search=$ip&type=ip&k=" . makeKey($ip) . ">$ip</a></td>";
 			echo "<td class=body align=center>". gethostbyaddr(long2ip($row['ip'])) . "</td>";
 			echo "<td class=body>" . userDate("F j, Y, g:i a", $row['activetime']) . "</td>";
 			echo "<td class=body align=right>" . ($row['cachedlogin'] == 'y' ? 'Cached' : '') . "</td>";
 			echo "<td class=body align=right>" . ($row['lockip'] == 'y' ? 'Locked' : '') . "</td>";
-			echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=logout&uid=$uid&id=$row[id]>Logout</a></td>";
+			echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=logout&uid=$uid&sessionid=$row[sessionid]>Logout</a></td>";
 			echo "</tr>";
 		}
 	}

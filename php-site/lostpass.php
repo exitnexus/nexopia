@@ -4,115 +4,103 @@
 
 	require_once("include/general.lib.php");
 
-    $action = getPOSTval('action');
-    
 	switch($action){
 		case "Resend Activation":
-            $username = getPOSTval('username');
-            
-			if(blank($username)){
+			$username = getPOSTval('username');
+			$email = getPOSTval('email');
+
+			$ip = getip();
+
+			$uid = getUserID($username);
+
+			if(!$uid){
 				$msgs->addMsg("You must specify your username");
 				break;
 			}
 
-			$result = $db->prepare_query("SELECT userid,username,activatekey,email FROM users WHERE username = ?", $username);
+			$freqcap = $cache->incr("resendactivation-$uid");
+			if(!$freqcap){
+				$cache->put("resendactivation-$uid", 1, 1800);
+				$freqcap = 1;
+			}
 
-			if($db->numrows($result)==1){
-				$line  = $db->fetchrow($result);
-				if($line['activatekey']==''){
-					$key=makeRandKey();
-					$query = $db->prepare_query("UPDATE users SET activatekey = ? WHERE userid = ?", $key, $line['userid']);
-				}else
-					$key = $line['activatekey'];
+			$freqcap2 = $cache->incr("resendactivation2-$ip");
+			if(!$freqcap2){
+				$cache->put("resendactivation2-$ip", 1, 1800);
+				$freqcap2 = 1;
+			}
+
+			if($freqcap > 10 || $freqcap2 > 10){
+				$msgs->addMsg("Please try again later.");
+				break;
+			}
+
+
+			$result = $masterdb->prepare_query("SELECT email FROM useremails WHERE userid = # && email = ?", $uid, $email);
+			$line = $result->fetchrow();
+
+			if($line){
+				$key = $auth->makeRandKey();
+				$masterdb->prepare_query("UPDATE useremails SET `key` = ?, time = # WHERE userid = # && email = ?", $key, time(), $uid, $email);
 
 				$subject = "Change your password at $wwwdomain.";
 
-$urlencoded = urlencode($line['username']);
+$urlencoded = urlencode($username);
 $message =
 "To change your password at $config[title] you'll need your
-username: $line[username]
+username: $username
 and the activation key: $key
-To activate your account after signup, or changing emails click
-the link: http://$wwwdomain/activate.php?username=$urlencoded&actkey=$key
+Click the following link to change your password: http://$wwwdomain/lostpass.php?username=$urlencoded&actkey=$key
+
 If you didn't request this email, you can safely ignore it.";
 
 				smtpmail("$line[email]", $subject, $message, "From: $config[title] <no-reply@$emaildomain>") or die("Error sending email");
 				$msgs->addMsg("Email sent");
+			}else{
+				$msgs->addMsg("Either that account doesn't exist, or that email isn't registered to that account.");
 			}
 			break;
 		case "Change Password":
-            $username = getPOSTval('username');
-            $pass1 = getPOSTval('pass1');
-            $pass2 = getPOSTval('pass2');
-            $activation = getPOSTval('activation');
-            
-			if(blank($username, $pass1, $pass2, $activation)){
+			$username = getPOSTval('username');
+			$pass1 = getPOSTval('pass1');
+			$pass2 = getPOSTval('pass2');
+			$activation = getPOSTval('activation');
+
+
+			$uid = getUserID($username);
+
+			if(!$uid){
+				$msgs->addMsg("You must specify your username");
+				break;
+			}
+
+			if(blank($pass1, $pass2, $activation)){
 				$msgs->addMsg("You must specify your username, new password and the activation key");
 				break;
 			}
-			$db->prepare_query("SELECT userid,activatekey FROM users WHERE username = ?", $username);
+			$res = $masterdb->prepare_query("SELECT time FROM useremails WHERE userid = # && `key` = ?", $uid, $activation);
+			$line = $res->fetchrow();
 
-			if($db->numrows()==1){
-				$line  = $db->fetchrow();
+			if($line && $line['time'] > (time() - 86400*7)){ //activation keys only survive for 1 week.
 
-				if($line['activatekey']==$activation){
-					if(strlen($pass1) < 4){
-						$msgs->addMsg("New Password is too short");
-					}elseif($pass1==$pass2){
-						$db->prepare_query("UPDATE users SET `password`=PASSWORD(?), activated='y', activatekey='' WHERE userid = ?", $pass1, $line['userid']);
-					}else{
-						$msgs->addMsg("New Passwords don't match");
-					}
+				if(strlen($pass1) < 4){
+					$msgs->addMsg("New Password is too short");
+				}elseif($pass1==$pass2){
+					$auth->changePassword($uid, $pass1);
+					$msgs->addMsg("Your password has been changed. You can now use it to log in.");
 				}else{
-					$msgs->addMsg("Bad Activation Key");
+					$msgs->addMsg("New Passwords don't match");
 				}
+			}else{
+				$msgs->addMsg("Bad Activation Key");
 			}
-			break;
-		case "Activate":
-            $username = getPOSTval('username');
-            $actkey = getPOSTval('actkey');
-			if(!blank($username, $actkey)){
-				if(activateAccount($username,$actkey))
-					$msgs->addMsg("Activation complete.");
-				else
-					$msgs->addMsg("Activation failed");
-			}else
-				$msgs->addMsg("You must input both your username and the activation key");
 			break;
 	}
 
+	$lostpassuser = getREQval('username', 'string', '');
+	$lostpasskey = getREQval('actkey', 'string', '');
 
-	incHeader();
-
-	echo "<table width=100%><form action=$_SERVER[PHP_SELF] method=post>";
-	echo "<tr><td class=header colspan=2 align=center>Resend Activation</td></tr>";
-//	echo "<tr><td class=body colspan=2>This will allow you to change your password below. It is useful if you lost your password, or the activation email didn't arrive. If you login before changing passwords, the activation key sent to you won't work.</td></tr>";
-	echo "<tr><td class=body>Your Username:</td><td class=body><input class=body type=text name=username></td></tr>";
-	echo "<tr><td class=body></td><td><input class=body type=submit name=action value=\"Resend Activation\"></td></tr>";
-	echo "<tr><td colspan=2>&nbsp;</td></tr>";
-	echo "</form>";
-
-	echo "<tr><td class=header colspan=2 align=center>Lost Password</td></tr>";
-
-	echo "<form action=$_SERVER[PHP_SELF] method=post>";
-	echo "<tr><td class=body colspan=2>If you have logged in since requesting the activation key, the key sent won't work.</td></tr>";
-	echo "<tr><td class=body>Your Username:</td><td class=body><input class=body type=text name=username></td></tr>";
-	echo "<tr><td class=body>Your Activation Key:</td><td class=body><input class=body type=text name=activation></td></tr>";
-	echo "<tr><td class=body>New Password:</td><td class=body><input class=body type=password name=pass1></td></tr>";
-	echo "<tr><td class=body>Retype New Password:</td><td class=body><input class=body type=password name=pass2></td></tr>";
-	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value=\"Change Password\"></td></tr>";
-	echo "<tr><td colspan=2>&nbsp;</td></tr>";
-	echo "</form>";
-
-	echo "<form action=$_SERVER[PHP_SELF] method=post>";
-	echo "<tr><td class=header colspan=2 align=center>Activate Account</td></tr>";
-	echo "<tr><td class=body colspan=2>If you didn't receive an email when you signed up, enter your username above to have it resent.</td></tr>";
-	echo "<tr><td class=body>Username:</td><td class=body><input class=body type=text name=username></td></tr>";
-	echo "<tr><td class=body>Activation Key:</td><td class=body><input class=body type=text name=actkey></td></tr>";
-	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value=Activate></td></tr>";
-	echo "</form>";
-
-	echo "</table>";
-
-	incFooter();
-
+	$template = new template('activations/index');
+	$template->set('username', $lostpassuser);
+	$template->set('actkey', $lostpasskey);
+	$template->display();

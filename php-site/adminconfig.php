@@ -66,8 +66,8 @@ function edit($id){
 
 	$mods->adminlog('edit config', "edit config $id");
 
-	$db->prepare_query("SELECT * FROM config WHERE id = #", $id);
-	$line = $db->fetchrow();
+	$res = $db->prepare_query("SELECT * FROM config WHERE id = #", $id);
+	$line = $res->fetchrow();
 
 	incHeader();
 
@@ -99,7 +99,7 @@ function update($id,$name,$value,$comments){
 function listConfig(){
 	global $db, $mods;
 
-	$result = $db->query("SELECT * FROM config ORDER BY name");
+	$res = $db->query("SELECT * FROM config ORDER BY name");
 
 	$mods->adminlog('list config',"list config");
 
@@ -112,7 +112,7 @@ function listConfig(){
 	echo "<td class=header>Value</td>";
 	echo "<td class=header>Comments</td>";
 	echo "</tr>\n";
-	while($line = $db->fetchrow($result)){
+	while($line = $res->fetchrow()){
 		echo "<tr>";
 		echo "<td class=body><input type=checkbox name=check[] value=\"$line[id]\"></td>";
 		echo "<td class=body><a class=body href=\"$_SERVER[PHP_SELF]?id=$line[id]&action=edit\">$line[name]</a></td>";

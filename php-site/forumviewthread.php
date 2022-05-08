@@ -1,66 +1,80 @@
 <?
 
 	$login=0;
-	$userprefs = array('forumpostsperpage','autosubscribe','showsigs');
 
 	require_once("include/general.lib.php");
 
 	if(!($tid = getREQval('tid', 'int')))
 		die("Bad Thread id");
 
-	$thread = $cache->get(array($tid, "forumthread-$tid"));
+	$noreload = getREQval('noreload', 'bool');
+	$time = time();
+
+
+//get the thread data
+	$thread = $cache->get("forumthread-$tid");
 
 	if($thread === false){
-		$forums->db->prepare_query("SELECT forumid, moved, title, posts, sticky, locked, announcement, flag, pollid, time FROM forumthreads WHERE id = #", $tid);
-		$thread = $forums->db->fetchrow();
+		$res = $forums->db->prepare_query("SELECT forumid, moved, title, posts, sticky, locked, announcement, flag, pollid, time FROM forumthreads WHERE id = #", $tid);
+		$thread = $res->fetchrow();
 
 		if($thread)
-			$cache->put(array($tid, "forumthread-$tid"), $thread, 10800);
+			$cache->put("forumthread-$tid", $thread, 10800);
 	}
 
 	if(!$thread || $thread['moved'])
 		die("Bad Thread id");
 
+//get the forum data and check permissions
 	$perms = $forums->getForumPerms($thread['forumid']);	//checks it's a forum, not a realm
 
 	if(!$perms['view'])
 		die("You don't have permission to view this forum");
 
-	$isAdmin = $mods->isAdmin($userData['userid'],'listusers');
+	$isAdmin = false;
+	$sigAdmin = false;
+	if($userData['loggedIn']){
+		$isAdmin = $mods->isAdmin($userData['userid'],'listusers');
+		$sigAdmin = $mods->isAdmin($userData['userid'],'editprofile');
+	}
 
 	$isMod = $perms['move'] || $perms['deletethreads'] || $perms['deleteposts'] || $perms['lock'] || $perms['stick'];
 
 	$forumdata = $perms['cols'];
 
-
-	$query = "UPDATE forumthreads SET reads=reads+1 ";
+	$autolock = false;
 	if($thread['locked']=='n' && $forumdata['autolock'] > 0 && (time() - $thread['time']) > $forumdata['autolock'] ){
-		$query .= ", locked='y' ";
+		$autolock = true;
 		$thread['locked']='y';
 	}
-	$query .= $forums->db->prepare("WHERE id = #", $tid);
-	$forums->db->query($query);
 
+//process actions, mod or not
 	if($userData['loggedIn']){
 		switch($action){
 			case "subscribe":
 				$forums->subscribe($tid);
-				$cache->remove(array($userData['userid'], "forumread-$userData[userid]-$tid"));
+				$cache->remove("forumread-$userData[userid]-$tid");
+
+				if($noreload)
+					exit;
+
 				break;
 			case "unsubscribe":
 				$forums->unsubscribe($tid);
-				$cache->remove(array($userData['userid'], "forumread-$userData[userid]-$tid"));
+				$cache->remove("forumread-$userData[userid]-$tid");
+
+				if($noreload)
+					exit;
+
 				break;
 			case "delete":
 				if($perms['deleteposts']){
-					if(!isset($checkID) || !is_array($checkID))
+					if(!($checkID = getPOSTval('checkID', 'array')))
 						break;
 
 					foreach($checkID as $id)
 						$forums->deletePost($id);
 					$thread['posts'] -= count($checkID);
-
-					$cache->remove(array($tid, "forumthread-$tid"));
 				}
 				break;
 			case "deletethread":	//deletes the whole thread.
@@ -75,7 +89,7 @@
 				if($perms['lock']){
 					if($forums->lockThread($tid)){
 						$thread['locked']='y';
-						$cache->remove(array($tid, "forumthread-$tid"));
+						$cache->remove("forumthread-$tid");
 					}
 				}
 				break;
@@ -83,7 +97,7 @@
 				if($perms['lock']){
 					if($forums->unlockThread($tid)){
 						$thread['locked']='n';
-						$cache->remove(array($tid, "forumthread-$tid"));
+						$cache->remove("forumthread-$tid");
 					}
 				}
 				break;
@@ -91,7 +105,7 @@
 				if($perms['stick']){
 					if($forums->stickThread($tid)){
 						$thread['sticky']='y';
-						$cache->remove(array($tid, "forumthread-$tid"));
+						$cache->remove("forumthread-$tid");
 					}
 				}
 				break;
@@ -99,7 +113,7 @@
 				if($perms['stick']){
 					if($forums->unstickThread($tid)){
 						$thread['sticky']='n';
-						$cache->remove(array($tid, "forumthread-$tid"));
+						$cache->remove("forumthread-$tid");
 					}
 				}
 				break;
@@ -107,7 +121,7 @@
 				if($perms['announce']){
 					if($forums->announceThread($tid)){
 						$thread['announcement']='y';
-						$cache->remove(array($tid, "forumthread-$tid"));
+						$cache->remove("forumthread-$tid");
 					}
 				}
 				break;
@@ -115,7 +129,7 @@
 				if($perms['announce']){
 					if($forums->unannounceThread($tid)){
 						$thread['announcement']='n';
-						$cache->remove(array($tid, "forumthread-$tid"));
+						$cache->remove("forumthread-$tid");
 					}
 				}
 				break;
@@ -123,7 +137,7 @@
 				if($perms['flag']){
 					if($forums->flagThread($tid)){
 						$thread['flag']='y';
-						$cache->remove(array($tid, "forumthread-$tid"));
+						$cache->remove("forumthread-$tid");
 					}
 				}
 				break;
@@ -131,23 +145,26 @@
 				if($perms['flag']){
 					if($forums->unflagThread($tid)){
 						$thread['flag']='n';
-						$cache->remove(array($tid, "forumthread-$tid"));
+						$cache->remove("forumthread-$tid");
 					}
 				}
 				break;
 		}
 	}
 
+//set some defaults
 	$subscribe = 'n';
 	$oldposts = 0;
 	$readtime = 0;
+	$postsPerPage = 25;
 
+//overwrite them with users prefs/history
 	if($userData['loggedIn']){
-		$line = $cache->get(array($userData['userid'], "forumread-$userData[userid]-$tid"));
+		$line = $cache->get("forumread-$userData[userid]-$tid");
 
 		if(!$line){
-			$forums->db->prepare_query("SELECT subscribe, time, posts FROM forumread WHERE userid = # && threadid = #", $userData['userid'], $tid);
-			$line = $forums->db->fetchrow();
+			$res = $forums->db->prepare_query("SELECT subscribe, time, posts FROM forumread WHERE userid = # && threadid = #", $userData['userid'], $tid);
+			$line = $res->fetchrow();
 		}
 
 		if($line){
@@ -155,12 +172,11 @@
 			$oldposts = $line['posts'];
 			$readtime = $line['time'];
 		}
+
+		$postsPerPage = $userData['forumpostsperpage'];
 	}
 
-	if($userData['loggedIn'])
-		$postsPerPage = $userData['forumpostsperpage'];
-	else
-		$postsPerPage = 25;
+//get page stuff
 	$numpages = ceil(($thread['posts']+1)/$postsPerPage);
 
 	if(($page = getREQval('page', 'int', -1)) === -1)
@@ -184,338 +200,256 @@
 		$limit = abs($limit);
 	}
 
-
-	$forums->db->prepare_query("SELECT id, author, authorid, time, nmsg, edit FROM forumposts WHERE threadid = # ORDER BY time $sortd LIMIT $offset, $limit", $tid);
+//init variables
 	$postdata = array();
 	$posterids = array();
 	$posterdata = array();
+	$lasttime=0;
 
-
-	if($userData['loggedIn'] && ($thread['locked']=='n' || $isMod) && $page==$numpages-1)
+	if($userData['loggedIn'])
 		$posterids[$userData['userid']] = $userData['userid'];
 
-	$lasttime=0;
-	while($line = $forums->db->fetchrow()){
+//grab all posts for this page
+	$res = $forums->db->prepare_query("SELECT id, authorid, time, msg, edit FROM forumposts WHERE threadid = # ORDER BY time $sortd LIMIT $offset, $limit", $tid);
+
+	while($line = $res->fetchrow()){
 		$postdata[] = $line;
+
 		if($sortd == 'ASC' || !$lasttime)
 			$lasttime=$line['time'];
 
-		if($line['authorid'])
-			$posterids[$line['authorid']] = $line['authorid'];
+		$posterids[$line['authorid']] = $line['authorid'];
 	}
 
 	if($sortd == 'DESC')
 		$postdata = array_reverse($postdata);
 
+//grab the data for the users that posted
 	if(count($posterids)){
-		$db->prepare_query("SELECT userid, online, age, sex, posts, firstpic, forumrank, showpostcount, '' as nsigniture, premiumexpiry, frozen FROM users WHERE userid IN (#)", $posterids);
+		$posterdata = getUserInfo($posterids);
 
-		while($line = $db->fetchrow())
-			$posterdata[$line['userid']] = $line;
+	// remove posterids that weren't in there, they are deleted accounts.
+		$missingdata = array_diff($posterids, array_keys($posterdata));
+		foreach ($missingdata as $id){
+			$posterdata[$id]['state'] = 'deleted';
+			$posterdata[$id]['username'] = getUserName($id);
+			unset($posterids[$id]);
+		}
 
+	//set defaults for posts and signatures for non-deleted accounts
+		foreach($posterids as $id){
+			$posterdata[$id]['posts'] = 0;
+			$posterdata[$id]['nsigniture'] = '';
+		}
+
+	//get postcounts
+		$postcounts = $cache->get_multi($posterids, 'forumuserposts-');
+
+		$missingcounts = array_diff($posterids, array_keys($postcounts));
+		if(count($missingcounts)){
+			$res = $usersdb->prepare_query("SELECT userid, posts FROM users WHERE userid IN (%)", $missingcounts);
+
+			while($line = $res->fetchrow()){
+				$postcounts[$line['userid']] = $line['posts'];
+				$cache->put("forumuserposts-$line[userid]", $line['posts'], 86400);
+			}
+		}
+
+		foreach($postcounts as $id => $posts)
+			$posterdata[$id]['posts'] = $posts;
+
+	//get sigs if the user wants them
 		if($userData['loggedIn'] && $userData['showsigs'] == 'y'){
-			$profiledb->prepare_query($posterids, "SELECT userid, nsigniture FROM profile WHERE userid IN (#) && enablesignature = 'y'", $posterids);
 
-			while($line = $profiledb->fetchrow())
-				$posterdata[$line['userid']]['nsigniture'] = $line['nsigniture'];
+			$sigs = $cache->get_multi($posterids, 'forumusersigs-');
+
+			$missingsigs = array_diff($posterids, array_keys($sigs));
+
+			if(count($missingsigs)){
+				$res = $usersdb->prepare_query("SELECT userid, nsigniture, enablesignature FROM profile WHERE userid IN (%)", $missingsigs);
+
+				while($line = $res->fetchrow()){
+					$sigs[$line['userid']] = $line;
+					$cache->put("forumusersigs-$line[userid]", $line, 86400*7);
+				}
+			}
+
+			foreach($sigs as $id => $sig)
+				if($sig['enablesignature'] == 'y')
+					$posterdata[$id]['nsigniture'] = $sig['nsigniture'];
 		}
 	}
 
 
+//update the users forum read status
 	if($userData['loggedIn']){
-		if($readtime<$lasttime)
-			$time = $lasttime+1;
-		else
-			$time = $readtime;
-
 		$newoldposts = max($oldposts, $postsPerPage*$page + count($postdata) - 1);
+		$newreadtime = max($readtime, $lasttime);
 
 		$curtime = time();
 
 		if($readtime > 0)
-			$forums->db->prepare_query("UPDATE forumread SET time = #, readtime = #, posts = # WHERE userid = # && threadid = #", $time, $curtime, $newoldposts, $userData['userid'], $tid);
+			$forums->db->prepare_query("UPDATE forumread SET time = #, readtime = #, posts = # WHERE userid = # && threadid = #",
+			                                  $time, $curtime, $newoldposts, $userData['userid'], $tid);
 		if($readtime == 0 || ($readtime > 0 && $forums->db->affectedrows()==0))
-			$forums->db->prepare_query("INSERT IGNORE INTO forumread SET userid = #, threadid = #, time = #, readtime = #, posts = #", $userData['userid'], $tid, $time, $curtime, $newoldposts);
+			$forums->db->prepare_query("INSERT IGNORE INTO forumread SET time = #, readtime = #, posts = #, userid = #, threadid = #",
+			                                  $time, $curtime, $newoldposts, $userData['userid'], $tid);
 
-		$cache->put(array($userData['userid'], "forumread-$userData[userid]-$tid"), array('subscribe' => $subscribe, 'time' => $time, 'posts' => $newoldposts), 10800);
+		$cache->put("forumread-$userData[userid]-$tid", array('subscribe' => $subscribe, 'time' => $newreadtime, 'posts' => $newoldposts), 10800);
+
+	//increase the threads view counter, but only if they're reading something new (refreshing the page doesn't work)
+		if($newreadtime > $readtime)
+			$forums->db->prepare_query("UPDATE forumthreads SET reads=reads+1" . ($autolock ? ", locked = 'y'" : '') . " WHERE id = #", $tid);
 	}
 
+
+//get a poll if there is one
 	$poll=false;
 	if($thread['pollid'] && $thread['locked'] == 'n'){
-		if($action=='Vote' && isset($ans) && $userData['loggedIn'])
-			$polls->votePoll($thread['pollid'],$ans);
+		if($userData['loggedIn'] && $action=='Vote'){
+			$ans = getREQval('ans', 'int', -1);
+			$k = getREQval('k');
+
+			if($ans != -1 && checkKey($tid, $k))
+				$polls->votePoll($thread['pollid'], $ans);
+		}
 
 		if($page==0){
 			$poll = $polls->getPoll($thread['pollid'], false);
 			$voted = $polls->pollVoted($thread['pollid']);
 		}
-	}
 
 
-//	$locations = & new category( $db, "locs"); //include dyn loc stuff
+		if($poll){
+			$showPollChoices = false;
+			$width = array();
+			$votePercent = array();
+			if((!$userData['loggedIn'] || !$voted) && $thread['locked'] == 'n'){
+				$showPollChoices = true;
+			}else{
+				$maxval=0;
+				foreach($poll['answers'] as $ans)
+					if($ans['votes']>$maxval)
+						$maxval = $ans['votes'];
 
-	incHeader(false);
-
-	echo "<table width=100% border=0 cellspacing=1 cellpadding=3>";// bordercolor=#666666 style=\"border-collapse: collapse\">\n";
-
-	echo "<tr><td class=header colspan=2><table cellspacing=0 cellpadding=0 width=100%><tr><td class=header align=left>";
-//	if($isMod && $thread['flag']=='y')	echo "<img src=$config[imageloc]flag.gif> ";
-	if($thread['locked']=='y')			echo "<img src=$config[imageloc]locked.png> ";
-	if($thread['sticky']=='y')			echo "<img src=$config[imageloc]up.png> ";
-	if($thread['announcement']=='y')	echo "Announcement: ";
-
-	if($forumdata['official']=='y')
-		echo "<a class=header href=forums.php>Forums</a> > ";
-	else
-		echo "<a class=header href=forumsusercreated.php>User Created Forums</a> > ";
-	echo "<a class=header href=forumthreads.php?fid=$thread[forumid]>$forumdata[name]</a> > ";
-	echo "<a name=top class=header href=$_SERVER[PHP_SELF]?tid=$tid>$thread[title]</a> ";
-
-	echo "</td><td align=right class=header>";
-	if($userData['loggedIn']){
-		if($subscribe=='n')
-			echo "<a class=header href=\"$_SERVER[PHP_SELF]?action=subscribe&tid=$tid\">Subscribe</a>";
-		else
-			echo "<a class=header href=\"$_SERVER[PHP_SELF]?action=unsubscribe&tid=$tid\">Unsubscribe</a>";
-	}
-	echo "</td>";
-	echo "<td class=header align=right>";
-
-	echo pageList("$_SERVER[PHP_SELF]?tid=$tid",$page,$numpages,'header');
-
-	echo "</td>";
-	echo "</tr></table>";
-	echo "</td></tr>\n";
-
-	if($poll){
-		echo "<tr><td colspan=2 class=body align=center>";
-
-		if((!$userData['loggedIn'] || !$voted) && $thread['locked'] == 'n'){
-			echo "<table>";
-			if($userData['loggedIn']){
-				echo "<form action=$_SERVER[PHP_SELF] method=get>";
-				echo "<input type=hidden name=tid value=$tid>";
+				foreach($poll['answers'] as $ans){
+					$width[] = ($poll['tvotes'] == 0) ? 0 : (((int)$ans["votes"])*$config['maxpollwidth']/$maxval);
+					$votePercent[] = ($poll['tvotes'] == 0 ? '' : '(' . number_format($ans["votes"]/$poll['tvotes']*100, 1) . ' %)' );
+				}
 			}
-			echo "<tr><td colspan=2 class=body><b>$poll[question]</b></td></tr>";
-			foreach($poll['answers'] as $ans){
-				echo "<tr><td class=body>";
-				if($userData['loggedIn'])
-					echo "<input type=radio name='ans' value='$ans[id]' id='ans$ans[id]'>";
-				echo "</td><td class=body><label for='ans$ans[id]'>$ans[answer]</label></td></tr>";
-			}
-			if($userData['loggedIn']){
-				echo "<tr><td></td><td class=body><input class=body type=submit name=action value='Vote'> <a class=body href=$_SERVER[PHP_SELF]?tid=$tid&ans=0&action=Vote>View Results</a></td></tr>";
-				echo "</form>";
-			}
-			echo "</table>";
-		}else{
-			echo "<table>";
-			echo "<tr><td class=body colspan=2><b>$poll[question]</b></td></tr>";
-
-			$maxval=0;
-			foreach($poll['answers'] as $ans)
-				if($ans['votes']>$maxval)
-					$maxval = $ans['votes'];
-
-			foreach($poll['answers'] as $ans){
-				$width = $poll['tvotes'] == 0 ? 0 : (int)$ans["votes"]*$config['maxpollwidth']/$maxval;
-				echo "<tr><td class=body>$ans[answer]</td>";
-				echo "<td class=body><img src='$config[imageloc]red.png' width='$width' height=10> $ans[votes] " . ($poll['tvotes'] == 0 ? '' : '(' . number_format($ans["votes"]/$poll['tvotes']*100, 1) . ' %)' ) . "</td></tr>";
-			}
-			echo "</table>";
 		}
-		echo "</td></tr>";
-		echo "<tr><td class=header colspan=2>&nbsp;</td></tr>";
 	}
 
 
-	if($isMod)
-		echo "<form method=post action=$_SERVER[PHP_SELF]>\n";
+//stores all the data for a single post
+	$posts = array();
 
-	$time = time();
+	$jpid = 0;
 
 	foreach($postdata as $line){
-		echo "<tr>";
-		echo "<td class=body valign=top nowrap>";
-		echo "<a name=p$line[id]></a>";
+		if($readtime >= $line['time'])
+			$jpid = $line['id'];
 
-		if(isset($posterdata[$line['authorid']]) && ($posterdata[$line['authorid']]['frozen'] == 'n' || $isAdmin)){
-			echo "<a class=body href=profile.php?uid=$line[authorid]><b>$line[author]</b></a><br>";
-			$data = $posterdata[$line['authorid']];
+		$post = array();
 
-			if($isAdmin && $data['frozen'] == 'y')
-				echo "<b>frozen account</b><br>";
+
+		$user = $posterdata[$line['authorid']];
+
+		$post['id'] = $line['id'];
+		$post['authorid'] = $line['authorid'];
+		$post['author'] = $user['username'];
+		$post['time'] = $line['time'];
+
+		if($user['state'] == 'active'){
+			$post['userstate'] = 'active';
+		}elseif($user['state'] == 'frozen'){
+			$post['userstate'] = ($isAdmin ? 'frozen' : 'deleted');
 		}else{
-			echo "<b>$line[author]</b><br>deleted account<br>";
-			$line['authorid']=0;
+			$post['userstate'] = 'deleted';
 		}
 
-		if($line['authorid']){
-			if($data['forumrank']!="" && $data['premiumexpiry'] > $time)
-				echo $data['forumrank'];
-			else
-				echo $forums->forumrank($data['posts']);
-			echo "<br>";
-			if($data['online'] == 'y')
-				echo "- Online -<br>";
+		if($post['userstate'] == 'active' || $post['userstate'] == 'frozen'){
+			$post['online'] = ($user['online'] == 'y');
+			$post['forumrank'] = ($user['forumrank'] && $user['premiumexpiry'] > $time ? $user['forumrank'] : $forums->forumrank($user['posts']));
+			$post['thumb'] = "";
+			if($config['forumPic'] && $user['firstpic'])
+				$post['thumb'] = $config['thumbloc'] . floor($line['authorid']/1000) . '/' . weirdmap($line['authorid']) . "/" . $user['firstpic'] . ".jpg";
+			$post['age'] = $user['age'];
+			$post['sex'] = $user['sex'];
+			$post['postcount'] = ($user['showpostcount'] == 'y' ? $user['posts'] : '');
+			$post['abuses'] = (($sigAdmin  || ($forumdata['official'] == 'y' && $perms['mute']) || $perms['globalmute']) && $user['abuses'] ? $user['abuses'] : '');
+
+			$post['sig'] = $user['nsigniture'];
+
+			$post['sigedit'] = $sigAdmin;
+			$post['mute'] = $perms['mute'];
+		}else{
+			$post['sigedit'] = false;
+			$post['mute'] = false;
+			$post['sig'] = '';
 		}
 
-		if($config['forumPic'] && $line['authorid'] && $data['firstpic']>0)
-			echo "<a class=header href=profile.php?uid=$line[authorid]><img src=http://" . chooseImageServer($data['firstpic']) . $config['thumbdir'] . floor($data['firstpic']/1000) . "/$data[firstpic].jpg border=0></a><br>";
+		$post['msg'] = $forums->parsePost($line['msg']);
+		$post['edittime'] = $line['edit'];
 
-		if($line['authorid']){
-			echo "<br>Age <i>$data[age]</i>, $data[sex]<br>";
-//			echo "Loc: <i>" . $locations->getCatName($data['loc']) . "</i><br>";
-			if($data['showpostcount'] == 'y')
-				echo "Posts: <i>" . number_format($data['posts']) . "</i><br>";
-		}
 
-		echo "</td><td class=body valign=top width=100%>";
-		echo $line['nmsg'] . "&nbsp;";
+		$post['postedit'] = ($perms['editallposts'] || (($perms['editownposts'] == 1 || $perms['editownposts'] > $time - $line['time']) && $line['authorid'] == $userData['userid']));
+		$post['reply'] = $perms['post'];
+		$post['reporttype'] = ($userData['loggedIn'] ? MOD_FORUMPOST : '');
 
-		if($line['edit'])
-			echo "<br><br>[edited on " . userdate("F j, Y \\a\\t g:i a",$line['edit']) . "]";
 
-		if($line['authorid'] && $data['nsigniture'] != "")
-			echo "<br><br>________________________________<br>" . $data['nsigniture'] . "&nbsp;";
-
-		echo "</td></tr>\n";
-		echo "<tr>";
-
-		echo "<td class=small colspan=2>";
-
-		echo "<table width=100% cellspacing=0 cellpadding=0><tr><td class=small>";
-
-		if($isMod){
-			echo "<input type=checkbox name=checkID[] value=$line[id]>";
-			echo "</td><td class=small>";
-		}
-
-		echo userdate("l F j, Y, g:i a",$line['time']) ."</td><td align=right class=small>";
-
-/*		if($userData['loggedIn'] && $line['authorid']){
-			echo "<a class=small href=\"profile.php?uid=$line[authorid]\"><img src=$skindir/forum/profile.jpg border=0></a>";
-			echo "<a class=small href=\"messages.php?action=write&to=$line[authorid]\"><img src=$skindir/forum/pm.jpg border=0></a>";
-			echo "<a class=small href=\"friends.php?action=add&id=$line[authorid]\"><img src=$skindir/forum/friend.jpg border=0></a>";
-			echo "<img src=$skindir/forum/divider.jpg>";
-		}
-*/
-		$links = array();
-
-		if($userData['loggedIn']){
-			if((($forumdata['edit']=='y' || $perms['editownposts']) && $userData['userid']==$line['authorid']) || $perms['editallposts'])
-				$links[] = "<a class=small href=\"forumpostedit.php?action=edit&msgid=$line[id]\">Edit</a>"; // <img src=$skindir/forum/edit.jpg border=0>
-			$links[] =  "<a class=small href=\"forumreply.php?action=quote&pid=$line[id]&tid=$tid\">Quote</a>"; //<img src=$skindir/forum/quote.jpg border=0>
-			$links[] =  "<a class=small href=forumreply.php?action=reply&tid=$tid>Reply</a>"; //<img src=$skindir/forum/reply.jpg border=0>
-			$links[] =  "<a class=small href=reportabuse.php?type=" . MOD_FORUMPOST . "&id=$line[id]>Report</a>";
-		}
-		$links[] =  "<a class=small href=#top>Top</a>"; // <img src=$skindir/forum/top.jpg border=0>
-
-		echo implode(" &nbsp; &nbsp; ", $links);
-
-		echo "</td></tr></table>";
-		echo "</td></tr>";
-		echo "<tr><td class=header2 colspan=2 height=2></td></tr>\n"; // <img src=$config[imageloc]empty.png>
+		$posts[] = $post;
 	}
 
-
-
-	echo "<tr><td class=header colspan=2><table cellspacing=0 cellpadding=0 width=100%><tr><td class=header align=left>";
-
-//	if($isMod && $thread['flag']=='y')	echo "<img src=$config[imageloc]flag.gif> ";
-	if($thread['locked']=='y')			echo "<img src=$config[imageloc]locked.png> ";
-	if($thread['sticky']=='y')			echo "<img src=$config[imageloc]up.png> ";
-	if($thread['announcement']=='y')	echo "Announcement: ";
-
-	if($forumdata['official']=='y')
-		echo "<a class=header href=forums.php>Forums</a> > ";
-	else
-		echo "<a class=header href=forumsusercreated.php>User Created Forums</a> > ";
-	echo "<a class=header href=forumthreads.php?fid=$thread[forumid]>$forumdata[name]</a> > ";
-	echo "<a name=top class=header href=$_SERVER[PHP_SELF]?tid=$tid>$thread[title]</a> ";
-
-	echo "</td><td align=right class=header>";
-	if($userData['loggedIn']){
-		if($subscribe=='n')
-			echo "<a class=header href=\"$_SERVER[PHP_SELF]?action=subscribe&tid=$tid\">Subscribe</a>";
-		else
-			echo "<a class=header href=\"$_SERVER[PHP_SELF]?action=unsubscribe&tid=$tid\">Unsubscribe</a>";
-	}
-	echo "</td>";
-	echo "<td class=header align=right>";
-
-	echo pageList("$_SERVER[PHP_SELF]?tid=$tid",$page,$numpages,'header');
-
-	echo "</td>";
-	echo "</tr></table>";
-	echo "</td></tr>\n";
-
-
-
-
-	if($isMod){
-		echo "<input type=hidden name=tid value=$tid>";
-		echo "<tr><td class=header2 colspan=2>";
-
-		echo "<select class=body name=action><option value=cancel>Action:";
-		if($perms['deleteposts'])
-			echo "<option value=delete>Delete Selected Posts";
-		if($perms['stick']){
-			echo "<option value=stick>Stick";
-			echo "<option value=unstick>Unstick";
-		}
-		if($perms['lock']){
-			echo "<option value=lock>Lock";
-			echo "<option value=unlock>Unlock";
-		}
-		if($perms['announce']){
-			echo "<option value=announce>Announce";
-			echo "<option value=unannounce>Unannounce";
-		}
-		if($perms['flag']){
-			echo "<option value=flag>Flag";
-			echo "<option value=unflag>UnFlag";
-		}
-		if($perms['deletethreads'])
-			echo "<option value=deletethread>Delete Whole Thread";
-		echo "</select> <input class=body type=submit value=Go>";
-
-		echo "</td></tr></form>";
-	}
-
-	echo "<tr><td class=header2 colspan=2 align=center>";
-
-
+	$canPost = false;
+	$lastPage = false;
 	if($userData['loggedIn'] && $perms['post'] && ($thread['locked']=='n' || $perms['postlocked'])){
+		$canPost = true;
 		if($page==$numpages-1){
-			echo "<table align=center>";
-			echo "<tr><td class=header2 colspan=2><a class=body name=reply>Post a reply:</a></td></tr>\n";
-			echo "<form action=\"forumreply.php\" method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
-			echo "<input type=hidden name='tid' value='$tid'>\n";
-			echo "<tr><td class=header2 colspan=2>";
-
-			editBox("",true);
-
-			echo "</td></tr>";
-			echo "<tr><td class=header2 align=center colspan=2>";
-			echo "<select class=body name=subscribe><option value=n>Don't Subscribe<option value=y" . (($userData['autosubscribe'] == 'y' || $subscribe=='y') ? ' selected' : '') . ">Subscribe</select>";
-			echo "<input class=body name=action type=submit value='Preview'>";
-			echo "<input class=body name=action type=submit value='Post' accesskey='s' onClick='checksubmit()'>";
-			echo "</td></tr>\n";
-			echo "</form>";
-			echo "</table>";
-		}else{
-			echo "You must be on the last page of the topic to reply";
+			$lastPage = true;
 		}
-	}elseif(!$userData['loggedIn']){
-		echo "You must be logged in to Reply. <a class=header2 href='login.php?referer=" . urlencode($REQUEST_URI) . "'>Login</a>";
-	}elseif(!$perms['post']){
-		echo "You don't have permission to post in this forum";
-	}else{
-		echo "This thread is locked";
 	}
-	echo "</td></tr>";
-	echo "</table>";
 
-	incFooter();
+	$pid = getREQval('pid', 'int');
+	if(!$pid && ($userData['loggedIn'] && $userData['forumjumplastpost'] == 'y' && $jpid))
+		$pid = $jpid;
 
+
+	$template = new template('forums/forumviewthread');
+	$template->set('key', makeKey($tid));
+	$template->set('pageList', pageList("$_SERVER[PHP_SELF]?tid=$tid",$page,$numpages,'header'));
+	$template->set('thread', $thread);
+	$template->set('config', $config);
+	$template->set('forumTrail', $forums->getForumTrail($forumdata, "header"));
+	$template->set('tid', $tid);
+	$template->set('userData', $userData);
+	$template->set('subscribe', $subscribe);
+	$template->set('poll', $poll);
+	if($poll){
+		$template->set('showPollChoices', $showPollChoices);
+		$template->set('width', $width);
+		$template->set('votePercent', $votePercent);
+	}
+	$template->set('isMod', $isMod);
+	$template->set('posts', $posts);
+	$template->set('perms', $perms);
+	$template->set('canPost', $canPost);
+	$template->set('lastPage', $lastPage);
+	$template->set('pid', $pid);
+	$template->set('subscribeSelected', (($userData['loggedIn'] && ($userData['autosubscribe'] == 'y' || $subscribe=='y')) ? ' selected' : ''));
+	$template->set('currentPage', $_SERVER['REQUEST_URI']);
+
+/*	if(!isset($parse_bbcode))
+		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $userData['parse_bbcode']));
+	else
+		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $parse_bbcode));
+*/
+	$template->set("checkbox_parsebbcode", '<input type="hidden" name="parse_bbcode" value="y"/>');
+
+
+	ob_start();
+	editBox("");
+	$template->set('editBox', ob_get_contents());
+	ob_end_clean();
+
+	$template->display();

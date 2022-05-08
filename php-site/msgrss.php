@@ -16,19 +16,20 @@
 	$items = 0;
 
 	$db->prepare_query("SELECT msgs.id, msgheader.fromname, msgheader.subject, msgheader.date FROM msgs, msgheader WHERE msgs.msgheaderid=msgheader.id && msgs.userid = ? && msgs.folder = ? && msgs.userid = msgheader.to && msgheader.new='y'", $userData['userid'], MSG_INBOX);
+	$lines = $db->fetchrowset();
 
-	if($db->numrows() == 0){
+	if(!$lines){
 		echo "		<item>\n";
 		echo "			<title>No New Messages</title>\n";
 		echo "			<link>http://$wwwdomain/messages.php</link>\n";
 		echo "		</item>\n";
 	}else{
 		echo "		<item>\n";
-		echo "			<title>" . $db->numrows() . " New Message(s)</title>\n";
+		echo "			<title>" . count($lines) . " New Message(s)</title>\n";
 		echo "			<link>http://$wwwdomain/messages.php</link>\n";
 		echo "		</item>\n";
 
-		while($line = $db->fetchrow()){
+		foreach ($lines as $line){
 			echo "		<item>\n";
 			echo "			<title>" . htmlentities("$line[fromname] - $line[subject]") . "</title>\n";
 			echo "			<link>" . htmlentities("http://$wwwdomain/messages.php?action=view&id=$line[id]") . "</link>\n";
@@ -42,19 +43,20 @@
 	echo "		</item>\n";
 
 	$db->prepare_query("SELECT forumthreads.id,forumthreads.title FROM forumread,forumthreads WHERE forumread.subscribe='y' && forumread.userid = ? && forumread.threadid=forumthreads.id && forumread.time < forumthreads.time", $userData['userid']);
+	$lines = $db->fetchrowset();
 
-	if($db->numrows() == 0){
+	if(!$lines){
 		echo "		<item>\n";
 		echo "			<title>No Subscriptions</title>\n";
 		echo "			<link>http://$wwwdomain/managesubscriptions.php</link>\n";
 		echo "		</item>\n";
 	}else{
 		echo "		<item>\n";
-		echo "			<title>" . $db->numrows() . " Subscriptions</title>\n";
+		echo "			<title>" . count($lines) . " Subscriptions</title>\n";
 		echo "			<link>http://$wwwdomain/managesubscriptions.php</link>\n";
 		echo "		</item>\n";
 
-		while($line = $db->fetchrow()){
+		foreach ($lines as $line){
 			echo "		<item>\n";
 			echo "			<title>" . htmlentities("$line[title]") . "</title>\n";
 			echo "			<link>" . htmlentities("http://$wwwdomain/forumviewthread.php?tid=$line[id]") . "</link>\n";

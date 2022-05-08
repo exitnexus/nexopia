@@ -10,37 +10,52 @@
 	switch ($action)
 	{
 	case "view":
-		$notifyid = getREQval('id');
+		$notifyid = getREQval('id', 'integer');
 		viewNotification($notifyid);
 		break;
 	case "delete":
 	case "Delete":
-		$notifyids = getREQval('checkIDs', 'array');
+		$notifyids = getPOSTval('checkID', 'array');
 		deleteNotifications($notifyids);
 		break;
-	case "new":
-		newNotification();
+	case "write":
+	case "Preview":
+		$to = getPOSTval('to');
+		$month = getPOSTval('month', 'integer');
+		$day = getPOSTval('day', 'integer');
+		$year = getPOSTval('year', 'integer');
+		$hour = getPOSTval('hour', 'integer');
+		$subject = getPOSTval('subject');
+		$msg = getPOSTval('msg');
+		writeNotification($to, $subject, $msg, $month, $day, $year, $hour, $action == "Preview");
 		break;
 	case "Create":
-		createNotification();
+		$to = getPOSTval('to');
+		$month = getPOSTval('month', 'integer');
+		$day = getPOSTval('day', 'integer');
+		$year = getPOSTval('year', 'integer');
+		$hour = getPOSTval('hour', 'integer');
+		$subject = getPOSTval('subject');
+		$msg = getPOSTval('msg');
+		createNotification($to, $subject, $msg, $month, $day, $year, $hour);
 		break;
 	}
 	listNotifications();
-	
+
 	function listNotifications()
 	{
 		global $userData, $usernotify;
-		
+
 		$notifications = $usernotify->listNotifications($userData['userid']);
-		
+
 		incHeader();
 
 		echo "<table width=100%>\n";
-		echo "<tr><td class=body colspan=5><a class=body href=$_SERVER[PHP_SELF]?action=new>New Notification</a></td></tr>";
+		echo "<tr><td class=body colspan=5><a class=body href=$_SERVER[PHP_SELF]?action=write>New Notification</a></td></tr>";
 		echo "<tr><td class=header colspan=5><table width=100% cellspacing=0 cellpadding=0><tr>";
-		
+
 		echo "    <td class=header>&nbsp;</td>";
-		echo "    <td class=header align=right>Page: (todo later)</td>";
+		echo "    <td class=header align=right>&nbsp;</td>";
 		echo "</tr></table></tr>";
 		echo "<form action=$_SERVER[PHP_SELF] method=post>";
 		echo "<tr>\n";
@@ -58,7 +73,7 @@
 		{
 			$i = !$i;
 			echo "<tr><td class=$classes[$i]><input type=checkbox name=checkID[] value=\"$line[usernotifyid]\"></td>";
-			echo "<td class=$classes[$i]><a class=body href=profile.php?uid=$line[creatorid]>$line[creatorname]</td>";
+			echo "<td class=$classes[$i]><a class=body href=/profile.php?uid=$line[creatorid]>$line[creatorname]</td>";
 			echo "<td class=$classes[$i]><a class=body href=$_SERVER[PHP_SELF]?action=view&id=$line[usernotifyid]>$line[subject]</a></td>";
 			echo "<td class=$classes[$i]>" . userdate("D M j, Y g:i a",$line['createtime']) . "</td>\n";
 			echo "<td class=$classes[$i] nowrap>" . userdate("D M j, Y g:i a",$line['triggertime']) . "</td></tr>\n";
@@ -68,10 +83,167 @@
 
 		echo "</td>\n<td class=header></td></form>";
 
-		echo "<td align=right class=header>Page: (todo later)";
+		echo "<td align=right class=header>&nbsp;";
 
 		echo "</td></tr></table>";
 		echo "</table>\n";
+
+		incFooter();
+		exit();
+	}
+
+	function writeNotification($to="",$subject="",$msg="",$month="", $day = "", $year = "", $hour = "", $preview = false){
+		global $msgs, $userData, $sortt, $sortd, $config, $db, $messaging;
+
+		if(is_numeric($to)){
+			$to = getUserName($to);
+			if(!$to){
+				$msgs->addMsg("Invalid User");
+				$to="";
+			}
+		}
+
+		for($i=1;$i<=12;$i++)
+			$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+
+		if (empty($month))
+			$month = userdate('n');
+		if (empty($day))
+			$day = userdate('j');
+		if (empty($year))
+			$year = userdate('Y');
+		if (empty($hour))
+			$hour = userdate('G');
+
+		$friends = getFriendsList($userData['userid']);
+
+		$nmsg = html_sanitizer::sanitize(trim($msg));
+
+		incHeader();
+
+		echo "<table align=center>";
+
+		if($preview){
+			$nsubject = trim(html_sanitizer::sanitize($subject));
+
+			$nmsg2 = parseHTML($nmsg);
+			$nmsg3 = smilies($nmsg2);
+
+			echo "<tr><td colspan=2 class=body>";
+
+			echo "Here is a preview of what the message will look like:";
+
+			echo "<table width=100%>";
+			echo "<tr><td class=header>Subject:</td><td class=header>$nsubject</td></tr>";
+			echo "<tr><td class=body colspan=2>" . nl2br($nmsg3) . "</td></tr>";
+
+			echo "</table><hr>";
+			echo "</td></tr>";
+		}
+		echo "</table>";
+
+		echo "<table align=center>";
+		echo "<form action=$_SERVER[PHP_SELF] method=post name=editbox>\n";
+	//	echo "<tr><td class=body colspan=2 align=center><b>Please do not share personal or financial information while using Nexopia.com.<br>All information passed through the use of this site, is at the risk of the user.<br>Nexopia.com will assume no liability for any users' actions.</b></td></tr>";
+		echo "<tr><td class=body>To: </td><td class=body><input class=body type=text name=to value=\"$to\" style=\"width:120\"><select name=friends style=\"width:120\" class=body onChange=\"if(this.selectedIndex!=0) this.form.to.value=this.options[this.selectedIndex].value;this.selectedIndex=0\"><option>Choose a Friend" . make_select_list($friends) . "</select></td></tr>\n";
+		echo "<tr><td class=body>Subject: </td><td class=body><input class=body type=text name=\"subject\" value=\"" . htmlentities($subject) . "\" style=\"width:300\" maxlength=64></td></tr>\n";
+		echo "<tr><td class=body>When to Send: </td><td class=body>";
+			echo "<select class=body name=\"month\"><option value=0>Month" . make_select_list_key($months,$month) . "</select>";
+			echo "<select class=body name=\"day\"><option value=0>Day" . make_select_list(range(1,31),$day) . "</select>";
+			echo "<select class=body name=\"year\"><option value=0>Year" . make_select_list(range(date("Y"),date("Y")+5),$year) . "</select>\n";
+			echo "<select class=body name=hour><option value=0>Hour" . make_select_list(range(0, 23), $hour) . "</select></td></tr>\n";
+		echo "</td></tr>\n";
+		echo "<tr><td class=body colspan=2>";
+
+		editbox($msg);
+
+		echo "</td></tr>\n";
+		echo "<tr><td class=body colspan=2 align=center><input class=body type=submit name=action value=Preview> <input class=body type=submit name=action accesskey='s' value=\"Create\"></td></tr>\n";
+
+		echo "</form></table>";
+
+		incFooter();
+		exit();
+	}
+
+	function createNotification($to, $subject, $msg, $month, $day, $year, $hour)
+	{
+		global $msgs;
+		global $usernotify;
+
+		if(!is_numeric($to))
+		{
+			$to = getUserID($to);
+			if(!$to){
+				$msgs->addMsg("Invalid User: $to");
+				writeNotification("", $subject, $msg, $month, $day, $year);
+			}
+		} else {
+			$toname = getUserName($to);
+			if (!$toname)
+			{
+				$msgs->addMsg("Invalid User: $to");
+				writeNotification("", $subject, $msg, $month, $day, $year);
+			}
+		}
+
+		if (blank($to, $subject, $msg, $month, $day, $year))
+		{
+			$msgs->addMsg("You did not specify enough information.");
+			writeNotification($to, $subject, $msg, $month, $day, $year);
+		}
+		$timestamp = usermktime($hour, 0, 0, $month, $day, $year);
+
+		$spam = spamfilter(trim($msg));
+
+		if(!$spam)
+		{
+			writeNotification($to, $subject, $msg, $month, $day, $year);
+		}
+		if (!$usernotify->newNotify($to, $timestamp, $subject, $msg))
+		{
+			$msgs->addMsg("Could not set notification");
+			writeNotification($to, $subject, $msg, $month, $day, $year);
+		}
+
+		header("location: $_SERVER[PHP_SELF]");
+		exit;
+	}
+
+	function deleteNotifications($deleteids)
+	{
+		global $usernotify, $msgs;
+		$deleted = $usernotify->deleteNotify($deleteids);
+		$msgs->addMsg("Deleted $deleted notifications");
+	}
+
+	function viewNotification($notifyid)
+	{
+		global $usernotify, $msgs, $userData;
+
+		$notification = $usernotify->getNotification($notifyid);
+		if (!$notification)
+		{
+			$msgs->addMsg("Failed to load notification.");
+			listNotifications();
+		}
+		if ($notification['creatorid'] != $userData['userid'] &&
+		    $notification['targetid']  != $userData['userid'])
+		{
+			$msgs->addMsg("Failed to load notification.");
+			listNotifications();
+		}
+
+		incHeader();
+
+		echo "<table width=100%>\n";
+		echo "<tr><td class=body colspan=2><a class=body href=\"$_SERVER[PHP_SELF]\">Notification list</a></td></tr>";
+		echo "<tr><td class=header>From:</td><td class=header><a class=header href=/profile.php?uid=$notification[creatorid]>$notification[creatorname]</a></td></tr>";
+		echo "<tr><td class=header>Created:</td><td class=header>" . userdate("D M j, Y g:i a", $notification['createtime']) . "</td></tr>";
+		echo "<tr><td class=header>Trigger on:</td><td class=header>" . userdate("D M j, Y g:i a", $notification['triggertime']) . "</td></tr>";
+		echo "<tr><td class=header>Subject:</td><td class=header>$notification[subject]</td></tr>";
+		echo "<tr><td class=body valign=top colspan=2>" . nl2br(parseHTML(smilies($notification['message']))) . "<br><br></td></tr>";
+		echo "</table>";
 
 		incFooter();
 		exit();

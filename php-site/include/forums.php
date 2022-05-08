@@ -1,12 +1,11 @@
 <?
 
 class forums {
+	public $sorttimes;
+	public $mutelength;
+	public $editlengths;
 
-
-	var $sorttimes;
-	var $mutelength;
-
-	var $forumranks = array(
+	public $forumranks = array(
 				100 => "Newbie",
 				500 => "Member",
 				1000 => "Regular",
@@ -19,15 +18,17 @@ class forums {
 				200000 => "Nexopian Elder"
 			);
 
-	var $reasons;
+	public $reasons;
+	public $db;
+	public $officialmods;
 
-	var $db;
+	function __construct( & $db ) {
+		global $cache;
 
-	function forums( & $db ) {
 		$this->db = & $db;
 
 		$this->sorttimes  = array(
-				0 => 'All Topics',
+				0 => 'All Threads',
 				1 => '1 Day',
 				3 => '3 Days',
 				7 => '1 Week',
@@ -39,18 +40,27 @@ class forums {
 			);
 
 		$this->mutelength = array(
-				0 => "Indefinitely",
 				3600 => "1 hour",
 				3*3600 => "3 hours",
 				12*3600 => "12 hours",
 				86400 => "1 day",
 				2*86400 => "2 days",
 				3*86400 => "3 days",
+				5*86400 => "5 days",
 				7*86400 => "1 week",
 				14*86400 => "2 weeks",
 				30*86400 => "1 month",
-				60*86400 => "2 months"
+				60*86400 => "2 months",
+				0 => "Indefinitely",
 			);
+
+		$this->editlengths = array(
+				'y' => "Yes",
+				'n' => "No",
+				'5' => '5 Minutes',
+				'15' => '15 Minutes',
+				'60' => '1 Hour',
+				);
 
 		$this->reasons = array( //must be a subset of $abuselog->reasons, as they are auto-added to the abuselog
 				ABUSE_REASON_NUDITY 	=> 'Nudity/Porn',
@@ -60,6 +70,17 @@ class forums {
 				ABUSE_REASON_FLAMING 	=> 'Harassment',
 				ABUSE_REASON_OTHER 		=> 'Other'
 					);
+
+		$this->officialmods = $cache->hdget("forums-officialmods", 60*60*12 /* 12 hour refresh time */, array(&$this, 'getOfficialModsDump'));
+	}
+
+	function parsePost($nmsg){ //removeHTML should have been called first, hence nmsg
+		$nmsg2 = parseHTML($nmsg);
+		$nmsg3 = smilies($nmsg2);
+		$nmsg3 = wrap($nmsg3);
+		$nmsg3 = nl2br($nmsg3);
+
+		return $nmsg3;
 	}
 
 	function forumrank($posts){
@@ -73,17 +94,17 @@ class forums {
 	function forumsNumOnline($fid = 0){
 		global $config, $cache;
 
-		$online = $cache->get(array($fid, "forumsonline-$fid"));
+		$online = $cache->get("forumsonline-$fid");
 
 		if(!$online){
 			if($fid)
-				$this->db->prepare_query("SELECT count(DISTINCT userid) FROM forumupdated WHERE forumid = # && time >= #", $fid, (time() - $config['friendAwayTime']) );
+				$res = $this->db->prepare_query("SELECT count(DISTINCT userid) FROM forumupdated WHERE forumid = # && time >= #", $fid, (time() - $config['friendAwayTime']) );
 			else
-				$this->db->prepare_query("SELECT count(DISTINCT userid) FROM forumupdated WHERE time >= #", (time() - $config['friendAwayTime']) );
+				$res = $this->db->prepare_query("SELECT count(DISTINCT userid) FROM forumupdated WHERE time >= #", (time() - $config['friendAwayTime']) );
 
-			$online = $this->db->fetchfield();
+			$online = $res->fetchfield();
 
-			$cache->put(array($fid, "forumsonline-$fid"), $online, 60);
+			$cache->put("forumsonline-$fid", $online, 60);
 		}
 		return $online;
 	}
@@ -109,6 +130,37 @@ class forums {
 		$this->db->prepare_query("UPDATE forummods SET activetime = # WHERE userid = # && forumid IN (0,#)", time(), $userid, $forumid);
 	}
 
+	function getModPowers($userid, $fids)
+	{
+		global $cache;
+
+		$modpowers = $cache->get_multi($fids, "forummodpowers-$userid-");
+		$missing = array_diff($fids, array_keys($modpowers));
+		if ($missing)
+		{
+			$res = $this->db->prepare_query("SELECT * FROM forummods WHERE userid = # && forumid IN (#)", $userid, $missing);
+
+			while($line = $res->fetchrow())
+			{
+				$modpowers[$line['forumid']] = $line;
+				$cache->put("forummodpowers-$userid-$line[forumid]", $line, 10800);
+			}
+		}
+		// anything still missing is empty and should be set as such in the cache so we don't go back
+		// to the database for missing forums, which would be likely given that most users are not mods.
+		$missing = array_diff($fids, array_keys($modpowers));
+		foreach ($missing as $fid)
+		{
+			$cache->put("forummodpowers-$userid-$fid", array(), 10800);
+		}
+		// now cull empty items from the modpowers list
+		foreach ($modpowers as $fid => $powers)
+		{
+			if (!$powers)
+				unset($modpowers[$fid]);
+		}
+		return $modpowers;
+	}
 
 	function getForumPerms($fid){
 		global $userData, $mods, $cache, $config;
@@ -142,21 +194,9 @@ class forums {
 						'cols' => array()
 						);
 
-		$forumdata = $cache->get(array($fid, "forumdata-$fid"));
-
-		if(!$forumdata){
-			$this->db->prepare_query("SELECT public, ownerid, mute, edit, parent, official, name, autolock, public, sorttime, rules FROM forums WHERE id = #", $fid);
-
-			if(!$this->db->numrows())
-				die("Bad Forum id");
-
-			$forumdata = $this->db->fetchrow();
-
-			$cache->put(array($fid, "forumdata-$fid"), $forumdata, 3600);
-		}
-
-		if($forumdata['parent']==0 && $forumdata['official']=='y')
-			die("Bad Forum id");
+		$forumdata = $this->getForums($fid);
+		if (!$forumdata)
+			return $perms;
 
 		$perms['cols'] = $forumdata;
 
@@ -185,15 +225,15 @@ class forums {
 				$perms['editmods']=true;
 				$perms['admin']=true;
 
-				if($userData['userid'] != $forumdata['ownerid'] && $forumdata['official']=='n'){
+				if($userData['userid'] != $forumdata['ownerid']){
 
-					$invited = $cache->get(array($userData['userid'], "foruminvite-$userData[userid]-$fid"));
+					$invited = $cache->get("foruminvite-$userData[userid]-$fid");
 
 					if($invited === false){
-						$this->db->prepare_query("SELECT userid FROM foruminvite WHERE userid = # && forumid = #", $userData['userid'], $fid);
-						$invited = $this->db->numrows();
+						$res = $this->db->prepare_query("SELECT userid FROM foruminvite WHERE userid = # && forumid = #", $userData['userid'], $fid);
+						$invited = ($res->fetchrow() != false); // note, loose type comparison intentional
 
-						$cache->put(array($userData['userid'], "foruminvite-$userData[userid]-$fid"), $invited, 10800);
+						$cache->put("foruminvite-$userData[userid]-$fid", $invited, 10800);
 					}
 
 					$perms['invited'] = $invited;
@@ -204,17 +244,7 @@ class forums {
 				}
 			}else{
 
-				$modpowers = $cache->get(array($userData['userid'], "forummods-$userData[userid]-$fid"));
-
-				if($modpowers === false){
-					$this->db->prepare_query("SELECT * FROM forummods WHERE userid = # && forumid IN (0, #)", $userData['userid'], $fid);
-
-					$modpowers = array();
-					while($line = $this->db->fetchrow())
-						$modpowers[$line['forumid']] = $line;
-
-					$cache->put(array($userData['userid'], "forummods-$userData[userid]-$fid"), $modpowers, 10800);
-				}
+				$modpowers = $this->getModPowers($userData['userid'], array(0, $fid));
 
 				if(count($modpowers)){
 					$modperms = array();
@@ -255,40 +285,36 @@ class forums {
 					$modperms = false;
 				}
 
-				if($forumdata['official']=='n'){
+				$invited = $cache->get("foruminvite-$userData[userid]-$fid");
 
-					$invited = $cache->get(array($userData['userid'], "foruminvite-$userData[userid]-$fid"));
+				if($invited === false){
+					$res = $this->db->prepare_query("SELECT userid FROM foruminvite WHERE userid = # && forumid = #", $userData['userid'], $fid);
+					$invited = ($res->fetchrow() != false);
 
-					if($invited === false){
-						$this->db->prepare_query("SELECT userid FROM foruminvite WHERE userid = # && forumid = #", $userData['userid'], $fid);
-						$invited = $this->db->numrows();
+					$cache->put("foruminvite-$userData[userid]-$fid", $invited, 10800);
+				}
 
-						$cache->put(array($userData['userid'], "foruminvite-$userData[userid]-$fid"), $invited, 10800);
-					}
+				$perms['invited'] = $invited;
 
-					$perms['invited'] = $invited;
-
-					if($forumdata['public']=='n')
-						$perms['view'] |= $invited; // |= so globals can see everything
-				}else
-					$perms['view'] = true;
+				if($forumdata['public']=='n')
+					$perms['view'] |= $invited; // |= so globals can see everything
 
 				if((!$modperms || $perms['postglobal'] == 'n') && $forumdata['mute']=='n'){
 
 					$forummutes = array();
-					$forummutes[$fid] = $cache->get(array($userData['userid'], "forummutes-$userData[userid]-$fid"));
-					$forummutes[0] = $cache->get(array($userData['userid'], "forummutes-$userData[userid]-0"));
+					$forummutes[$fid] = $cache->get("forummutes-$userData[userid]-$fid");
+					$forummutes[0] = $cache->get("forummutes-$userData[userid]-0");
 
 					if($forummutes[0] === false || $forummutes[$fid] === false){
 						$forummutes = array(0 => 1, $fid => 1);
 
-						$this->db->prepare_query("SELECT forumid, unmutetime FROM forummute WHERE userid = # && forumid IN (0, #)", $userData['userid'], $fid);
+						$res = $this->db->prepare_query("SELECT forumid, unmutetime FROM forummute WHERE userid = # && forumid IN (0, #)", $userData['userid'], $fid);
 
-						while($line = $this->db->fetchrow())
+						while($line = $res->fetchrow())
 							$forummutes[$line['forumid']] = $line['unmutetime'];
 
-						$cache->put(array($userData['userid'], "forummutes-$userData[userid]-$fid"), $forummutes[$fid], 10800);
-						$cache->put(array($userData['userid'], "forummutes-$userData[userid]-0"), $forummutes[0], 10800);
+						$cache->put("forummutes-$userData[userid]-$fid", $forummutes[$fid], 10800);
+						$cache->put("forummutes-$userData[userid]-0", $forummutes[0], 10800);
 					}
 
 					$maxunmutetime = 1;
@@ -301,11 +327,11 @@ class forums {
 							$maxunmutetime = 0;
 							break;
 						}elseif($unmutetime < $time){
-							$this->db->prepare_query("DELETE FROM forummute WHERE userid = # && forumid = #", $userData['userid'], $forumid);
+							$this->db->prepare_query("DELETE forummute, forummutereason FROM forummute, forummutereason WHERE forummute.id = forummutereason.id && userid = # && forumid = #", $userData['userid'], $forumid);
 
 							$this->modLog('unmute', $forumid, 0, $userData['userid'], $unmutetime, 0);
 
-							$cache->remove(array($userData['userid'], "forummutes-$userData[userid]-$forumid"));
+							$cache->remove("forummutes-$userData[userid]-$forumid");
 							continue;
 						}
 						if($unmutetime > $maxunmutetime)
@@ -313,16 +339,15 @@ class forums {
 					}
 
 					$perms['post'] = ( $maxunmutetime > 0 && $maxunmutetime < $time );
-
 				}
 
 				$perms['editownposts'] |= ($forumdata['edit']=='y');
+
+				if(!$perms['editownposts'] && $forumdata['edit'] != 'y' && $forumdata['edit'] != 'n') //time limit
+					$perms['editownposts'] = $forumdata['edit']*60;
 			}
-			if($forumdata['official']=='y'){
-				$perms['invite']=false;
-			}else{
+			if($forumdata['official']=='n' || $forumdata['public']=='n')
 				$perms['move']=false;
-			}
 		}
 
 		$forums[$fid] = $perms;
@@ -331,10 +356,10 @@ class forums {
 	}
 
 	function deleteThread($tid){
-		global $msgs, $db, $userData;
+		global $msgs, $usersdb, $cache, $userData;
 
-		$this->db->prepare_query("SELECT forumid, authorid, lastauthorid, posts FROM forumthreads WHERE id = #", $tid);
-		$thread = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT forumid, authorid, lastauthorid, posts FROM forumthreads WHERE id = #", $tid);
+		$thread = $res->fetchrow();
 
 		$perms = $this->getForumPerms($thread['forumid']);
 
@@ -345,15 +370,18 @@ class forums {
 
 //*
 //lower users post count
-			$this->db->prepare_query("SELECT authorid, count(*) as count FROM forumposts WHERE threadid = # GROUP BY authorid", $tid);
+			$res = $this->db->prepare_query("SELECT authorid, count(*) as count FROM forumposts WHERE threadid = # GROUP BY authorid", $tid);
 
 			$counts = array();
-			while($line = $this->db->fetchrow())
-				if($line['authorid'])
+			while($line = $res->fetchrow()){
+				if($line['authorid']){
 					$counts[$line['count']][] = $line['authorid'];
+					$cache->decr("forumuserposts-$line[authorid]", $line['count']);
+				}
+			}
 
 			foreach($counts as $count => $authors)
-				$db->prepare_query("UPDATE users SET posts = posts - # WHERE userid IN (#)", $count, $authors);
+				$usersdb->prepare_query("UPDATE users SET posts = posts - # WHERE userid IN (%)", $count, $authors);
 //*/
 
 			$this->db->prepare_query("INSERT INTO forumthreadsdel SELECT * FROM forumthreads WHERE id = #", $tid);
@@ -371,10 +399,10 @@ class forums {
 	}
 
 	function deletePost($pid){
-		global $msgs,$db, $userData, $cache;
+		global $msgs, $usersdb, $cache, $userData;
 
-		$this->db->prepare_query("SELECT forumid,threadid,forumposts.authorid FROM forumthreads,forumposts WHERE forumposts.id = # && forumthreads.id=forumposts.threadid", $pid);
-		$post = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT forumid,threadid,forumposts.authorid FROM forumthreads,forumposts WHERE forumposts.id = # && forumthreads.id=forumposts.threadid", $pid);
+		$post = $res->fetchrow();
 
 		$perms = $this->getForumPerms($post['forumid']);
 
@@ -385,18 +413,20 @@ class forums {
 
 			$this->db->prepare_query("DELETE FROM forumposts WHERE id = #", $pid);
 
-			$this->db->prepare_query("SELECT time, author, authorid FROM forumposts WHERE threadid = # ORDER BY time DESC LIMIT 1", $post['threadid']);
-			$line = $this->db->fetchrow();
+			$res = $this->db->prepare_query("SELECT time, authorid FROM forumposts WHERE threadid = # ORDER BY time DESC LIMIT 1", $post['threadid']);
+			$line = $res->fetchrow();
 
 			if($line)
-				$this->db->prepare_query("UPDATE forumthreads SET posts = posts - 1, time = #,lastauthor = ?, lastauthorid = # WHERE id = #", $line['time'], $line['author'], $line['authorid'], $post['threadid']);
+				$this->db->prepare_query("UPDATE forumthreads SET posts = posts - 1, time = #, lastauthorid = # WHERE id = #", $line['time'], $line['authorid'], $post['threadid']);
 
 			$this->db->prepare_query("UPDATE forums SET posts=posts-1 WHERE id = #", $post['forumid']);
 
-			if($post['authorid'])
-				$db->prepare_query("UPDATE users SET posts = posts -1 WHERE userid = #", $post['authorid']);
+			if($post['authorid']){
+				$usersdb->prepare_query("UPDATE users SET posts = posts - 1 WHERE userid = %", $post['authorid']);
+				$cache->decr("forumuserposts-$userData[userid]");
+			}
 
-			$cache->remove(array($post['threadid'], "forumthread-$post[threadid]"));
+			$cache->remove("forumthread-$post[threadid]");
 
 			$msgs->addMsg("Post deleted");
 			return true;
@@ -406,10 +436,10 @@ class forums {
 	}
 
 	function lockThread($tid){
-		global $userData,$msgs, $cache;
+		global $msgs, $cache;
 
-		$this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
-		$thread = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
+		$thread = $res->fetchrow();
 
 		$perms = $this->getForumPerms($thread['forumid']);
 
@@ -418,7 +448,7 @@ class forums {
 
 			$this->modLog('lock',$thread['forumid'],$tid,$thread['authorid'], $thread['lastauthorid']);
 
-			$cache->remove(array($tid, "forumthread-$tid"));
+			$cache->remove("forumthread-$tid");
 
 			$msgs->addMsg("Thread locked");
 			return true;
@@ -428,10 +458,10 @@ class forums {
 	}
 
 	function unlockThread($tid){
-		global $userData,$msgs, $cache;
+		global $msgs, $cache;
 
-		$this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
-		$thread = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
+		$thread = $res->fetchrow();
 
 		$perms = $this->getForumPerms($thread['forumid']);
 
@@ -440,7 +470,7 @@ class forums {
 
 			$this->modLog('unlock',$thread['forumid'],$tid,$thread['authorid'], $thread['lastauthorid']);
 
-			$cache->remove(array($tid, "forumthread-$tid"));
+			$cache->remove("forumthread-$tid");
 
 			$msgs->addMsg("Thread unlocked");
 			return true;
@@ -450,10 +480,10 @@ class forums {
 	}
 
 	function stickThread($tid){
-		global $userData,$msgs, $cache;
+		global $msgs, $cache;
 
-		$this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
-		$thread = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
+		$thread = $res->fetchrow();
 
 		$perms = $this->getForumPerms($thread['forumid']);
 
@@ -462,7 +492,7 @@ class forums {
 
 			$this->modLog('stick',$thread['forumid'],$tid,$thread['authorid'], $thread['lastauthorid']);
 
-			$cache->remove(array($tid, "forumthread-$tid"));
+			$cache->remove("forumthread-$tid");
 
 			$msgs->addMsg("Thread made sticky");
 			return true;
@@ -472,10 +502,10 @@ class forums {
 	}
 
 	function unstickThread($tid){
-		global $userData,$msgs, $cache;
+		global $msgs, $cache;
 
-		$this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
-		$thread = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
+		$thread = $res->fetchrow();
 
 		$perms = $this->getForumPerms($thread['forumid']);
 
@@ -484,7 +514,7 @@ class forums {
 
 			$this->modLog('unstick',$thread['forumid'],$tid,$thread['authorid'], $thread['lastauthorid']);
 
-			$cache->remove(array($tid, "forumthread-$tid"));
+			$cache->remove("forumthread-$tid");
 
 			$msgs->addMsg("Thread made unsticky");
 			return true;
@@ -494,10 +524,10 @@ class forums {
 	}
 
 	function announceThread($tid){
-		global $userData,$msgs, $cache;
+		global $msgs, $cache;
 
-		$this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
-		$thread = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
+		$thread = $res->fetchrow();
 
 		$perms = $this->getForumPerms($thread['forumid']);
 
@@ -506,7 +536,7 @@ class forums {
 
 			$this->modLog('announce',$thread['forumid'],$tid,$thread['authorid'], $thread['lastauthorid']);
 
-			$cache->remove(array($tid, "forumthread-$tid"));
+			$cache->remove("forumthread-$tid");
 
 			$msgs->addMsg("Thread announced");
 			return true;
@@ -516,10 +546,10 @@ class forums {
 	}
 
 	function unannounceThread($tid){
-		global $userData,$msgs, $cache;
+		global $msgs, $cache;
 
-		$this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
-		$thread = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
+		$thread = $res->fetchrow();
 
 		$perms = $this->getForumPerms($thread['forumid']);
 
@@ -528,7 +558,7 @@ class forums {
 
 			$this->modLog('unannounce',$thread['forumid'],$tid,$thread['authorid'], $thread['lastauthorid']);
 
-			$cache->remove(array($tid, "forumthread-$tid"));
+			$cache->remove("forumthread-$tid");
 
 			$msgs->addMsg("Thread unannounced");
 			return true;
@@ -538,32 +568,26 @@ class forums {
 	}
 
 	function flagThread($tid){
-		global $userData,$msgs, $cache;
+		global $msgs, $cache;
 
-		$this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
-		$thread = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
+		$thread = $res->fetchrow();
 
-		$perms = $this->getForumPerms($thread['forumid']);
+		$this->db->prepare_query("UPDATE forumthreads SET flag='y' WHERE id = #", $tid);
 
-		if($perms['flag']){
-			$this->db->prepare_query("UPDATE forumthreads SET flag='y' WHERE id = #", $tid);
+		$this->modLog('flag',$thread['forumid'],$tid,$thread['authorid'], $thread['lastauthorid']);
 
-			$this->modLog('flag',$thread['forumid'],$tid,$thread['authorid'], $thread['lastauthorid']);
+		$cache->remove("forumthread-$tid");
 
-			$cache->remove(array($tid, "forumthread-$tid"));
-
-			$msgs->addMsg("Thread flagged");
-			return true;
-		}
-		$msgs->addMsg("You don't have permission to flag threads in this forum");
-		return false;
+		$msgs->addMsg("Thread flagged");
+		return true;
 	}
 
 	function unflagThread($tid){
-		global $userData,$msgs, $cache;
+		global $msgs, $cache;
 
-		$this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
-		$thread = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT forumid, authorid, lastauthorid FROM forumthreads WHERE id = #", $tid);
+		$thread = $res->fetchrow();
 
 		$perms = $this->getForumPerms($thread['forumid']);
 
@@ -572,7 +596,7 @@ class forums {
 
 			$this->modLog('unflag',$thread['forumid'],$tid,$thread['authorid'], $thread['lastauthorid']);
 
-			$cache->remove(array($tid, "forumthread-$tid"));
+			$cache->remove("forumthread-$tid");
 
 			$msgs->addMsg("Thread unflagged");
 			return true;
@@ -582,10 +606,10 @@ class forums {
 	}
 
 	function moveThread($tid,$dest){
-		global $userData, $msgs, $cache;
+		global $msgs, $cache;
 
-		$this->db->prepare_query("SELECT * FROM forumthreads WHERE id = #", $tid);
-		$thread = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT * FROM forumthreads WHERE id = #", $tid);
+		$thread = $res->fetchrow();
 
 		if($thread['moved'])
 			return;
@@ -598,9 +622,10 @@ class forums {
 		if(!$perms['move'])
 			return false;
 
-		$this->db->prepare_query("SELECT official FROM forums WHERE id = #", $dest);
+		$res = $this->db->prepare_query("SELECT official FROM forums WHERE id = #", $dest);
+		$forum = $res->fetchrow();
 
-		if(!$this->db->numrows() || $this->db->fetchfield() == 'n')
+		if(!$forum || $forum['official'] == 'n')
 			return false;
 
 		$this->modLog('move',$thread['forumid'],$tid,$thread['forumid'],$dest);
@@ -610,24 +635,33 @@ class forums {
 
 		$this->db->prepare_query("UPDATE forums SET posts = posts + # + 1, threads=threads+1, time = GREATEST(time, #) WHERE id = #", $thread['posts'], $thread['time'], $dest);
 
-		$this->db->prepare_query("INSERT INTO forumthreads (forumid, moved, announcement, title, authorid, author, reads, posts, `time`, lastauthorid, lastauthor, sticky, locked, pollid) " .
-								"SELECT forumid, #, 'n', title, authorid, author, reads, posts, time, lastauthorid, lastauthor, 'n', locked, pollid FROM forumthreads WHERE id = #", $tid, $tid);
+		$this->db->prepare_query("INSERT INTO forumthreads (forumid, moved, announcement, title, authorid, reads, posts, `time`, lastauthorid, sticky, locked, pollid) " .
+								"SELECT forumid, #, 'n', title, authorid, reads, posts, time, lastauthorid, 'n', locked, pollid FROM forumthreads WHERE id = #", $tid, $tid);
 
 		$this->db->prepare_query("UPDATE forumthreads SET forumid = # WHERE id = #", $dest, $tid);
 
-		$cache->remove(array($tid, "forumthread-$tid"));
+		$cache->remove("forumthread-$tid");
 
 		$msgs->addMsg("Thread moved");
 		return true;
 	}
 
-	function deleteForum($ids){
+	function invalidateForums($ids)
+	{
 		global $cache;
+		if (!is_array($ids))
+			$ids = array($ids);
 
-		$this->db->prepare_query("SELECT id FROM forumthreads WHERE forumid IN (#)", $ids);
+		foreach($ids as $id)
+			$cache->remove("forum-$id");
+		$cache->remove("publicforumlist-mostactive");
+	}
+
+	function deleteForum($ids){
+		$res = $this->db->prepare_query("SELECT id FROM forumthreads WHERE forumid IN (#)", $ids);
 
 		$threads = array();
-		while($line = $this->db->fetchrow())
+		while($line = $res->fetchrow())
 			$threads[] = $line['id'];
 
 		if(count($threads))
@@ -635,10 +669,10 @@ class forums {
 		$this->db->prepare_query("DELETE FROM forumthreads WHERE forumid IN (#)", $ids);
 
 
-		$this->db->prepare_query("SELECT id FROM forumthreadsdel WHERE forumid IN (#)", $ids);
+		$res = $this->db->prepare_query("SELECT id FROM forumthreadsdel WHERE forumid IN (#)", $ids);
 
 		$threads = array();
-		while($line = $this->db->fetchrow())
+		while($line = $res->fetchrow())
 			$threads[] = $line['id'];
 
 		if(count($threads))
@@ -648,31 +682,31 @@ class forums {
 
 		$this->db->prepare_query("DELETE FROM forums WHERE id IN (#)", $ids);
 
-		foreach($ids as $id)
-			$cache->remove(array($id, "forumdata-$id"));
+		$this->invalidateForums($ids);
 	}
 
 	function pruneforums(){
 		global $polls;
 
 	//delete forums not posted in in 30 days
-		$this->db->prepare_query("SELECT id FROM forums WHERE official='n' && time < #", time() - 86400*30);
-
-		if($this->db->numrows() == 0)
-			return;
+		$res = $this->db->prepare_query("SELECT id FROM forums WHERE official='n' && time < #", time() - 86400*30);
 
 		$forums = array();
-		while($line = $this->db->fetchrow())
+		while($line = $res->fetchrow())
 			$forums = $line['id'];
+
+		if (!$forums)
+			return;
+
 		$this->deleteForum($forums);
 
 	//delete threads not posted in in 6 times the default view length (default 2*6 weeks)
-		$this->db->prepare_query("SELECT forumthreads.id, forumthreads.pollid FROM forums,forumthreads WHERE forums.id=forumthreads.forumid && forumthreads.announcement = 'n' && forums.sorttime > 0 && forumthreads.time <= (# - forums.sorttime*6*86400)", time());
+		$res = $this->db->prepare_query("SELECT forumthreads.id, forumthreads.pollid FROM forums,forumthreads WHERE forums.id=forumthreads.forumid && forumthreads.announcement = 'n' && forums.sorttime > 0 && forumthreads.time <= (# - forums.sorttime*6*86400)", time());
 
 		$threadids = array();
 		$pollids = array();
 		$i=0;
-		while($line = $this->db->fetchrow()){
+		while($line = $res->fetchrow()){
 			$threadids[floor($i/10)][] = $line['id'];
 			$pollids[] = $line['pollid'];
 			$i++;
@@ -686,11 +720,11 @@ class forums {
 		}
 
 	//delete from deleted threads as well
-		$this->db->prepare_query("SELECT forumthreadsdel.id, forumthreadsdel.pollid FROM forums,forumthreadsdel WHERE forums.id=forumthreadsdel.forumid && forumthreadsdel.announcement = 'n' && forums.sorttime > 0 && forumthreadsdel.time <= (# - forums.sorttime*7*86400)", time());
+		$res = $this->db->prepare_query("SELECT forumthreadsdel.id, forumthreadsdel.pollid FROM forums,forumthreadsdel WHERE forums.id=forumthreadsdel.forumid && forumthreadsdel.announcement = 'n' && forums.sorttime > 0 && forumthreadsdel.time <= (# - forums.sorttime*7*86400)", time());
 
 		$threadids = array();
 		$i=0;
-		while($line = $this->db->fetchrow()){
+		while($line = $res->fetchrow()){
 			$threadids[floor($i/10)][] = $line['id'];
 			$pollids[] = $line['pollid'];
 			$i++;
@@ -704,8 +738,8 @@ class forums {
 		$polls->deletePoll($pollids);
 	}
 
-	function forumMuteUser($uid,$fid, $time, $reasonid, $reason, $forumname = "", $moditem = true){
-		global $msgs, $userData, $mods, $cache, $messaging, $abuselog;
+	function forumMuteUser($uid, $fid, $tid, $time, $reasonid, $reason, $globalreq = false, $forumname = "", $moditem = true){
+		global $userData, $msgs, $mods, $cache, $messaging, $abuselog;
 
 		if($time==0)
 			$unmutetime = 0;
@@ -717,21 +751,27 @@ class forums {
 		if($this->db->affectedrows()){
 			$id = $this->db->insertid();
 
-			$this->db->prepare_query("INSERT INTO forummutereason SET id = #, modid = #, reason = ?", $id, $userData['userid'], $reason);
+			$this->db->prepare_query("INSERT INTO forummutereason SET id = #, modid = #, reason = ?, threadid = #, globalreq = ?", $id, $userData['userid'], $reason, $tid, ($globalreq ? 'y' : 'n'));
 
 			if($forumname=="" && $fid != 0){
-				$this->db->prepare_query("SELECT name, official FROM forums WHERE id = #", $fid);
+				$res = $this->db->prepare_query("SELECT name, official FROM forums WHERE id = #", $fid);
 
-				$forumname = $this->db->fetchfield();
+				$forumname = $res->fetchfield();
 			}
 
 			$msg = "Dear User,\n\nThis is to notify you that you have been banned ";
-			if($fid == 0)	$msg .= "Globally (from all forums)";
-			else			$msg .= "from '[url=forumthreads.php?fid=$fid]" . $forumname . "[/url]'";
+
 			if($time > 0)	$msg .= " for";
-			$msg .= " " . $this->mutelength[$time] . " with the reason '$reason'.\n\n";
+			$msg .= " " . strtolower($this->mutelength[$time]) . " ";
+
+
+			if($fid == 0)	$msg .= "from all of our forums";
+			else			$msg .= "from '[url=forumthreads.php?fid=$fid]" . $forumname . "[/url]'";
+
+			if($tid)		$msg .= " for your actions in [url=forumviewthread.php?tid=$tid]this thread[/url]";
+
+			$msg .= " with the reason '$reason'.\n\n";
 			$msg .= "If you wish to dispute this action, feel free to reply.\n\n";
-			$msg .= "Thanks";
 
 			$messaging->deliverMsg($uid,"Forum Ban",$msg, 0, false, false, false); //not ignorable
 
@@ -745,12 +785,16 @@ class forums {
 				$subject.= ($fid ? "from $forumname" : "Globally");
 
 				$message = "Forum: " . ($fid ? "[url=forumthreads.php?fid=$fid]$forumname" . "[/url]" : "Global") . "\n";
-				$message.= "Reason: $reason";
+				if($tid)
+					$message .= "Thread: [url=forumviewthread.php?tid=$tid]link[/url]\n";
+				$message.= "Reason: $reason\n";
+				$message.= "Length: " . $this->mutelength[$time] . "\n";
+
 
 				$abuselog->addAbuse($uid, ABUSE_ACTION_FORUM_BAN, $reasonid, $subject, $message);
 			}
 
-			$cache->remove(array($uid, "forummutes-$uid-$fid"));
+			$cache->remove("forummutes-$uid-$fid");
 
 			$msgs->addMsg("User Muted");
 		}else{
@@ -761,54 +805,478 @@ class forums {
 	function forumUnmuteUser($uid, $fid){
 		global $msgs, $cache;
 
-		$this->db->prepare_query("SELECT unmutetime FROM forummute WHERE userid = # && forumid = #", $uid, $fid);
-		$line = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT unmutetime FROM forummute WHERE userid = # && forumid = #", $uid, $fid);
+		$line = $res->fetchrow();
 
 		if(!$line)
 			return;
 
 		$this->modLog('unmute',$fid,0,$uid,$line['unmutetime']);
 
-		$this->db->prepare_query("DELETE FROM forummute WHERE userid = # && forumid = #", $uid, $fid);
+		$this->db->prepare_query("DELETE forummute, forummutereason FROM forummute, forummutereason WHERE forummute.id = forummutereason.id && userid = # && forumid = #", $uid, $fid);
 
-		$cache->remove(array($uid, "forummutes-$uid-$fid"));
+		$cache->remove("forummutes-$uid-$fid");
 
 		$msgs->addMsg("User UnMuted");
 	}
 
-	function invite($uids, $fid){
-		global $cache, $messaging;
+	function invite($uids, $fid, $catid = 0){
+		global $cache, $messaging, $userData;
 
 		if(!is_array($uids))
 			$uids = array($uids);
 
-
-		$this->db->prepare_query("SELECT name FROM forums WHERE id = #", $fid);
-		$forumname = $this->db->fetchfield();
+		$res = $this->db->prepare_query("SELECT name FROM forums WHERE id = #", $fid);
+		$forumname = $res->fetchfield();
 
 		foreach($uids as $uid){
-			$this->db->prepare_query("INSERT IGNORE INTO foruminvite SET userid = #, forumid = #", $uid, $fid);
+			if($userData['userid'] == $uid) // users inviting other users should not overwrite existing categorization, but system reinvites (recategorization really) should.
+				$this->db->prepare_query("DELETE FROM foruminvite WHERE userid = # AND forumid = #", $uid, $fid);
+			$this->db->prepare_query("INSERT IGNORE INTO foruminvite SET userid = #, categoryid = #, forumid = #", $uid, $catid, $fid);
 
 			if($this->db->affectedrows() == 0)
 				continue;
 
-			$this->modLog('invite',$fid,0,$uid);
+			if($userData['userid'] != $uid) //only log invites, not self-subscriptions
+				$this->modLog('invite',$fid,0,$uid);
 
-			$cache->put(array($uid, "foruminvite-$uid-$fid"), 1, 10800);
+			$cache->put("foruminvite-$uid-$fid", 1, 10800);
+			$cache->remove("subforumlist-$uid");
 
-			$messaging->deliverMsg($uid, "Forum Invite", "You have been invited to join the forum [url=forumthreads.php?fid=$fid]$forumname" . "[/url]. Click [url=forumthreads.php?fid=$fid&action=withdraw&k=" . makeKey($fid, $uid) . "]here[/url] to withdraw from the forum.");
+			if($userData['userid'] != $uid)
+				$messaging->deliverMsg($uid, "Forum Invite", "You have been invited to join the forum [url=forumthreads.php?fid=$fid]$forumname" . "[/url]. Click [url=forumthreads.php?fid=$fid&action=withdraw&k=" . makeKey($fid, $uid) . "]here[/url] to withdraw from the forum.", 0, false, false, false);
 		}
 	}
 
 	function unInvite($uids, $fid){
-		global $cache;
+		global $cache, $userData;
+
+		if(!is_array($uids))
+			$uids = array($uids);
 
 		$this->db->prepare_query("DELETE FROM foruminvite WHERE userid IN (#) && forumid = #", $uids, $fid);
 
 		foreach($uids as $uid){
-			$this->modLog('uninvite',$fid,0,$uid);
-			$cache->put(array($uid, "foruminvite-$uid-$fid"), 0, 10800);
+			if($userData['userid'] != $uid)
+				$this->modLog('uninvite',$fid,0,$uid);
+			$cache->put("foruminvite-$uid-$fid", 0, 10800);
+			$cache->remove("subforumlist-$uid");
 		}
+	}
+
+	// for internal use only.
+	function getGlobalCategories()
+	{
+		$result = $this->db->prepare_query('SELECT id, ownerid, priority, official, name FROM forumcats WHERE ownerid = # ORDER BY priority ASC', 0);
+
+		while ($row = $result->fetchrow())
+		{
+			$globalcats[ $row['id'] ] = $row;
+		}
+		$globalcats[0] = array(
+						'id' => 0,
+						'name' => 'Uncategorized',
+						'ownerid' => 0,
+						'priority' => 128,
+						'official' => 'n'
+					);
+		return $globalcats;
+	}
+
+	function getCategories($userid = false) // pass a userid to include user-specified categories.
+	{
+		global $cache;
+
+		// first get the global ones, with the first try being from the hd cache
+		$globalcats = $cache->get('forumcategories', 60*60*24, array(&$this, 'getGlobalCategories'));
+
+		// if a userid is passed in, try and get that user's list of categories from memcache
+		$usercats = array();
+		if ($userid)
+		{
+			$usercats = $cache->get("forumcategories-$userid");
+			if (!is_array($usercats))
+			{
+				$result = $this->db->prepare_query('SELECT id, ownerid, priority, official, name FROM forumcats WHERE ownerid = # ORDER BY name ASC', $userid);
+				$usercats = array();
+				while ($row = $result->fetchrow())
+				{
+					$usercats[ $row['id'] ] = $row;
+				}
+				$cache->put("forumcategories-$userid", $usercats, 60*60);
+			}
+		}
+		return $usercats + $globalcats;
+	}
+
+	function createCategory($name, $official, $ownerid, $priority)
+	{
+		global $cache;
+
+		$commands = array();			$params = array();
+		$commands[] = "name = ?";		$params[] = $name;
+		$commands[] = "official = ?";   $params[] = $official;
+		$commands[] = "priority = ?";	$params[] = $priority;
+		$commands[] = 'ownerid = #';	$params[] = $ownerid;
+
+		$query = "INSERT INTO forumcats SET " . implode(", ",$commands);
+		$this->db->prepare_array_query($query, $params);
+
+		if ($ownerid != 0)
+			$cache->remove("forumcategories-$ownerid");
+
+		return $this->db->insertid();
+	}
+
+	function invalidateCategory($id, $ownerid = 0)
+	{
+		global $cache;
+		if ($ownerid != 0)
+		{
+			$cache->remove("forumcategories-$ownerid");
+			$cache->remove("subforumlist-$ownerid");
+		} else {
+			$cache->remove("forumcategories");
+			$cache->remove("publicforumlist-mostactive");
+		}
+	}
+
+	function modifyCategory($id, $alter, $ownerid = 0)
+	{
+		$commands = array(); $params = array();
+		foreach ($alter as $key => $val)
+		{
+			$commands[] = "$key = ?"; $params[] = $val;
+		}
+		$this->db->prepare_array_query("UPDATE forumcats SET " . implode(',',$commands) . " WHERE id = # AND ownerid = #", array_merge($params, array($id, $ownerid)));
+		$this->invalidateCategory($id, $ownerid);
+
+		return $this->db->affectedrows();
+	}
+
+	function deleteCategory($id, $ownerid = 0)
+	{
+		$this->db->prepare_query("DELETE FROM forumcats WHERE id = # AND ownerid = #", $id, $ownerid);
+		$this->invalidateCategory($id, $ownerid);
+
+		return $this->db->affectedrows();
+	}
+
+	// note that this adds the new column, which is defaulted to 0 if not logged in and 1 if logged in, but is not computed beyond that.
+	// The callee is responsible for filling in correct values (probably with getForumNewStatus)
+	function getForums($forumids)
+	{
+		global $cache, $userData;
+
+		if (!$forumids)
+			return array();
+
+		$array = is_array($forumids);
+		if(!$array)
+			$forumids = array($forumids);
+
+		// get the forums we can from memcache (only cached for a very short time)
+		$forums = $cache->get_multi($forumids, 'forum-');
+		$missing = array_diff($forumids, array_keys($forums));
+
+		if($missing){
+			$result = $this->db->prepare_query("SELECT * FROM forums WHERE id IN (#)", $missing);
+			while($forum = $result->fetchrow()){
+				$forum['new'] = $userData['loggedIn'];
+				$forums[ $forum['id'] ] = $forum;
+				$cache->put("forum-$forum[id]", $forum, 30);
+			}
+		}
+
+		if($array)
+			return $forums;
+		else
+			return array_pop($forums);
+	}
+
+
+	function getCollapsedCategories($userid)
+	{
+		global $cache;
+
+		$collapselist = $cache->get("forum-collapsed-$userid");
+		if (!is_string($collapselist))
+		{
+			$collapselist = array();
+			$result = $this->db->prepare_query("SELECT categoryid FROM forumcatcollapse WHERE userid = #", $userid);
+			while ($row = $result->fetchrow())
+			{
+				$collapselist[] = $row['categoryid'];
+			}
+			$cache->put("forum-collapsed-$userid", implode(',',$collapselist), 24*60*60);
+			return $collapselist;
+		} else {
+			return explode(',', $collapselist);
+		}
+	}
+
+	function setCollapseCategories($userid, $catcollapse) // array of $catid -> $collapsed
+	{
+		global $cache;
+
+		$collapseids = array();
+		$expandids = array();
+		foreach ($catcollapse as $catid => $collapsed)
+		{
+			if ($collapsed)
+			{
+				$collapseids[] = $catid;
+				$collapsequeries[] = $this->db->prepare("(#, #)", $userid, $catid);
+			} else
+				$expandids[] = $catid;
+		}
+		if ($expandids)
+		{
+			$this->db->prepare_query("DELETE FROM forumcatcollapse WHERE userid = # AND categoryid IN (#)", $userid, $expandids);
+			$cache->remove("forum-collapsed-$userid");
+		}
+		if ($collapseids)
+		{
+			$this->db->query("INSERT IGNORE INTO forumcatcollapse (userid, categoryid) VALUES " . implode(',',$collapsequeries));
+//			$cache->append("forum-collapsed-$userid", ',' . implode(',',$collapseids), 24*60*60);
+			$cache->remove("forum-collapsed-$userid");
+		}
+	}
+
+	// sets $forumobj[new] to 1 if unread
+	function getForumNewStatus(&$forumobjs)
+	{
+		global $userData;
+
+		if (count($forumobjs))
+		{
+			$fids = array_keys($forumobjs);
+			$result = $this->db->prepare_query("SELECT forumid, time FROM forumupdated WHERE userid = # AND forumid IN (#)", $userData['userid'], $fids);
+			while ($updated = $result->fetchrow())
+			{
+				$fid = $updated['forumid'];
+				if ($forumobjs[$fid]['time'] > $updated['time'])
+					$forumobjs[$fid]['new'] = 1;
+				else
+					$forumobjs[$fid]['new'] = 0;
+			}
+		}
+	}
+
+	function getCategoryForums(&$total, $catid, $orderby, $filter = false, $pagenum = 0, $perpage = 10, $viewall = false)
+	{
+		global $userData;
+		$forums = array();
+
+		$filterclause = "";
+		if ($filter)
+		{
+			$filterescape = $this->db->escape($filter);
+			$filterclause = "AND (name LIKE '%$filterescape%' OR description LIKE '%$filterescape%')";
+		}
+		if ($viewall)
+			$public = "public IN ('y', 'n')";
+		else
+			$public = "public='y'";
+
+		// get the list of forums that meet the requirements
+		if ($orderby == 'mostactive')
+		{
+			$result = $this->db->query($this->db->prepare("SELECT SQL_CALC_FOUND_ROWS id FROM forums USE KEY(byposts)") . " WHERE $public AND " . $this->db->prepare("categoryid = #", $catid) . " $filterclause ORDER BY unofficial DESC, posts DESC " . $this->db->prepare("LIMIT #,#",
+				$pagenum*$perpage, $perpage));
+		} else if ($orderby == 'mostrecent') {
+			$result = $this->db->query($this->db->prepare("SELECT SQL_CALC_FOUND_ROWS id FROM forums USE KEY(bytime)") . "  WHERE $public AND " . $this->db->prepare("categoryid = #", $catid) . " $filterclause ORDER BY unofficial DESC, time DESC " . $this->db->prepare("LIMIT #,#",
+				$pagenum*$perpage, $perpage));
+		} else if ($orderby == 'alphabetic') {
+			$result = $this->db->query($this->db->prepare("SELECT SQL_CALC_FOUND_ROWS id FROM forums USE KEY(byname)") . "  WHERE $public AND " . $this->db->prepare("categoryid = #", $catid) . " $filterclause ORDER BY official ASC, name ASC " . $this->db->prepare("LIMIT #,#",
+				$pagenum*$perpage, $perpage));
+		} else {
+			return $forums;
+		}
+
+		while ($forum = $result->fetchrow())
+			$forums[] = $forum['id'];
+
+		$total = $this->db->totalrows();
+
+		return $forums;
+	}
+
+	function getPublicForumList($filter = false, $orderby = 'mostactive', $viewall = false)
+	{
+		global $cache;
+
+		$cachetime = 24*60*60;
+		$cachekey = 'publicforumlist';
+		if ($orderby == 'mostactive')
+		{
+			$cachekey .= "-mostactive";
+		} else if ($orderby == 'mostrecent') {
+			$cachekey .= "-mostrecent";
+			$cachetime = 60; // only want to cache this for a short time, as it's not invalidated.
+		}
+		if ($viewall)
+			$cachekey .= "-viewall";
+
+		$publicforumlist = $filter? false : $cache->get($cachekey);
+		if (!is_array($publicforumlist))
+		{
+			$publicforumlist = array('categories' => array(), 'forums' => array());
+
+			$catlist = $this->getCategories(); // no user categories for the public list
+			foreach ($catlist as $cat)
+			{
+				$total = 0;
+				$forumlist = $this->getCategoryForums($total, $cat['id'], $orderby, $filter, 0, 5, $viewall);
+				if ($forumlist)
+				{
+					$publicforumlist['categories'][ $cat['id'] ] = $forumlist;
+					$publicforumlist['totals'][ $cat['id'] ] = $total;
+					$publicforumlist['forums'] = array_merge($publicforumlist['forums'], $forumlist);
+				}
+			}
+			if (!$filter)
+				$cache->put($cachekey, $publicforumlist, $cachetime);
+		}
+		return $publicforumlist;
+	}
+
+	function getSubscribedForumList($userid, $filter = false)
+	{
+		global $cache;
+
+		$filterclause = "";
+		$jointo = "";
+		if ($filter)
+		{
+			$filterescape = $this->db->escape($filter);
+			$filterclause = "AND (name LIKE '%$filterescape%' OR description LIKE '%$filterescape%') AND forums.id = foruminvite.forumid";
+			$jointo = ", forums ";
+		}
+
+		$subforumlist = $filter? false : $cache->get("subforumlist-$userid");
+		if (!is_array($subforumlist))
+		{
+			$subforumlist = array('categories' => array(), 'totals' => array(), 'forums' => array());
+
+			$result = $this->db->query("SELECT foruminvite.forumid, foruminvite.categoryid FROM foruminvite$jointo WHERE " . $this->db->prepare("userid = #", $userid) . " $filterclause");
+			while ($row = $result->fetchrow())
+			{
+				$categoryid = $row['categoryid'];
+
+				$subforumlist['categories'][$categoryid][] = $row['forumid'];
+				if (isset($subforumlist['totals'][$categoryid]))
+					$subforumlist['totals'][$categoryid]++;
+				else
+					$subforumlist['totals'][$categoryid] = 1;
+				$subforumlist['forums'][] = $row['forumid'];
+			}
+
+			if (!$filter)
+				$cache->put("subforumlist-$userid", $subforumlist, 24*60*60);
+		}
+
+		return $subforumlist;
+	}
+
+	// looks in subforumlist uncategorized items, looks at their forum object.
+	function categorizeDefaultCategories(&$subforumlist, &$forumobjs)
+	{
+		if (isset($subforumlist['categories'][0]))
+		{
+			$forumids = $subforumlist['categories'][0];
+			$subforumlist['categories'][0] = array();
+			foreach ($forumids as $idx => $id)
+			{
+				if (isset($forumobjs[$id]))
+				{
+					$subforumlist['categories'][ $forumobjs[$id]['categoryid'] ][] = $id;
+				} else {
+					$subforumlist['categories'][0][] = $id;
+				}
+			}
+			if (!$subforumlist['categories'][0])
+				unset($subforumlist['categories'][0]);
+		}
+	}
+
+	function getOfficialForumList()
+	{
+		$subforumlist = array('categories' => array(), 'forums' => array());
+
+		$result = $this->db->query("SELECT * FROM forums WHERE official = 'y'");
+		while ($row = $result->fetchrow())
+		{
+			$categoryid = $row['categoryid'];
+
+			$subforumlist['categories'][$categoryid][] = $row['id'];
+			$subforumlist['forums'][] = $row['id'];
+		}
+
+		return $subforumlist;
+	}
+
+	function sortForums(&$forumobjs, $orderby = 'mostactive')
+	{
+		if ($orderby == 'mostactive')
+			sortCols($forumobjs, SORT_DESC, SORT_NUMERIC, 'posts', SORT_DESC, SORT_REGULAR, 'official');
+		else if ($orderby == 'mostrecent')
+			sortCols($forumobjs, SORT_DESC, SORT_NUMERIC, 'time', SORT_DESC, SORT_REGULAR, 'official');
+		else if ($orderby == 'alphabetic')
+			sortCols($forumobjs, SORT_ASC, SORT_CASESTR, 'name', SORT_DESC, SORT_REGULAR, 'official');
+	}
+
+	function getForumCategory($forum, $userid = 0, $fallback = true) // whether to fall back on the forum's category or not.
+	{
+		if ($userid != 0)
+		{
+			// this is probably way too heavy handed, but it works and it uses existing caches
+			$subforums = $this->getSubscribedForumList($userid, false);
+			$forumobjs = array($forum['id'] => $forum);
+			if ($fallback)
+				$this->categorizeDefaultCategories($subforums, $forumobjs);
+
+			foreach ($subforums['categories'] as $catid => $forums)
+			{
+				if (in_array($forum['id'], $forums))
+					return $catid;
+			}
+		}
+		return ($forum && $fallback)? $forum['categoryid'] : 0;
+	}
+
+	function getForumTrail($forum, $class)
+	{
+		global $userData;
+
+		if ($userData['loggedIn'])
+			$userid = $userData['userid'];
+		else
+			$userid = false;
+
+		$defcat = $this->getForumCategory($forum, $userid);
+		$cats = $this->getCategories($userid);
+
+		$output = "<a class=$class href=/forums.php>Forums</a> > ";
+		if ($defcat)
+			$output .= "<a class=$class href=/forums.php?catid=$defcat>" . $cats[$defcat]['name'] . "</a> > ";
+		$output .= "<a class=$class href=/forumthreads.php?fid=$forum[id]>$forum[name]</a>";
+
+		return $output;
+	}
+
+	function getOfficialModsDump() {
+		$sth = $this->db->prepare_query('SELECT forummods.userid AS userid, COUNT(*) AS modcnt FROM forummods, forums WHERE forummods.forumid=forums.id AND forums.official=? GROUP BY forummods.userid', 'y');
+
+		$officmods = array();
+		while($line = $sth->fetchrow())
+			$officmods[$line['userid']] = $line['modcnt'];
+
+		return $officmods;
+	}
+
+	function isOfficialMod ($uid) {
+		return isset($this->officialmods[$uid]);
 	}
 }
 

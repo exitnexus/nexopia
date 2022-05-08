@@ -1,17 +1,42 @@
 <?
 
-
+function getusertimeoffset()
+{
+	global $userData, $config;
+	$offset = 0;
+	if (isset($userData['jstimezone']) && $userData['trustjstimezone'])
+		return $userData['jstimezone']*60;
+	else if(isset($userData['timeoffset']) && $userData['timeoffset'] >= 0)
+		return gettimezones($userData['timeoffset'])*60;
+	else
+		return gettimezones($config['timezone']);
+}
 
 function userDate($format, $time = false){
 	global $userData;
 	if($time === false)
 		$time = time();
-	$offset = 0;
-	if(isset($userData['timeoffset']) && $userData['timeoffset'] >= 0)
-		$offset = gettimezones($userData['timeoffset'])*60;
-	$time += $offset;
+
+	$time += getusertimeoffset();
 	return gmdate($format, $time);
 //	return date($format, $time);
+}
+
+function prefdate($format) // for preferences page, gets date as the user set tz says
+{
+	global $userData;
+	if(isset($userData['timeoffset']) && $userData['timeoffset'] >= 0)
+		return gmdate($format, time() + gettimezones($userData['timeoffset'])*60);
+	else
+		return gmdate($format, time() + gettimezones($config['timezone']));
+}
+
+
+function jsdate($format) // for preferences page, gets date as the autodetected tz says
+{
+	global $userData;
+	if(isset($userData['jstimezone']))
+		return gmdate($format, time() + $userData['jstimezone']*60);
 }
 
 function userMkTime($hr,$min,$sec,$mon,$day,$year){
@@ -19,7 +44,9 @@ function userMkTime($hr,$min,$sec,$mon,$day,$year){
 //	return my_mktime($hr, $min, $sec, $mon, $day, $year);
 
 	global $userData, $timezones;
-	return my_mktime($hr, $min, $sec, $mon, $day, $year, 0 - gettimezones($userData['timeoffset'])*60);
+	$offset = 0;
+
+	return my_mktime($hr, $min, $sec, $mon, $day, $year, 0 - getusertimeoffset());
 }
 
 
@@ -127,3 +154,38 @@ function my_mktime($hr, $min, $sec, $mon, $day, $year, $offset = false){
     }
 }
 
+// gets a 2d array (7 columns, 6 rows) of what days of the month
+// fall on what day of the week. This can be used to display a calendar.
+function getCalendar($year, $month)
+{
+	$weekarray = array(0 => false, 1 => false, 2 => false, 3 => false, 4 => false, 5 => false, 6 => false);
+
+	$calarray = array();
+	$firstday = gmmktime(0, 0, 0, $month, 1, $year);
+	$lastday = gmmktime(0, 0, 0, $month + 1, 0, $year);
+
+	$firstweekday = gmdate('w', $firstday) + 0;
+	$firstmonthday = 1;
+	$lastmonthday = gmdate('d', $lastday) + 0;
+
+	$day = $firstmonthday;
+	$weekday = $firstweekday;
+	while ($day <= $lastmonthday)
+	{
+		$thisweek = $weekarray;
+		while ($day <= $lastmonthday && isset($thisweek[$weekday]))
+		{
+			$thisweek[$weekday++] = $day++;
+		}
+		$calarray[] = $thisweek;
+		$weekday = 0;
+	}
+
+	// make it 5 rows
+    while (count($calarray) < 6)
+	{
+		$calarray[] = $weekarray;
+	}
+
+	return $calarray;
+}

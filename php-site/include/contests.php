@@ -2,7 +2,7 @@
 
 class contests {
 
-	var $db;
+	public $db;
 
 /*
 tables:
@@ -10,7 +10,7 @@ tables:
  -contestentries
 */
 
-	function contests( & $db ){
+	function __construct( & $db ){
 		$this->db = & $db;
 	}
 
@@ -24,8 +24,8 @@ tables:
 
 
 	function getContest($id){
-		$this->db->prepare_query("SELECT content, end, anonymous FROM contests WHERE id = ?", $id);
-		$line = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT content, end, anonymous FROM contests WHERE id = ?", $id);
+		$line = $res->fetchrow();
 
 		if(!$line)
 			return "Bad Contest";
@@ -37,8 +37,8 @@ tables:
 	}
 
 	function getContestFinal($id){
-		$this->db->prepare_query("SELECT final, end FROM contests WHERE id = ?", $id);
-		$line = $this->db->fetchrow();
+		$res = $this->db->prepare_query("SELECT final, end FROM contests WHERE id = ?", $id);
+		$line = $res->fetchrow();
 
 		if(!$line)
 			return "Bad Contest";
@@ -50,8 +50,8 @@ tables:
 	}
 
 	function getContests(){
-		$this->db->prepare_query("SELECT * FROM contests ORDER BY id");
-		return $this->db->fetchrowset();
+		$res = $this->db->prepare_query("SELECT * FROM contests ORDER BY id");
+		return $res->fetchrowset();
 	}
 
 	function addEntry($id, $userid, $contact){
@@ -60,15 +60,15 @@ tables:
 		if($this->db->affectedrows())
 			$this->db->prepare_query("UPDATE contests SET entries = entries + 1 WHERE id = ?", $id);
 
-		$this->db->prepare_query("SELECT final FROM contests WHERE id = ?", $id);
-		return $this->db->fetchfield();
+		$res = $this->db->prepare_query("SELECT final FROM contests WHERE id = ?", $id);
+		return $res->fetchfield();
 	}
 
 	function chooseWinner($id, $num){
-		$this->db->prepare_query("SELECT userid, contact FROM contestentries WHERE contestid = ? ORDER BY RAND() LIMIT #", $id, $num);
+		$res = $this->db->prepare_query("SELECT userid, contact FROM contestentries WHERE contestid = ? ORDER BY RAND() LIMIT #", $id, $num);
 
 		$rows = array();
-		while($line = $this->db->fetchrow())
+		while($line = $res->fetchrow())
 			$rows[] = $line;
 
 		return $rows;

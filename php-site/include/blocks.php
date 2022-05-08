@@ -1,7 +1,6 @@
 <?
-
 function incPollBlock($side){
-	global $userData, $config, $db, $cache, $polls;
+	global $userData, $config, $cache, $polls;
 
 	if(!$userData['loggedIn'])
 		return;
@@ -12,38 +11,30 @@ function incPollBlock($side){
 		return;
 
 	$voted = $polls->pollVoted($poll['id']);
-
-	openBlock('Polls',$side);
+	$template =  new template("include/blocks/poll_block");
 
 	if(!$voted){
-		echo "<table border=0 cellspacing=0 cellpadding=2 width=100%><form action=poll.php method=get>";
-		echo "<input type=hidden name=pollid value=$poll[id]>";
-		echo "<tr><td colspan=2 class=header>$poll[question]</td></tr>";
-		foreach($poll['answers'] as $ans)
-			echo "<tr><td class=side width=20><input type=radio name='ans' value='$ans[id]' id='ans$ans[id]'></td><td class=side><label for='ans$ans[id]'>$ans[answer]</label></td></tr>";
-		echo "<tr><td class=side></td><td class=side><input type=submit name=action value='Vote'> <a href=poll.php?pollid=$poll[id]&ans=0&action=Vote>Results</a></td></tr>";
-		echo "<tr><td colspan=2 class=side align=center><a href=poll.php?action=list>List polls</a> | <a href=poll.php?action=add>Suggest a Poll</a></td></tr>";
-		echo "</form></table>";
-	}else{
-		echo "<table width=100%>";
-		echo "<tr><td class=header>$poll[question]</td></tr>";
+		$poll['key'] = makeKey($poll['id']);
 
+	}else{
 		$maxval=0;
 		foreach($poll['answers'] as $ans)
 			if($ans['votes']>$maxval)
 				$maxval = $ans['votes'];
 
-		foreach($poll['answers'] as $ans){
+		foreach($poll['answers'] as &$ans){
 			$width = $poll['tvotes']==0 ? 1 : (int)$ans['votes']*$config['maxpollwidth']/$maxval;
 			$percent = number_format($poll['tvotes']==0 ? 0 : $ans["votes"]/$poll['tvotes']*100,1);
-			echo "<tr><td class=side>$ans[answer]:</td></tr>";
-			echo "<tr><td class=side><img src='$config[imageloc]red.png' width='$width' height=10> $ans[votes]</td></tr>";//$percent%
+			$ans['width'] = $width;
 		}
-		echo "<tr><td class=side>$poll[tvotes] votes | <a href=poll.php?pollid=$poll[id]>Results</a></td></tr>";
-		echo "<tr><td class=side><a href=poll.php?action=list>List polls</a> | <a href=poll.php?action=add>Suggest a Poll</a></td></tr>";
-		echo "</table>";
+
 	}
-	closeBlock();
+
+	$template->set('voted', $voted);
+	$template->set("poll", $poll);
+	$template->set("config", $config);
+	$block_contents = $template->toString();
+	blockContainer('Polls',$side, $block_contents);
 }
 
 function incBookmarksBlock($side){
@@ -52,13 +43,13 @@ function incBookmarksBlock($side){
 	if(!$userData['loggedIn'])
 		return;
 
-    $db->prepare_query("SELECT id,name,url FROM bookmarks WHERE userid = # ORDER BY name", $userData['userid']);
+	$res = $db->prepare_query("SELECT id,name,url FROM bookmarks WHERE userid = # ORDER BY name", $userData['userid']);
 
 	openBlock('Bookmarks',$side);
 
 	echo "<table width=100%>\n";
-	echo "<tr><td class=header><b><a href=\"bookmarks.php\">Bookmarks</a></b></td></tr>";
-	while($line = $db->fetchrow())
+	echo "<tr><td class=header><b><a href=\"/bookmarks.php\">Bookmarks</a></b></td></tr>";
+	while($line = $res->fetchrow())
 		echo "<tr><td class=side><a href=\"$line[url]\" target=_blank>$line[name]</a></td></tr>\n";
 	echo "</table>\n";
 
@@ -66,191 +57,80 @@ function incBookmarksBlock($side){
 }
 
 function incSortBlock($side){
-	global $userData, $sort, $config, $db;
+	global $userData, $sort, $config, $usersdb, $configdb, $requestType, $requestParams;
+	
+	// get values for the output template for all the user search options
+	$menuOptions = new userSearchMenuOptions(true, 'incSortBlock', $requestType, $requestParams);
+		
+	$template =  new template("include/blocks/sort_block");
+	$template->set('minage', $menuOptions->searchMinAge);
+	$template->set('maxage', $menuOptions->searchMaxAge);
+	$template->set('user', $menuOptions->searchName);
+	$template->set('sex_select_list', $menuOptions->sexSelect);
+	$template->set("loc_select_list", $menuOptions->locationSelect);
+	$template->set("interest_select_list", $menuOptions->interestSelect);
+	$template->set("activity_select_list",  $menuOptions->activitySelect);
+	$template->set("picture_select_list", $menuOptions->pictureSelect);
+	$template->set("sexuality_select_list", $menuOptions->sexualitySelect);
+	$template->set("single_only_checkbox", $menuOptions->singleCheck);
+	$template->set("show_list_checkbox", $menuOptions->listCheck);
+	$template->set("has_plus",$userData['loggedIn'] && $userData['premium'] );
+	$block_contents = $template->toString();
 
-	$user = '';
-	$loc = '0';
-	$interest = '0';
-	$active = 1;
-	$pic = 1;
-	$sexuality = 0;
-	$single = 0;
-
-	if($userData['loggedIn']){
-		$sex = $userData['defaultsex'];
-		$minage = $userData['defaultminage'];
-		$maxage = $userData['defaultmaxage'];
-	}else{
-		$sex = 'Both';
-		$minage = 14;
-		$maxage = 30;
-	}
-
-	if(isset($sort) && is_array($sort))
-		extract($sort);
-
-	$locations = & new category( $db, "locs");
-	$interests = & new category( $db, "interests");
-
-	openBlock('User Search',$side);
-
-	echo "<table align=center width=98 cellspacing=0 cellpadding=0><tr><td class=side align=right>";
-	if($config['votingenabled']){
-		echo "<b>Top:</b> <a href='profile.php?sort[mode]=top&sort[sex]=Female'>Girls</a> | <a href='profile.php?sort[mode]=top&sort[sex]=Male'>Guys</a><br>";
-		echo "<b>Rate:</b> <a href='profile.php?sort[mode]=rate&sort[sex]=Female'>Girls</a> | <a href='profile.php?sort[mode]=rate&sort[sex]=Male'>Guys</a><br>";
-	}
-
-	echo "<b>New:</b> <a href='profile.php?sort[mode]=newest&sort[sex]=Female'>Girls</a> | <a href='profile.php?sort[mode]=newest&sort[sex]=Male'>Guys</a><br>";
-	echo "<b>Online:</b> <a href='profile.php?sort[active]=2&sort[sex]=Female&sort[list]=y'>Girls</a> | <a href='profile.php?sort[active]=2&sort[sex]=Male&sort[list]=y'>Guys</a><br>";
-	echo "<b>B-day:</b> <a href='profile.php?sort[mode]=bday&sort[sex]=Female'>Girls</a> | <a href='profile.php?sort[mode]=bday&sort[sex]=Male'>Guys</a><br>";
-
-	echo "</td></tr></table>";
-
-	echo "<hr>";
-
-	echo "<table align=center cellpadding=0 cellspacing=1 border=0>";
-
-	echo "<form action=profile.php name=profilesort>";
-
-/*
-	echo "<tr><td class=side>&nbsp;Age <input name=sort[minage] value='$minage' size=1 style=\"width:36px\" maxlength=2> to <input class=side name=sort[maxage] value='$maxage' size=1 style=\"width:36px\" maxlength=2></td></tr>";
-	echo "<tr><td class=side>&nbsp;<select style=\"width:110px\" name=sort[sex]><option value=Both>Sex" . make_select_list(array("Male","Female"), $sex) . "</select></td></tr>";
-	echo "<tr><td class=side>&nbsp;<select style=\"width:110px\" name=sort[loc]><option value=0>Location" . makeCatSelect($locations->makeBranch(), $loc) . "</select></td></tr>"; //<script src=http://images.nexopia.com/include/dynconfig/locs.js></script>
-	echo "<tr><td class=side>&nbsp;<select style=\"width:110px\" name=sort[interest]><option value=0>Interests" . makeCatSelect($interests->makeBranch(), $interest) . "</select></td></tr>"; //<script src=http://images.nexopia.com/include/dynconfig/interests.js></script>
-	echo "<tr><td class=side>&nbsp;<select style=\"width:110px\" name=sort[active]>" . make_select_list_key(array(0 => "All Users", 1 => "Active Recently", 2 => "Online"), $active) . "</select></td></tr>";
-	echo "<tr><td class=side>&nbsp;<select style=\"width:110px\" name=sort[pic]>" . make_select_list_key(array(0 => "All Users", 1 => "With Pictures", 2 => "With a Verified Picture"), $pic) . "</select></td></tr>";
-	echo "<tr><td class=side>&nbsp;<select style=\"width:110px\" name=sort[sexuality]>" . make_select_list_key(array('Sexuality',"Heterosexual","Homosexual","Bisexual/Open-Minded"), $sexuality) . "</select></td></tr>";
-	echo "<tr><td class=side>" . makeCheckBox('sort[single]', 'Single Users Only', !empty($single)) . "</td></tr>";
-	echo "<tr><td class=side>" . makeCheckBox('sort[list]', 'Show List', !empty($list)) . "</td></tr>";
-/*/
-	echo "<tr><td class=side>";
-	echo "Age <input name=sort[minage] value='$minage' size=1 style=\"width:39px\" maxlength=2> to <input name=sort[maxage] value='$maxage' size=1 style=\"width:39px\" maxlength=2><br>";
-	echo "<select style=\"width:116px\" name=sort[sex]><option value=Both>Sex" . make_select_list(array("Male","Female"), $sex) . "</select><br>";
-	echo "<select style=\"width:116px\" name=sort[loc]><option value=0>Location" . makeCatSelect($locations->makeBranch(), $loc) . "</select><br>"; //<script src=http://images.nexopia.com/include/dynconfig/locs.js></script>
-	echo "<select style=\"width:116px\" name=sort[interest]><option value=0>Interests" . makeCatSelect($interests->makeBranch(), $interest) . "</select><br>"; //<script src=http://images.nexopia.com/include/dynconfig/interests.js></script>
-	echo "<select style=\"width:116px\" name=sort[active]>" . make_select_list_key(array(0 => "All Users", 1 => "Active Recently", 2 => "Online"), $active) . "</select><br>";
-	echo "<select style=\"width:116px\" name=sort[pic]>" . make_select_list_key(array(0 => "All Users", 1 => "With Pictures", 2 => "With a Verified Picture"), $pic) . "</select><br>";
-	echo "<select style=\"width:116px\" name=sort[sexuality]>" . make_select_list_key(array('Sexuality',"Heterosexual","Homosexual","Bisexual/Open-Minded"), $sexuality) . "</select><br>";
-	echo makeCheckBox('sort[single]', 'Single Users Only', !empty($single)) . "<br>";
-	echo makeCheckBox('sort[list]', 'Show List', !empty($list));
-	echo "</td></tr>";
-//*/
-
-/*
-	if(!empty($loc)){
-		$branch = $categories->makeBranch();
-		$i=1;
-		foreach($branch as $cat){
-			if($cat['id']==$loc)
-				break;
-			$i++;
-		}
-		echo "<script> document.profilesort['sort[loc]'].selectedIndex = $i; </script>";
-	}
-*/
-
-	echo "<tr><td class=side align=center><input type=submit name=sort[mode] value=\"Search\">";
-	if($userData['loggedIn'] && $userData['premium'])
-		echo " <a href=/profile.php?action=advanced>Advanced</a>";
-	echo "</td></tr>";
-	echo "</form>";
-	echo "</table>";
-
-	echo "<hr>";
-
-	echo "<table align=center><form action='/profile.php' method=get>";
-	echo "<tr><td class=side>Search by Username:<br><input type=text name=uid size=8 style=\"width:80px\" value='$user'><input type=submit value=Go style=\"width:35px\"></td></tr>";
-	echo "</form></table>";
-
-	closeBlock();
+	blockContainer('User Search', $side, $block_contents);
 }
 
 function incMsgBlock($side){
 	global $userData, $messaging, $cache;
-
+	$template =  new template("include/blocks/msg_block");
 	if(!$userData['loggedIn'])
 		return;
 
-	openBlock('Messages',$side);
-
+	$newmsgs = array();
 	if($userData['newmsgs']>0){
 
-		$newmsgs = $cache->get(array($userData['userid'], "newmsglist-$userData[userid]"));
+		$newmsgs = $cache->get("newmsglist-$userData[userid]");
 
 		if($newmsgs === false){
-//			$messaging->db->prepare_query("SELECT msgs.id, msgheader.from, msgheader.fromname, msgheader.subject, msgheader.date, msgs.msgheaderid FROM msgs, msgheader WHERE msgs.msgheaderid=msgheader.id && msgs.userid = # && msgs.folder = # && msgheader.to = # && msgheader.new='y'", $userData['userid'], MSG_INBOX, $userData['userid']);
-			$messaging->db->prepare_query("SELECT id, `from`, fromname, subject, date FROM msgs WHERE userid = # && folder = # && status='new'", $userData['userid'], MSG_INBOX);
+
+			$res = $messaging->db->prepare_query("SELECT id, `from`, fromname, subject, date FROM msgs WHERE userid = % && folder = # && status='new'", $userData['userid'], MSG_INBOX);
 
 			$newmsgs = array();
-			while($line = $messaging->db->fetchrow())
+			while($line = $res->fetchrow())
 				$newmsgs[] = $line;
 
-			$cache->put(array($userData['userid'], "newmsglist-$userData[userid]"), $newmsgs, 3600);
+			$cache->put("newmsglist-$userData[userid]", $newmsgs, 3600);
 		}
 
 		if(count($newmsgs)){
-			echo "<table width=100%>\n";
-			echo "<tr><td class=side colspan=3><b>" . count($newmsgs) . " new <a href='messages.php'>message(s)</a></b></td></tr>\n";
-
-			echo "<tr><td class=side>From</td><td class=side>Subject</td></tr>";
-			foreach($newmsgs as $line){
-				echo "<tr><td class=side>";
-				if($line['from'])
-					echo "<a href=\"profile.php?uid=$line[from]\">$line[fromname]</a>";
-				else
-					echo "$line[fromname]";
-				echo "</td>";
-
+			foreach($newmsgs as &$line){
 				if(strlen($line['subject']) <= 20)
 					$subject = $line['subject'];
 				else
 					$subject = substr($line['subject'],0,18) . "...";
+				$line['subject'] = $subject;
 
-				echo "<td class=side><a href=\"messages.php?action=view&id=$line[id]\">$subject</a></td>";
-				echo "</tr>";
 			}
-			echo "</table>\n";
-		}else
-			echo "&nbsp;<b>0 new <a href='messages.php'>message(s)</a></b>";
-	}else{
-		echo "&nbsp;<b>0 new <a href='messages.php'>message(s)</a></b>";
+		}
 	}
+	$template->set('newmsg_count', count($newmsgs));
+	$template->set('newmsgs', $newmsgs);
 
+	$block_contents = $template->toString();
+	blockContainer('Messages',$side, $block_contents);
 
-	closeBlock();
 }
 
 
 function incFriendsBlock($side){
-	global $userData,$config,$db;
-
+	global $userData,$config;
+	$template =  new template("include/blocks/friends_block");
 	if(!$userData['loggedIn'])
 		return;
 
-	openBlock('Friends',$side);
-
-	if($userData['friendsonline']>0){
-		if(!isset($userData['friends'])){
-			$db->prepare_query("SELECT friendid,username FROM friends,users WHERE friends.userid = # && friendid=users.userid && online = 'y'", $userData['userid']);
-
-			$online = $db->numrows();
-			$userData['friends'] = array();
-			while($line = $db->fetchrow())
-				$userData['friends'][$line['friendid']] = $line['username'];
-		}else
-			$online = $userData['friendsonline'];
-
-		uasort($userData['friends'],'strcasecmp');
-
-		echo "&nbsp;<b>$online <a href=friends.php>friend(s)</a> online</b><br>";
-		foreach($userData['friends'] as $userid => $username)
-			echo "&nbsp;<a href=\"profile.php?uid=$userid\">$username</a><br>";
-	}else{
-		echo "&nbsp;<b>0 <a href=friends.php>friend(s)</a> online</b>";
-	}
-
-
-	closeBlock();
+	$template->set('userData', $userData);
+	$block_contents = $template->toString();
+	blockContainer('Friends',$side, $block_contents);
 }
 
 function incModBlock($side){
@@ -265,16 +145,16 @@ function incModBlock($side){
 		return;
 
 	function getAdminsOnline(){
-		global $db, $mods;
+		global $mods;
 
 		$moduids = $mods->getAdmins('visible');
 
-		$db->prepare_query("SELECT userid, username FROM users WHERE userid IN (#) && online = 'y'", $moduids);
+		$users = getUserInfo($moduids);
 
 		$rows = array();
-
-		while($line = $db->fetchrow())
-			$rows[$line['userid']] = $line['username'];
+		foreach($users as $line)
+			if($line['online'] == 'y')
+				$rows[$line['userid']] = $line['username'];
 
 		uasort($rows, 'strcasecmp');
 
@@ -282,102 +162,84 @@ function incModBlock($side){
 	}
 
 	function getNumModsOnline(){
-		global $db, $mods;
+		global $mods;
 
 		$moduids = $mods->getMods();
 
-		$db->prepare_query("SELECT count(*) FROM users WHERE userid IN (#) && online = 'y'", $moduids);
 
-		return $db->fetchfield();
+		$users = getUserInfo($moduids);
+
+		$count = 0;
+		foreach($users as $line)
+			if($line['online'] == 'y')
+				$count++;
+
+		return $count;
 	}
 
-	function getNumForumModsOnline(){
-		global $forums, $db;
+	function getGlobalModsOnline(){
+		global $forums, $cache, $mods;
 
-		$forums->db->prepare_query("SELECT DISTINCT userid FROM forummods WHERE official='y'");
+		$uids = $cache->get("globalmods");
 
-		$uids = array();
-		while($line = $forums->db->fetchrow())
-			$uids[] = $line['userid'];
+		if(!$uids){
+			$res = $forums->db->prepare_query("SELECT userid FROM forummods WHERE forumid = 0");
 
-		$db->prepare_query("SELECT count(*) FROM users WHERE userid IN (#) && online = 'y'", $uids);
+			$uids = array();
+			while($line = $res->fetchrow())
+				$uids[$line['userid']] = $line['userid'];
 
-		return $db->fetchfield();
+			$cache->put("globalmods", $uids, 3600);
+		}
+
+		$adminuids = $mods->getAdmins('visible');
+
+		foreach($adminuids as $id)
+			if(isset($uids[$id]))
+				unset($uids[$id]);
+
+		$users = getUserInfo($uids);
+
+		$rows = array();
+		foreach($users as $line)
+			if($line['online'] == 'y')
+				$rows[$line['userid']] = $line['username'];
+		uasort($rows, 'strcasecmp');
+
+		return $rows;
 	}
 
 	$adminsonline = $cache->get('adminsonline',60,'getAdminsOnline', 0);
 	$modsonline = $cache->get('modsonline',60,'getNumModsOnline', 0) - count($adminsonline);
-//	$forummodsonline = $cache->get('fmodsonline',60,'getNumForumModsOnline');
+	$globalmodsonline = $cache->get('gmodsonline',60,'getGlobalModsOnline');
+
+	foreach($adminsonline as $uid => $username)
+		unset($globalmodsonline[$uid]);
 
 	$moditemcounts = $mods->getModItemCounts();
 
-	openBlock('Moderator',$side);
+	$template =  new template("include/blocks/mod_block");
 
 	$types = array();
-	foreach($moditemcounts as $type => $num)
-		if($num > 0)
-			$types[$type] = $num;
-
-	echo "<table width=100%><tr><td class=side>";
-	if(count($types)==0){
-		echo "No requests<br>";
-	}else{
-		foreach($types as $type => $num)
-			echo str_repeat("&nbsp; ", 5-strlen($num)) . "$num <a href=moderate.php?mode=$type>" . $mods->modtypes[$type] . "</a><br>";
+	foreach ($moditemcounts as $type => $num) {
+//		if ($num > 0)
+			$types[$type] = array(
+				'nbsp'		=> str_repeat('&nbsp;',	5 - strlen($num)),
+				'num'		=> $num,
+				'modtype'	=> $mods->modtypes[$type]
+			);
 	}
-	echo "<hr>";
-	echo "<a href=modprefs.php>Preferences</a><br>";
-	echo "<hr>";
 
-	echo "<b>$modsonline Mod(s) online</b><br>";
-//	echo "$forummodsonline Forum Mod(s) online<br>";
-	echo "<b>" . count($adminsonline) . " Admin(s) online</b><br>";
-	foreach($adminsonline as $uid => $username)
-		echo "<a href=profile.php?uid=$uid>$username</a><br>";
+	$template->set('types_count', count($types));
+	$template->set('types', $types);
 
-	echo "</td></tr></table>";
-
-
-	closeBlock();
-}
-
-
-function incTopGirls($side){
-	global $config, $db, $userData, $cache;
-
-	if(!$config['votingenabled'])
-		return;
-
-	$minage = ($userData['loggedIn'] ? $userData['defaultminage'] : 14);
-	$maxage = ($userData['loggedIn'] ? $userData['defaultmaxage'] : 30);
-
-	$rows = $cache->get("top5f:$minage-$maxage",1800,array('function' => 'getTopPics', 'params' => array('Female',$minage, $maxage)));
-
-	openBlock('Top Girls',$side);
-
-	foreach($rows as $id => $username)
-		echo "&nbsp;<a href=profile.php?picid=$id>$username</a><br>";
-
-	closeBlock();
-}
-
-function incTopGuys($side){
-	global $config, $db, $userData, $cache;
-
-	if(!$config['votingenabled'])
-		return;
-
-	$minage = ($userData['loggedIn'] ? $userData['defaultminage'] : 14);
-	$maxage = ($userData['loggedIn'] ? $userData['defaultmaxage'] : 30);
-
-	$rows = $cache->get("top5m:$minage-$maxage",1800,array('function' => 'getTopPics', 'params' => array('Male',$minage, $maxage)));
-
-	openBlock('Top Guys',$side);
-
-	foreach($rows as $id => $username)
-		echo "&nbsp;<a href=profile.php?picid=$id>$username</a><br>";
-
-	closeBlock();
+	$template->set('modsonline', $modsonline);
+	$template->set('adminsonline_count', count($adminsonline));
+	$template->set('adminsonline', $adminsonline);
+	$template->set('globalmodsonline', $globalmodsonline);
+	$template->set('globalmodsonline_count', count($globalmodsonline));
+	$block_contents = $template->toString();
+	blockContainer('Moderator',$side, $block_contents);
 }
 
 function incLoginBlock($side){
@@ -385,21 +247,12 @@ function incLoginBlock($side){
 
 	if($userData['loggedIn'])
 		return;
-
-	openBlock('Login',$side);
-
-	echo "<table align=center border=0 cellspacing=0>";
-	echo "<form action='login.php' method='post' target=_top>";
-	echo "<tr><td class=side>User:</td><td class=side><input type=text name=username style=\"width:90px\"></td></tr>";
-	echo "<tr><td class=side>Pass:</td><td class=side><input type=password name=password style=\"width:90px\"></td></tr>";
-	echo "<tr><td class=side colspan=2>" . makeCheckBox('lockip', " Secure Session", false) . " (<a href=faq.php?q=68> ? </a>)</td></tr>";
-	echo "<tr><td class=side colspan=2>" . makeCheckBox('cachedlogin', " Remember Me",  false) . "</td></tr>";
-
-	echo "<tr><td class=side colspan=2 align=center><input type=submit value=Login style=\"width=60px\"><input type=button onClick=\"location.href='create.php'\" value=Join style=\"width=60px\"></td></tr>";
-	echo "</form>";
-	echo "</table>";
-
-	closeBlock();
+	$template = new template('include/blocks/login_block');
+	$template->set('secure_session_checkbox', makeCheckBox('lockip', " Secure Session", false));
+	$template->set('secure_session_checkbox',  makeCheckBox('lockip', " Secure Session", false));
+	$template->set('remember_me_checkbox',makeCheckBox('cachedlogin', " Remember Me",  false) );
+	$block_content = $template->toString();
+	blockContainer('Login', $side, $block_content);
 }
 
 function incSkinBlock($side){
@@ -413,108 +266,30 @@ function incSkinBlock($side){
 }
 
 function incActiveForumBlock($side){
-	global $db,$cache;
+	global $cache;
 
 	function getActiveForumThreads(){
 		global $forums;
-		$forums->db->query("SELECT forumthreads.id,forumthreads.title FROM forumthreads,forums WHERE forums.id=forumthreads.forumid && forums.official='y' && forumthreads.time > '" . (time() - 1800) . "' ORDER BY forumthreads.time DESC LIMIT 5");
+		$res = $forums->db->prepare_query("SELECT forumthreads.id,forumthreads.title FROM forumthreads,forums WHERE forums.id=forumthreads.forumid && forums.official='y' && forums.public = 'y' && forumthreads.time > '" . (time() - 1800) . "' ORDER BY forumthreads.time DESC LIMIT 5");
 
 		$rows = array();
-		while($line = $forums->db->fetchrow())
+		while($line = $res->fetchrow())
 			$rows[$line['id']] = $line['title'];
 		return $rows;
 	}
 
-	$rows = $cache->get('activethread',30,'getActiveForumThreads');
+	$rows = $cache->hdget('activethread',30,'getActiveForumThreads');
 
-	openBlock('Recent Posts',$side);
+	$template = new template('include/blocks/active_forum_block');
 
-	echo "<table><tr><td class=side>";
-	foreach($rows as $id => $title)
-		echo "- <a href='forumviewthread.php?tid=$id'>" . wrap($title,20) . "</a><br>";
-	echo "</td></tr></table>";
+	foreach($rows as $id => &$title)
+	 	$title = wrap($title,15);
+	$template->set('rows', $rows);
+	$block_contents = $template->toString();
 
-	closeBlock();
+	blockContainer('Recent Posts', $side, $block_contents);
 }
 
-function incScheduleBlock($side){
-	global $db;
-	$query = "SELECT title,timeoccur FROM schedule WHERE timeoccur > '" . time() . "' && scope='global' && moded='y' ORDER BY timeoccur DESC LIMIT 5";
-	$result = $db->query($query);
-
-	openBlock('Events',$side);
-
-	echo "<table>";
-
-	while($line = $db->fetchrow($result))
-		echo "<tr><td class=side><a href='schedule.php?action=showday&month=" . gmdate('n',$line['timeoccur']) . "&year=" . gmdate('Y',$line['timeoccur']) . "&day=" . gmdate('j',$line['timeoccur']) . "&calsort[scope]=global'>$line[title]</a></td></tr>";
-
-	echo "</table>";
-	closeBlock();
-}
-
-function incPrevVoteBlock($side){
-	global $config, $db, $userData, $cache;
-
-	if(!$config['votingenabled'])
-		return;
-
-	if(!$userData['loggedIn'])
-		return;
-
-	$prev = $cache->get(array($userData['userid'], "lastpicvote-$userData[userid]"));
-
-	if($prev === false){
-		$db->prepare_query("SELECT picid, votehist.vote, score, votes FROM votehist, pics WHERE votehist.userid = # && pics.id=picid ORDER BY time DESC LIMIT 1", $userData['userid']);
-		$prev = $db->fetchrow();
-
-		if(!$prev)
-			$prev = 0;
-
-		$cache->put(array($userData['userid'], "lastpicvote-$userData[userid]"), $prev, 10800);
-	}
-
-	if($prev){
-		if($prev['votes'])
-			$score = scoreCurve((double)$prev['score']);
-		else
-			$score=0;
-
-		openBlock('Previous Vote',$side);
-
-		echo "<table align=center><tr><td class=side>";
-		echo "<a href=profile.php?picid=$prev[picid]><img src=\"http://" . chooseImageServer($prev['picid']) . $config['thumbdir'] . floor($prev['picid']/1000) . "/$prev[picid].jpg\" border=0></a><br>";
-		echo "Score: <b>$score</b><br>";
-		echo "Votes: $prev[votes]<br>";
-		echo "Your Vote: $prev[vote]";
-		echo "</td></tr></table>";
-
-		closeBlock();
-	}
-}
-
-function incPrivScheduleBlock($side){
-	global $userData,$db;
-
-	if(!$userData['loggedIn'])
-		return;
-
-	$query = "SELECT title,timeoccur FROM schedule WHERE timeoccur > " . time() . " && (scope='private' || scope='public') && authorid='$userData[userid]' ORDER BY timeoccur DESC";
-	$result = $db->query($query);
-
-	openBlock('Schedule',$side);
-
-	echo "<table>";
-
-	if($db->numrows($result)==0)
-		echo "<tr><td class=side>No private items</td></tr>";
-	else
-		while($line = $db->fetchrow($result))
-			echo "<tr><td class=side><a href='schedule.php?action=showday&calsort[scope]=private&month=" . date('n',$line['timeoccur']) . "&year=" . date('Y',$line['timeoccur']) . "&day=" . date('j',$line['timeoccur']) . "&calsort[scope]=global'>$line[title]</a></td></tr>";
-
-	echo "</table>";
-	closeBlock();
-}
 
 function incSubscribedThreadsBlock($side){
 	global $userData, $forums;
@@ -522,88 +297,73 @@ function incSubscribedThreadsBlock($side){
 	if(!$userData['loggedIn'] || $userData['posts'] == 0)
 		return;
 
-	openBlock('Subscriptions',$side);
 
-	$forums->db->prepare_query("SELECT forumthreads.id,forumthreads.title FROM forumread,forumthreads WHERE forumread.subscribe='y' && forumread.userid = # && forumread.threadid=forumthreads.id && forumread.time < forumthreads.time", $userData['userid']);
 
-	if($forums->db->numrows()==0)
-		echo "&nbsp;No updates";
+	$res = $forums->db->prepare_query("SELECT forumthreads.id,forumthreads.title FROM forumread,forumthreads WHERE forumread.subscribe='y' && forumread.userid = # && forumread.threadid=forumthreads.id && forumread.time < forumthreads.time", $userData['userid']);
+	$lines = $res->fetchrowset();
 
-	while($line = $forums->db->fetchrow())
-		echo "&nbsp;- <a href='forumviewthread.php?tid=$line[id]'>" . wrap($line['title'],20) . "</a><br>";
+	$template = new template('include/blocks/subscriptions_block');
+	foreach ($lines as &$line)
+		$line['title'] = wrap($line['title'],20);
+	$template->set('lines', $lines);
+	$block_contents = $template->toString();
+	blockContainer('Subscriptions', $side, $block_contents);
 
-	closeBlock();
 }
 
 function incNewestMembersBlock($side){
-	global $userData,$db, $cache;
+	global $userData;
 
-	function getNewestMembers($sex, $minage, $maxage){
-		global $db;
-
-		$db->prepare_query("SELECT userid, username FROM newestusers WHERE sex IN (?) && age IN (#) ORDER BY id DESC LIMIT 5",$sex, range($minage, $maxage));
-
-		$rows = array();
-		while($line = $db->fetchrow())
-			$rows[$line['userid']] = $line['username'];
-		return $rows;
-	}
+	$userSearch = new userSearch("NEWUSERS", "LIST", $userData['debug']);
 
 	if($userData['loggedIn']){
-		$sexes = $userData['defaultsex'];
-		$sex = ($sexes == 'Male' ? 'm' : 'f');
-		$minage = $userData['defaultminage'];
-		$maxage = $userData['defaultmaxage'];
-	}else{
-		$sexes = array("Male","Female");
-		$sex = 'b';
-		$minage = 14;
-		$maxage = 30;
+		if ($userData['defaultsex'])
+			$userSearch->setSex($userData['defaultsex']);
+
+		if ($userData['defaultminage'] && $userData['defaultmaxage'])
+			$userSearch->setAgeRange($userData['defaultminage'], $userData['defaultmaxage']);
 	}
 
-	$rows = $cache->get("new5$sex:$minage-$maxage",180,array('function' => 'getNewestMembers', 'params' => array($sexes, $minage, $maxage)));
-
-	openBlock('New Members',$side);
-
-	foreach($rows as $userid => $username)
-		echo "&nbsp;<a href='profile.php?uid=$userid'>$username</a><br>";
-
-	closeBlock();
+	$searchResults = $userSearch->search(1,5);
+	
+	// deal with debug output from search object
+	if ($userData['debug'] === true) {
+		global $inlineDebug;
+		$inlineDebug->addItem("User search (Newest Members Block)", $searchResults->getFormattedDebugOutput());
+	}
+	
+	
+	$template = new template('include/blocks/list_users_block');
+	$template->set('searchResults', $searchResults);
+	$block_contents = $template->toString();
+	blockContainer('New Members', $side, $block_contents);
 }
 
 function incRecentUpdateProfileBlock($side){
-	global $userData,$db, $cache;
+	global $userData;
 
-	function getRecentUpdateProfile($sex, $minage, $maxage){
-		global $db;
-
-		$db->prepare_query("SELECT userid, username FROM newestprofile WHERE sex IN (?) && age IN (#) ORDER BY id DESC LIMIT 5",$sex, range($minage, $maxage));
-
-		$rows = array();
-		while($line = $db->fetchrow())
-			$rows[$line['userid']] = $line['username'];
-		return $rows;
-	}
+	$userSearch = new userSearch("NEWPROFILE", "LIST", $userData['debug']);
 
 	if($userData['loggedIn']){
-		$sexes = $userData['defaultsex'];
-		$sex = ($sexes == 'Male' ? 'm' : 'f');
-		$minage = $userData['defaultminage'];
-		$maxage = $userData['defaultmaxage'];
-	}else{
-		$sexes = array("Male","Female");
-		$sex = 'b';
-		$minage = 14;
-		$maxage = 30;
+		if ($userData['defaultsex'])
+			$userSearch->setSex($userData['defaultsex']);
+
+		if ($userData['defaultminage'] && $userData['defaultmaxage'])
+			$userSearch->setAgeRange($userData['defaultminage'], $userData['defaultmaxage']);
 	}
-	$rows = $cache->get("updt5$sex:$minage-$maxage",180,array('function' => 'getRecentUpdateProfile', 'params' => array($sexes, $minage, $maxage)));
 
-	openBlock('Updated Profiles',$side);
+	$searchResults = $userSearch->search(1,5);
 
-	foreach($rows as $userid => $username)
-		echo "&nbsp;<a href='profile.php?uid=$userid'>$username</a><br>";
-
-	closeBlock();
+	// deal with debug output from search object
+	if ($userData['debug'] === true) {
+		global $inlineDebug;
+		$inlineDebug->addItem("User search (Recent Profile Updates Block)", $searchResults->getFormattedDebugOutput());
+	}
+	
+	$template = new template('include/blocks/list_users_block');
+	$template->set('searchResults', $searchResults);
+	$block_contents = $template->toString();
+	blockContainer('Updated Profiles', $side, $block_contents);
 }
 
 function incTextAdBlock($side){
@@ -631,7 +391,7 @@ function incTextAdBlock($side){
 function incSkyAdBlock($side){
 	global $banner, $userData;
 
-//	if($userData['limitads'])
+	if($userData['limitads'])
 		return;
 
 	$bannertext = $banner->getbanner(BANNER_SKY120);
@@ -646,72 +406,59 @@ function incSkyAdBlock($side){
 	closeBlock();
 }
 
-function incModsOnlineBlock($side){
-	return;
+function incPlusBlock($side){
+	global $userData;
 
-	global $userData,$config,$db, $mods, $cache,$mods;
-
-	if(!$userData['loggedIn'])
+	if($userData['limitads'])
 		return;
 
-	if(!$mods->isMod($userData['userid']))
-		return;
-
-
-	function getModsOnline(){
-		global $db, $mods;
-
-		$moduids = $mods->getMods();
-
-		$db->prepare_query("SELECT userid, username FROM users WHERE userid IN (#) && online='y'", $moduids);
-
-//		$db->query("SELECT mods.userid,username FROM mods,users WHERE mods.userid=users.userid && mods.type='pics' && online = 'y'");
-
-		$rows = array();
-		while($line = $db->fetchrow())
-			$rows[$line['userid']] = $line['username'];
-
-		uasort($rows,'strcasecmp');
-
-		return $rows;
-	}
-
-	$rows = $cache->get('modsonline',60,'getModsOnline');
-
-	openBlock('Mods Online',$side);
-
-	$online = count($rows);
-
-	echo "&nbsp;<b>$online Mods online</b><br>";
-	foreach($rows as $userid => $username)
-		echo "&nbsp;<a href=profile.php?uid=$userid>$username</a><br>";
-
-
-	closeBlock();
+	$template = new template('include/blocks/plus_block');
+	$block_contents = $template->toString();
+	blockContainer('Nexopia Plus', $side, $block_contents);
 }
 
+function incSpotlightBlock($side){
+	global $cache, $config;
+
+	$user = $cache->hdget("spotlight",300,'getSpotlight');
+
+	if(!$user)
+		return;
+
+
+	$user['pic_url'] = $config['thumbloc'] . floor($user['userid']/1000) . "/" . weirdmap($user['userid']) . "/$user[pic].jpg";
+
+	$template = new template('include/blocks/spotlight_block');
+	$template->set('user', $user);
+	$block_contents = $template->toString();
+	blockContainer('Plus Spotlight', $side, $block_contents);
+
+}
+
+
+/*********************** PROBABLY NOT USED ******************/
 function incShoppingCartMenu($side){
 	global $mods, $userData;
 
 	openBlock("Shopping Cart",$side);
 
-	echo "&nbsp;<a href=cart.php>Shopping Cart</a><br>";
-	echo "&nbsp;<a href=checkout.php>Checkout</a><br>";
-	echo "&nbsp;<a href=invoicelist.php>Invoice List</a><br>";
-	echo "&nbsp;<a href=product.php?id=1>Nexopia Plus</a><br>";
-	echo "&nbsp;<a href=paymentinfo.php>Payment Info</a>";
+	echo "&nbsp;<a href=/cart.php>Shopping Cart</a><br>";
+	echo "&nbsp;<a href=/checkout.php>Checkout</a><br>";
+	echo "&nbsp;<a href=/invoicelist.php>Invoice List</a><br>";
+	echo "&nbsp;<a href=/plus.php>Nexopia Plus</a><br>";
+	echo "&nbsp;<a href=/paymentinfo.php>Payment Info</a>";
 
 	if($userData['loggedIn'] && $mods->isAdmin($userData['userid'],'viewinvoice')){
 		echo "<hr>";
-		echo "&nbsp;<a href=invoicereport.php>Reports</a><br>";
+		echo "&nbsp;<a href=/invoicereport.php>Reports</a><br>";
 		echo "<center>";
 
-		echo "<form action=invoice.php>";
+		echo "<form action=/invoice.php>";
 		echo "Invoice ID:<br><input type=text size=10 name=id>";
 		echo "<input type=submit value=Go>";
 		echo "</form>";
 
-		echo "<form action=profile.php>";
+		echo "<form action=/profile.php>";
 		echo "Show Username:<br><input type=text size=10 name=uid>";
 		echo "<input type=submit value=Go>";
 		echo "</form>";
@@ -722,122 +469,51 @@ function incShoppingCartMenu($side){
 	closeBlock();
 }
 
+
 function msgFoldersBlock($side){
-	global $db, $userData;
+	global $userData;
 
 	openBlock("Message Folders",$side);
 
-	echo "&nbsp;<a href=messages.php?action=folders>Manage Folders</a><br>";
+	echo "&nbsp;<a href=/messages.php?action=folders>Manage Folders</a><br>";
 
 	$folders = getMsgFolders();
 
 	foreach($folders as $id => $name)
-		echo "&nbsp;- <a href=messages.php?folder=$id>$name</a><br>";
+		echo "&nbsp;- <a href=/messages.php?folder=$id>$name</a><br>";
 
 	closeBlock();
 }
 
-function incPlusBlock($side){
-	global $userData;
+function incScheduleBlock($side){
+	global $db;
 
-	if($userData['limitads'])
-		return;
+	$res = $db->prepare_query("SELECT title,timeoccur FROM schedule WHERE timeoccur > # && scope='global' && moded='y' ORDER BY timeoccur DESC LIMIT 5", time());
 
-	openBlock("Nexopia Plus",$side);
+	openBlock('Events',$side);
 
-//- <b>Faster Server</b><br>
-?>
-<table><tr><td class=side>
-- <b>No Ads</b><br>
-- <b>Recent Visitors List</b><br>
-- <b>Large Gallery</b><br>
-- Eligible for the Spotlight<br>
-- Hide Profile<br>
-- View Profiles Anonymously<br>
-- Extra pictures<br>
-- Profile Skins<br>
-- Longer Profiles<br>
-- Advanced User Search<br>
-- Friends list notifications<br>
-- Get off friends lists<br>
-- Longer friends list<br>
-- File hosting<br>
-- Priority picture approval<br>
-- Sent Message Status<br>
-- Create a custom forum<br>
-- Custom forum rank<br>
-- Reset picture votes<br>
-<center><a href=product.php?id=1><b>Click For Details</b></a></center>
-</td></tr></table>
-<?
+	echo "<table>";
 
+	while($line = $res->fetchrow())
+		echo "<tr><td class=side><a href='/schedule.php?action=showday&month=" . gmdate('n',$line['timeoccur']) . "&year=" . gmdate('Y',$line['timeoccur']) . "&day=" . gmdate('j',$line['timeoccur']) . "&calsort[scope]=global'>$line[title]</a></td></tr>";
+
+	echo "</table>";
 	closeBlock();
 }
 
-function incGoogleBlock($side){
-	global $userData;
-
-	if($userData['loggedIn'])
-		return;
-
-	openBlock("Sponsors",$side);
-
-?><br><center>
-<script type="text/javascript"><!--
-google_ad_client = "pub-3720840712640771";
-google_ad_width = 120;
-google_ad_height = 240;
-google_ad_format = "120x240_as";
-google_ad_channel ="";
-//--></script>
-<script type="text/javascript"
-  src="http://pagead2.googlesyndication.com/pagead/show_ads.js">
-</script></center><br>
-<?
-
-	closeBlock();
-}
-
-function incSpotlightBlock($side){
-	global $cache, $config;
-
-	function getSpotlight(){//$sex, $minage, $maxage){
-		global $db, $cache;
-
-		$spotlightmax = $cache->get("spotlightmax");
-
-		if(!$spotlightmax){
-			$db->query("SELECT count(*) FROM spotlight");
-
-			$spotlightmax = $db->fetchfield();
-
-			$cache->put("spotlightmax", $spotlightmax, 86400);
-		}
-
-		randomize();
-		do{
-//			$db->prepare_query("SELECT users.userid, users.username, users.firstpic as pic, users.age, users.sex FROM spotlight, users WHERE spotlight.userid = users.userid && users.firstpic > 0 && spotlight.id = #", rand(1,$spotlightmax));
-
-			$db->prepare_query("SELECT users.userid, users.username, pics.id as pic, users.age, users.sex FROM spotlight, users, pics WHERE spotlight.userid = users.userid && pics.itemid = users.userid && users.firstpic > 0 && spotlight.id = # ORDER BY rand() LIMIT 1", rand(1,$spotlightmax));
-		}while(!$db->numrows());
-
-		return $db->fetchrow();
-	}
-
-	$user = $cache->get("spotlight",300,'getSpotlight');
-
-	if(!$user)
-		return;
-
-	openBlock("Plus Spotlight",$side);
 
 
-	echo "<table width=100%><tr><td class=side align=center>";
-	echo "<a href=profile.php?uid=$user[userid]>$user[username]</a><br>Age $user[age], $user[sex]<br>";
-	if($user['pic'])
-		echo "<a href=profile.php?uid=$user[userid]><img src=\"http://" . chooseImageServer($user['pic']) . $config['thumbdir'] . floor($user['pic']/1000) . "/$user[pic].jpg\" border=0></a><br><br>";
-	echo "</td></tr></table>";
+function blockContainer($header, $side, $blockContents)
+{
+	global $skinloc, $skindata;
+	$template =  new template("include/blocks/block_container");
+	$template->set('background', "$skinloc/" . ($side=='l' ? "left" : "right") . "$skindata[blockheadpic]");
+	$template->set('align', ($side=='l' ? "left" : "right"));
+	$template->set('header', $header);
+	$template->set('block_contents', $blockContents);
+	$template->set('skindata', $skindata);
+	$template->set('width', ($skindata['sideWidth'] - 2*$skindata['blockBorder']));
+	$template->display();
 
-	closeBlock();
 }
 

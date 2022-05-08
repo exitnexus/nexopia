@@ -1,13 +1,13 @@
 <?
 
+	$forceserver = true;
+
 	include("include/general.lib.php");
 
-	if(!isset($forceserver))
-		$forceserver = false;
-
-	if(isset($action)){
-		setcookie("forceserver", isset($force),0,'/',$cookiedomain);
-		$forceserver = isset($force);
+	if($action){
+		$force = getREQval('force','bool');
+		setcookie("forceserver", $force,0,'/',$cookiedomain);
+		$forceserver = $force;
 	}
 
 	echo "<form action=$_SERVER[PHP_SELF]>";

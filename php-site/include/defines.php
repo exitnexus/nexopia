@@ -5,6 +5,30 @@ define("SORT_CASESTR",10);
 define("SORT_NATSTR",11);
 define("SORT_NATCASESTR",12);
 
+define('DB_KEY_OPTIONAL',  0);
+define('DB_KEY_REQUIRED',  1);
+define('DB_KEY_FORBIDDEN', 2);
+
+define('USER_FRIENDS', 1);
+define('USER_FRIENDOF', 2);
+
+define("DB_AREA_WEBLOG_ENTRY", 1);
+define("DB_AREA_WEBLOG_COMMENT", 2);
+
+define("DB_AREA_USER_COMMENT", 5);
+
+define("DB_AREA_SOURCEPICS", 10);
+define("DB_AREA_GALLERY", 11);
+define("DB_AREA_GALLERYPIC", 12);
+
+define("DB_AREA_MESSAGE", 15);
+define("DB_AREA_MESSAGE_FOLDER", 16);
+
+define("DB_AREA_PICS", 20);
+
+define("DB_AREA_PROFILE_BLOCKS", 30);
+
+define("HIDE_UID_XOR", 0x7E576542);
 
 // Zone ID, Offset (in minutes from GMT)
 function gettimezones($id = false){
@@ -572,4 +596,92 @@ function gettimezones($id = false){
 	}else{
 		return $timezones;
 	}
+}
+
+
+function getSmilies($sort = 'usage'){
+	$smilies = array(
+
+			':)' => 'smile',
+			':(' => 'frown',
+			':D' => 'biggrin',
+			':imslow:' => 'imslow',
+			':p' => 'tongue',
+			':blush:' => 'blush',
+			':hearts:' => 'hearts',
+			':rolleyes:' => 'rolleyes',
+			':love' => 'love',
+			':rofl:' => 'rofl',
+			':gjob:' => 'thumbs',
+			':sex:' => 'smileysex',
+			':err:' => 'err',
+			';)' => 'wink',
+			':clap:' => 'clap',
+			':date:' => 'date',
+			':cry:' => 'crying',
+			':drool:' => 'drool',
+			':eek:' => 'eek',
+			':beer:' => 'beer',
+			':foie:' => 'nono',
+			':cool:' => 'cool',
+			':shocked:' => 'shocked',
+			':cussing:' => 'cussing',
+			':shifty:' => 'shiftyeyes',
+			':omfg:' => 'omfg',
+			':consfused:' => 'confused',
+			':nuts:' => 'silly',
+
+			':evil:' => 'evil',
+			':gdate:' => 'girlgirl',
+			':headache:' => 'headache',
+			':headbang:' => 'headbang',
+			':ham:' => 'smash',
+			':high5:' => 'high5',
+			':hug:' => 'hugs',
+			':hungry:' => 'hungry',
+			':iik:' => 'iik',
+			':jawdrop:' => 'jawdrop',
+			':jk:' => 'jk',
+			':kiss:' => 'kiss',
+			':lol:' => 'lol',
+			':lonely:' => 'lonely',
+			':bdate:' => 'manman',
+			':moon:' => 'moon',
+			':music:' => 'music',
+			':O' => 'yawn',
+			':nana:' => 'nana',
+			':neutral:' => 'neutral',
+			':party:' => 'party',
+			':pee:' => 'pee',
+			':phone:' => 'phone',
+			':please:' => 'please',
+			':pray:' => 'pray',
+			':psyco:' => 'psyco',
+			':puke:' => 'puke',
+			':egrin:' => 'egrin',
+
+			':transport:' => 'transport',
+			':crazy' => 'crazy',
+			':skull:' => 'skull',
+			':sleep:' => 'sleep',
+			':tv:' => 'tv',
+			':steaming:' => 'steaming',
+			':stun:' => 'stun',
+			':typing:' => 'typing',
+			':throwball:' => 'throwball',
+			':show:' => 'show',
+			':speak:' => 'speak',
+			':bjob:' => 'nogood-red',
+			':wassup:' => 'wassup',
+		);
+		
+	if($sort == 'length'){
+		function lengthcmp($a, $b){
+			return (strlen($b) - strlen($a));
+		}
+	
+		uksort($smilies, 'lengthcmp');
+	}
+
+	return $smilies;
 }

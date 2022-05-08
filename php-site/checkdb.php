@@ -61,7 +61,7 @@ function outputOptions($dbs, $default, $prefix = ""){
 		$check['passwd'] = 'pRlUvi$t';
 //		$check['passwd'] = 'Hawaii';
 
-		$checkdb = & new sql_db($check);
+		$checkdb = new sql_db($check);
 		$time = time();
 		switch($action){
 			case "Check":		$checkdb->check(2); 	break;
@@ -72,9 +72,9 @@ function outputOptions($dbs, $default, $prefix = ""){
 			case "Master Status":
 			case "Slave Status":
 
-				$checkdb->query("SHOW $action");
+				$res = $checkdb->query("SHOW $action");
 
-				$line = $checkdb->fetchrow();
+				$line = $res->fetchrow();
 
 				echo "<table border=1 cellspacing=0 cellpadding=3>";
 

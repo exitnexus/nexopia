@@ -29,9 +29,9 @@
 		}
 
 		if($col){
-			$db->prepare_query("SELECT * FROM deletedusers WHERE $col = ?", $uid);
+			$res = $db->prepare_query("SELECT * FROM deletedusers WHERE $col = ?", $uid);
 
-			$rows = $db->fetchrowset();
+			$rows = $res->fetchrowset();
 		}
 	}
 
@@ -40,7 +40,7 @@
 	echo "<table align=center>";
 
 	echo "<form action=$_SERVER[PHP_SELF]>";
-	echo "<tr><td class=header align=center colspan=7>";
+	echo "<tr><td class=header align=center colspan=8>";
 	echo "<select class=body name=type>" . make_select_list_key($selectlist, $type) . "</select><input class=body type=text name=uid value='$uid'><input class=body type=submit value=Go>";
 	echo "</td></tr>";
 	echo "</form>";
@@ -54,6 +54,8 @@
 		echo "<td class=header>Deleted by</td>";
 		echo "<td class=header>Abuse</td>";
 		echo "<td class=header>IPs</td>";
+		if($mods->isAdmin($userData['userid'],"loginlog"))
+			echo "<td class=header>Logins</td>";
 		echo "</tr>";
 
 		$usernames = array();
@@ -71,11 +73,13 @@
 			}else{
 				if(!isset($usernames[$line['deleteid']]))
 					$usernames[$line['deleteid']] = getUserName($line['deleteid']);
-				echo "<a class=body href=profile.php?uid=$line[deleteid]>" . $usernames[$line['deleteid']] . "</a>";
+				echo "<a class=body href=/profile.php?uid=$line[deleteid]>" . $usernames[$line['deleteid']] . "</a>";
 			}
 			echo "</td>";
-			echo "<td class=body><a class=body href=adminabuselog.php?uid=$line[userid]>Abuse</a></td>";
-			echo "<td class=body><a class=body href=adminuserips.php?uid=$line[userid]&type=userid>IPs</a></td>";
+			echo "<td class=body><a class=body href=/adminabuselog.php?uid=$line[userid]>Abuse</a></td>";
+			echo "<td class=body><a class=body href=/adminuserips.php?uid=$line[userid]&type=userid&k=" . makeKey($line['userid']) . ">IPs</a></td>";
+			if($mods->isAdmin($userData['userid'],"loginlog"))
+				echo "<td class=body><a class=body href=/adminloginlog.php?col=userid&val=$line[userid]>Logins</a></td>";
 			echo "</tr>";
 		}
 	}

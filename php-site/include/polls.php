@@ -2,14 +2,14 @@
 
 class polls{
 
-	var $db;
+	public $db;
 /*
 tables:
  -polls
  -pollans
  -pollvotes
 */
-	function polls( & $db ){
+	function __construct( & $db ){
 		$this->db = & $db;
 	}
 
@@ -46,11 +46,22 @@ tables:
 	function deletePoll($pollid){
 		global $msgs;
 
+		if (!is_array($pollid)) {
+			if ($pollid == "") {	
+				return false;	
+			}
+		} else {
+			if (count($pollid) < 1) {
+				return false;
+			}
+		}
+		
 		$this->db->prepare_query("DELETE FROM polls WHERE id IN (#)", $pollid);
 		$this->db->prepare_query("DELETE FROM pollans WHERE pollid IN (#)", $pollid);
 		$this->db->prepare_query("DELETE FROM pollvotes WHERE pollid IN (#)", $pollid);
 
 		$msgs->addMsg("Poll deleted");
+		return true;
 	}
 
 	function votePoll($pollid,$ansid){
@@ -62,13 +73,14 @@ tables:
 		$ip = ip2int(getip());
 
 		if($ansid!=0){
-			$this->db->prepare_query("SELECT id FROM pollans WHERE id = # && pollid = #", $ansid, $pollid);
-			if($this->db->numrows() == 0)
+			$res = $this->db->prepare_query("SELECT id FROM pollans WHERE id = # && pollid = #", $ansid, $pollid);
+			if(!$res->fetchrow())
 				return;
 		}
 
-		$this->db->prepare_query("SELECT id FROM pollvotes WHERE userid = # && pollid = #", $userData['userid'], $pollid);
-		if($this->db->numrows()==0){
+		$res = $this->db->prepare_query("SELECT id FROM pollvotes WHERE userid = # && pollid = #", $userData['userid'], $pollid);
+		$vote = $res->fetchrow();
+		if(!$vote){
 			if($ansid!=0){
 				$this->db->prepare_query("UPDATE polls SET tvotes=tvotes+1 WHERE id = #", $pollid);
 
@@ -77,40 +89,40 @@ tables:
 
 			$this->db->prepare_query("INSERT IGNORE INTO pollvotes SET userid = #, ip = #, pollid = #, vote = ?, time = #", $userData['userid'], $ip, $pollid, $ansid, time());
 		}else{
-			$id=$this->db->fetchfield();
+			$id=$vote['id'];
 			$this->db->prepare_query("UPDATE pollvotes SET time = # WHERE id = #", time(), $id);
 			$msgs->addMsg("You have already voted");
 		}
 
-		$cache->put(array($userData['userid'], "pollvote-$userData[userid]-$pollid"), 1, 86400);
+		$cache->put("pollvote-$userData[userid]-$pollid", 1, 86400);
 	}
 
 	function getPoll($pollid = 0, $moded = true){
 		global $cache;
 
-		$poll = $cache->get(array($pollid, "poll-$pollid"));
+		$poll = $cache->get("poll-$pollid");
 
 		if($poll === false){
 			if($pollid==0)
-				$this->db->query("SELECT * FROM polls WHERE official='y' && moded='y' ORDER BY date DESC LIMIT 1");
+				$res = $this->db->query("SELECT * FROM polls WHERE official='y' AND moded='y' ORDER BY date DESC LIMIT 1");
 			elseif($moded)
-				$this->db->prepare_query("SELECT * FROM polls WHERE moded = 'y' && id = #", $pollid);
+				$res = $this->db->prepare_query("SELECT * FROM polls WHERE moded = 'y' && id = #", $pollid);
 			else
-				$this->db->prepare_query("SELECT * FROM polls WHERE id = #", $pollid);
+				$res = $this->db->prepare_query("SELECT * FROM polls WHERE id = #", $pollid);
 
-			if(!$this->db->numrows())
+			$poll = $res->fetchrow();
+
+			if(!$poll)
 				return false;
 
-			$poll = $this->db->fetchrow();
+			$res = $this->db->prepare_query("SELECT * FROM pollans WHERE pollid = #", $poll['id']);
 
-			$this->db->prepare_query("SELECT * FROM pollans WHERE pollid = #", $poll['id']);
-
-			while($line = $this->db->fetchrow())
+			while($line = $res->fetchrow())
 				$poll['answers'][$line['id']]=$line;
 
 			ksort($poll['answers']);
 
-			$cache->put(array($pollid, "poll-$pollid"), $poll, 60);
+			$cache->put("poll-$pollid", $poll, 60);
 		}
 
 		return $poll;
@@ -123,13 +135,13 @@ tables:
 		if(!$userData['loggedIn'])
 			return false;
 
-		$voted = $cache->get(array($userData['userid'], "pollvote-$userData[userid]-$pollid"));
+		$voted = $cache->get("pollvote-$userData[userid]-$pollid");
 
 		if($voted === false){
-			$this->db->prepare_query("SELECT id FROM pollvotes WHERE userid = # && pollid = #", $userData['userid'], $pollid);
-			$voted = $this->db->numrows();
+			$res = $this->db->prepare_query("SELECT id FROM pollvotes WHERE userid = # && pollid = #", $userData['userid'], $pollid);
+			$voted = count($res->fetchrowset());
 
-			$cache->put(array($userData['userid'], "pollvote-$userData[userid]-$pollid"), $voted, 86400);
+			$cache->put("pollvote-$userData[userid]-$pollid", $voted, 86400);
 		}
 
 		return $voted;

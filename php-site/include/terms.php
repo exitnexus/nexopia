@@ -1,7 +1,7 @@
 <?
 
 function getterms(){
-	return "THIS DOCUMENT CONTAINS IMPORTANT TERMS AND CONDITIONS WHICH AFFECT YOUR LEGAL RIGHTS AND REMEDIES. PLEASE READ THEM THOROGHLY AS CLICKING THE 'I ACCEPT' BUTTON OR USING THIS WEBSITE CONSTITUTES ACCEPTANCE BY YOU OF THESE TERMS AND CONDITIONS OF THIS CONTRACT.
+	return "THIS DOCUMENT CONTAINS IMPORTANT TERMS AND CONDITIONS WHICH AFFECT YOUR LEGAL RIGHTS AND REMEDIES. PLEASE READ THEM THOROUGHLY AS CLICKING THE 'I ACCEPT' BUTTON OR USING THIS WEBSITE CONSTITUTES ACCEPTANCE BY YOU OF THESE TERMS AND CONDITIONS OF THIS CONTRACT.
 
 
 Nexopia provides this website and its services to you subject to the following terms and conditions, which services or terms and conditions may be changed by Nexopia at any time without notice.
@@ -13,7 +13,7 @@ Throughout this document the terms ‘your’, ‘you’ and ‘user’ refer to parties oth
 
 DISCLAIMER
 
-This website and all information, images, artwork, text, video, audio, pictures and other materials through on this website and its affliated services, as well as the website design, content and arrangement (collectively, the 'Information') is provided '<i>AS IS</i>'. Nexopia makes no representations or warranties of any kind, express, implied, statutory or otherwise as to the operation of this website, its services, or the Information <font style='background-color: yellow'>INCLUDING BUT NOT LIMITED TO IMPLIED OR STATUTORY WARRANTIES OR CONDITIONS OF MERCHANTABLE QUALITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. NEXOPIA IS NOT RESPONSIBLE FOR ANY DAMAGES OF ANY KIND, INCLUDING BUT NOT LIMITED TO DIRECT, INDIRECT, SPECIAL, CONSEQUENTIAL OR INCIDENTAL DAMAGES IN ANY WAY ARISING OUT OF YOUR USE OF THIS WEBSITE, ITS SERVICES OR THE Information, INCLUDING ANY DAMAGES YOU MAY SUFFER AS A RESULT OF YOUR PERSONAL INFORMATION BEING TRANSMITTED BETWEEN YOU AND NEXOPIA, OR TO OTHER USERS.
+This website and all information, images, artwork, text, video, audio, pictures and other materials through on this website and its affiliated services, as well as the website design, content and arrangement (collectively, the 'Information') is provided '<i>AS IS</i>'. Nexopia makes no representations or warranties of any kind, express, implied, statutory or otherwise as to the operation of this website, its services, or the Information <font style='background-color: yellow'>INCLUDING BUT NOT LIMITED TO IMPLIED OR STATUTORY WARRANTIES OR CONDITIONS OF MERCHANTABLE QUALITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. NEXOPIA IS NOT RESPONSIBLE FOR ANY DAMAGES OF ANY KIND, INCLUDING BUT NOT LIMITED TO DIRECT, INDIRECT, SPECIAL, CONSEQUENTIAL OR INCIDENTAL DAMAGES IN ANY WAY ARISING OUT OF YOUR USE OF THIS WEBSITE, ITS SERVICES OR THE Information, INCLUDING ANY DAMAGES YOU MAY SUFFER AS A RESULT OF YOUR PERSONAL INFORMATION BEING TRANSMITTED BETWEEN YOU AND NEXOPIA, OR TO OTHER USERS.
 
 Nexopia is NOT RESPONSIBLE FOR LOST, DELETED, INCOMPLETE, ILLEGIBLE, MISDIRECTED OR STOLEN MESSAGES, MAIL, PICTURES, IMAGES OR INFORMATION, UNAVAILABLE CONNECTIONS, FAILED, INCOMPLETE, GARBLED OR DELAYED TRANSMISSIONS, ONLINE FAILURES, HARDWARE, SOFTWARE OR OTHER TECHNICAL MALFUNCTIONS OR DISTURBANCES.</font>
 
@@ -69,9 +69,9 @@ By producing Content for distribution in any public area of Nexopia, you automat
 
 You will not transmit any chain letters or junk email to other Nexopia Members. Although Nexopia cannot monitor the conduct of its Members off the Nexopia Site, it is also a violation of these rules to use any information obtained from the Service in order to harass, abuse, or harm another person, or in order to contact, advertise to, solicit, or sell to any Member without their prior explicit consent.
 
-While Nexopia does make efforts to ensure that content distributed through our services complies with this provision, Nexopia makes no assurances, guarantees or warrantees that the content found on the service will be be screened to ensure its compliance with this provision. However, users are encouraged to report any violations of this provision to the Nexopia Administration for review.
+While Nexopia does make efforts to ensure that content distributed through our services complies with this provision, Nexopia makes no assurances, guarantees or warrantees that the content found on the service will be screened to ensure its compliance with this provision. However, users are encouraged to report any violations of this provision to the Nexopia Administration for review.
 
-Nexopia further reserves the right to submit any information provided or distributed on the site to authorities in the case of criminal matters. This includes any information distributied in areas outlined as private under our privacy policy such as, but not limited to Private Messages.
+Nexopia further reserves the right to submit any information provided or distributed on the site to authorities in the case of criminal matters. This includes any information distributed in areas outlined as private under our privacy policy such as, but not limited to Private Messages.
 
 
 MEMBER DISPUTES

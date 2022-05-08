@@ -7,7 +7,8 @@ if($errorLogging){
 	function userErrorHandler($errno, $errmsg, $filename, $linenum, $vars) {
 		global $sitebasedir, $userData, $debuginfousers, $errorLogging;
 
-		$time = gmdate("d M Y H:i:s");
+		if (error_reporting() == 0) return;
+		$time = gmdate("M d Y H:i:s");
 
 	// Get the error type from the error number
 		static $errortype = array ( 1   => "Error",
@@ -33,7 +34,39 @@ if($errorLogging){
 		else
 			$file = "$sitebasedir/logs/site/userwarnings.csv";
 
-		$str = "\"$time\",\"$filename: $linenum\",\"($errlevel)\",\"$errmsg\",\"" . getip() . "\",\"$_SERVER[PHP_SELF]\"\r\n";
+		$user = ($userData['loggedIn'] ? $userData['userid'] : 'anon');
+		$ip = getip();
+
+		if(strpos($filename, $sitebasedir) === 0)
+			$filename = substr($filename, strlen($sitebasedir));
+
+		$errmsg = preg_replace("/^(.*)\[<(.*)>\](.*)$/", "\\1\\3", $errmsg);
+
+		$backoutput = "";
+
+		if(function_exists('debug_backtrace')){
+			$backtrace = debug_backtrace();
+
+			//ignore $backtrace[0] as that is this function, the errorlogger
+			
+			for($i = 1; $i < 5 && $i < count($backtrace); $i++){ //only show 4 levels deep
+				$errfile = (isset($backtrace[$i]['file']) ? $backtrace[$i]['file'] : '');
+				
+				if(strpos($errfile, $sitebasedir) === 0)
+					$errfile = substr($errfile, strlen($sitebasedir));
+				
+				$line = (isset($backtrace[$i]['line']) ? $backtrace[$i]['line'] : '');
+				$function = (isset($backtrace[$i]['function']) ? $backtrace[$i]['function'] : '');
+				$args = (isset($backtrace[$i]['args']) ? count($backtrace[$i]['args']) : '');
+				
+				$backoutput .= "$errfile:$line:$function($args)";
+				
+				if($i+1 < count($backtrace)) //show if there are more levels that were cut off
+					$backoutput .= "<-";
+			}  
+		}
+
+		$str = "\"$time\",\"$_SERVER[PHP_SELF]\",\"$user\",\"$ip\",\"$filename: $linenum\",\"($errlevel)\",\"$errmsg\",\"$backoutput\"\r\n";
 
 		$errfile=fopen($file,"a");
 		fputs($errfile,$str);

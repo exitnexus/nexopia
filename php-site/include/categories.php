@@ -1,16 +1,16 @@
 <?
 
 class category{
-	var $db;
+	public $db;
 
-	var $name;
-	var $where;
+	public $name;
+	public $where;
 
-	var $data = array();
-	var $child = array();
-	var $parent = array();
+	public $data = array();
+	public $child = array();
+	public $parent = array();
 
-	function category( & $db, $name, $where = ""){ //table of type id,parent,name
+	function __construct( & $db, $name, $where = "", $cached = true){ //table of type id,parent,name
 		global $cache;
 
 		$this->name = $name;
@@ -18,9 +18,13 @@ class category{
 
 		$this->db = & $db;
 
-		$this->data = $cache->hdget($name . "d", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('data')));
-		$this->child = $cache->hdget($name . "c", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('child')));
-		$this->parent = $cache->hdget($name . "p", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('parent')));
+		if($cached){
+			$this->data = $cache->hdget($name . "d", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('data')));
+			$this->child = $cache->hdget($name . "c", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('child')));
+			$this->parent = $cache->hdget($name . "p", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('parent')));
+		}else{
+			$this->dumpData();
+		}
 	}
 
 	function dumpData($ret = false){
@@ -29,9 +33,9 @@ class category{
 		if($this->where)
 			$query .= " WHERE " . $this->where;
 
-		$this->db->query($query);
+		$res = $this->db->query($query);
 
-		while($line = $this->db->fetchrow()){
+		while($line = $res->fetchrow()){
 			$this->data[$line['id']] = $line['name'];
 			$this->child[$line['parent']][$line['id']]=$line['name'];
 			$this->parent[$line['id']][$line['parent']]=$line['name'];

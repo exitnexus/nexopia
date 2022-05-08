@@ -7,6 +7,16 @@
 	$register = getPOSTval('register', 'bool');
 	$data = getPOSTval('data', 'array');
 
+	$defaults = array(
+			'username' => "",
+			'email' => "",
+			'loc' => "",
+			'month' => "",
+			'day' => "",
+			'year' => "",
+			'sex' => "",
+		);
+
 	if($register){
 		if(newAccount($data)){
 			incHeader();
@@ -16,58 +26,163 @@
 		}
 	}
 
-	$username="";
-	$email="";
-	$loc="";
-	$month="";
-	$day="";
-	$year="";
-	$sex="";
 
-	extract($data);
 
-	$locations = & new category( $db, "locs");
+	extract(setDefaults($data, $defaults));
 
-	incHeader();
+	$locations = new category( $configdb, "locs");
+
 
 	for($i=1;$i<=12;$i++)
 		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
 
 
-	echo "<table align=center><form action=$_SERVER[PHP_SELF] method=post>\n";
-	echo "<tr><td class=body>Username:</td><td class=body><input class=body name='data[username]' maxlength=12 size=32 value='$username' style=\"width:200px\"></td></tr>\n";
-	echo "<tr><td class=body>Password:</td><td class=body><input class=body name='data[password]' maxlength=32 size=32 type=password style=\"width:200px\"></td></tr>\n";
-	echo "<tr><td class=body>Retype Password:</td><td class=body><input class=body name='data[password2]' maxlength=32 size=32 type=password style=\"width:200px\"></td></tr>\n";
-	echo "<tr><td class=body>Email:</td><td class=body><input class=body name='data[email]' maxlength=255 size=32 value='$email' style=\"width:200px\"></td></tr>\n";
-	echo "<tr><td class=body valign=top>Birthday:</td><td class=body>";
-		echo "<select class=body name='data[month]' style=\"width:90px\"><option value=0>Month" . make_select_list_key($months,$month) . "</select>";
-		echo "<select class=body name=data[day] style=\"width:50px\"><option value=0>Day" . make_select_list(range(1,31),$day) . "</select>";
-		echo "<select class=body name=data[year] style=\"width:60px\"><option value=0>Year" . make_select_list(array_reverse(range(date("Y")-$config['maxAge'],date("Y")-$config['minAge'])),$year) . "</select>";
-	echo "</td></tr>\n";
-	echo "<tr><td class=body>Location:</td><td class=body><select class=body name=\"data[loc]\" style=\"width:200px\"><option value=0>Location" . makeCatSelect($locations->makeBranch(),$loc) . "</select></td></tr>\n";
-	echo "<tr><td class=body>Sex:</td><td class=body>" . make_radio("data[sex]", array("Male","Female"), $sex) . "</td></tr>\n";
+	$template = new template('create/create');
+	$template->set('username', $username);
+	$template->set('usernamelength', $config['maxusernamelength']);
+	$template->set('email', $email);
+	$template->set('selectMonth',make_select_list_key($months, $month));
+	$template->set('selectDay', make_select_list(range(1,31), $day));
+	$template->set('selectYear', make_select_list(array_reverse(range(date("Y")-$config['maxAge'],date("Y")-$config['minAge'])), $year));
+	$template->set('selectLocation', makeCatSelect($locations->makeBranch(), $loc));
+	$template->set('radioSex', make_radio("data[sex]", array("Male","Female"), $sex));
+	$template->set('terms', nl2br(getterms()));
+	$template->set('check18', makeCheckBox('data[agree18]', ' I, the user, am over the age of 18.'));
+	$template->set('check14', makeCheckBox('data[agree14]', ' If No, I, the user, am over the age of 14.'));
+	$template->set('checkParent', makeCheckBox('data[agree14guardian]', ' AND I have consent from my legal guardian who is over 18 and accepts these Terms and Conditions.'));
+	$template->set('checkLimit', makeCheckBox('data[agreelimit]', ' I, the user, acknowledge and understand that these terms limit my rights and remedies.'));
+	$template->set('checkAgree', makeCheckBox('data[agreeterms]', ' I, the user, read, understand and agree to these Terms and Conditions of Use.'));
 
-	echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
+	$template->display();
 
-	echo "<tr><td class=body colspan=2><a class=body href=terms.php>Terms and Conditions:</a><br><div style=\"border: solid 1px #000000; width: 500px; height: 150px; overflow: auto; padding: 4px; color: #000000; background-color: #FFFFFF\">\n";
-	echo nl2br(getterms());
-	echo "\n</div></td></tr>\n";
 
-	echo "<tr><td class=body colspan=2>\n";
 
-	echo makeCheckBox('data[agree18]', ' I, the user, am over the age of 18.') . "<br>\n";
-	echo makeCheckBox('data[agree14]', ' If No, I, the user, am over the age of 14.') . "<br>\n";
-	echo makeCheckBox('data[agree14guardian]', ' AND I have consent from my legal guardian who is over 18 and accepts these Terms and Conditions.') . "<br>\n";
-	echo "<center><b>It is a Fraud to knowingly misstate this information.</b></center>\n";
-	echo "<br>\n";
-	echo makeCheckBox('data[agreelimit]', ' I, the user, acknowledge and understand that these terms limit my rights and remedies.') . "<br>\n";
-	echo makeCheckBox('data[agreeterms]', ' I, the user, read, understand and agree to these Terms and Conditions of Use.') . "<br>\n";
+function newAccount($data){
+	global $useraccounts, $wwwdomain, $emaildomain, $msgs, $config, $db, $masterdb, $usersdb, $configdb, $messaging;
+	$error = false;
 
-	echo "</td></tr>\n";
+	$ip = ip2int(getip());
 
-	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=register value=Submit></td></tr>";
-	echo "</table>";
-	echo "</form>";
+	if(isBanned($ip)){
+		$error=true;
+		$msgs->addMsg("Your IP has been banned due to abuse. Please <a class=\"body\" href=\"/contactus.php\">contact us</a> if you need details.");
+	}
 
-	incFooter();
+	if(!userNameLegal($data['username']))
+		$error=true;
 
+	if(!isset($data['password']) || strlen($data['password'])>32 || strlen($data['password'])<4 || $data['password']!=$data['password2']){
+		$msgs->addMsg("Invalid password or passwords don't match");
+		$error=true;
+	}
+	if(!isset($data['email']) || strlen($data['email'])>255 || !isValidEmail($data['email']) || isEmailInUse($data['email'])){
+		$msgs->addMsg("Invalid email address");
+		$error=true;
+	}
+
+	if(isBanned($data['email'],'email')){
+		$error=true;
+		$msgs->addMsg("Your email has been banned due to abuse. Please <a class=\"body\" href=\"/contactus.php\">contact us</a> if you need details.");
+	}
+
+	if(!isset($data['month']) || $data['month']<=0 || $data['month']>12 || !isset($data['day']) || $data['day']<=0 || $data['day']>31 || !isset($data['year']) || !checkdate($data['month'],$data['day'],$data['year'])){
+		$msgs->addMsg("Invalid date of birth");
+		$error=true;
+		$age = 0;
+	}else{
+		$dob = my_gmmktime(0,0,0,$data['month'],$data['day'],$data['year']);
+	 	$age = getAge($dob);
+		if($age < $config['minAge'] || $age > $config['maxAge']){
+			$msgs->addMsg("Invalid date of birth");
+			$error=true;
+		}
+	}
+	if(!isset($data['sex']) || !($data['sex']=="Male" || $data['sex']=="Female")){
+		$msgs->addMsg("Please specify your sex");
+		$error = true;
+	}
+
+	$locations = new category( $configdb, "locs");
+
+	if(!isset($data['loc']) || !$locations->isValidCat($data['loc'])){
+		$msgs->addMsg("Please specify your location");
+		$error=true;
+	}
+
+	if(!(	isset($data['agreelimit']) &&
+			isset($data['agreeterms']) &&
+			(	( isset($data['agree18']) && !isset($data['agree14']) && !isset($data['agree14guardian']) && $age >= 18) ||
+				(!isset($data['agree18']) &&  isset($data['agree14']) &&  isset($data['agree14guardian']) && $age >= 14 && $age < 18)
+			)
+		)	){
+
+		$msgs->addMsg("You must read and agree to the Terms and Conditions");
+		$error=true;
+	}
+
+	$jointime = time();
+
+	if($data['email']){
+		$db->prepare_query("SELECT userid FROM deletedusers WHERE email = ? && jointime > #", $data['email'], $jointime - 86400*7); //past 7 days
+
+		if($db->fetchrow()){
+			$msgs->addMsg("This email was used to create an account this week, and can't be used again until that period is over.");
+			$error=true;
+		}
+	}
+
+
+	if($error)
+		return false;
+
+	$ret = $useraccounts->createAccount($data['username'], $data['password'], $data['email'], $dob, $data['sex'], $data['loc']);
+
+	if(!$ret)
+		return false;
+
+	list($userid, $key) = $ret;
+
+
+	$template = new template('create/welcomeemail');
+	$template->set('wwwdomain', $wwwdomain);
+	$template->set('username', $data['username']);
+	$template->set('key', $key);
+
+	$message = $template->toString();
+	$subject="Activate your account at Nexopia.com";
+
+	smtpmail("$data[email]", $subject, $message, "From: $config[title] <no-reply@$emaildomain>") or die("Error sending email");
+
+
+
+	$subject = "Welcome To Nexopia";
+	$welcomemsg = getStaticValue('welcomemsg');
+
+	$messaging->deliverMsg($userid, $subject, $welcomemsg, 0, "Nexopia", 0, false);
+
+
+
+	$db->prepare_query("SELECT * FROM invites WHERE email = ?", $data['email']);
+
+	$invites = $db->fetchrowset();
+
+	$msgto = array();
+
+	foreach($invites as $line){
+		$usersdb->prepare_query("INSERT IGNORE INTO friends (userid, friendid) VALUES (%,#)", $line['userid'], $userid);
+		$usersdb->prepare_query("INSERT IGNORE INTO friends (userid, friendid) VALUES (%,#)", $userid, $line['userid']);
+		$msgto[] = $line['userid'];
+	}
+
+	if(count($msgto)){
+		foreach($invites as $line){
+			$subject = "Friend Joined";
+			$message = "Your friend $line[name] has joined Nexopia.com, and has been added to your friends list. Click [url=/profile.php?uid=$userid]here[/url] to see your friends profile.";
+			$messaging->deliverMsg($msgto, $subject, $message, 0, "Nexopia", 0, false);
+		}
+	}
+
+	$db->prepare_query("DELETE FROM invites WHERE email = ?", $data['email']);
+
+	return true;
+}

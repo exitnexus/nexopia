@@ -12,19 +12,23 @@
 
 //	$mods->adminlog("admin log","Admin log, user: $uid");
 
-	$query = "SELECT SQL_CALC_FOUND_ROWS username, adminlog.* FROM adminlog LEFT JOIN admin ON adminlog.userid=admin.userid";
+	$query = "SELECT SQL_CALC_FOUND_ROWS * FROM adminlog";
 	if($uid)
-		$query .= " WHERE " . $mods->db->prepare("adminlog.userid = ?", getUserID($uid));
+		$query .= " WHERE " . $mods->db->prepare("userid = ?", getUserID($uid));
 	$query .=" ORDER BY id DESC LIMIT " . $page*$config['linesPerPage'] . ", $config[linesPerPage]";
-	$mods->db->query($query);
+	$res = $mods->db->query($query);
 
 	$rows = array();
-	while($line = $mods->db->fetchrow())
+	$uids = array();
+	while($line = $res->fetchrow()){
 		$rows[] = $line;
+		$uids[$line['userid']] = $line['userid'];
+	}
 
-	$rowresult = $mods->db->query("SELECT FOUND_ROWS()");
-	$numrows = $mods->db->fetchfield();
+	$numrows = $res->totalrows();
 	$numpages =  ceil($numrows / $config['linesPerPage']);
+
+	$usernames = getUserName($uids);
 
 	incHeader();
 
@@ -40,9 +44,10 @@
 
 	foreach($rows as $row){
 		echo "<tr>";
-		echo "<td class=body><a class=body href=profile.php?uid=$row[userid]>$row[username]</a></td>";
+		echo "<td class=body><a class=body href=/profile.php?uid=$row[userid]>" . $usernames[$row['userid']] . "</a></td>";
 		echo "<td class=body nowrap>" . userDate("F j, Y, g:i a", $row['time']) . "</td>";
-		echo "<td class=body><a class=body href=adminuser.php?ip=" . long2ip($row['ip']) . ">" . long2ip($row['ip']) . "</a></td>";
+		$ip = long2ip($row['ip']);
+		echo "<td class=body><a class=body href=/adminuser.php?type=ip&search=$ip&k=" . makeKey($ip) . ">$ip</a></td>";
 		echo "<td class=body>$row[page]</td>";
 		echo "<td class=body>$row[action]</td>";
 		echo "<td class=body>$row[description]</td>";

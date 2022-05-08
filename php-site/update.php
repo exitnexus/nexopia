@@ -9,184 +9,140 @@
 	if(!in_array($userData['userid'], $debuginfousers))
 		die("error");
 
-
 	echo str_repeat(" ",400). "\n";
 	set_time_limit(0);
 //	ignore_user_abort(true);
 
-//$mods->doPromotions($debuginfousers[0]);
+
+	$res = $masterdb->query("SELECT 2147490171 as val");
+	$val = $res->fetchrow();
+
+	var_dump($val);
+	
+	echo "<br>";
+	
+	settype($val['val'], 'int');
+	var_dump($val);
+	
+	exit;
+
+
+
+
+
+
+
 
 /*
-//convert from single db to hash balanced db
-	$tables = array("iplog" => "ip", "loginlog" => "userid", "userhitlog" => "userid");
-
-	foreach($tables as $table => $keycol){
-
-		$result = $logdb->query("SHOW CREATE TABLE `$table`");
-		$create = $logdb->fetchfield(1,0,$result);
-
-		$newlogdb->query(false, $create);
-
-		$logdb->unbuffered_query("SELECT * FROM $table");
-
-		while($line = $logdb->fetchrow()){
-			$query = "INSERT INTO $table SET ";
-
-			$parts = array();
-			foreach($line as $k => $v)
-				$parts[] = $newlogdb->prepare("$k = ?", $v);
-
-			$query .= implode(", ", $parts);
-
-			$newlogdb->query($line[$keycol], $query);
-		}
+	$res = $db->query("SELECT * FROM config ORDER BY name");
+	
+	$str = "\$config = array(\n";
+	
+	while($line = $res->fetchrow()){
+		$str .= "\t'$line[name]' => '" . addslashes($line['value']) . "',";
+		if($line['comments'])
+			$str .= " //$line[comments]";
+		$str .= "\n";
 	}
-*/
-
-/*
-//get my messages
-INSERT INTO msgsold.msgs SELECT * FROM nexopia3.msgs WHERE nexopia3.msgs.userid = 1;
-//get message headers
-INSERT INTO msgsold.msgheader SELECT nexopia3.msgheader.* FROM nexopia3.msgs, nexopia3.msgheader WHERE nexopia3.msgs.msgheaderid = nexopia3.msgheader.id && nexopia3.msgs.userid = 1;
-//get other side of my messages
-INSERT INTO msgsold.msgs
-	SELECT
-			othermsgs.*
-		FROM
-			nexopia3.msgs,
-			nexopia3.msgheader,
-			nexopia3.msgs as othermsgs
-		WHERE
-			nexopia3.msgs.userid = 1 &&
-			nexopia3.msgs.msgheaderid = nexopia3.msgheader.id &&
-			othermsgs.msgheaderid = nexopia3.msgheader.id &&
-			othermsgs.userid != 1;
-
-
-
-UPDATE msgsold.msgheader SET id1 = 0, id2 = 0, reply1 = 0, reply2 = 0;
-TRUNCATE TABLE msgsnew.msgs;
-*/
-
-/*
-ALTER TABLE `msgsold.msgheader`
-	ADD `id1` INT UNSIGNED NOT NULL ,
-	ADD `id2` INT UNSIGNED NOT NULL ,
-	ADD `reply1` INT UNSIGNED NOT NULL ,
-	ADD `reply2` INT UNSIGNED NOT NULL ;
-
-
-ALTER TABLE `msgtext`
-	ADD `date` INT NOT NULL AFTER `id` ,
-	ADD `compressed` ENUM( 'n', 'y' ) NOT NULL AFTER `date` ,
-	ADD `html` ENUM( 'n', 'y' ) NOT NULL AFTER `compressed` ,
-	ADD INDEX ( `date` ) ,
-	MAX_ROWS=4294967295 AVG_ROW_LENGTH=50;
-
-
-
-UPDATE msgsold.msgheader, msgsold.msgs
-	SET msgsold.msgheader.id1 = msgsold.msgs.id
-	WHERE msgsold.msgs.msgheaderid = msgsold.msgheader.id && userid = `to`;
-
-UPDATE msgsold.msgheader, msgsold.msgs
-	SET msgsold.msgheader.id2 = msgsold.msgs.id
-	WHERE msgsold.msgs.msgheaderid = msgsold.msgheader.id && userid = `from`;
-
-
-
-
-UPDATE	msgsold.msgheader as msgheader,
-		msgsold.msgheader as replyheader,
-		msgsold.msgs as msgs
-	SET msgheader.reply1 = msgs.id
-	WHERE
-		msgheader.replyto = replyheader.id &&
-		replyheader.id = msgs.msgheaderid &&
-		replyheader.`to` = msgs.userid;
-
-UPDATE	msgsold.msgheader as msgheader,
-		msgsold.msgheader as replyheader,
-		msgsold.msgs as msgs
-	SET msgheader.reply2 = msgs.id
-	WHERE
-		msgheader.replyto = replyheader.id &&
-		replyheader.id = msgs.msgheaderid &&
-		replyheader.`from` = msgs.userid;
-
-
-
-
-
-INSERT INTO msgsnew.msgs (id, userid, folder, otheruserid , `to`, toname, `from`, fromname, date, subject, msgtextid, status, othermsgid, replyto)
-	SELECT msgsold.msgs.id, userid, folder, other, `to`, toname, `from`, fromname, date, subject, msgtextid,
-		IF(replied = 'y', 'replied', IF(new = 'y', 'new', 'read')),
-		IF(userid = `to`, id2, id1),
-		IF(userid = `to`, reply2, reply1)
-	FROM msgsold.msgs, msgsold.msgheader
-	WHERE msgsold.msgs.msgheaderid = msgsold.msgheader.id;
-
-
-$db->prepare_query("UPDATE msgtext SET date = #, html = 'n', compressed = 'n'", time());
-
-*/
-
-
-/*
-//get table list
-	$tables = array();
-
-	foreach($dbs as $dbname => $optdb){
-		$tableresult = $dbs[$dbname]->listtables();
-
-		while(list($tname) = $dbs[$dbname]->fetchrow($tableresult, DB_NUM)){
-
-			echo "$dbname.$tname<br>";
-
-			$result = $dbs[$dbname]->query("SHOW CREATE TABLE `$tname`");
-			$output = $dbs[$dbname]->fetchfield(1,0,$result);
-
-			$tables[$tname] = "-- $dbname.$tname\n$output";
-		}
-	}
-
-	ksort($tables);
-
+	$str .= "\t);";
+	
 	echo "<pre>";
-	echo implode("\n\n------------------------\n\n", $tables);
+	echo $str;
 	echo "</pre>";
+	
+
+	
+	exit;
+
+/*
+	$res = $msgsdb->query("SELECT id, msgtextid FROM msgs");
+
+	while($line = $res->fetchrow())
+		$msgsdb->prepare_query("INSERT INTO msgtext SELECT #, date, html, msg FROM msgtextold WHERE id = #", $line['id'], $line['msgtextid']);
+/* /
+	$msgsdb->query("INSERT INTO msgtext SELECT msgs.id, msgtextold.date, msgtextold.html, msgtextold.msg FROM msgs, msgtextold WHERE msgs.msgtextid = msgtextold.id");
 //*/
 
-//*
-//convert tables to MyISAM
-	foreach($dbs as $dbname => $optdb){
-		$tableresult = $dbs[$dbname]->listtables();
 
-		while(list($tname) = $dbs[$dbname]->fetchrow($tableresult, DB_NUM)){
 
-			echo "$dbname.$tname";
+/*
+	$db->prepare_query("SELECT id FROM articles WHERE moded = 'n'");
 
-			$result = $dbs[$dbname]->query("SHOW CREATE TABLE `$tname`");
-			$output = $dbs[$dbname]->fetchfield(1,0,$result);
+	while($line = $db->fetchrow())
+		$mods->newItem(MOD_ARTICLE, $line['id']);
+*/
 
-			if(strpos($output, "InnoDB") !== 0){
-				echo " ... converting ... "; zipflush();
 
-				$dbs[$dbname]->query("ALTER TABLE `$tname` TYPE = MyISAM");
+/*
 
-				echo "Done";
-			}
+	$picsdb->query("SELECT id FROM pics");
 
-			echo "<br>\n"; zipflush();
-		}
+	$pics = array();
+	while($line = $picsdb->fetchrow())
+		$pics[] = $line['id'];
+
+	sort($pics);
+
+	echo implode(',', $pics);
+
+	$fp = fopen("/home/nexopia/public_html/users/pics.txt", 'w');
+	fwrite($fp, implode(',', $pics);
+	fclose($fp);
+
+
+
+/*
+<?
+	$filename = "pics.txt";
+
+	$file = file_get_contents($filename);
+	$pics = explode(',', $file);
+
+	$last = end($pics);
+
+	$pics = array_combine($pics, $pics);
+
+	for($i=1; $i < $last; $i++){
+		if($i % 1000 == 0)
+			echo ($i/1000) . " ";
+
+		if(isset($pics[$i]))
+			continue;
+
+		if(file_exists("/home/nexopia/public_html/users/" . floor($i/1000) . "/$i.jpg"))
+				unlink("/home/nexopia/public_html/users/" . floor($i/1000) . "/$i.jpg");
+
+		if(file_exists("/home/nexopia/public_html/users/thumbs/" . floor($i/1000) . "/$i.jpg"))
+				unlink("/home/nexopia/public_html/users/thumbs/" . floor($i/1000) . "/$i.jpg");
 	}
-//*/
+*/
+
+
+
+/*
+	$filesdb->prepare_query("SELECT file FROM fileupdates WHERE time >= # && action='delete'", time() - 86400*90);
+
+	$commands = "";
+
+	$files = array();
+	while($line = $filesdb->fetchrow()){
+		$files[] = $line['file'];
+		$commands .= "rm -f $docRoot$line[file]\n";
+	}
+
+	echo "<pre>$commands</pre>";
+*/
+
+
+
+
+
+//DELETE forumposts FROM forumposts LEFT JOIN forumthreads ON forumthreads.id = forumposts.threadid WHERE forumposts.threadid IS NULL
 
 
 	echo "\n<br>\n<br>Update Complete<br>\n";
 	$endTime = gettime();
-	$dtime = number_format(($endTime - $startTime)/10000,4);
+	$dtime = number_format(($endTime - $times['start'])/10000,4);
 	echo "Run-time $dtime seconds<br>\n";
 
 	outputQueries();
-

@@ -16,9 +16,9 @@
 
 //invite
 	if($userData['loggedIn']){
-		$forums->db->prepare_query("SELECT forums.*,$default as new FROM forums,foruminvite WHERE forums.id=foruminvite.forumid && foruminvite.userid = ?", $userData['userid']);
+		$res = $forums->db->prepare_query("SELECT forums.*,$default as new FROM forums,foruminvite WHERE forums.id=foruminvite.forumid && foruminvite.userid = ?", $userData['userid']);
 
-		while($line = $forums->db->fetchrow()){
+		while($line = $res->fetchrow()){
 			$forumdata[$line['id']] = $line;
 			$forumids[$line['id']] = $line['id'];
 			$forumtypes['invite'][$line['name']] = $line['id'];
@@ -27,85 +27,54 @@
 	}
 
 //latest
-	$forums->db->prepare_query("SELECT forums.*,$default as new FROM forums USE KEY (time) WHERE official='n' && public='y' && time >= ? ORDER BY time DESC LIMIT 10", time() - 10800);
+	$res = $forums->db->prepare_query("SELECT forums.*,$default as new FROM forums USE KEY (time) WHERE official='n' && public='y' && time >= ? ORDER BY time DESC LIMIT 10", time() - 10800);
 
-	while($line = $forums->db->fetchrow()){
+	while($line = $res->fetchrow()){
 		$forumdata[$line['id']] = $line;
 		$forumids[$line['id']] = $line['id'];
 		$forumtypes['latest'][] = $line['id'];
 	}
 
 //most
-	$forums->db->query("SELECT forums.*,$default as new FROM forums WHERE official='n' && public='y' ORDER BY posts DESC LIMIT 10");
+	$res = $forums->db->query("SELECT forums.*,$default as new FROM forums WHERE official='n' && public='y' ORDER BY posts DESC LIMIT 10");
 
-	while($line = $forums->db->fetchrow()){
+	while($line = $res->fetchrow()){
 		$forumdata[$line['id']] = $line;
 		$forumids[$line['id']] = $line['id'];
 		$forumtypes['most'][] = $line['id'];
 	}
 
 	if($userData['loggedIn']){
-		$forums->db->prepare_query("SELECT forumid,time FROM forumupdated WHERE userid = ? && forumid IN (?)", $userData['userid'], $forumids);
+		$res = $forums->db->prepare_query("SELECT forumid,time FROM forumupdated WHERE userid = ? && forumid IN (?)", $userData['userid'], $forumids);
 
-		while($line = $forums->db->fetchrow())
+		while($line = $res->fetchrow())
 			$forumdata[$line['forumid']]['new'] = (int)($line['time'] < $forumdata[$line['forumid']]['time']);
 	}
 
-	incHeader(false);
-
-	echo "<table width=100% border=0 cellspacing=1 cellpadding=2>";
-	echo "<tr><td class=header2>Forum</td>";
-	echo "<td class=header2 align=center>Topics</td>";
-//	echo "<td class=header2>Owner</td>";
-	echo "<td class=header2 align=center>Posts</td>";
-	echo "<td class=header2 align=right>Last Post</td></tr>";
-
+	
+	$showInvite = false;
+	$showLatest = false;
+	$showMost = false;
+	
 	if(count($forumtypes['invite']) > 0){
-		echo "<tr><td class=header colspan=4><b>Invites</b></td></tr>\n";
-		foreach($forumtypes['invite'] as $id){
-			$line = $forumdata[$id];
-			echo "<tr><td class=body><a class=forumlst$line[new] href=\"forumthreads.php?fid=$line[id]\"><b>$line[name]</b></a><br>&nbsp;&nbsp;&nbsp;&nbsp;$line[description]</td>";
-//			echo "<td class=body>$line[owner]</td>";
-			echo "<td class=body align=center>$line[threads]</td>";
-			echo "<td class=body align=center>$line[posts]</td>";
-			echo "<td class=body nowrap align=right>" . ($line['time']==0 ? "Never" : userdate("M j, y g:i a",$line['time']) ) . "</td></tr>\n";
-		}
+		$showInvite = true;
 	}
 
 	if(count($forumtypes['latest']) > 0){
-		echo "<tr><td class=header colspan=4><b>Most Recent Posts</b></td></tr>\n";
-		foreach($forumtypes['latest'] as $id){
-			$line = $forumdata[$id];
-			echo "<tr><td class=body><a class=forumlst$line[new] href=\"forumthreads.php?fid=$line[id]\"><b>$line[name]</b></a><br>&nbsp;&nbsp;&nbsp;&nbsp;$line[description]</td>";
-//			echo "<td class=body>$line[owner]</td>";
-			echo "<td class=body align=center>$line[threads]</td>";
-			echo "<td class=body align=center>$line[posts]</td>";
-			echo "<td class=body nowrap align=right>" . ($line['time']==0 ? "Never" : userdate("M j, y g:i a",$line['time']) ) . "</td></tr>\n";
-		}
+		$showLatest = true;
 	}
 
 	if(count($forumtypes['most']) > 0){
-		echo "<tr><td class=header colspan=4><b>Most Active Overall</b></td></tr>\n";
-		foreach($forumtypes['most'] as $id){
-			$line = $forumdata[$id];
-			echo "<tr><td class=body><a class=forumlst$line[new] href=\"forumthreads.php?fid=$line[id]\"><b>$line[name]</b></a><br>&nbsp;&nbsp;&nbsp;&nbsp;$line[description]</td>";
-//			echo "<td class=body>$line[owner]</td>";
-			echo "<td class=body align=center>$line[threads]</td>";
-			echo "<td class=body align=center>$line[posts]</td>";
-			echo "<td class=body nowrap align=right>" . ($line['time']==0 ? "Never" : userdate("M j, y g:i a",$line['time']) ) . "</td></tr>\n";
-		}
+		$showMost = true;
 	}
-	echo "<tr><td class=header colspan=4>";
-
-	$numonline = $forums->forumsNumOnline();
-
-	echo "<table width=100%><tr><td class=header>Users in all forums: $numonline</td>";
-	if($userData['loggedIn'] && $userData['premium'])
-		echo "<td class=header align=right><a class=header href=forumcreateforum.php>Create Forum</a></td>";
-	echo "</tr></table>";
-	echo "</td></tr>";
-
-	echo "</table>";
-
-	incFooter();
+	
+	$template = new template('forums/forumsusercreated');
+	$template->set('numonline', $forums->forumsNumOnline());
+	$template->set('showInvite', $showInvite);
+	$template->set('showLatest', $showLatest);
+	$template->set('showMost', $showMost);
+	$template->set('userdata', $userdata);
+	$template->set('forumdata', $forumdata);
+	$template->set('forumtypes', $forumtypes);
+	$template->display();
 

@@ -7,14 +7,14 @@
 	if(!($id = getREQval('id', 'int')))
 		die("bad page id");
 
-	$content = getStaticValue($id, false);
+	$data = getStaticValue($id, false, true);
 
-	if(!$content)
+	if(!$data)
 		die("bad page id");
 
-	incHeader();
+	incHeader( ($data['pagewidth'] ? $data['pagewidth'] : true) );
 
-	echo $content;
+	echo $data['content'];
 
 	incFooter();
 

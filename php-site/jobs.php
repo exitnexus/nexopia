@@ -159,7 +159,7 @@ The successful candidate will have to either live in Edmonton, or be willing to 
 <br>
 Please forward your resume with a cover letter and salary expectations by email to:
 <br>
-<a class=body href="mailto:rob@nexopia.com">rob@nexopia.com</a>
+<a class=body href="mailto:jobs@nexopia.com">rob@nexopia.com</a>
 <br>
 in Microsoft Word, PDF, Plain Text or OpenOffice format
 <br>

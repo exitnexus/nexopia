@@ -60,7 +60,7 @@ function pos(){
 		}
 	}
 
-	var ret = "top:"+ ((t + basetop)*h) +"px; left:"+ (((l+baseleft) * w)+((section%3)*w*6)) + "px; ";
+	var ret = "top:" + ((t + basetop) * h) + "px; left:" + (((l + baseleft) * w)+((section % 3) * w * 6)) + "px; ";
 
 	if(section==1 || section==4){
 		l--;
@@ -116,7 +116,8 @@ function putinnerHTML(div,str){
 	if(document.all){
 		document.all[div].innerHTML = str;
 	}else{
-		eval("document.getElementById('" + div + "').innerHTML = str;");
+		document.getElementById(div).innerHTML = str;
+		//eval("document.getElementById('" + div + "').innerHTML = str;");
 	}
 }
 

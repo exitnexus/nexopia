@@ -117,7 +117,7 @@ while(1){
 	define("BANNER_STATE_SLAVE", 2);
 	define("BANNER_STATE_ELECT", 3);
 
-	$bannerserver = & new bannerserver( $bannerdb );
+	$bannerserver = new bannerserver( $bannerdb );
 
 	$serverid = rand(1, getrandmax()-1);
 	$serverip = '';

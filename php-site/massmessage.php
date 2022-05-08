@@ -12,21 +12,26 @@
 
 	if($action == "Send Message"){
 
-		$usernames = preg_split("/[\s]+/", $to);
+		$to = trim(getPOSTval('to'));
+		$subject = getPOSTval('subject');
+		$msg = getPOSTval('msg');
 
-		$uids = array();
-		foreach($usernames as $to)
-			$uids[] = getUserID($to);
-
-		$messaging->deliverMsg($uids, $subject, $msg);
-
-
-		incHeader();
-
-		echo "Message Sent";
-
-		incFooter();
-		exit;
+		if($to && $subject && $msg){
+			$usernames = preg_split("/[\s]+/", $to);
+	
+			$uids = getUserID($usernames);
+		
+	
+			$messaging->deliverMsg($uids, $subject, $msg);
+	
+	
+			incHeader();
+	
+			echo "Message Sent";
+	
+			incFooter();
+			exit;
+		}
 	}
 
 	incHeader();

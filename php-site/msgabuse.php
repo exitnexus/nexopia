@@ -32,15 +32,13 @@
 
 	$page = getREQval('page', 'int');
 
-	$db->prepare_query("SELECT SQL_CALC_FOUND_ROWS * FROM msgdump WHERE userid = ? ORDER BY date ASC LIMIT " . ($page*25) . ", 25", $uid);
+	$res = $db->prepare_query("SELECT SQL_CALC_FOUND_ROWS * FROM msgdump WHERE userid = ? ORDER BY date ASC LIMIT " . ($page*25) . ", 25", $uid);
 
 	$rows = array();
-	while($line = $db->fetchrow())
+	while($line = $res->fetchrow())
 		$rows[] = $line;
 
-
-	$db->query("SELECT FOUND_ROWS()");
-	$numrows = $db->fetchfield();
+	$numrows = $res->totalrows();
 	$numpages =  ceil($numrows / $config['linesPerPage']);
 
 	incHeader();
@@ -51,7 +49,7 @@
 		echo "	<tr><td class=header>To:</td><td class=header>";
 
 		if($data['to'])
-			echo "<a class=header href=profile.php?uid=$data[to]>$data[toname]</a>";
+			echo "<a class=header href=/profile.php?uid=$data[to]>$data[toname]</a>";
 		else
 			echo "$data[toname]";
 
@@ -60,7 +58,7 @@
 		echo "	<tr><td class=header>From:</td><td class=header>";
 
 		if($data['from'])
-			echo "<a class=header href=profile.php?uid=$data[from]>$data[fromname]</a>";
+			echo "<a class=header href=/profile.php?uid=$data[from]>$data[fromname]</a>";
 		else
 			echo "$data[fromname]";
 

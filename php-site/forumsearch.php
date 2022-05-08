@@ -3,7 +3,7 @@
 	$login=1;
 
 	require_once("include/general.lib.php");
-	
+
 	$searchtimes = array(0 => "Anytime",
 						 1 => "1 Day",
 						 2 => "2 Days",
@@ -12,15 +12,15 @@
 						 14 => "2 Weeks",
 						 30 => "1 Month",
 						 60 => "2 Months");
-	
+
 
 	$query = "SELECT id,name FROM forums" . (isAdmin($userData['userid']) ? '' : " WHERE adminonly='n'" ) . " ORDER BY priority";
 	$result = mysql_query($query);
 	while($line=mysql_fetch_assoc($result))
 		$forums[$line['id']]=$line['name'];
-	
+
 	sqlSafe(&$search);
-	
+
 	if(!isset($search['text']))
 		$search['text']="";
 	if(!isset($search['searchin']) || !($search['searchin']=="topic" || $search['searchin']=="text" || $search['searchin']=="both"))
@@ -33,23 +33,23 @@
 		$search['ageval']="newer";
 	if(!isset($search['age']) || !in_array($search['age'],array_keys($searchtimes)))
 		$search['age']=30;
-	
-	if(isset($action) && ($search['text']!="" || $search['author']!="")){	
+
+	if(isset($action) && ($search['text']!="" || $search['author']!="")){
 
 		$query = "SELECT DISTINCT forumthreads.id, forumthreads.forumid, forumthreads.title, forumthreads.author, forumthreads.authorid, forumthreads.lastauthor, forumthreads.lastauthorid, forumthreads.reads, forumthreads.posts, forumthreads.time, forumthreads.locked, forumthreads.sticky,'0' as new, '0' as subscribe";
 		$query .= " FROM forumposts,forumthreads,forums WHERE ";
-		
+
 		$commands[] = "forumthreads.id=forumposts.threadid";
 		$commands[] = "forums.id=forumthreads.forumid";
-		
-		
+
+
 		if(!isAdmin($userData['userid']))
 			$commands[] = "forums.adminonly='n'";
 		if($search['forums']!=0)
 			$commands[] = "forums.id = '$search[forums]'";
 		if($search['age']!=0)
 			$commands[] = "forumposts.time " . ($search['ageval']=='newer'? ">" : "<") . (time() - $search['age']*24*3600);
-	
+
 		$searchstr = str_replace(array('%','_'),array('\%','\_'),$search['text']);
 
 		if($search['searchin']=='text'){
@@ -83,7 +83,7 @@
 
 		$query .= implode(" && ",$commands);
 		$query .= " ORDER BY forumposts.time DESC";
-		
+
 		$result = mysql_query($query);
 
 
@@ -110,7 +110,7 @@
 
 
 		$query .= " ORDER BY forumposts.time DESC";
-		
+
 		$result = mysql_query($query);
 */
 
@@ -130,10 +130,10 @@
 			$subscribes = array();
 			$query = "SELECT threadid,time,subscribe FROM forumread WHERE userid='$userData[userid]' && (" . implode(" || ", $threadids) . ")";
 			$result = mysql_query($query);
-	
+
 			while($line = mysql_fetch_assoc($result))
 				$subscribes[$line['threadid']] = $line;
-			
+
 			foreach($threaddata as $threadid => $data){
 				if(!isset($subscribes[$threadid])){
 					if($readalltime < $threaddata[$threadid]['time'])
@@ -146,9 +146,9 @@
 		}
 	}
 
-	
+
 	incHeader(false);
-	
+
 	if(isset($action) && ($search['text']!="" || $search['author']!="")){
 		echo "<table width=100% cellspacing=1 cellpadding=3>";
 		echo "<tr><td class=header width=120>Forum</td><td class=header>Topics</td><td class=header width=120>Author</td><td class=header width=40>Replies</td><td class=header width=40>Views</td><td class=header width=120>Last Post</td></tr>\n";
@@ -159,18 +159,18 @@
 
 
 
-	
+
 			echo "<tr>";
-			
-	
-			echo "<td class=forumlst nowrap><a class=forumlst href=listthreads.php?fid=$line[forumid]>" . $forums[$line['forumid']] . "</a></td>";
-	
+
+
+			echo "<td class=forumlst nowrap><a class=forumlst href=/listthreads.php?fid=$line[forumid]>" . $forums[$line['forumid']] . "</a></td>";
+
 			echo "<td class=forumlst>";
 			if($line['locked']=='y')
 				echo "<img src=/images/locked.png> ";
 			if($line['sticky']=='y')
 				echo "<img src=/images/up.png> ";
-			echo "<a class=forumlst$line[new] href=viewthread.php?tid=$line[id]>";
+			echo "<a class=forumlst$line[new] href=/viewthread.php?tid=$line[id]>";
 			if($line['subscribe'])
 				echo "<b>$line[title]</b>";
 			else
@@ -178,26 +178,26 @@
 			echo "</a></td><td class=forumlst>";
 			$uid = getUserId($line['author']);
 			if($uid==$line['authorid'])
-				echo "<a class=forumlst href=profile.php?uid=$line[authorid]>$line[author]</a>";
+				echo "<a class=forumlst href=/profile.php?uid=$line[authorid]>$line[author]</a>";
 			else
 				echo "$line[author]";
 			echo "</td><td class=forumlst>$line[posts]</td><td class=forumlst>$line[reads]</td>";
 			echo "<td class=forumlst nowrap>" . userdate("M j, y g:i a",$line['time']);
-	
+
 			echo "<br>by ";
 			$uid = getUserId($line['lastauthor']);
 			if($uid==$line['lastauthorid'])
-				echo "<a class=forumlst href=profile.php?uid=$line[lastauthorid]>$line[lastauthor]</a>";
+				echo "<a class=forumlst href=/profile.php?uid=$line[lastauthorid]>$line[lastauthor]</a>";
 			else
 				echo "$line[lastauthor]";
-	
+
 			echo "</td></tr>\n";
 		}
 		echo "</table>";
-	
+
 	}
-	
-	
+
+
 	echo "<table border=0 cellspacing=1 cellpaccing=3><form action=$_SERVER[PHP_SELF] method=get>";
 	echo "<tr><td class=header valign=top align=right>Search for:</td><td class=body>";
 	echo "	<input class=body type=text name=search[text] value=\"$search[text]\"><br>";
@@ -216,10 +216,10 @@
 	echo "<tr><td class=header valign=top align=right>Only return results</td><td class=body>";
 	echo "	<select class=body name=search[ageval]><option value=newer" . ($search['ageval']=='newer'? " selected" : "") . ">Newer";
 	echo "<option value=older" . ($search['ageval']=='older'? " selected" : "") . ">Older</select>";
-	
+
 	echo "	than <select class=body name=search[age]>" . make_select_list_key($searchtimes,$search['age']) ."</select>";
 	echo "</td></tr>";
 	echo "<tr><td class=header>&nbsp;</td><td class=header><input class=body type=submit name=action value=Search></td></tr>";
 	echo "</form></table>";
-	
+
 	incFooter();

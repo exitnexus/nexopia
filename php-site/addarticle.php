@@ -1,115 +1,131 @@
 <?
+	$login = 1;
 
-	$login=1;
+	require_once('include/general.lib.php');
 
-	require_once("include/general.lib.php");
-
-	$cats = & new category( $db, "cats");
-
+	$cats = new category($articlesdb, "cats");
 	$branch = $cats->makebranch();
 
-	switch($action){
-		case "Preview":
-		case "Post":
+	switch ($action) {
+		case 'Preview':
+		case 'Post':
+			$category = getPOSTval('category');
+			$title = getPOSTval('title');
+			$msg = getPOSTval('msg');
+			$parse_bbcode = getPOSTval('parse_bbcode', 'bool');
 
-			addArticle($category,$title,$msg,$action);
+			if($category && $title && $msg)
+				addArticle($category, $title, $msg, $action, $parse_bbcode);
 			break;
+
+
 	}
 
-	incHeader();
-
-	echo "<table align=center>";
-	echo "<form method=post action=$_SERVER[PHP_SELF] name=editbox>";
-	echo "<tr><td class=header colspan=2 align=center>Submit Article</td></tr>";
-	echo "<tr><td class=body>Category:</td><td class=body><select class=body name=category><option value=0>Choose a Category". makeCatSelect($branch) . "</select></td></tr>";
-	echo "<tr><td class=body>Subject:</td><td class=body><input class=body type=text name=title size=50 maxlength=255></td></tr>";
-	echo "<tr><td class=body colspan=2>";
-//	<textarea class=body name=msg cols=50 rows=10></textarea>
-	editbox("",true);
-	echo "</td></tr>";
-	echo "<tr><td class=body colspan=2>Your article will not show up until it has been approved. You will receive a message when it is accepted or denied.</td></tr>";
-	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value=Preview><input class=body type=submit name=action value=Post></td></tr>";
-	echo "</table>";
-	echo "</form>";
-
-	incFooter();
+	$template = new template('articles/addarticle/index');
+/*	if(!isset($parse_bbcode))
+		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $userData['parse_bbcode']));
+	else
+		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $parse_bbcode));*/
+	$template->set("checkbox_parsebbcode", '<input type="hidden" name="parse_bbcode" value="y"/>');
 
 
-function addArticle($category,$title,$msg,$action){
-	global $branch, $cats,$msgs,$userData,$db, $mods;
+	if(!isset($msg))
+		$msg = '';
+	ob_start();
+	editBox($msg);
+	$template->set('editBox', ob_get_contents());
+	ob_end_clean();
 
-	if(!isset($title) || strlen($title)<1){
-		$action="Preview";
-		$msgs->addMsg("Needs a Title");
-	}
-	if(strlen($title)>255){
-		$action="Preview";
-		$msgs->addMsg("Title is too short");
-	}
-	if(!isset($msg) || strlen($msg)<1){
-		$action="Preview";
-		$msgs->addMsg("No text");
-	}
-	if(strlen($msg)>65535){
-		$action="Preview";
-		$msgs->addMsg("Text is too long");
-	}
-	if(!isset($category) || !$cats->isValidCat($category)){
-		$action="Preview";
-		$msgs->addMsg("Bad category");
-	}
+	$template->setMultiple(array(
+		'catSel'	=> makeCatSelect($branch)
+	));
+	$template->display();
 
 
-	$ntitle = removeHTML($title);
-	$ntitle = trim($ntitle);
-	$narticle = removeHTML($msg);
-	$narticle2 = parseHTML($narticle);
-	$narticle3 = smilies($narticle2);
-	$narticle3 = nl2br($narticle3);
+	function addArticle($category, $title, $msg, $action, $parse_bbcode) {
+		global $branch, $cats, $msgs, $userData, $articlesdb, $mods;
+
+		if(!isset($title) || strlen($title) < 1) {
+			$action = 'Preview';
+			$msgs->addMsg('Needs a Title');
+		}
+		if(strlen($title) > 255) {
+			$action = 'Preview';
+			$msgs->addMsg('Title is too short');
+		}
+		if(!isset($msg) || strlen($msg) < 1) {
+			$action = 'Preview';
+			$msgs->addMsg('No text');
+		}
+		if(strlen($msg) > 65535) {
+			$action = 'Preview';
+			$msgs->addMsg('Text is too long');
+		}
+		if(!isset($category) || !$cats->isValidCat($category)) {
+			$action = 'Preview';
+			$msgs->addMsg('Bad category');
+		}
+
+		$ntitle = removeHTML($title);
+		$ntitle = trim($ntitle);
 
 
-	if($action=="Preview" || $ntitle=="" || (($narticle2 != $narticle || $ntitle != $title) && $action=="changed")){
-		incHeader();
+		$narticle = html_sanitizer::sanitize($msg);
 
-		echo "Some changes have been made (be it smilies, html removal, or code to html conversions). Here is a preview of what the article will look like:<hr><blockquote>\n";
 
-		echo $ntitle;
-		echo "<hr>";
-		echo $narticle3;
+		if($parse_bbcode)
+		{
+			$narticle2 = parseHTML($narticle);
+			$narticle3 = smilies($narticle2);
+			$narticle3 = nl2br($narticle3);
+		}
+		else
+			$narticle3 = $narticle;
 
-		echo "</blockquote><hr>\n";
+		if ($action == 'Preview' || $ntitle == '') {
+			$template = new template('articles/addarticle/preview');
 
-		echo "<table align=center cellspacing=0><form action=$_SERVER[PHP_SELF] method=post name=editbox>\n";
-		echo "<tr><td class=body colspan=2>You can make any changes needed below:</td></tr>\n";
-		echo "<tr><td class=body>Category:</td><td class=body><select class=body name=category><option value=0>Choose a Category" . makeCatSelect($branch,$category) . "</select></td></tr>";
-		echo "<tr><td class=body>Title:</td><td class=body><input class=body type=text name=title value=\"$title\" size=40></td></tr>\n";
-		echo "<tr><td class=body align=center colspan=2>";
+			ob_start();
+			editBox($narticle);
+			$template->set('editBox', ob_get_contents());
+			ob_end_clean();
 
-		editbox($narticle,true);
+			$template->setMultiple(array(
+				'ntitle'	=> $ntitle,
+				'narticle3'	=> $narticle3,
+				'selCat'	=> makeCatSelect($branch, $category),
+				'title'		=> $title
+			));
+/*			if(!isset($parse_bbcode))
+				$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $userData['parse_bbcode']));
+			else
+				$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $parse_bbcode));*/
+			$template->set("checkbox_parsebbcode", '<input type="hidden" name="parse_bbcode" value="y"/>');
 
-//		<textarea class=header cols=50 rows=10 name=msg wrap=virtual>$narticle</textarea>
-		echo "</td></tr>\n";
-		echo "<tr><td class=body align=center colspan=2><input type=submit name=action value=Preview><input type=submit name=action value=Post></td></tr>\n";
-		echo "</form></table>\n";
 
-		incFooter();
+			$template->display();
+			exit;
+		}
+
+		$res = $articlesdb->prepare_query(
+			"SELECT id FROM articles WHERE authorid = ? && title = ? && text = ?",
+			$userData['userid'], $ntitle, $narticle
+		);
+
+		$parse_bbcode = $parse_bbcode ? 'y': 'n';
+
+
+		if (!$res->fetchrow()) { //dupe detection
+			$articlesdb->prepare_query(
+				"INSERT INTO articles SET authorid = ?, submittime = ?, category = ?, title = ?, text = ?, parse_bbcode = ?", //, ntext = ?",
+				$userData['userid'], time(), $category, $ntitle, $narticle , $parse_bbcode//, $narticle3
+			);
+
+			$articleID = $articlesdb->insertid();
+			$mods->newItem(MOD_ARTICLE, $articleID);
+		}
+
+		header ("Location: /articlelist.php");
 		exit;
 	}
-
-	$db->prepare_query("SELECT id FROM articles WHERE authorid = ? && title = ? && text = ?", $userData['userid'], $ntitle, $narticle);
-
-	if(!$db->numrows()){ //dupe detection
-		$db->prepare_query("INSERT INTO articles SET author = ?, authorid = ?, submittime = ?, category = ?, title = ?, text = ?",//, ntext = ?",
-									$userData['username'], $userData['userid'], time(), $category, $ntitle, $narticle);//, $narticle3);
-
-		$articleID = $db->insertid();
-
-		$mods->newItem(MOD_ARTICLE,$articleID);
-	}
-
-	header ("Location: articlelist.php");
-	exit;
-}
-
-
 

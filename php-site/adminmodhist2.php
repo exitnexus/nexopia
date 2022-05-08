@@ -7,6 +7,8 @@
 	if(!$mods->isAdmin($userData['userid'],"listmods"))
 		die("Permission denied");
 
+	$sortt = getREQval('sortt');
+	$sortd = getREQval('sortd');
 
 	isValidSortd($sortd,'ASC');
 
@@ -24,15 +26,15 @@
 	$day = gmdate("j", $startdate);
 	$year = gmdate("Y", $startdate);
 
-	$mods->db->prepare_query("SELECT userid, username, `right`, `wrong`, strict, lenient, level, time, creationtime FROM mods WHERE type = #", $type);
+	$res = $mods->db->prepare_query("SELECT userid, `right`, `wrong`, strict, lenient, level, time, creationtime FROM mods WHERE type = #", $type);
 
 	$rows = array();
-	while($line = $mods->db->fetchrow())
+	while($line = $res->fetchrow())
 		$rows[$line['userid']][0] = $line;
 
-	$mods->db->prepare_query("SELECT userid, `right`, `wrong`, strict, lenient, level FROM modhist WHERE type = ? && dumptime BETWEEN # AND #", $type, $startdate, $startdate + 86399);
+	$res = $mods->db->prepare_query("SELECT userid, `right`, `wrong`, strict, lenient, level FROM modhist WHERE type = ? && dumptime BETWEEN # AND #", $type, $startdate, $startdate + 86399);
 
-	while($line = $mods->db->fetchrow())
+	while($line = $res->fetchrow())
 		$rows[$line['userid']][1] = $line;
 
 
@@ -41,6 +43,8 @@
 						'strict' => 0,
 						'lenient' => 0,
 						'level' => 0);
+
+	$usernames = getUserName(array_keys($rows));
 
 	$users = array();
 
@@ -55,7 +59,7 @@
 		$user = array();
 
 		$user['userid'] = $userid;
-		$user['username'] = $line[0]['username'];
+		$user['username'] = $usernames[$userid];
 		$user['time'] = $line[0]['time'];
 		$user['creationtime'] = $line[0]['creationtime'];
 
@@ -122,22 +126,22 @@
 
 	$params = array('month' => $month, 'day' => $day, 'year' => $year, 'type' => $type);
 	echo "<tr>";
-		makeSortTableHeader(0,"Username","username", $params);
-		makeSortTableHeader(0,"Level","level", $params);
-		makeSortTableHeader(0,"Total","total", $params);
-		makeSortTableHeader(0,"Total","totalt", $params);
-		makeSortTableHeader(0,"Right","right", $params);
-		makeSortTableHeader(0,"Right","rightt", $params);
-		makeSortTableHeader(0,"Wrong","wrong", $params);
-		makeSortTableHeader(0,"Wrong","wrongt", $params);
-		makeSortTableHeader(0,"Strict","strict", $params);
-		makeSortTableHeader(0,"Strict","strictt", $params);
-		makeSortTableHeader(0,"Lenient","lenient", $params);
-		makeSortTableHeader(0,"Lenient","lenientt", $params);
-		makeSortTableHeader(0,"Percent","percent", $params);
-		makeSortTableHeader(0,"Percent","percentt", $params);
-		makeSortTableHeader(0,"Last Moded","time", $params);
-		makeSortTableHeader(0,"Creation Time","creationtime", $params);
+		echo makeSortTableHeader("Username","username", $params);
+		echo makeSortTableHeader("Level","level", $params);
+		echo makeSortTableHeader("Total","total", $params);
+		echo makeSortTableHeader("Total","totalt", $params);
+		echo makeSortTableHeader("Right","right", $params);
+		echo makeSortTableHeader("Right","rightt", $params);
+		echo makeSortTableHeader("Wrong","wrong", $params);
+		echo makeSortTableHeader("Wrong","wrongt", $params);
+		echo makeSortTableHeader("Strict","strict", $params);
+		echo makeSortTableHeader("Strict","strictt", $params);
+		echo makeSortTableHeader("Lenient","lenient", $params);
+		echo makeSortTableHeader("Lenient","lenientt", $params);
+		echo makeSortTableHeader("Percent","percent", $params);
+		echo makeSortTableHeader("Percent","percentt", $params);
+		echo makeSortTableHeader("Last Moded","time", $params);
+		echo makeSortTableHeader("Creation Time","creationtime", $params);
 	echo "</tr>";
 
 	$nummods = 0;
@@ -155,11 +159,16 @@
 
 	$isAdmin = $mods->isAdmin($userData['userid'],"editmods");
 
-	foreach($users as $line){
-		echo "<tr>";
-		echo "<td class=body><a class=body href=profile.php?uid=$line[userid]>$line[username]</a></td>";
+	$classes = array('body','body2');
+	$i = 1;
 
-		echo "<td class=body>";
+	foreach($users as $line){
+		$class = $classes[$i = !$i];
+	
+		echo "<tr>";
+		echo "<td class=$class><a class=body href=/profile.php?uid=$line[userid]>$line[username]</a></td>";
+
+		echo "<td class=$class>";
 		if($isAdmin){
 			$newlevel = $mods->suggestedModLevel($line['right'], $line['percent'], $line['level']);
 			if($newlevel > $line['level'])
@@ -173,14 +182,14 @@
 		}
 		echo "</td>";
 
-		echo "<td class=body align=right colspan=2>" . number_format($line['total']) . " / " .  number_format($line['totalt']) . "</td>";
-		echo "<td class=body align=right colspan=2>" . number_format($line['right']) . " / " .  number_format($line['rightt']) . "</td>";
-		echo "<td class=body align=right colspan=2>" . number_format($line['wrong']) . " / " .  number_format($line['wrongt']) . "</td>";
-		echo "<td class=body align=right colspan=2>" . number_format($line['strict']) . " / " .  number_format($line['strictt']) . "</td>";
-		echo "<td class=body align=right colspan=2>" . number_format($line['lenient']) . " / " .  number_format($line['lenientt']) . "</td>";
-		echo "<td class=body align=right colspan=2>" . number_format($line['percent'],2) . " / " . number_format($line['percentt'],2) . " %</td>";
-		echo "<td class=body>" . ($line['time'] == 0 ? "Never" : userDate("M j, Y G:i", $line['time']) ) . "</td>";
-		echo "<td class=body>" . ($line['creationtime'] == 0 ? "Unknown" : userDate("M j, Y G:i", $line['creationtime']) ) . "</td>";
+		echo "<td class=$class align=right colspan=2>" . number_format($line['total']) . " / " .  number_format($line['totalt']) . "</td>";
+		echo "<td class=$class align=right colspan=2>" . number_format($line['right']) . " / " .  number_format($line['rightt']) . "</td>";
+		echo "<td class=$class align=right colspan=2>" . number_format($line['wrong']) . " / " .  number_format($line['wrongt']) . "</td>";
+		echo "<td class=$class align=right colspan=2>" . number_format($line['strict']) . " / " .  number_format($line['strictt']) . "</td>";
+		echo "<td class=$class align=right colspan=2>" . number_format($line['lenient']) . " / " .  number_format($line['lenientt']) . "</td>";
+		echo "<td class=$class align=right colspan=2>" . number_format($line['percent'],2) . " / " . number_format($line['percentt'],2) . " %</td>";
+		echo "<td class=$class>" . ($line['time'] == 0 ? "Never" : userDate("M j, Y G:i", $line['time']) ) . "</td>";
+		echo "<td class=$class>" . ($line['creationtime'] == 0 ? "Unknown" : userDate("M j, Y G:i", $line['creationtime']) ) . "</td>";
 		echo "</tr>";
 		$nummods++;
 

@@ -67,8 +67,8 @@
 function editMirror($id){
 	global $db, $mirrortypes, $mods;
 
-	$db->prepare_query("SELECT id, weight, type, domain, plus, cookie, status FROM mirrors WHERE id = ?", $id);
-	$line = $db->fetchrow();
+	$res = $db->prepare_query("SELECT id, weight, type, domain, plus, cookie, status FROM mirrors WHERE id = #", $id);
+	$line = $res->fetchrow();
 
 	$mods->adminlog('edit mirror',"edit mirror $line[domain]");
 

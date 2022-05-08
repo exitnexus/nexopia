@@ -1,0 +1,14 @@
+
+{loop : $array as $key => $value }
+| {$key} - {$value} |
+{if : $value == 10 }
+    test 
+{elseif: $value > 12}
+    nottest
+{else}
+    other
+{endif}
+<br>
+{endloop}
+
+

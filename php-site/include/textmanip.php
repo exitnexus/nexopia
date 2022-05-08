@@ -25,10 +25,10 @@ function truncate($text,$length){
 function getCensoredWords(){
 	global $db;
 
-	$db->query("SELECT word FROM bannedwords WHERE type='word'");
+	$res = $db->query("SELECT word FROM bannedwords WHERE type='word'");
 
 	$censoredWords = array();
-	while($line = $db->fetchrow())
+	while($line = $res->fetchrow())
 		$censoredWords[] = $line['word'];
 
 	return $censoredWords;
@@ -61,48 +61,18 @@ function removeHTML($str){
 //	return str_replace("&amp;", "&", htmlentities($str));
 }
 
-function getSmileyCodesByUsage(){
-	global $db;
-
-	$smilies = array();
-
-	$db->query("SELECT pic,code FROM smilies ORDER BY uses DESC");
-	while($line = $db->fetchrow())
-		$smilies[$line['code']] = $line['pic'];
-
-	return $smilies;
-}
-
-function getSmilies(){
-	global $db;
-
-	$db->query("SELECT pic,code FROM smilies ORDER BY length(code) DESC");
-	while($line = $db->fetchrow())
-		$smilies[$line['code']] = $line['pic'];
-
-	return $smilies;
-}
-
 function smilies($str){
 	global $db,$config, $cache;
 
-	$smilies = $cache->hdget("smilies", 0, 'getSmilies');
-
-	$updates = array();
+	$smilies = getSmilies('length');
 
 	foreach($smilies as $smile => $pic){
 //		$str1 = str_replace("$smile","<img src=\"$config[smilyloc]$pic.gif\" alt=\"$smile\">",$str);
 
 		$str1 = preg_replace("/(?i)(\s|\A|>)" . preg_quote($smile) . "(\s|\Z|<)/","\\1<img src=\"$config[smilyloc]$pic.gif\" alt=\"$smile\">\\2" ,$str);
-		if($str1 != $str)
-			$updates[$smile] = $smile;
 
 		$str = $str1;
 	}
-//*
-	if(count($updates))
-		$db->prepare_query("UPDATE smilies SET uses = uses+1 WHERE code IN (?)", $updates);
-//*/
 
 	return $str;
 }
@@ -181,12 +151,14 @@ function spamfilter($msg){
 		elseif($msg[$i]=='>' || $msg[$i]==']')
 			$html=false;
 
-		if(in_array($msg[$i], array(' ', "\t", "\n", "\r", '[', ']', '<', '>'))){
-			if($wordlen > 35)
-				$total += $wordlen;
-			$wordlen=0;
-		}else
-			$wordlen++;
+		if(!$html){
+			if(in_array($msg[$i], array(' ', "\t", "\n", "\r", '[', ']', '<', '>'))){
+				if($wordlen > 35)
+					$total += $wordlen;
+				$wordlen=0;
+			}else
+				$wordlen++;
+		}
 
 		$charval = ord($msg[$i]);
 		if($charval >= ord('A') && $charval <= ord('Z'))
@@ -197,11 +169,6 @@ function spamfilter($msg){
 			$whitespace++;
 		else
 			$char++;
-
-		if($wordlen>$length && $html==false){
-			$wordlen=0;
-			$count++;
-		}
 	}
 
 	if($total > 1000){
@@ -209,15 +176,16 @@ function spamfilter($msg){
 		return false;
 	}
 
-	if($length > 300){
+	if($length > 500){
 		if($whitespace > $length / 2){
 			$msgs->addMsg("Too much white space.");
 			return false;
 		}
-		if($upper > $length / 3){
+/*		if($upper > $length / 3){
 			$msgs->addMsg("Turn off Capslock.");
 			return false;
 		}
+*/
 /*		if($char > $length / 2){
 			$msgs->addMsg("Too many non-text characters");
 			return false;
@@ -228,26 +196,44 @@ function spamfilter($msg){
 }
 
 function parseHTML($str){
+	global $config;
+
 	if(strpos($str,'[')===false)
 		return $str;
+
+	$pos = 0;
+	$match = array();
+	while ( preg_match("/\G.*?\[code\](.*?)\[\/code\]/", $str, $match, PREG_OFFSET_CAPTURE, $pos) ) {
+		$insideText = $match[1];
+		$insideText = str_replace("[", "&#91;", $insideText);
+		$str = substr_replace($str, $insideText, $match[1][1], strlen($match[1][0]));
+		$pos = $match[1][1];
+	}
+
+	$mul = $config['maxusernamelength']; //set to a short variable just to make the regex readable
+
+	$str = preg_replace("/(?Uis)\[comment\](.*)\[\/comment\]/", "",	$str);
+	$str = preg_replace("/(?Uis)\[comment=(.*)\]/", 			"",	$str);
+
 	$str = preg_replace_callback("/(?Uis)\[img=([^`'\"()<>;\?]{1,200}\.(jpg|jpeg|gif|png|mng|bmp))\]/", 		'forumcode_img',	$str);
 	$str = preg_replace_callback("/(?Uis)\[img\]([^`'\"()<>;\?]{1,200}\.(jpg|jpeg|gif|png|mng|bmp))\[\/img\]/",	'forumcode_img',	$str);
-	$str = preg_replace_callback("/(?Uis)\[url\]([^`'\"()<>]{1,500})\[\/url\]/",			'forumcode_url1',	$str);  // [url]stuff[/url] -> <a href="stuff">stuff</a>
-	$str = preg_replace_callback("/(?Uis)\[url=([^`'\"()<>]{1,500})\]((?s).*)\[\/url\]/",	'forumcode_url2',	$str);
-	$str = preg_replace_callback("/(?Uis)\[user=(.{1,12})\]/",						'forumcode_user',	$str);
-	$str = preg_replace_callback("/(?Uis)\[user\](.{1,12})\[\/user\]/",				'forumcode_user',	$str);
-	$str = preg_replace_callback("/(?Uis)\[email\](.{1,100})\[\/email\]/",			'forumcode_email1',	$str);
-	$str = preg_replace_callback("/(?Uis)\[email=(.{1,100})\](.*)\[\/email\]/",		'forumcode_email2',	$str);
-	$str = preg_replace("/(?Uis)\[size=([1-7])\](.*)\[\/size\]/",				"<font size=\"\\1\">\\2</font>",	$str);
-	$str = preg_replace("/(?Uis)\[font=([a-zA-Z0-9 ]*)\](.*)\[\/font\]/",		"<font face=\"\\1\">\\2</font>",	$str);
-	$str = preg_replace("/(?Uis)\[color=([#a-zA-Z0-9]*)\](.*)\[\/color\]/",		"<font color=\"\\1\">\\2</font>",	$str);
-	$str = preg_replace("/(?Uis)\[colour=([#a-zA-Z0-9]*)\](.*)\[\/colour\]/",	"<font color=\"\\1\">\\2</font>",	$str);
-	$str = preg_replace("/(?Uis)\[b\](.*)\[\/b\]/", 			"<b>\\1</b>",			$str);
+	$str = preg_replace_callback("/(?Uis)\[url\]([^`'\"()<>]{1,500})\[\/url\]/",             'forumcode_url1',	$str);  // [url]stuff[/url] -> <a href="stuff">stuff</a>
+	$str = preg_replace_callback("/(?Uis)\[url=([^`'\"()<>]{1,500})\]((?s).*)\[\/url\]/",    'forumcode_url2',	$str);
+	$str = preg_replace_callback("/(?Uis)\[user=([^`'\"()<>;\?]{1,$mul})\]/",                'forumcode_user',	$str);
+	$str = preg_replace_callback("/(?Uis)\[user\]([^`'\"()<>;\?]{1,$mul})\[\/user\]/",       'forumcode_user',	$str);
+	$str = preg_replace_callback("/(?Uis)\[email\]([^`'\"()<>;\?]{1,100})\[\/email\]/",      'forumcode_email1',	$str);
+	$str = preg_replace_callback("/(?Uis)\[email=([^`'\"()<>;\?]{1,100})\](.*)\[\/email\]/", 'forumcode_email2',	$str);
+	$str = preg_replace("/(?Uis)\[size=([1-7])\](.*)\[\/size\]/",					"<font size=\"\\1\">\\2</font>",	$str);
+	$str = preg_replace("/(?Uis)\[font=([a-zA-Z0-9 ]{1,24})\](.*)\[\/font\]/",		"<font face=\"\\1\">\\2</font>",	$str);
+	$str = preg_replace("/(?Uis)\[color=([#a-zA-Z0-9]{1,16})\](.*)\[\/color\]/",	"<font color=\"\\1\">\\2</font>",	$str);
+	$str = preg_replace("/(?Uis)\[colour=([#a-zA-Z0-9]{1,16})\](.*)\[\/colour\]/",	"<font color=\"\\1\">\\2</font>",	$str);
+	$str = preg_replace("/(?Uis)\[b\](.*)\[\/b\]/", 			"<strong>\\1</strong>",			$str);
 	$str = preg_replace("/(?Uis)\[u\](.*)\[\/u\]/", 			"<u>\\1</u>",			$str);
-	$str = preg_replace("/(?Uis)\[i\](.*)\[\/i\]/", 			"<i>\\1</i>",			$str);
+	$str = preg_replace("/(?Uis)\[i\](.*)\[\/i\]/", 			"<em>\\1</em>",			$str);
 	$str = preg_replace("/(?Uis)\[sup\](.*)\[\/sup\]/",			"<sup>\\1</sup>",		$str);
 	$str = preg_replace("/(?Uis)\[sub\](.*)\[\/sub\]/",			"<sub>\\1</sub>",		$str);
-	$str = preg_replace("/(?Uis)\[code\](.*)\[\/code\]/",		"<pre>\\1</pre>",		$str);
+//	$str = preg_replace("/(?Uis)\[code\](.*)\[\/code\]/",		"<pre>\\1</pre>",		$str);
+	$str = preg_replace("/(?Uis)\[\/?code\]/", "", $str);
 	$str = preg_replace("/(?Uis)\[strike\](.*)\[\/strike\]/",	"<strike>\\1</strike>",	$str);
 	$str = preg_replace("/(?Uis)\[center\](.*)\[\/center\]/",	"<center>\\1</center>",	$str);
 	$str = preg_replace("/(?Uis)\[left\](.*)\[\/left\]/",		"<div style=\"text-align:left\">\\1</div>",		$str);
@@ -258,12 +244,12 @@ function parseHTML($str){
 	do{
 		$str1=$str;
 		$str = preg_replace("/(?Ui)\[quote\]((?s).*)\[\/quote\]/","<br><blockquote>Quote:<hr>\\1<hr></blockquote>",$str);
-		$i--;
-	}while($str1 != $str && $i);
+	}while($str1 != $str && --$i);
 
 //	$str = preg_replace_callback("/(?Ui)\[php\]((?s).*)\[\/php\]/","replace_php_callback",$str);
 	$str = str_replace("[hr]", "<hr>",$str);
 
+	$str = str_replace("&#91;", "[", $str);
 	$str= parseLists($str);
 
 	return $str;
@@ -277,6 +263,7 @@ function forumcode_safeurl($url){
 						'>' => '%3E',
 						'#' => '%23',
 					);
+	
 	for($i=0; $i <= 31; $i++)
 		$replace[chr($i)] = '';
 
@@ -286,7 +273,10 @@ function forumcode_safeurl($url){
 	foreach($replace as $s => $r)
 		$url = str_replace($s, $r, $url);
 
-	$url = preg_replace("/(?i)j(\s*)a(\s*)v(\s*)a(\s*)s(\s*)c(\s*)r(\s*)i(\s*)p(\s*)t(\s*):/","", $url); //ie javascript: with spaces between it
+	do{
+		$url1 = $url;
+		$url = preg_replace("/(?i)j(\s*)a(\s*)v(\s*)a(\s*)s(\s*)c(\s*)r(\s*)i(\s*)p(\s*)t(\s*):/","", $url); //ie javascript: with spaces between it
+	}while($url1 != $url);
 
 	return $url;
 }

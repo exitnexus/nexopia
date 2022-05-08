@@ -170,12 +170,12 @@ function add(){
 function edit($id){
 	global $userData, $db, $assignees, $timereqs, $sections, $statuss;
 
-	$db->prepare_query("SELECT * FROM todo WHERE id = ?", $id);
+	$res = $db->prepare_query("SELECT * FROM todo WHERE id = ?", $id);
 
-	if($db->numrows() == 0)
+	$line = $res->fetchrow();
+
+	if(!$line)
 		return;
-
-	$line = $db->fetchrow();
 
 	incHeader();
 
@@ -219,12 +219,12 @@ function update($id, $data){
 function view($id){
 	global $userData, $db, $assignees, $timereqs, $sections, $statuss;
 
-	$db->prepare_query("SELECT title, description, priority, assignee, timereq, section, status FROM todo WHERE id = ?", $id);
+	$res = $db->prepare_query("SELECT title, description, priority, assignee, timereq, section, status FROM todo WHERE id = ?", $id);
 
- 	if($db->numrows() == 0)
+	$line = $res->fetchrow();
+
+ 	if(!$line)
 		return;
-
-	$line = $db->fetchrow();
 
 	incHeader(750);
 
@@ -242,7 +242,7 @@ function view($id){
 	echo "<tr><td class=header>Time Estimate:</td><td class=header>" . $timereqs[$line['timereq']] . "</td></tr>";
 	echo "<tr><td class=header>Section:</td><td class=header>" . $sections[$line['section']] . "</td></tr>";
 	echo "<tr><td class=header>Status:</td><td class=header>" . $statuss[$line['status']] . "</td></tr>";
-	echo "<tr><td class=body colspan=2>" . nl2br(parseHTML(removeHTML($line['description']))) . "</td></tr>\n";
+	echo "<tr><td class=body colspan=2>" . nl2br(html_sanitizer::sanitize(removeHTML($line['description']))) . "</td></tr>\n";
 	echo "</table>\n";
 
 	incFooter();
@@ -263,10 +263,10 @@ function listTodo($user = 0, $scope = 1){
 	$where[] = "priority >= ?";
 	$params[] = $scope;
 
-	$db->prepare_array_query("SELECT username, id, title, time, priority, assignee, timereq, status, section FROM todo LEFT JOIN users ON authorid = userid " . (count($where) ? "WHERE " . implode(" && ", $where) . " " : "") . "ORDER BY priority DESC", $params);
+	$res = $db->prepare_array_query("SELECT id, title, time, priority, assignee, timereq, status, section, authorid FROM todo " . (count($where) ? "WHERE " . implode(" && ", $where) . " " : "") . "ORDER BY priority DESC", $params);
 
 	$rows = array();
-	while($line = $db->fetchrow())
+	while($line = $res->fetchrow())
 		$rows[] = $line;
 
 	$mods->adminlog("list todo", "List todo");
@@ -307,7 +307,7 @@ function listTodo($user = 0, $scope = 1){
 		echo "<td class=body>" . $sections[$line['section']] . "</td>";
 		echo "<td class=body>" . $assignees[$line['assignee']] . "</td>";
 		echo "<td class=body>" . $timereqs[$line['timereq']] . "</td>";
-		echo "<td class=body>$line[username]</td>";
+		echo "<td class=body>" . $assignees[$line['authorid']] . "</td>";
 		echo "<td class=body nowrap>" . userdate("M j, y, g:i a",$line["time"]) . "</td></tr>\n";
 	}
 	echo "<tr>";

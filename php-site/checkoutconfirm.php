@@ -1,5 +1,8 @@
 <?
 
+header("location: /plus.php");
+exit;
+
 	$login=1;
 
 	require_once("include/general.lib.php");

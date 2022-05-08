@@ -17,17 +17,28 @@
 	}
 
 	if($id)
-		$shoppingcart->db->prepare_query("SELECT SQL_CALC_FOUND_ROWS id, userid, username, creationdate, total, amountpaid, paymentdate, paymentmethod, paymentcontact, completed, valid FROM invoice WHERE userid = #" . ($isAdmin ? "" : " && valid = 'y'") . " ORDER BY id DESC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]", $id);
+		$res = $shoppingcart->db->prepare_query("SELECT id, userid, creationdate, total, amountpaid, paymentdate, paymentmethod, paymentcontact, completed, valid FROM invoice WHERE userid = #" . ($isAdmin ? "" : " && valid = 'y'") . " ORDER BY id DESC", $id);
 	else
-		$shoppingcart->db->query("SELECT SQL_CALC_FOUND_ROWS id, userid, username, creationdate, total, amountpaid, paymentdate, paymentmethod, paymentcontact, completed, valid FROM invoice ORDER BY id DESC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]");
+		$res = $shoppingcart->db->prepare_query("SELECT SQL_CALC_FOUND_ROWS id, userid, creationdate, total, amountpaid, paymentdate, paymentmethod, paymentcontact, completed, valid FROM invoice ORDER BY id DESC LIMIT #,#", ($page*$config['linesPerPage']), $config['linesPerPage']);
 
 	$invoices = array();
-	while($line = $shoppingcart->db->fetchrow())
+	$uids = array();
+	while($line = $res->fetchrow()){
 		$invoices[] = $line;
+		$uids[$line['userid']] = $line['userid'];
+	}
+	
+	$usernames = getUserName($uids);
+	
+	foreach($invoices as $k => $v)
+		$invoices[$k]['username'] = $usernames[$v['userid']];
 
-	$shoppingcart->db->query("SELECT FOUND_ROWS()");
-	$numrows = $shoppingcart->db->fetchfield();
-	$numpages =  ceil($numrows / $config['linesPerPage']);
+	if($id){
+		$numpages = 0;
+	}else{
+		$numrows = $res->totalrows();
+		$numpages =  ceil($numrows / $config['linesPerPage']);
+	}
 
 
 	incHeader(true,array('incShoppingCartMenu'));
@@ -52,9 +63,9 @@
 
 	foreach($invoices as $invoice){
 		echo "<tr>";
-		echo "<td class=body><a class=body href=invoice.php?id=$invoice[id]>$invoice[id]</a></td>";
-		echo "<td class=body><a class=body href=profile.php?uid=$invoice[userid]>$invoice[username]</a></td>";
-		echo "<td class=body>" . userDate("F j, Y, g:i a", $invoice['creationdate']) . "</td>";
+		echo "<td class=body><a class=body href=/invoice.php?id=$invoice[id]>$invoice[id]</a></td>";
+		echo "<td class=body><a class=body href=/profile.php?uid=$invoice[userid]>$invoice[username]</a></td>";
+		echo "<td class=body>" . userDate("M j, Y, g:i a", $invoice['creationdate']) . "</td>";
 		echo "<td class=body align=right>\$$invoice[total]</td>";
 		echo "<td class=body align=right>\$$invoice[amountpaid]</td>";
 		echo "<td class=body>" . ($invoice['amountpaid'] != "0.00" ? $invoice['paymentmethod'] : "" ) . "</td>";
@@ -63,7 +74,7 @@
 		echo "<td class=body>" . ($invoice['paymentdate'] ? userDate("M j, Y, g:i a", $invoice['paymentdate']) : "" ) . "</td>";
 		echo "<td class=body>" . ($invoice['completed'] == 'y' ? "Complete" : "" ) . "</td>";
 		if($isAdmin)
-			echo "<td class=body>" . ($invoice['completed'] == 'y' ? "Yes" : "No" ) . "</td>";
+			echo "<td class=body>" . ($invoice['valid'] == 'y' ? "Yes" : "No" ) . "</td>";
 		echo "</tr>";
 	}
 
@@ -74,12 +85,13 @@
 	if($isAdmin){
 		echo "<form action=$_SERVER[PHP_SELF]><td class=header>";
 
-		echo "User: <input type=text class=body name=uid value=$uid><input class=body type=submit value=Go>";
+		echo "User: <input type=text class=body name=uid value='" . htmlentities($uid) . "'><input class=body type=submit value=Go>";
 
 		echo "</td></form>";
 	}
 
-	echo "<td align=right class=header>Page: " . pageList("$_SERVER[PHP_SELF]",$page,$numpages,'header') . "</td>";
+	if($numpages)
+		echo "<td align=right class=header>Page: " . pageList("$_SERVER[PHP_SELF]",$page,$numpages,'header') . "</td>";
 
 	echo "</tr></table>";
 	echo "</td></tr>";

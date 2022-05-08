@@ -1,23 +1,28 @@
 <?
 
+header("location: /plus.php");
+exit;
+
 	$login=1;
 
 	require_once("include/general.lib.php");
 
-	$id = getPOSTval('id', 'int');
+	$id = getREQval('id', 'int');
 
 	if(!$id)
 		die("You must choose an invoice to pay");
 
+	$cards = getPOSTval('cards','array');
+
 
 	$isAdmin = $mods->isAdmin($userData['userid'],'editinvoice');
 
-	$shoppingcart->db->prepare_query("SELECT userid, total, amountpaid, completed, valid FROM invoice WHERE id = ?", $id);
+	$res = $shoppingcart->db->prepare_query("SELECT userid, total, amountpaid, completed, valid FROM invoice WHERE id = #", $id);
 
-	if($shoppingcart->db->numrows() == 0)
+	$invoice = $res->fetchrow();
+
+	if(!$invoice)
 		die("Bad invoice id");
-
-	$invoice = $shoppingcart->db->fetchrow();
 
 	if(!$isAdmin && ($invoice['userid'] != $userData['userid'] || $invoice['valid'] == 'n'))
 		die("Bad invoice id");
@@ -25,9 +30,6 @@
 	if($invoice['amountpaid'] > 0 || $invoice['completed'] == 'y')
 		die("This invoice is already paid");
 
-
-	if(!isset($cards))
-		$cards = array();
 
 	$validcards = array();
 
@@ -72,7 +74,7 @@
 
 	echo "<table>";
 
-	echo "<tr><td class=header>Invoice ID:</td><td class=body><a class=body href=invoice.php?id=$id>$id</a></td></tr>";
+	echo "<tr><td class=header>Invoice ID:</td><td class=body><a class=body href=/invoice.php?id=$id>$id</a></td></tr>";
 	echo "<tr><td class=header>Invoice Total:</td><td class=body>\$$invoice[total]</td></tr>";
 	echo "</table>";
 

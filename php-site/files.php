@@ -5,23 +5,22 @@
 	require_once("include/general.lib.php");
 
 
-	$query = "SELECT * FROM files WHERE userid='$userData[userid]' ORDER BY length(location) ASC";
-	$result = $db->query($query);
-
-	if($db->numrows($result)==0)
-		die("you don't have access to this page");
+	$res = $db->prepare_query("SELECT * FROM files WHERE userid = # ORDER BY length(location) ASC", $userData['userid']);
 
 	$allperms = array();
 
-	while($line = $db->fetchrow($result))
+	while($line = $res->fetchrow())
 		$allperms[] = $line;
+
+	if(!$allperms)
+		die("you don't have access to this page");
 
 	$baseuserdir = getBaseDir($allperms);
 
 	if($baseuserdir === false)
 		die("no base directory. Contact the webmaster");
 
-	$basedir = $docRoot . $baseuserdir;
+	$basedir = $staticRoot . $baseuserdir;
 
 	if(!isset($opendir) || @strpos(realpath($basedir . $opendir),$basedir)===false || !is_dir($basedir . $opendir))
 		$opendir="/";

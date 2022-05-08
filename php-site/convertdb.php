@@ -15,8 +15,8 @@
 
 	$ignore = array();//'agegroups', 'picstop', 'picsvotable', 'spotlight', 'userclusters');
 
-//	$convertdb = & new sql_db("192.168.0.8", "root", 'pRlUvi$t', "nexopia");
-	$convertdb = & new sql_db(array("host" => "localhost",
+//	$convertdb = new sql_db("192.168.0.8", "root", 'pRlUvi$t', "nexopia");
+	$convertdb = new sql_db(array("host" => "localhost",
 									"login" => "root",
 									"passwd" => "Hawaii",
 									"db" => "nexopia" ));
@@ -24,7 +24,7 @@
 	$tables = array();
 
     $tableresult = $convertdb->listtables();
-    while(list($name) = $convertdb->fetchrow($tableresult,DB_NUM))
+    while(list($name) = $tableresult->fetchrow(DB_NUM))
     	if(!in_array($name, $ignore))
 			$tables[] = $name;
 
@@ -32,7 +32,7 @@
 	foreach($tables as $name){
 
 		$result = $convertdb->query("SHOW CREATE TABLE `$name`");
-		$create = $convertdb->fetchfield(1,0,$result);
+		$create = $result->fetchfield(1,0);
 		if(stristr($create, "myisam"))
 			continue;
 

@@ -1,24 +1,7 @@
 <?
 
 
-//directory length max of 12 chars (since db size is 12 char)
-
-/*
-//old version
-	$skins = array();
-
-	$skins['azure'] = 	array(	'name' => "Azure",				'plus' => false);
-	$skins["orange"] = 	array(	'name' => "Tangerine",			'plus' => false);
-	$skins["solar"] = 	array(	'name' => "Solar Flare",		'plus' => false);
-	$skins["aurora"] = 	array(	'name' => "Aurora Borealis",	'plus' => false);
-	$skins["carbon"] =	array(	'name' => "Carbon Fiber",		'plus' => false);
-	$skins["pink"] = 	array(	'name' => "Pink Nexopia",		'plus' => false);
-	$skins["megaleet"]=	array(	'name' => "Megaleet",			'plus' => false);
-	$skins["rushhour"]=	array(	'name' => "Rush Hour",			'plus' => false);
-	$skins["greenx"]=	array(	'name' => "X-Factor",			'plus' => false);
-	$skins["pink2"] = 	array(	'name' => "Pink Flowers",		'plus' => false);
-	$skins["crush"]=	array(	'name' => "Crush",				'plus' => false);
-*/
+//directory length max of 24 chars (since db size is 24 char), short is good though
 
 	$skins = array();
 
@@ -44,9 +27,17 @@
 	$skins["flowers"] = 		array(	'name' => "Pink Flowers",		'plus' => true);
 	$skins["crushframes"]=		array(	'name' => "Crush Frames",		'plus' => false);
 	$skins["crush"]=			array(	'name' => "Crush",				'plus' => true);
+	$skins["halloweenfr"]=		array(	'name' => "Halloween Frames",	'plus' => false);
+	$skins["halloween"]=		array(	'name' => "Halloween",			'plus' => true);
+
+	$skins["winterfr"]=			array(	'name' => "Winter Frames",		'plus' => false);
+	$skins["winter"]=			array(	'name' => "Winter",				'plus' => true);
+
+	$skins["newyearsfr"]=		array(	'name' => "New Years Frames",	'plus' => false);
+	$skins["newyears"]=			array(	'name' => "New Years",			'plus' => true);
 
 /*
-$skinuids = array(1, 5, 673, 87, 32002,2350,29536,176470,24552,18325,745,3698,8085,146539,538,673,24,162453,31104,180674, 9346, 262525, 369788);
+$skinuids = array(1, 5, 673, 87, 32002,2350,29536,176470,24552,18325,745,3698,8085,146539,538,673,24,162453,31104,180674, 9346, 262525, 369788, 912943);
 
 if(isset($userid) && in_array($userid, $debuginfousers + $skinuids)){
 
@@ -64,8 +55,8 @@ if(isset($userid) && in_array($userid, $debuginfousers + $skinuids)){
 
 		if($userData['loggedIn']){
 			if($userData['premium'] || !$skins[$skin]['plus']){
-				$db->prepare_query("UPDATE users SET skin = ? WHERE userid = #", $skin, $userData['userid']);
-				$cache->remove(array($userid, "userprefs-$userid"));
+				$usersdb->prepare_query("UPDATE users SET skin = ? WHERE userid = %", $skin, $userData['userid']);
+				$cache->remove("userprefs-$userData[userid]");
 			}else{
 				$msgs->addMsg("This is a Plus only skin.");
 			}
@@ -78,7 +69,9 @@ if(isset($userid) && in_array($userid, $debuginfousers + $skinuids)){
 		$skin = key($skins);
 	}
 
-	$skindir = $imgserver . "/skins/$skin";
+	$skindir = $config['skindir'] . "$skin/";
+	$skinloc = $config['skinloc'] . "$skin/";
+	
 	include_once("skins/$skin/skin.php");
 
 

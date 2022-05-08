@@ -21,4 +21,4 @@ if(isset($test))
 
 phpinfo();
 
-echo "<form method=post action=ip.php><input type=text name=test><input type=submit></form>";
+echo "<form method=post action=/ip.php><input type=text name=test><input type=submit></form>";

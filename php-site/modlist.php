@@ -10,21 +10,26 @@
 						'activetime' => "'0'"
 						);
 
-	$mods->db->prepare_query("SELECT userid, username, 'n' as online, 0 as activetime FROM mods WHERE type = ?", MOD_PICS);
+	$res = $mods->db->prepare_query("SELECT userid, 'n' as online, 0 as activetime FROM mods WHERE type = ?", MOD_PICS);
 
 	$rows = array();
-	while($line = $mods->db->fetchrow())
+	while($line = $res->fetchrow())
 		$rows[$line['userid']] = $line;
 
 	if(!$mods->isAdmin($userData['userid']) && !isset($rows[$userData['userid']]))
 		die("You don't have permission to see this page");
 
-	$fastdb->prepare_query(array_keys($rows), "SELECT userid, online, activetime FROM useractivetime WHERE userid IN (?)", array_keys($rows));
+	$res = $usersdb->prepare_query("SELECT userid, online, activetime FROM useractivetime WHERE userid IN (%)", array_keys($rows));
 
-	while($line = $fastdb->fetchrow()){
+	while($line = $res->fetchrow()){
 		$rows[$line['userid']]['online'] = $line['online'];
 		$rows[$line['userid']]['activetime'] = $line['activetime'];
 	}
+	
+	$usernames = getUserName(array_keys($rows));
+	
+	foreach($rows as $k => $v)
+		$rows[$k]['username'] = $usernames[$k];
 
 	sortCols($rows, SORT_ASC, SORT_CASESTR, 'username', SORT_DESC, SORT_CASESTR, 'online');
 
@@ -39,7 +44,7 @@
 
 	foreach($rows as $line){
 		echo "<tr>";
-		echo "<td class=body><a class=body href=profile.php?uid=$line[userid]>$line[username]</a></td>";
+		echo "<td class=body><a class=body href=/profile.php?uid=$line[userid]>$line[username]</a></td>";
 		echo "<td class=body>" . ($line['online'] == 'y' ? "<b>Online</b>" : ($line['activetime'] == 0 ? "Never" : userDate("M j, Y G:i", $line['activetime']) )) . "</td>";
 	}
 

@@ -5,41 +5,44 @@ function increasepriority(&$db, $table, $id, $where="", $circular = false){
 	if(empty($id) || empty($table))
 		return false;
 
-	$id = $db->escape($id);
-
-	$query = "SELECT priority FROM $table WHERE id = $id";
+	$query = $db->prepare("SELECT priority FROM $table WHERE id = #", $id);
 	if($where) $query .=" && $where";
-	$db->query($query);
-	$priority = $db->fetchfield();
+	$res = $db->query($query);
+	$priority = $res->fetchfield();
 
 	if($priority>1){  //max priority = 1
-		$query = "SELECT id FROM $table WHERE priority=$priority-1";
+		$query = $db->prepare("SELECT id FROM $table WHERE priority = # - 1", $priority);
 		if($where) $query .=" && $where";
 		$result = $db->query($query);
-		$lid = $db->fetchfield();
+		if ($lrow = $result->fetchrow())
+			$lid = $lrow['id'];
+		else {
+			fixPriorities($db, $table, $where);
+			return increasepriority($db, $table, $id, $where, $circular);
+		}
 
-		$query = "UPDATE $table SET priority=priority-1 WHERE id = '$id'";
+		$query = $db->prepare("UPDATE $table SET priority = priority - 1 WHERE id = #", $id);
 		if($where) $query .=" && $where";
 		$db->query($query);
 
-		$query="UPDATE $table SET priority=priority+1 WHERE id = '$lid'";
+		$query = $db->prepare("UPDATE $table SET priority = priority + 1 WHERE id = #", $lid);
 		if($where) $query .=" && $where";
 		$db->query($query);
 
 		$msgs->addMsg("Priority Increased");
-		return true;
+		return array($lid, $id);
 	}elseif($circular){ //already max, set to min
-		$query="UPDATE $table SET priority=priority-1 WHERE priority > $priority";
+		$query = $db->prepare("UPDATE $table SET priority = priority - 1 WHERE priority > #", $priority);
 		if($where) $query .=" && $where";
 		$db->query($query);
 		$numModified = $db->affectedrows();
 
-		$query="UPDATE $table SET priority=$priority+$numModified WHERE id='$id'";
+		$query = $db->prepare("UPDATE $table SET priority = priority + # WHERE id = #", $numModified, $id);
 		if($where) $query .=" && $where";
 		$db->query($query);
 
 		$msgs->addMsg("Priority set to Minimum");
-		return true;
+		return array($id);
 	}else{
 		$msgs->addMsg("Already Max Priority");
 		return false;
@@ -51,94 +54,98 @@ function decreasepriority(&$db, $table, $id, $where="", $circular = false){
 	if(empty($id) || empty($table))
 		return false;
 
-	$id = $db->escape($id);
-
-	$query = "SELECT priority FROM $table WHERE id='$id'";
+	$query = $db->prepare("SELECT priority FROM $table WHERE id = #", $id);
 	if($where) $query .=" && $where";
-	$db->query($query);
-	$priority = $db->fetchfield();
+	$res = $db->query($query);
+	$priority = $res->fetchfield();
 
 	$query = "SELECT count(*) FROM $table";
 	if($where) $query .=" WHERE $where";
-	$db->query($query);
-	$maxPriority = $db->fetchfield();
+	$res = $db->query($query);
+	$maxPriority = $res->fetchfield();
 
 
 	if($priority<$maxPriority){
-		$query = "SELECT id FROM $table WHERE priority=$priority+1";
+		$query = $db->prepare("SELECT id FROM $table WHERE priority = # + 1", $priority);
+		if($where) $query .=" && $where";
+		$res = $db->query($query);
+		if ($hrow = $res->fetchrow())
+			$hid = $hrow['id'];
+		else {
+			fixPriorities($db, $table, $where);
+			return decreasepriority($db, $table, $id, $where, $circular);
+		}
+
+		$query = $db->prepare("UPDATE $table SET priority = priority + 1 WHERE id = #", $id);
 		if($where) $query .=" && $where";
 		$db->query($query);
-		$hid = $db->fetchfield();
 
-		$query="UPDATE $table SET priority=priority+1 WHERE id = '$id'";
+		$query = $db->prepare("UPDATE $table SET priority = priority - 1 WHERE id = #", $hid);
 		if($where) $query .=" && $where";
 		$db->query($query);
-
-		$query="UPDATE $table SET priority=priority-1 WHERE id = '$hid'";
-		if($where) $query .=" && $where";
-		$db->query ($query);
 
 		$msgs->addMsg("Priority Decreased");
-		return true;
+		return array($hid, $id);
 	}elseif($circular){ //already min, set to max
-		$query="UPDATE $table SET priority=priority+1 WHERE priority < $priority";
+		$query = $db->prepare("UPDATE $table SET priority = priority + 1 WHERE priority < #", $priority);
 		if($where) $query .=" && $where";
 		$db->query($query);
 		$numModified = $db->affectedrows();
 
-		$query="UPDATE $table SET priority=1 WHERE id='$id'";
+		$query = $db->prepare("UPDATE $table SET priority = 1 WHERE id = #", $id);
 		if($where) $query .=" && $where";
 		$db->query($query);
 
 		$msgs->addMsg("Priority set to Maximum");
-		return true;
+		return array($id);
 	}else{
 		$msgs->addMsg("Already Min Priority");
 		return false;
 	}
 }
 
-function setMaxPriority(&$db, $table, $id, $where=""){ //max priority id, lowest priority though
+function setMaxPriority(&$db, $table, $id, $where=""){//max priority id, lowest priority though
 
 	if(empty($id) || empty($table))
 		return false;
 
-	$id = $db->escape($id);
-
-	$query = "SELECT priority FROM $table WHERE id='$id'";
+	$query = $db->prepare("SELECT priority FROM $table WHERE id = #", $id);
 	if($where) $query .=" && $where";
-	$db->query($query);
-	$line = $db->fetchrow();
+	$res = $db->query($query);
+	$line = $res->fetchrow();
 	$priority = $line['priority'];
 
-	$query="UPDATE $table SET priority=priority-1 WHERE priority > $priority";
+	$query = $db->prepare("UPDATE $table SET priority = priority - 1 WHERE priority > #", $priority);
 	if($where) $query .=" && $where";
 	$db->query($query);
 	$numModified = $db->affectedrows();
 
-	$query="UPDATE $table SET priority=$priority+$numModified WHERE id='$id'";
+	$query = $db->prepare("UPDATE $table SET priority = priority + # WHERE id = #", $numModified, $id);
 	if($where) $query .=" && $where";
 	$db->query($query);
 }
 
 function getMaxPriority(&$db, $table, $where=""){ //max priority id, lowest priority though
 
-	$query = "SELECT count(*) FROM $table";
+	$query = "SELECT count(*) AS count FROM $table";
 	if($where) $query .=" WHERE $where";
-	$result = $db->query($query);
-	return $db->fetchfield() +1;
+	$res = $db->query($query);
+	$count = 0;
+	while ($line = $res->fetchrow())
+		$count += $line['count'];
+	return $count + 1;
 }
 
 function fixPriorities(&$db, $table, $where=""){
 
-	$query = "SELECT id,priority FROM $table";
+	$query = "SELECT id, priority FROM $table";
 	if($where) $query .= " WHERE $where";
 	$query .= " ORDER BY priority";
 	$result = $db->query($query);
 
-	for($i=1; $line = $db->fetchrow($result); $i++){
-		if($line['priority'] =! $i){
-			$query = $db->prepare("UPDATE $table SET priority = ? WHERE id = ?", $i, $line['id']);
+	for($i=1; $line = $result->fetchrow(); $i++){
+		if($line['priority'] != $i){
+			$query = $db->prepare("UPDATE $table SET priority = # WHERE id = #", $i, $line['id']);
 			if($where) 	$query .= " && $where";
 			$db->query($query);
 		}

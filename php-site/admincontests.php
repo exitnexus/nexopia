@@ -47,13 +47,9 @@
 
 			$winners = $contests->chooseWinner($id, 20);
 
-			$db->prepare_query("SELECT userid, username, age, sex, loc FROM users WHERE userid IN (?)", array_keys($winners));
+			$users = getUserInfo(array_keys($winners));
 
-			$users = array();
-			while($line = $db->fetchrow())
-				$users[$line['userid']] = $line;
-
-			$locations = & new category( $db, "locs");
+			$locations = new category( $configdb, "locs");
 
 			incHeader();
 
@@ -72,7 +68,7 @@
 				echo "<tr>";
 				echo "<td class=body align=right>" . $i++ . " </td>";
 				if(isset($users[$line['userid']])){
-					echo "<td class=body><a class=body href=profile.php?uid=$line[userid]>" . $users[$line['userid']]['username'] . "</a></td>";
+					echo "<td class=body><a class=body href=/profile.php?uid=$line[userid]>" . $users[$line['userid']]['username'] . "</a></td>";
 					echo "<td class=body>" . $users[$line['userid']]['age'] . "</td>";
 					echo "<td class=body>" . $users[$line['userid']]['sex'] . "</td>";
 					echo "<td class=body>" . $locations->getCatName($users[$line['userid']]['loc']) . "</td>";
@@ -107,7 +103,7 @@
 
 	foreach($rows as $row){
 		echo "<tr>";
-		echo "<td class=body><a class=body href=contest.php?id=$row[id]>$row[name]</a></td>";
+		echo "<td class=body><a class=body href=/contest.php?id=$row[id]>$row[name]</a></td>";
 		echo "<td class=body>" . userdate("m/d/y H:i", $row["end"]) . "</td>";
 		echo "<td class=body>$row[entries]</td>";
 		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=choose&id=$row[id]>Choose</a></td>";
@@ -135,8 +131,8 @@ function addContest($id = 0, $data = array()){
 	$anonymous = 'n';
 
 	if($id){
-		$contests->db->prepare_query("SELECT name, content, final, end, anonymous FROM contests WHERE id = ?", $id);
-		$line = $contests->db->fetchrow();
+		$res = $contests->db->prepare_query("SELECT name, content, final, end, anonymous FROM contests WHERE id = ?", $id);
+		$line = $res->fetchrow();
 
 		$name = $line['name'];
 		$content = $line['content'];

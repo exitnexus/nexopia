@@ -10,7 +10,6 @@
 	$sortlist = array(  'time' => "time",
 						'id' => "articles.id",
 						'authorid' => "",
-						'author' => "author",
 						'title' => "title",
 						'catname' => "cats.name",
 						'category' => ''
@@ -20,7 +19,7 @@
 	isValidSortd($sortd,'DESC');
 
 
-	$categories = & new category( $db, "cats");
+	$categories = new category( $articlesdb, "cats");
 
 	$branch = $categories->makebranch();
 
@@ -29,10 +28,10 @@
 
 	switch($action){
 		case "delete":
-			$db->prepare_query("DELETE FROM articles WHERE id = ?", $id);
-			$db->prepare_query("DELETE FROM comments WHERE itemid = ?", $id);
+			$articlesdb->prepare_query("DELETE FROM articles WHERE id = ?", $id);
+			$articlesdb->prepare_query("DELETE FROM comments WHERE itemid = ?", $id);
 			$mods->deleteItem('articles',$id);
-			$cache->remove(array($id, "article-$id"));
+			$cache->remove("article-$id");
 			break;
 		case "edit":
 			edit($id);
@@ -40,7 +39,7 @@
 		case "Update":
 		case "Preview":
 			update($id,$category,$title,$msg,$action);
-			$cache->remove(array($id, "article-$id"));
+			$cache->remove("article-$id"));
 			break;
 	}
 
@@ -60,19 +59,19 @@
 		$cats[] = $cat;
 		foreach($catbranch as $category)
 			$cats[] = $category['id'];
-		$where[] = $db->prepare("category IN (?)", $cats);
+		$where[] = $articlesdb->prepare("category IN (?)", $cats);
 	}
 
 	if(isset($search) && $search!=""){
 //		$where[] = "(title LIKE '% " . str_replace('*','%',$search) . " %' || 	text LIKE '% " . str_replace('*','%',$search) . " %')";
-		$where[] = "(title REGEXP '(^|^.* )" . $db->escape($search) . "(\$| .*\$)' || text LIKE '(^|^.* )" . $db->escape($search) . "(\$| .*\$)')";
+		$where[] = "(title REGEXP '(^|^.* )" . $articlesdb->escape($search) . "(\$| .*\$)' || text LIKE '(^|^.* )" . $articlesdb->escape($search) . "(\$| .*\$)')";
 	}else
 		$search ='';
 
 
 	$query = "SELECT count(*) FROM articles WHERE " . implode(" && ",$where);
-	$result = $db->query($query);
-	$Rows = $db->fetchfield();
+	$result = $articlesdb->query($query);
+	$Rows = $result->fetchfield();
 
 	$numpages =  ceil($Rows / $config['linesPerPage']);
 
@@ -81,8 +80,14 @@
 	$where[] = "articles.category=cats.id";
 
 	$query = "SELECT " . makeSortSelect($sortlist) . " FROM articles,cats WHERE " . implode(" && ",$where) . " ORDER BY $sortt $sortd LIMIT ".$page*$config['linesPerPage'].", $config[linesPerPage]";
-	$result = $db->query($query);
+	$res = $articlesdb->query($query);
 
+	$rows = array();
+	$uids = array();
+	while($line = $res->fetchrow()){
+		$line['author'] = getUserName($line['authorid']);
+		$rows[] = $line;
+	}
 
 
 	incHeader();
@@ -103,25 +108,21 @@
 
 	echo "<td class=header></td>\n";
 	$varlist = array('page' =>$page,'cat'=>$cat);
-	makeSortTableHeader($sortlist,"Title","title",$varlist);
-	makeSortTableHeader($sortlist,"By","author",$varlist);
-	makeSortTableHeader($sortlist,"Date","time",$varlist);
-	makeSortTableHeader($sortlist,"Category","category",$varlist);
+	echo makeSortTableHeader("Title","title",$varlist);
+	echo makeSortTableHeader("By","author",$varlist);
+	echo makeSortTableHeader("Date","time",$varlist);
+	echo makeSortTableHeader("Category","category",$varlist);
 
 	echo "</tr>\n";
 
-	while ($line = $db->fetchrow($result)) {
+	foreach($rows as $line){
 		echo "<tr>";
 
 		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=delete&id=$line[id]&cat=$cat&search=$search&page=$page&sortt=$sortt&sortd=$sortd><img src=$config[imageloc]delete.gif border=0></a><a class=body href=$_SERVER[PHP_SELF]?action=edit&id=$line[id]&cat=$cat&search=$search&page=$page&sortt=$sortt&sortd=$sortd><img src=$config[imageloc]edit.gif border=0></a></td>";
-		echo "<td class=body><a class=body href=\"article.php?sortd=$sortd&sortt=$sortt&page=$page&id=$line[id]\">$line[title]</a></td>";
+		echo "<td class=body><a class=body href=\"/article.php?sortd=$sortd&sortt=$sortt&page=$page&id=$line[id]\">$line[title]</a></td>";
 
 		echo "<td class=body>";
-		$uid = getUserId($line['author']);
-		if($uid==$line['authorid'])
-			echo "<a class=body href=profile.php?uid=$line[authorid]>$line[author]</a>";
-		else
-			echo "$line[author]";
+		echo "<a class=body href=/profile.php?uid=$line[authorid]>$line[author]</a>";
 		echo "</td>";
 
 		echo "<td class=body>" . userdate("m/d/Y", $line['time']) . "</td>";
@@ -131,7 +132,7 @@
 
 		$cats = array();
 		foreach($root as $category)
-			$cats[] = "<a class=body href=articlelist.php?cat=$category[id]>$category[name]</a>";
+			$cats[] = "<a class=body href=/articlelist.php?cat=$category[id]>$category[name]</a>";
 
 		echo implode(" > ",$cats);
 
@@ -146,16 +147,14 @@
 	echo "</table>\n";
 
 
-    incFooter();
+	incFooter();
 
 
 function edit($id){
-	global $cat,$search,$sortt,$sortd,$branch, $db;
+	global $cat,$search,$sortt,$sortd,$branch, $articlesdb;
 
-
-	$db->prepare_query("SELECT * FROM articles WHERE id = ?", $id);
-	$data = $db->fetchrow();
-
+	$res = $articlesdb->prepare_query("SELECT * FROM articles WHERE id = #", $id);
+	$data = $res->fetchrow();
 
 
 	incHeader();
@@ -165,7 +164,7 @@ function edit($id){
 	echo "<tr><td class=body align=center>Title: <input class=body type=text name=\"title\" value=\"$data[title]\" size=40></td></tr>\n";
 	echo "<tr><td class=body align=center>";
 
-	editbox($data['text'],true);
+	editbox($data['text']);
 
 	echo "</td></tr>\n";
 	echo "<input type=hidden name=id value=$id>";
@@ -182,7 +181,7 @@ function edit($id){
 }
 
 function update($id,$category,$title,$msg,$action){
-	global $categories,$branch,$msgs,$userData,$cat,$search,$sortt,$sortd, $db;
+	global $categories,$branch,$msgs,$userData,$cat,$search,$sortt,$sortd, $articlesdb;
 
 	if(!isset($title) || strlen($title)<1){
 		$action="Preview";
@@ -228,7 +227,7 @@ function update($id,$category,$title,$msg,$action){
 		echo "<tr><td class=body align=center>Title: <input class=body type=text name=\"title\" value=\"$title\" size=40></td></tr>\n";
 		echo "<tr><td class=body align=center>";
 
-		editbox($msg,true);
+		editbox($msg);
 
 		echo "</td></tr>\n";
 		echo "<input type=hidden name=id value=$id>";
@@ -243,6 +242,6 @@ function update($id,$category,$title,$msg,$action){
 		exit;
 	}
 
-	$db->prepare_query("UPDATE articles SET category = ?, title = ?, text = ? WHERE id = ?", $category, $ntitle, $narticle, $id); //, ntext = ?, $narticle3
-
+	$articlesdb->prepare_query("UPDATE articles SET category = ?, title = ?, text = ? WHERE id = ?", $category, $ntitle, $narticle, $id); //, ntext = ?, $narticle3
 }
+

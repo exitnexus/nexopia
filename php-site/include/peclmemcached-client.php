@@ -79,7 +79,7 @@ class peclmemcached{
 	 * @var	  array
 	 * @access  public
 	 */
-	var $stats;
+	public $stats;
 
 
 	/**
@@ -88,7 +88,7 @@ class peclmemcached{
 	 * @var	  array
 	 * @access  private
 	 */
-	var $_cache_host;
+	public $_cache_host;
 
 	/**
 	 * Current debug status; 0 - none to 9 - profiling
@@ -96,7 +96,7 @@ class peclmemcached{
 	 * @var	  boolean
 	 * @access  private
 	 */
-	var $_debug;
+	public $_debug;
 
 	/**
 	 * Dead hosts, assoc array, 'host'=>'unixtime when ok to check again'
@@ -104,7 +104,7 @@ class peclmemcached{
 	 * @var	  array
 	 * @access  private
 	 */
-	var $_host_dead;
+	public $_host_dead;
 
 	/**
 	 * Is compression available?
@@ -112,7 +112,7 @@ class peclmemcached{
 	 * @var	  boolean
 	 * @access  private
 	 */
-	var $_have_zlib;
+	public $_have_zlib;
 
 	/**
 	 * Do we want to use compression?
@@ -120,7 +120,7 @@ class peclmemcached{
 	 * @var	  boolean
 	 * @access  private
 	 */
-	var $_compress_enable;
+	public $_compress_enable;
 
 	/**
 	 * At how many bytes should we compress?
@@ -128,7 +128,7 @@ class peclmemcached{
 	 * @var	  interger
 	 * @access  private
 	 */
-	var $_compress_threshold;
+	public $_compress_threshold;
 
 	/**
 	 * Are we using persistant links?
@@ -136,7 +136,7 @@ class peclmemcached{
 	 * @var	  boolean
 	 * @access  private
 	 */
-	var $_persistant;
+	public $_persistant;
 
 	/**
 	 * If only using one server; contains ip:port to connect to
@@ -144,7 +144,7 @@ class peclmemcached{
 	 * @var	  string
 	 * @access  private
 	 */
-	var $_single_host;
+	public $_single_host;
 
 	/**
 	 * Array containing ip:port or array(ip:port, weight)
@@ -152,7 +152,7 @@ class peclmemcached{
 	 * @var	  array
 	 * @access  private
 	 */
-	var $_servers;
+	public $_servers;
 
 	/**
 	 * Our bit buckets
@@ -160,7 +160,7 @@ class peclmemcached{
 	 * @var	  array
 	 * @access  private
 	 */
-	var $_buckets;
+	public $_buckets;
 
 	/**
 	 * Total # of bit buckets we have
@@ -168,7 +168,7 @@ class peclmemcached{
 	 * @var	  interger
 	 * @access  private
 	 */
-	var $_bucketcount;
+	public $_bucketcount;
 
 	/**
 	 * # of total servers we have
@@ -176,7 +176,7 @@ class peclmemcached{
 	 * @var	  interger
 	 * @access  private
 	 */
-	var $_active;
+	public $_active;
 
 
 	/**
@@ -187,7 +187,7 @@ class peclmemcached{
 	 * @return  mixed
 	 * @access  public
 	 */
-	function peclmemcached($args){
+	function __construct($args){
 		if(!extension_loaded('memcache'))
 			if(!dl("memcache.so"))
 				die("Failed to load memcache extension");
@@ -368,15 +368,23 @@ class peclmemcached{
 
 		$this->stats['get_multi']++;
 
-		$val = array();
-
+		$host_keys = array();
+		$hosts = array();
 		foreach ($keys as $key) {
 			$host = $this->_get_host($key);
 			if (!$host) continue;
 			$key = is_array($key) ? $key[1] : $key;
-
-			$val[$key] = $this->_cache_host[$host]->get($key);
+			if (!isset($host_keys[$host])) {
+				$host_keys[$host] = array();
+				$hosts[] = $host;
+			}
+			$host_keys[$host][] = $key;
 		}
+
+		$val = array();
+		if(count($hosts))
+			foreach ($hosts as $host)
+				$val += $this->_cache_host[$host]->get($host_keys[$host]);
 
 		if ($this->_debug)
 			foreach ($val as $k => $v)
@@ -540,7 +548,7 @@ class peclmemcached{
 	 * @access  private
 	 */
 	function _connect_host($host, $timeout = 0){
-		$this->_cache_host[$host] = & new Memcache;
+		$this->_cache_host[$host] = new Memcache;
 
 		list($ip, $port) = explode(":", $host);
 		if($this->_persistant)

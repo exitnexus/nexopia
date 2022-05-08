@@ -26,7 +26,7 @@
 
 	echo "<table align=center width=50%>";
 	echo "<tr><td class=header>Picture</td><td class=header>Code</td><td class=header></td></tr>";
-	while($line = $db->fetchrow($result)){
+	while($line = $result->fetchrow()){
 		echo "<tr><td class=body><img src=\"$config[smilyloc]$line[pic].gif\" alt=\"$line[code]\"></td><td class=body><font face=courier>$line[code]</font></td>";
 		echo "<td><a class=body href=\"javascript:confirmLink('$_SERVER[PHP_SELF]?action=remove&id=$line[id]','delete this picture')\"><img src=$config[imageloc]delete.gif border=0 alt='Delete'></a></td></tr>";
 	}

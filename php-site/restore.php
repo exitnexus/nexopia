@@ -17,13 +17,13 @@
 	$dates = array("2005.01.16","2005.02.06","2005.02.13");
 
 
-	$timer = & new timer("start");
+	$timer = new timer("start");
 
 	foreach($dates as $date){
 		$dbname = "nexopia" . implode("",explode(".", $date));
 		echo $timer->lap("$dbname"); zipflush();
 
-		$backupdb = & new sql_db("localhost","root",'pRlUvi$t', $dbname);
+		$backupdb = new sql_db("localhost","root",'pRlUvi$t', $dbname);
 		$backupdb->restore("$sitebasedir/backup/weekly/$date/Sun/db", 2, array("msgs", "msgheader", "msgtext"));
 		$backupdb->close();
 	}

@@ -7,26 +7,19 @@ define("MSG_TRASH",	3);
 
 class messaging{
 
-	var $db;
-	var $archivedb;
+	public $db;
+
+	public $prunelength = 15;
+	public $warning_threshold = 2;
 /*
 tables:
  -msgs - balanceable by userid
- -msgtext - not balanced yet.
+ -msgtext - balanced by userid, but userid is not in this table
  -msgfolder - balanced by userid
-
-problems balancing msgtext:
--balance by id
-	-how do you choose which server to give it to to begin with? use mysql auto_increment skipping?
--balance by to/from
-	-stores multiple copies of busy messages, adding a server could screw things up
--balance by hash
-	-hash not stored in msgs table, how do you know which server to get it from?
 */
 
-	function messaging( & $db, & $archivedb ){
+	function __construct( & $db ){
 		$this->db = & $db;
-		$this->archivedb = & $archivedb;
 	}
 
 	function createMsgFolder($name, $uid = 0){
@@ -35,9 +28,11 @@ problems balancing msgtext:
 		if(!$uid)
 			$uid = $userData['userid'];
 
-		$this->db->prepare_query($uid, "INSERT INTO msgfolder SET userid = #, name = ?", $uid, $name);
+		$id = $this->db->getSeqID($uid, DB_AREA_MESSAGE_FOLDER);
 
-		$cache->remove(array($uid, "msgfolders-$uid"));
+		$this->db->prepare_query("INSERT INTO msgfolder SET userid = %, id = #, name = ?", $uid, $id, $name);
+
+		$cache->remove("msgfolders-$uid");
 
 		$msgs->addMsg("Folder Created");
 	}
@@ -48,17 +43,17 @@ problems balancing msgtext:
 		if(!$uid)
 			$uid = $userData['userid'];
 
-		$this->db->prepare_query($uid, "SELECT id FROM msgs WHERE folder IN (#) && userid = #", $id, $uid);
+		$res = $this->db->prepare_query("SELECT id FROM msgs WHERE folder IN (#) && userid = %", $id, $uid);
 
 		$msgids = array();
-		while($line = $this->db->fetchrow())
+		while($line = $res->fetchrow())
 			$msgids[] = $line['id'];
 
 		$this->moveMsg($msgids, MSG_TRASH, $uid);
 
-		$this->db->prepare_query($uid, "DELETE FROM msgfolder WHERE userid = # && id IN (#)", $uid, $id);
+		$this->db->prepare_query("DELETE FROM msgfolder WHERE userid = % && id IN (#)", $uid, $id);
 
-		$cache->remove(array($uid, "msgfolders-$uid"));
+		$cache->remove("msgfolders-$uid");
 
 		$msgs->addMsg("Folder(s) deleted");
 	}
@@ -69,9 +64,9 @@ problems balancing msgtext:
 		if(!$uid)
 			$uid = $userData['userid'];
 
-		$this->db->prepare_query($uid, "UPDATE msgfolder SET name = ? WHERE userid = # && id = #", $name, $uid, $id);
+		$this->db->prepare_query("UPDATE msgfolder SET name = ? WHERE userid = % && id = #", $name, $uid, $id);
 
-		$cache->remove(array($uid, "msgfolders-$uid"));
+		$cache->remove("msgfolders-$uid");
 
 		$msgs->addMsg("Folder renamed");
 	}
@@ -86,16 +81,16 @@ problems balancing msgtext:
 
 		if(!isset($folders[$uid])){
 
-			$folders[$uid] = $cache->get(array($uid, "msgfolders-$uid"));
+			$folders[$uid] = $cache->get("msgfolders-$uid");
 
 			if(!$folders[$uid]){
-				$this->db->prepare_query($uid, "SELECT id,name FROM msgfolder WHERE userid = #", $uid);
+				$res = $this->db->prepare_query("SELECT id,name FROM msgfolder WHERE userid = %", $uid);
 
 
 				$folders[$uid] = array(MSG_INBOX => "Inbox", MSG_SENT => "Sent Items", MSG_TRASH => "Trash");
 
 				$temp = array();
-				while($line = $this->db->fetchrow())
+				while($line = $res->fetchrow())
 					$temp[$line['id']] = $line['name'];
 
 				sortCols($temp, SORT_ASC, SORT_CASESTR, 'name');
@@ -103,7 +98,7 @@ problems balancing msgtext:
 				foreach($temp as $k => $v)
 					$folders[$uid][$k] = $v;
 
-				$cache->put(array($uid, "msgfolders-$uid"), $folders[$uid], 86400);
+				$cache->put("msgfolders-$uid", $folders[$uid], 86400);
 			}
 
 		}
@@ -135,30 +130,30 @@ problems balancing msgtext:
 			return;
 
 		if($moveto >= 4){
-			$this->db->prepare_query($uid, "SELECT id FROM msgfolder WHERE id = # && userid = #", $moveto, $uid);
-			if($this->db->numrows()==0){
+			$res = $this->db->prepare_query("SELECT id FROM msgfolder WHERE id = # && userid = %", $moveto, $uid);
+			if(!$res->fetchrow()){
 				$msgs->addMsg("Folder doesn't exist");
 				return;
 			}
 		}
 
 		if($moveto == MSG_TRASH){
-			$this->db->prepare_query($uid, "UPDATE msgs SET status = 'read' WHERE userid = # && `to` = # && status = 'new' && id IN (#)", $uid, $uid, $checkID);
+			$this->db->prepare_query("UPDATE msgs SET status = 'read' WHERE userid = % && `to` = # && status = 'new' && id IN (#)", $uid, $uid, $checkID);
 
 			$num = $this->db->affectedrows();
 
 			if($num > 0){
-				global $db;
-				$db->prepare_query("UPDATE users SET newmsgs = newmsgs - # WHERE userid = #", $num, $uid);
-//				$cache->decr(array($uid, "newmsgs-$uid"), $num);
-				$cache->remove(array($uid, "newmsglist-$uid"));
+				global $usersdb;
+				$usersdb->prepare_query("UPDATE users SET newmsgs = newmsgs - # WHERE userid = %", $num, $uid);
+//				$cache->decr("newmsgs-$uid", $num);
+				$cache->remove("newmsglist-$uid");
 
 				if($uid == $userData['userid'])
 					$userData['newmsgs'] -= $num;
 			}
 		}
 
-		$this->db->prepare_query($uid, "UPDATE msgs SET folder = # WHERE userid = # && id IN (#)", $moveto, $uid, $checkID);
+		$this->db->prepare_query("UPDATE msgs SET folder = # WHERE userid = % && id IN (#)", $moveto, $uid, $checkID);
 
 		$msgs->addMsg("Message(s) Moved");
 		return;
@@ -173,7 +168,7 @@ problems balancing msgtext:
 		if(!$uid)
 			$uid = $userData['userid'];
 
-		$this->db->prepare_query($uid, "UPDATE msgs SET mark = 'y' WHERE userid = # && id IN (#)", $uid, $checkID);
+		$this->db->prepare_query("UPDATE msgs SET mark = 'y' WHERE userid = % && id IN (#)", $uid, $checkID);
 
 		$msgs->addMsg("Message Marked");
 		return;
@@ -188,104 +183,86 @@ problems balancing msgtext:
 		if(!$uid)
 			$uid = $userData['userid'];
 
-		$this->db->prepare_query($uid, "UPDATE msgs SET mark = 'n' WHERE userid = # && id IN (#)", $uid, $checkID);
+		$this->db->prepare_query("UPDATE msgs SET mark = 'n' WHERE userid = % && id IN (#)", $uid, $checkID);
 
 		$msgs->addMsg("Message UnMarked");
 		return;
 	}
 
 	function setNumNewMsgs($uid = 0){
-		global $db, $userData, $cache, $config;
+		global $usersdb, $userData, $cache, $config;
 
 		if(!$uid)
 			$uid = $userData['userid'];
 
-		$this->db->prepare_query($uid, "SELECT count(*) FROM msgs WHERE userid = # && `to` = # && new = 'y'", $uid, $uid);
-		$numnew = $this->db->fetchfield();
+		$res = $this->db->prepare_query("SELECT count(*) FROM msgs WHERE userid = % && `to` = # && new = 'y'", $uid, $uid);
+		$numnew = $res->fetchfield();
 
 		if($uid != $userData['userid'] || $numnew != $userData['newmsgs']){
-			$db->prepare_query("UPDATE users SET newmsgs = # WHERE userid = #", $numnew, $uid);
-//			$cache->put(array($uid, "newmsgs-$uid"), $numnew, $config['maxAwayTime']);
-			$cache->remove(array($uid, "newmsglist-$uid"));
+			$usersdb->prepare_query("UPDATE users SET newmsgs = # WHERE userid = %", $numnew, $uid);
+//			$cache->put("newmsgs-$uid", $numnew, $config['maxAwayTime']);
+			$cache->remove("newmsglist-$uid");
 		}
 		if($uid == $userData['userid'])
 			$userData['newmsgs'] = $numnew;
 	}
 
-/*
-	function getMsg($uid, $id){
-		global $cache;
-
-		$this->db->prepare_query($uid, "SELECT id, `to`, toname, `from`, fromname, date, status, subject, replyto, msgtextid, folder FROM msgs WHERE userid = # && id = #", $uid, $id);
-		$msg = $this->db->fetchrow();
-
-		if(!$msg)
-			return false;
-
-		$msgtext = $cache->get(array($msg['msgtextid'], "msgtext-$msg[msgtextid]"));
-
-		if($msgtext === false){
-			$this->db->prepare_query("SELECT msg, compressed, html FROM msgtext WHERE id = #", $msg['msgtextid']);
-			$msgtext = $this->db->fetchrow();
-
-			if($msgtext['compressed'] == 'y')
-				$msgtext['msg'] = gzuncompress($msgtext['msg']);
-
-			$cache->put(array($msg['msgtextid'], "msgtext-$msg[msgtextid]"), $msgtext, 86400);
-		}
-
-		return array_merge($msg, $msgtext);
-	}
-/*/
-	function getMsg($uid, $ids){
+	function getMsg($uid, $ids, $cached = false){ //cached version has an outdated status, and may not show the right folder
 		global $cache;
 
 		$multiple = is_array($ids);
 
-		$this->db->prepare_query($uid, "SELECT id, `to`, toname, `from`, fromname, date, status, subject, replyto, msgtextid, folder, othermsgid FROM msgs WHERE userid = # && id IN (#)", $uid, $ids);
+		if(!$multiple)
+			$ids = array($ids);
 
 		$msgs = array();
 
-		while($line = $this->db->fetchrow())
-			$msgs[$line['id']] = $line;
+		if($cached)
+			$msgs = $cache->get_multi($ids, "msgs-$uid-");
+
+		$missingids = array_diff($ids, array_keys($msgs));
+
+		if(count($missingids)){
+			$res = $this->db->prepare_query("SELECT * FROM msgs WHERE userid = % && id IN (#)", $uid, $missingids);
+
+			while($line = $res->fetchrow()){
+				$msgs[$line['id']] = $line;
+				$cache->put("msgs-$uid-$line[id]", $line, 86400);
+			}
+		}
 
 		if(!count($msgs))
 			return ($multiple ? array() : false);
 
-		$msgtextids = array();
 
-		foreach($msgs as $msg){
-			$msgtext = $cache->get(array($msg['msgtextid'], "msgtext-$msg[msgtextid]"));
+		$msgtexts = $cache->get_multi($ids, "msgtext-$uid-");
 
-			if($msgtext === false)
-				$msgtextids[$msg['msgtextid']] = $msg['id'];
-			else{
-				$msgs[$msg['id']]['msg'] = $msgtext['msg'];
-				$msgs[$msg['id']]['html'] = $msgtext['html'];
+		$missingids = array_diff($ids, array_keys($msgtexts));
+
+		if(count($missingids)){
+			$res = $this->db->prepare_query("SELECT id, msg, html, parse_bbcode FROM msgtext WHERE userid = % && id IN (#)", $uid, $missingids);
+
+			while($line = $res->fetchrow()){
+				$msgtexts[$line['id']] = $line;
+
+				$cache->put("msgtext-$uid-$line[id]", $line, 86400);
 			}
 		}
 
-		if(count($msgtextids)){
-			$this->db->prepare_query("SELECT id, msg, compressed, html FROM msgtext WHERE id IN (#)", array_keys($msgtextids));
-
-			while($line = $this->db->fetchrow()){
-
-				if($line['compressed'] == 'y')
-					$line['msg'] = gzuncompress($line['msg']);
-
-				$cache->put(array($line['id'], "msgtext-$line[id]"), $line, 86400);
-
-				$msgs[$msgtextids[$line['id']]]['msg'] = $line['msg'];
-				$msgs[$msgtextids[$line['id']]]['html'] = $line['html'];
-			}
+		foreach($msgs as $msg){
+			$msgs[$msg['id']]['msg'] = $msgtexts[$msg['id']]['msg'];
+			$msgs[$msg['id']]['html'] = $msgtexts[$msg['id']]['html'];
+			$msgs[$msg['id']]['parse_bbcode'] = $msgtexts[$msg['id']]['parse_bbcode'];
 		}
 
 		return ($multiple ? $msgs : array_shift($msgs));
 	}
-//*/
 
-	function deliverMsg($to, $subject, $message, $replyto = 0, $fromname = false, $fromid = false, $ignorable = true, $html = false){
-		global $userData, $msgs, $emaildomain, $config, $db, $cache;
+	function deliverMsg($to, $subject, $message, $replyto = 0, $fromname = false, $fromid = false, $ignorable = true, $html = false, $parse_bbcode = true, $allowemail = -1){
+		global $userData, $msgs, $emaildomain, $config, $usersdb, $cache, $useraccounts;
+
+		if ($allowemail === -1)
+			$allowemail = $config['defaultMessageAllowEmails'];
 
 		if($fromname === false)
 			$fromname = $userData['username'];
@@ -295,24 +272,23 @@ problems balancing msgtext:
 		}else
 			$age = 0;
 
-		if(is_array($to))
+		if(is_array($to)){
 			$replyto = 0;
-
-		$db->prepare_query("SELECT userid, username, fwmsgs, email FROM users WHERE userid IN (#)", $to);
-		$tousers = array();
-
-		while($line = $db->fetchrow())
-			$tousers[$line['userid']] = $line;
+			$tousers = getUserInfo($to);
+		}else{
+			$tousers[$to] = getUserInfo($to);
+		}
 
 		if(!count($tousers)){
 			$msgs->addMsg("User doesn't exist");
 			return false;
 		}
 
+
 		$nsubject = removeHTML(trim($subject));
 
-		if(!$html)
-			$nmsg = removeHTML(trim($message));
+
+		$nmsg = html_sanitizer::sanitize($message);
 
 		if($nsubject=="")
 			$nsubject="No Subject";
@@ -328,114 +304,64 @@ problems balancing msgtext:
 				return false;
 		}
 
-		$hash = pack("H*", md5($nmsg)); //store hex as binary
-
 		$time = time();
 
 	//	ignore_user_abort(true);
 
-	//	$this->db->query("LOCK TABLES msgtext WRITE");
-
-		$this->db->begin();
-
-		$this->db->prepare_query("SELECT id FROM msgtext WHERE hash = ?", $hash); // FOR UPDATE
-
-		if($this->db->numrows()){
-			$msgtextid = $this->db->fetchfield();
-			$this->db->prepare_query("UPDATE msgtext SET date = # WHERE id = #", $time, $msgtextid);
-		}else{
-
-			$compressed = 'n';
-			$html = 'n';
-
-/*
-			$len = strlen($nmsg);
-			if ($this->_compress_enable && $this->_compress_threshold && $len >= $this->_compress_threshold){
-				$c_val = gzcompress($nmsg, 9);
-				$c_len = $this->_byte_count($c_val);
-
-				if($c_len < $len*(1 - COMPRESS_SAVINGS)){
-					$nmsg = $c_val;
-					$compressed = 'y';
-				}
-			}
-*/
-			$this->db->prepare_query("INSERT INTO msgtext SET msg = ?, hash = ?, date = #, html = ?, compressed = ?", $nmsg, $hash, $time, $html, $compressed);
-			$msgtextid = $this->db->insertid();
-
-			$msgtext = array('compressed' => $compressed, 'html' => $html, 'msg' => $nmsg);
-
-//			$cache->put(array($msgtextid, "msgtext-$msgtextid"), $msgtext, 86400);
-		}
-
-	//	$this->db->query("UNLOCK TABLES");
 
 		$otherreply = 0;
 
 		if($replyto){
-			$this->db->prepare_query($to, "SELECT othermsgid FROM msgs WHERE id = #", $replyto);
-			$otherreply = $this->db->fetchrow();
+			$res = $this->db->prepare_query("SELECT othermsgid FROM msgs WHERE userid = % && id = #", $fromid, $replyto);
+			$otherreply = $res->fetchrow();
 
 			if($otherreply)
 				$otherreply = $otherreply['othermsgid'];
 		}
 
+		$html = 'n';
+		$msgtext = array('html' => $html, 'msg' => $nmsg, 'parse_bbcode' => $parse_bbcode);
 
-		foreach($tousers as $to => $user){
-			$this->db->prepare_query($to, "INSERT INTO msgs SET userid = #, folder = #, otheruserid = #, `to` = #, toname = ?, `from` = #, fromname = ?, date = #, status = 'new', subject = ?, msgtextid = #, replyto = #",
-								$to, MSG_INBOX, $fromid, $to, $user['username'], $fromid, $fromname, $time, $nsubject, $msgtextid, $otherreply);
+		foreach($tousers as $toid => $user){
+			$firstmsgid = $this->db->getSeqID($toid, DB_AREA_MESSAGE);
+			$secondmsgid = ($fromid ? $this->db->getSeqID($fromid, DB_AREA_MESSAGE) : 0);
 
-			$firstmsgid = $this->db->insertid();
+			$this->db->prepare_query("INSERT INTO msgs SET userid = %, id = #, folder = #, otheruserid = #, `to` = #, toname = ?, `from` = #, fromname = ?, date = #, status = 'new', subject = ?, replyto = #, othermsgid = #",
+								$toid, $firstmsgid, MSG_INBOX, $fromid, $toid, $user['username'], $fromid, $fromname, $time, $nsubject, $otherreply, $secondmsgid);
+
+			$this->db->prepare_query("INSERT INTO msgtext SET userid = %, id = #, msg = ?, date = #, html = ?, parse_bbcode = ?", $to, $firstmsgid, $nmsg, $time, $html, $parse_bbcode);
+			$cache->put("msgtext-$toid-$firstmsgid", $msgtext, 86400);
 
 			if($fromid){
-				$this->db->prepare_query($fromid, "INSERT INTO msgs SET userid = #, folder = #, otheruserid = #, `to` = #, toname = ?, `from` = #, fromname = ?, date = #, status = 'new', subject = ?, msgtextid = #, replyto = #, othermsgid = #",
-									$fromid, MSG_SENT, $to, $to, $user['username'], $fromid, $fromname, $time, $nsubject, $msgtextid, $replyto, $firstmsgid);
+				$this->db->prepare_query("INSERT INTO msgs SET userid = %, id = #, folder = #, otheruserid = #, `to` = #, toname = ?, `from` = #, fromname = ?, date = #, status = 'new', subject = ?, replyto = #, othermsgid = #",
+									$fromid, $secondmsgid, MSG_SENT, $toid, $toid, $user['username'], $fromid, $fromname, $time, $nsubject, $replyto, $firstmsgid);
 
-				$secondmsgid = $this->db->insertid();
-
-				$this->db->prepare_query($to, "UPDATE msgs SET othermsgid = # WHERE id = #", $secondmsgid, $firstmsgid);
+				$this->db->prepare_query("INSERT INTO msgtext SET userid = %, id = #, msg = ?, date = #, html = ?, parse_bbcode = ?", $fromid, $secondmsgid, $nmsg, $time, $html, $parse_bbcode);
+				$cache->put("msgtext-$fromid-$secondmsgid", $msgtext, 86400);
 			}
 
-			$this->archivedb->prepare_query("INSERT INTO msgarchive SET id = ?, `to` = ?, toname = ?, `from` = ?, fromname = ?, date = ?, subject = ?, msg = ?",
-						$firstmsgid, $to, $user['username'], $fromid, $fromname, $time, $nsubject, $nmsg);
+			$this->db->prepare_query("INSERT INTO msgarchive SET userid = %, id = ?, `to` = ?, toname = ?, `from` = ?, fromname = ?, date = ?, subject = ?, msg = ?",
+						$toid, $firstmsgid, $toid, $user['username'], $fromid, $fromname, $time, $nsubject, $nmsg);
 
-			$new = $cache->remove(array($to, "newmsglist-$to"));
+			$new = $cache->remove("newmsglist-$to");
 		}
 
 		if($otherreply)
-			$this->db->prepare_query(array($to, $fromid), "UPDATE msgs SET status='replied' WHERE id IN (#,#)", $replyto, $otherreply);
+			$this->db->prepare_query("UPDATE msgs SET status='replied' WHERE (userid = % && id = #) || (userid = % && id = #)", $toid, $otherreply, $fromid, $replyto);
 
-
-
-		$this->db->commit();
-
-		$db->prepare_query("UPDATE users SET newmsgs = newmsgs+1 WHERE userid IN (#)", array_keys($tousers));
-
-		$this->archivedb->close();
-
-
-/*
-		$new = $cache->incr(array($to, "newmsgs-$to"));
-
-		if($new === false){
-			$db->prepare_query("SELECT newmsgs WHERE userid = ?", $to)
-			$new = (int)$db->fetchfield() + 1;
-
-			$cache->put(array($to, "newmsgs-$to"), $new, $config['maxAwayTime']);
-		}
-*/
+		$this->db->prepare_query("UPDATE users SET newmsgs = newmsgs+1 WHERE userid IN (%)", array_keys($tousers));
 
 		if($userData['loggedIn'] && $to == $userData['userid'])
 			$userData['newmsgs']++;
 
 
-		foreach($tousers as $to => $user){
-			if($user['fwmsgs'] == 'y'){
-				$nmsg2 = smilies($nmsg);
-				$nmsg2 = parseHTML($nmsg2);
-
-				smtpmail("$user[email]", $nsubject, "From: $fromname\n\n$nmsg2\n\n------Forwarded Offline Message From $config[title]-----\nThe return address is NOT valid", "From: " . (strpos($fromname, ':') === false && strpos($fromname, ';') === false && strpos($fromname,',') === false ? "$fromname on " : "") . "$config[title] <no-reply@$emaildomain>");
-			}
+		$nmsg2 = smilies($nmsg);
+		$nmsg2 = parseHTML($nmsg2);
+		if ($allowemail)
+		{
+			foreach($tousers as $to => $user)
+				if($user['fwmsgs'] == 'y')
+					smtpmail($useraccounts->getEmail($user['userid']), $nsubject, "From: $fromname\n\n$nmsg2\n\n------Forwarded Offline Message From $config[title]-----\nThe return address is NOT valid", "From: " . (strpos($fromname, ':') === false && strpos($fromname, ';') === false && strpos($fromname,',') === false ? "$fromname on " : "") . "$config[title] <no-reply@$emaildomain>");
 		}
 
 	//	ignore_user_abort(false);
@@ -450,11 +376,17 @@ problems balancing msgtext:
 	$timer->start("messaging prune - " . gmdate("F j, g:i a T"));
 
 	echo $timer->lap("delete msgs from trash");
-		$this->db->prepare_query(false, "DELETE FROM msgs WHERE folder = #", MSG_TRASH);
+//		$this->db->prepare_query(false, "DELETE FROM msgs WHERE folder = #", MSG_TRASH);
+		$this->db->repeatquery($this->db->prepare("DELETE FROM msgs WHERE folder = #", MSG_TRASH), 10000);
+
 	echo $timer->lap("delete old msgs");
-		$this->db->prepare_query(false, "DELETE FROM msgs WHERE date <= #", $time - 86400*21);
+//		$this->db->prepare_query(false, "DELETE FROM msgs WHERE date <= #", $time - 86400*$this->prunelength);
+		$this->db->repeatquery($this->db->prepare("DELETE FROM msgs WHERE date <= #", $time - 86400*$this->prunelength), 10000);
+
 	echo $timer->lap("delete stranded msgtext rows");
-		$this->db->prepare_query("DELETE FROM msgtext WHERE date <= #", $time - 86400*21);
+//		$this->db->prepare_query(false, "DELETE FROM msgtext WHERE date <= #", $time - 86400*$this->prunelength);
+		$this->db->repeatquery($this->db->prepare("DELETE FROM msgtext WHERE date <= #", $time - 86400*$this->prunelength), 10000);
+
 	echo $timer->stop();
 	}
 
@@ -469,11 +401,11 @@ problems balancing msgtext:
 	}
 
 	function viewDumpedMsgs($uids, $sortbyuser = false){
-		$this->db->prepare_query("SELECT msgdump.*, IF(`to`=msgdump.userid, toname, fromname) AS username, IF(`to`=msgdump.userid, `from`, `to`) AS other, users.age, users.sex FROM msgdump LEFT JOIN users ON IF(`to`=msgdump.userid, `from`, `to`)=users.userid WHERE msgdump.userid IN (#) ORDER BY " . ($sortbyuser ? "other, " : "") . "date", $uids);
+		$res = $this->db->prepare_query("SELECT msgdump.*, IF(`to`=msgdump.userid, toname, fromname) AS username, IF(`to`=msgdump.userid, `from`, `to`) AS other, users.age, users.sex FROM msgdump LEFT JOIN users ON IF(`to`=msgdump.userid, `from`, `to`)=users.userid WHERE msgdump.userid IN (#) ORDER BY " . ($sortbyuser ? "other, " : "") . "date", $uids);
 
 		$output = "dumping " . $this->db->numrows() . " messages<br>\n";
 
-		while($line = $this->db->fetchrow()){
+		while($line = $res->fetchrow()){
 			$output .= "Msg id:  $line[id]\n";
 			$output .= "User:    $line[username]\n";
 			$output .= "Folder:  " . ($line['to'] == $line['userid'] ? "Inbox" : "Outbox") . "\n";
@@ -519,5 +451,3 @@ problems balancing msgtext:
 		$this->archivedb->prepare_query("DELETE FROM msgarchive WHERE date BETWEEN # AND #", $start, $end);
 	}
 }
-
-

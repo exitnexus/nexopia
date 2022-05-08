@@ -7,11 +7,11 @@
 
 
 class mancala{
-	var $board;
-	var $score;
-	var $players;
+	public $board;
+	public $score;
+	public $players;
 
-	function mancala($game = 0){
+	function __construct($game = 0){
 		global $cache;
 
 		if($game){

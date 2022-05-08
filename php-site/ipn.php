@@ -47,19 +47,19 @@ function validatePayPal($data){
 
 //duplicate
 	$db->prepare_query("SELECT id FROM invoice WHERE txnid = ?", $data['txn_id']);
-	if($db->numrows() > 0){
+	if($db->fetchrow()){
 		$db->query("UNLOCK TABLES");
 		return "Duplicate txn_id";
 	}
 
 //invalid
 	$db->prepare_query("SELECT id,userid,total,completed,amountpaid FROM invoice WHERE id = ?", $data['invoice']);
-	if($db->numrows() == 0){
+	$invoice = $db->fetchrow();
+
+	if(!$invoice){
 		$db->query("UNLOCK TABLES");
 		return "invalid invoice";
 	}
-
-	$invoice = $db->fetchrow();
 
 //already complete
 	if($invoice['completed'] == 'y'){
@@ -193,6 +193,7 @@ function postit($DataStream, $URL) {
 		else
 			$result['body'] .= $buf;
 	}
+	fclose($socket);
 
 	return $result;
 }

@@ -7,7 +7,7 @@ if(isset($filename)){
 	require_once('include/JPEG.php');
 
 
-	$jpeg =& new JPEG($filename);
+	$jpeg = new JPEG($filename);
 
 	echo "ImageDescription: " . $jpeg->getExifField("ImageDescription") . "<br>\n";
 

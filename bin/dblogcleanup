@@ -1,0 +1,29 @@
+#!/bin/sh
+#db log cleanup script
+
+HOST=`hostname`
+MAILTO=timo@nexopia.com
+if [ -d "/data/" ]
+then
+	LOGDIR="/data/"
+elif [ -d "/data1/" ]
+then
+	LOGDIR="/data1/"
+fi
+LOGNAME="binlog.[0-9]*"
+LEN=7
+
+#PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+if [ $1 ]
+then
+	LEN=$1
+fi
+
+files=`find $LOGDIR -name "$LOGNAME" -atime +$LEN`
+
+if [ "$files" ]
+then
+	echo $files | xargs rm
+	echo -e "deleting db logs on $HOST older than $LEN days:\n$files\n\n`df -h`" | mail -s "db log cleanup" $MAILTO
+fi

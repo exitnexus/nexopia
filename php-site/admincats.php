@@ -8,34 +8,33 @@
 		die("Permission denied");
 
 
-
-	$tables = array("cats" => "Article Categories",
-					"locs" => "Locations",
-					"faqcats" => "Help Categories",
-					"interests" => "Interests");	//,"schedulecats"=>"Schedule Categories","cars" => "Cars");
+	$tables = array("cats" => array('name' => "Article Categories", 'db' => & $articlesdb),
+					"locs" => array('name' => "Locations", 'db' => & $configdb),
+					"faqcats" => array('name' => "Help Categories", 'db' => & $db),
+					"interests" => array('name' => "Interests", 'db' => & $configdb));
 
 
 	$catid = getREQval('catid','int');
 	$table = getREQval('table');
-	if($table && isset($tables[$table]))
+	if($table && !isset($tables[$table]))
 		$table = "";
 
 	if($table){
 
-		$categories = & new category( $db, $table);
+		$categories = new category( $tables[$table]['db'], $table, '', false);
 
 		switch($action){
 			case "Add Category":
 				if($catid && ($name = getPOSTval('name')))
-					$db->prepare_query("INSERT INTO $table SET name = ?, parent = #", $name, $catid);
+					$tables[$table]['db']->prepare_query("INSERT INTO $table SET name = ?, parent = #", $name, $catid);
 
 				break;
 			case "Update":
 				if(!$catid || !($parent = getPOSTval('parent', 'int')))
 					 break;
 
-				$db->prepare_query("SELECT parent FROM $table WHERE id = #", $catid);
-				$oldparent = $db->fetchfield();
+				$res = $tables[$table]['db']->prepare_query("SELECT parent FROM $table WHERE id = #", $catid);
+				$oldparent = $res->fetchfield();
 
 				$branch = $categories->makebranch($catid);
 
@@ -48,7 +47,7 @@
 				if($parent == $catid)
 					$parent = $oldparent;
 
-				$db->prepare_query("UPDATE $table SET name = ?, parent = # WHERE id = #", $name, $parent, $catid);
+				$tables[$table]['db']->prepare_query("UPDATE $table SET name = ?, parent = # WHERE id = #", $name, $parent, $catid);
 
 				break;
 			case "Delete":
@@ -106,9 +105,11 @@ function dispRoot(&$data){
 	echo "  <td class=header>Category Name</td>\n";
 	echo "</tr>\n";
 
-	foreach($tables as $tab=>$name){
-		if($tab==$table){
-			$root = $categories->makeroot($catid,$name);
+	$names = array_keys($tables);
+
+	foreach($names as $name){
+		if($name == $table){
+			$root = $categories->makeroot($catid,$tables[$name]['name']);
 			$branch = $categories->makebranch($catid);
 
 			echo "<input type=hidden name=table value=\"$table\">";
@@ -116,7 +117,7 @@ function dispRoot(&$data){
 			dispRoot($root);
 			dispBranch($branch,count($root));
 		}else
-			echo "<tr><td class=body><a class=body href=$_SERVER[PHP_SELF]?table=$tab><b>$name</b></a></td></tr>";
+			echo "<tr><td class=body><a class=body href=$_SERVER[PHP_SELF]?table=$name><b>" . $tables[$name]['name'] . "</b></a></td></tr>";
 	}
 
 

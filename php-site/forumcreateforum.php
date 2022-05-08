@@ -4,70 +4,101 @@
 
 	require_once("include/general.lib.php");
 
+	$isForumAdmin = $mods->isAdmin($userData['userid'],'forums');
 
-	if(!$mods->isAdmin($userData['userid'],'forums')){
-		$forums->db->prepare_query("SELECT count(*) FROM forums WHERE ownerid = ?", $userData['userid']);
+	if(!$isForumAdmin){
+		$res = $forums->db->prepare_query("SELECT * FROM forums WHERE ownerid = #", $userData['userid']);
+		$owned = $res->fetchrowset();
 
-		if($forums->db->fetchfield() > 0)
-			die("You can only create one forum");
+		if($owned){
 
-		$forums->db->prepare_query("SELECT unmutetime FROM forummute WHERE userid = ? && forumid = 0", $userData['userid']);
+			$classes = array('body','body2');
+			$i = -1;
 
-		if($forums->db->numrows() > 0 && $forums->db->fetchfield() > time())
-			die("You are not allowed to post in any forums, or create your own");
+			foreach($owned as $line){
+				$i++;
+				if ($i > 1)
+					$classes[$i] = $classes[$i%2];
+			}
+			$template = new template('forums/forumcreateforum/forumOwned');
+			$template->set('owned', $owned);
+			$template->set('classes', $classes);
+			$template->display();
+			exit;
+		}
+
+		$res = $forums->db->prepare_query("SELECT unmutetime FROM forummute WHERE userid = # && forumid = 0", $userData['userid']);
+		$mute = $res->fetchrow();
+
+		if($mute && $mute['unmutetime'] > time()){
+			$template = new template('forums/forumcreateforum/muted');
+			$template->display();
+			exit;
+		}
 	}
 
 
 	if($action == "Create Forum")
-		insertForum($data);
+		insertForum(getREQval('data', 'array', array()));
 
 	addForum();	//exit
 
 
 function addForum($data = array()){
-	global $childdata;
+	global $isForumAdmin, $userData, $forums;
+
+	$cats = $forums->getCategories();
+	$outputcats = array(-1 => 'Select a category');
+	foreach ($cats as $catid => $cat)
+	{
+		if ($isForumAdmin || $cat['official'] != 'y')
+			$outputcats[$catid] = $cat['name'];
+	}
 
 	$name="";
 	$description="";
+	$catid = getREQval('catid', 'integer', -1); // allow this one to be done by a GET as well.
 	$autolock=0;
 	$edit='n';
 	$countposts='y';
+	$official='n';
 	$public='y';
 	$mute='n';
 
-	extract($data);
+	if (isset($_POST['data']))
+		extract($_POST['data']);
 
-	incHeader();
+	$selectCategory = make_select_list_key($outputcats, $catid);
+	$radioAllowPostEdit = make_radio_key("data[edit]", $forums->editlengths, $edit);
+	$radioOfficial = make_radio_key("data[official]", array('y'=>"Yes", 'n'=>"No"),$official);
+	$radioPublic = make_radio_key("data[public]", array('y'=>"Yes", 'n'=>"No"),$public);
+	$radioMute = make_radio_key("data[mute]", array('y'=>"Yes", 'n'=>"No"),$mute);
 
-	echo "<table><form action=$_SERVER[PHP_SELF] method=post>";
+	$template = new template('forums/forumcreateforum/addForum');
+	$template->set('name', $name);
+	$template->set('description', $description);
+	$template->set('selectCategory', $selectCategory);
+	$template->set('radioAllowPostEdit', $radioAllowPostEdit);
+	$template->set('radioOfficial', $radioOfficial);
+	$template->set('radioPublic', $radioPublic);
+	$template->set('radioMute', $radioMute);
+	$template->set('isForumAdmin', $isForumAdmin);
 
-	echo "<tr><td class=header colspan=2 align=center>Add Forum</td></tr>";
-
-	echo "<tr><td class=body>Name:</td><td class=body><input class=body type=text name=data[name] maxlength=32 value=\"$name\"></td></tr>";
-	echo "<tr><td class=body>Description:</td><td class=body><input class=body type=text name=data[description] maxlength=250 size=30 value=\"$description\"></td></tr>";
-	echo "<tr><td class=header colspan=2 align=center>Options</td></tr>";
-
-	echo "<tr><td class=body>Auto-lock time:</td><td class=body><input class=body type=text name=data[autolock] size=5 value=0> days. 0 to disable, otherwise time in days</td></tr>";
-	echo "<tr><td class=body>Allow Post Editing:</td><td class=body>" . make_radio_key("data[edit]", array('y'=>"Yes", 'n'=>"No"),$edit) . "</td></tr>";
-	echo "<tr><td class=body>Public:</td><td class=body>" . make_radio_key("data[public]", array('y'=>"Yes", 'n'=>"No"),$public) . "&nbsp; Only invited users can enter a private forum.</td></tr>";
-	echo "<tr><td class=body>Mute:</td><td class=body>" . make_radio_key("data[mute]", array('y'=>"Yes", 'n'=>"No"),$mute) . "&nbsp; Only mods can post in a mute forum.</td></tr>";
-
-	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value='Create Forum'><input class=body type=submit value=Cancel></td></tr>";
-	echo "</form></table>";
-
-	incFooter();
+	$template->display();
 	exit;
 }
 
 function insertForum($data){
-	global $msgs, $userData, $forums;
+	global $msgs, $isForumAdmin, $userData, $forums, $userData, $cache;
 
 	$name="";
 	$description="";
+	$catid=-1;
 	$parent=0;
 	$autolock=0;
 	$edit='n';
 	$countposts='y';
+	$official='n';
 	$public='y';
 	$mute='n';
 
@@ -83,11 +114,33 @@ function insertForum($data){
 		$error=true;
 	}
 
+	$cats = $forums->getCategories();
+	if(!isset($cats[$catid])){
+		$msgs->addMsg("Forum needs an initial category");
+		$error=true;
+	}
+
+	if (!$isForumAdmin && $cats[$catid]['official'] == 'y')
+	{
+		$msgs->addMsg("You do not have permission to create a forum in '{$cats[$catid][name]}'");
+		$catid = -1;
+		$error=true;
+	}
+	if ($catid != -1 && $cats[$catid]['official'] == 'y')
+	{
+		$official = 'y'; // force official forums in official categories.
+	}
+	if (!$isForumAdmin && $official == 'y')
+	{
+		$msgs->addMsg("You do not have permission to create an official forum.");
+		$error = true;
+	}
+
 	if($public != 'n')
 		$public='y';
 
-	$forums->db->prepare_query("SELECT id FROM forums WHERE name = ?", $name);
-	if($forums->db->numrows() > 0){
+	$res = $forums->db->prepare_query("SELECT id FROM forums WHERE name = ?", $name);
+	if($res->fetchrow()){
 		$msgs->addMsg("Forum name already taken");
 		$error=true;
 	}
@@ -95,12 +148,17 @@ function insertForum($data){
 	if($error)
 		addForum($data); //exit
 
-	$forums->db->prepare_query("INSERT INTO forums SET name = ?, description = ?, parent = ?, autolock = ?, edit = ?, public = ?, mute = ?, official = 'n', ownerid = ?",
-							removehtml($name), removehtml($description), $parent, $autolock, $edit, $public, $mute, $userData['userid']);
+	$unofficial = ($official=='y')? 'n' : 'y';
+
+	$forums->db->prepare_query("INSERT INTO forums SET name = ?, description = ?, categoryid = #, autolock = ?, edit = ?, official = ?, unofficial = ?, public = ?, mute = ?, ownerid = ?",
+							removehtml($name), removehtml($description), $catid, $autolock, $edit, $official, $unofficial, $public, $mute, $userData['userid']);
 
 	$fid = $forums->db->insertid();
 
-	$forums->db->prepare_query("INSERT IGNORE INTO foruminvite SET userid = ?, forumid = ?", $userData['userid'], $fid);
+	$forums->db->prepare_query("INSERT IGNORE INTO foruminvite SET userid = ?, categoryid = 0, forumid = ?", $userData['userid'], $fid);
+
+	$cache->remove("publicforumlist-mostactive");
+	$cache->remove("subforumlist-" . $userData['userid']);
 
 	header("location: forumthreads.php?fid=$fid");
 	exit;

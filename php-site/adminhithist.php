@@ -28,10 +28,10 @@
 	for($i=1;$i<=12;$i++)
 		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
 
-	$db->query("SELECT * FROM hithist WHERE time >= $time && time < $time + 86400 ORDER BY time ASC LIMIT 24");
+	$res = $db->query("SELECT * FROM hithist WHERE time >= $time && time < $time + 86400 ORDER BY time ASC LIMIT 24");
 
 	$rows = array();
-	while($line = $db->fetchrow())
+	while($line = $res->fetchrow())
 		$rows[] = $line;
 
 	incHeader();

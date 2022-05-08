@@ -4,9 +4,6 @@
 
 	require_once("include/general.lib.php");
 
-	addRefreshHeaders();
-
-
 	if(!($fid = getREQval('fid', 'int')))
 		die("Bad Forum id");
 
@@ -16,21 +13,8 @@
 		die("You don't have permission to view this forum");
 
 	$forumdata = $perms['cols'];
+	$template = new template('forums/forumrules');
+	$template->set('forumRules', getStaticValue('forumrules'));
+	$template->set('specificRules', nl2br(parseHTML(smilies($forumdata['rules']))));
+	$template->display();
 
-
-	incHeader();
-
-	echo "<table>";
-
-	echo "<tr><td class=header align=center>Global Rules</td></tr>";
-	echo "<tr><td class=body>";
-	echo getStaticValue('forumrules'); //needs to accept named ids
-	echo "</td></tr>";
-
-
-	echo "<tr><td class=header align=center>Global Rules</td></tr>";
-	echo "<tr><td class=body>";
-	echo $forumdata['rules']; //needs to be run through removeHTML, nl2br, etc
-	echo "</td></tr>";
-
-	incFooter();

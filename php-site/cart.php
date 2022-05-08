@@ -1,5 +1,8 @@
 <?
 
+header("location: /plus.php");
+exit;
+
 	$login=1;
 
 	require_once("include/general.lib.php");
@@ -27,7 +30,7 @@
 			$inputs = getPOSTval('inputs', 'array');
 			$remove = getPOSTval('remove', 'array');
 
-			$itemds = array();
+			$items = array();
 
 			foreach($quantity as $id => $qty)
 				$items[$id]['quantity'] = $qty;
@@ -38,8 +41,8 @@
 
 			foreach($items as $id => $val){
 
-				$shoppingcart->db->prepare_query("SELECT products.id, unitprice, bulkpricing, validinput FROM products, shoppingcart WHERE products.id = shoppingcart.productid && shoppingcart.id = #", $id);
-				$line = $shoppingcart->db->fetchrow();
+				$res = $shoppingcart->db->prepare_query("SELECT products.id, unitprice, bulkpricing, validinput FROM products, shoppingcart WHERE products.id = shoppingcart.productid && shoppingcart.id = #", $id);
+				$line = $res->fetchrow();
 
 				$set = array();
 				if(isset($val['quantity'])){
@@ -51,10 +54,11 @@
 						$price = $line['unitprice'];
 
 						if($line['bulkpricing'] == 'y' && $val['quantity'] > 1){
-							$shoppingcart->db->prepare_query("SELECT price FROM productprices WHERE productid = # && minimum <= # ORDER BY minimum DESC LIMIT 1", $line['id'], $val['quantity']);
+							$res = $shoppingcart->db->prepare_query("SELECT price FROM productprices WHERE productid = # && minimum <= # ORDER BY minimum DESC LIMIT 1", $line['id'], $val['quantity']);
+							$item = $res->fetchrow();
 
-							if($shoppingcart->db->numrows())
-								$price = $shoppingcart->db->fetchfield();
+							if($item)
+								$price = $item['price'];
 						}
 
 						$set[] = $shoppingcart->db->prepare("price = ?", $price);
@@ -76,13 +80,13 @@
 
 
 
-	$shoppingcart->db->prepare_query("SELECT shoppingcart.id, productid, quantity, price, name, unitprice, products.input as inputtype, shoppingcart.input FROM shoppingcart,products WHERE shoppingcart.productid = products.id && shoppingcart.userid = # ORDER BY id", $userData['userid']);
+	$res = $shoppingcart->db->prepare_query("SELECT shoppingcart.id, productid, quantity, price, name, unitprice, products.input as inputtype, shoppingcart.input FROM shoppingcart,products WHERE shoppingcart.productid = products.id && shoppingcart.userid = # ORDER BY id", $userData['userid']);
 
 	$rows = array();
 
 	$mcids = array();
 
-	while($line = $shoppingcart->db->fetchrow()){
+	while($line = $res->fetchrow()){
 		$rows[] = $line;
 		if($line['inputtype']=='mc')
 			$mcids[] = $line['productid'];
@@ -91,9 +95,9 @@
 	$mcs = array();
 
 	if(count($mcids)){
-		$shoppingcart->db->prepare_query("SELECT id,productid,name FROM productinputchoices WHERE productid IN (?)", $mcids);
+		$res = $shoppingcart->db->prepare_query("SELECT id,productid,name FROM productinputchoices WHERE productid IN (?)", $mcids);
 
-		while($line = $shoppingcart->db->fetchrow())
+		while($line = $res->fetchrow())
 			$mcs[$line['productid']][$line['id']] = $line['name'];
 	}
 
@@ -118,7 +122,7 @@
 	foreach($rows as $row){
 		echo "<tr>";
 		echo "<td class=body><input type=checkbox name=remove[$row[id]]></td>";
-		echo "<td class=body><a class=body href=product.php?id=$row[productid]>$row[name]</a></td>";
+		echo "<td class=body><a class=body href=/product.php?id=$row[productid]>$row[name]</a></td>";
 		echo "<td class=body><input class=body type=text size=1 name=quantity[$row[id]] value=$row[quantity]> months</td>";
 		echo "<td class=body>";
 		switch($row['inputtype']){
@@ -142,7 +146,7 @@
 	echo "<td class=body>Total:</td><td class=body align=right>\$" . number_format($total,2) . "</td></tr>";
 
 	echo "</form>";
-	echo "<tr><td class=body align=center colspan=6><a class=body href=product.php?id=1>Pay for a friend</a></td><td class=body align=right><form action=checkout.php><input class=body type=submit value=Checkout></form></td></tr>";
+	echo "<tr><td class=body align=center colspan=6><a class=body href=/product.php?id=1>Pay for a friend</a></td><td class=body align=right><form action=/checkout.php><input class=body type=submit value=Checkout></form></td></tr>";
 
 	echo "</table>";
 

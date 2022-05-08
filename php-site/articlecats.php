@@ -4,22 +4,18 @@
 
 	require_once("include/general.lib.php");
 
-	$data = getChildData("cats");
-	$branch = makebranch($data);
-
-
-	incHeader();
-
-	echo "<table>";
-
+	$categories = new category( $articlesdb, "cats");
+	$branch = $categories->makebranch();
+	
+	$template = new template('articles/articlecats');
+	
+	$index = -1;
 	foreach($branch as $line){
-		echo "<tr><td class=body>";
+		$index++;
 		for($i=0;$i<$line['depth']-1;$i++)
-			echo "&nbsp;- ";
-		echo "<a class=body href=articlelist.php?cat=$line[id]>$line[name]</a>";
-		echo "</td></tr>\n";
+			$indent[$index] .= "&nbsp;- ";
 	}
 
-	echo "</table>";
-
-    incFooter();
+	$template->set('branch', $branch);
+	$template->set('indent', $indent);
+	$template->display();

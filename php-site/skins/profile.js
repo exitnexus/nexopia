@@ -1,17 +1,18 @@
 
+var ids = new Array();
 var pics = new Array();
 var descs = new Array();
 var votes = new Array();
 var preLoad = new Array();
 var numpics = 0;
-var skindir = "";
 var selectedpic = 0;
 var votelink = "";
-var picloc = "";
+//var picloc = "";
 var userid = 0;
 
-function addPic(id,desc,vote){
-	pics[numpics]= id;
+function addPic(id, loc, desc, vote){
+	ids[numpics]= id;
+	pics[numpics]= loc;
 	descs[numpics] = desc;
 	votes[numpics] = vote;
 	numpics++;
@@ -19,14 +20,8 @@ function addPic(id,desc,vote){
 function setVoteLink(str){
 	votelink = str;
 }
-function setPicLoc(str){
-	picloc = str;
-}
 function setUserid(id){
 	userid = id;
-}
-function setSkinDir(str){
-	skindir = str;
 }
 
 function changepic(picnum){
@@ -35,7 +30,7 @@ function changepic(picnum){
 
 	if(!preLoad[picnum]){
 		preLoad[picnum] = new Image();
-		preLoad[picnum].src = picloc + Math.floor(pics[picnum]/1000) + "/" + pics[picnum] + ".jpg";
+		preLoad[picnum].src = pics[picnum];//picloc + Math.floor(pics[picnum]/1000) + "/" + pics[picnum] + ".jpg";
 	}
 
 	document.images.userpic.src=preLoad[picnum].src;
@@ -78,14 +73,8 @@ function votepic(score){
 	if(votelink=="")
 		return;
 	if(score)
-		location.href = votelink + "&voteid=" + pics[selectedpic] + "&rating=" + score;
+		location.href = votelink + "&voteid=" + ids[selectedpic] + "&rating=" + score;
 	else
-		location.href = votelink + "&voteid=" + pics[selectedpic];
+		location.href = votelink + "&voteid=" + ids[selectedpic];
 }
 
-function reportabuse(){
-	if(numpics == 0)
-		location.href="reportabuse.php?type=userabuse&id=" + userid;
-	else
-		location.href="reportabuse.php?type=picabuse&id=" + pics[selectedpic];
-}

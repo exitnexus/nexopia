@@ -1,21 +1,44 @@
 <?
 
+// function checks for a form input that indicates the timezone as the user's browser sees it
+// and if there is one, and it differs from the current session data, returns that passed to the user.
+function checktimezone()
+{
+	global $userData;
+	$jstimezone = getPOSTval('js_clienttimezone', 'integer');
+	if (!empty($jstimezone))
+	{
+		// convert to sane format (minutes right of GMT. ie. -360 for MDT)
+		$timeoffset = -$jstimezone;
+		if (!isset($userData['jstimezone']) || $userData['jstimezone'] != $timeoffset)
+			return $timeoffset;
+	}
+	return null;
+}
+
 function login($username, $password, $cached = false, $lockip = false){				//call destroy session before logging in, or the guest session will persist for a while
-	global $db, $msgs, $logdb;
+	global $msgs, $usersdb;
 
 	if(empty($username) || empty($password) || trim($username)=="" || trim($password)==""){
 		$msgs->addMsg("Bad username or password");
 		return false;
 	}
 
-	$db->prepare_query("SELECT userid, username, (password = PASSWORD(?)) as passmatch, frozen, activated FROM users WHERE username = ?", $password, $username);
+	$userid = getUserID($username);
 
-	if(!$db->numrows()){
+	if(!$userid){
 		$msgs->addMsg("Bad username or password");
 		return false;
 	}
 
-	$line = $db->fetchrow();
+	$res = $usersdb->prepare_query("SELECT userid, (password = ?) as passmatch, frozen, activated FROM users WHERE userid = #", mysql_hash_password($password), $userid);
+
+	$line = $res->fetchrow();
+
+	if(!$line){
+		$msgs->addMsg("Bad username or password");
+		return false;
+	}
 
 	$status = 'success';
 
@@ -34,7 +57,7 @@ function login($username, $password, $cached = false, $lockip = false){				//cal
 
 	$ip = ip2int(getip());
 
-	$logdb->prepare_query($line['userid'], "INSERT INTO loginlog SET userid = #, time = #, ip = #, result = ?", $line['userid'], time(), $ip, $status);
+	$usersdb->prepare_query("INSERT INTO loginlog SET userid = %, time = #, ip = #, result = ?", $line['userid'], time(), $ip, $status);
 
 	if($status == 'success'){
 		createSession($line['userid'], $cached, $lockip);
@@ -45,25 +68,40 @@ function login($username, $password, $cached = false, $lockip = false){				//cal
 }
 
 function logout($uids){
-	global $db, $fastdb, $cache;
+	global $usersdb, $fastdb, $cache, $config;
 	$time = time();
-	$db->prepare_query("UPDATE users SET online = 'n', timeonline = timeonline + (# - activetime), activetime = # WHERE userid IN (#) && online = 'y'", $time, $time, $uids);
 
-	$db->prepare_query("UPDATE usersearch SET active = 1 WHERE userid IN (#) && active = 2", $uids);
+	$fastdb->prepare_query("UPDATE useractivetime SET online = 'n' WHERE userid IN (%) && online = 'y'", $uids);
 
-	$fastdb->prepare_query($uids, "UPDATE useractivetime SET online = 'n' WHERE userid IN (#) && online = 'y'", $uids);
+	$usersdb->prepare_query("UPDATE users SET online = 'n', timeonline = timeonline + (# - activetime), activetime = # WHERE userid IN (#) && online = 'y'", $time, $time, $uids);
 
-/*
+	$usersdb->prepare_query("UPDATE usersearch SET active = 1 WHERE userid IN (#) && active = 2", $uids);
+
 	if(is_array($uids))
 		foreach($uids as $uid)
-			$cache->remove(array($uid, "userprefs-$uid"));
+			$cache->put("useractive-$uid", $time - $config['friendAwayTime'], 86400*7);
 	else
-		$cache->remove(array($uids, "userprefs-$uids"));
-//*/
+		$cache->put("useractive-$uids", $time - $config['friendAwayTime'], 86400*7);
+}
+
+function loginRedirect(){
+	header("location: /login.php?referer=" . urlencode($_SERVER['REQUEST_URI']));
+	exit;
+}
+
+function statsHeaders($userData){ //for use with logstats.php as a log parser
+	header("X-LIGHTTPD-usertype: " . ($userData['loggedIn'] ? ($userData['premium'] ? 'plus' : 'user') : 'anon'));
+
+	if($userData['loggedIn']){
+		header("X-LIGHTTPD-userid: $userData[userid]");
+		header("X-LIGHTTPD-age: $userData[age]");
+		header("X-LIGHTTPD-sex: $userData[sex]");
+		header("X-LIGHTTPD-loc: $userData[loc]");
+	}
 }
 
 function auth($userid, $key, $kill = true, $simple = false, $userprefs = array()){
-	global $config, $cookiedomain, $db, $fastdb, $sessiondb, $cache, $logdb, $debuginfousers;
+	global $config, $cookiedomain, $usersdb, $fastdb, $sessiondb, $cache, $debuginfousers;
 
 //	echo "start auth! userid: '$userid', key: '$key'<br>";
 
@@ -81,17 +119,15 @@ function auth($userid, $key, $kill = true, $simple = false, $userprefs = array()
 //new user, no old session to destroy before creating a new one
 //reuse an old one if possible. Useful for people who won't accept cookies, so the count doesn't just keep going up
 	if(empty($userid) || !settype($userid, 'integer') || empty($key) || !settype($key, 'string') || !ereg('^[a-z0-9]{32}$', $key) ){
-		if($kill){
-			header("location: /login.php?referer=" . urlencode($REQUEST_URI));
-			die;
-		}
+		if($kill)
+			loginRedirect();
 
-		$sessiondb->prepare_query(0, "SELECT id, sessionid FROM sessions WHERE ip = # && ISNULL(userid)", $ip);
-		if($sessiondb->numrows() == 0){
+		$sessiondb->squery(0, $sessiondb->prepare("SELECT id, sessionid FROM sessions WHERE ip = # && ISNULL(userid)", $ip));
+		$line = $sessiondb->fetchrow();
+
+		if(!$line){
 			$userData['userid'] = createSession(); //sets the cookies
 		}else{
-			$line = $sessiondb->fetchrow();
-
 			$userData['userid'] = 0 - $line['id'];
 
 			setCookie("userid", $userData['userid'], 0, '/', $cookiedomain);
@@ -104,27 +140,26 @@ function auth($userid, $key, $kill = true, $simple = false, $userprefs = array()
 
 //old anon session
 	if($userid < 0){
-		if($kill){
-			header("location: /login.php?referer=" . urlencode($REQUEST_URI));
-			exit;
-		}
+		if($kill)
+			loginRedirect();
 
 		$id = abs($userid);
 
-		$session = $cache->get(array($userid, "session-$userid-$key"));
+		$session = $cache->get("session-$userid-$key");
 
 		if(!$session){
-			$sessiondb->prepare_query(0, "SELECT sessionid FROM sessions WHERE id = # && sessionid = ?", $id, $key);
+			$sessiondb->squery(0, $sessiondb->prepare("SELECT sessionid FROM sessions WHERE id = # && sessionid = ?", $id, $key));
+			$sessionrow = $sessiondb->fetchrow();
 
-			if($sessiondb->numrows()){
-				$session = $sessiondb->fetchfield();
+			if($sessionrow){
+				$session = $sessionrow['sessionid'];
 
-				$cache->put(array($userid, "session-$userid-$key"), $session, 3600);
+				$cache->put("session-$userid-$key", $session, 3600);
 			}
 		}
 
 		if($session){
-			$sessiondb->prepare_query(0, "UPDATE sessions SET activetime = #, ip = # WHERE id = #", $time, $ip, $id);
+			$sessiondb->squery(0, $sessiondb->prepare("UPDATE sessions SET activetime = #, ip = # WHERE id = #", $time, $ip, $id));
 			$userData['userid'] = $userid;
 		}else{
 			destroySession($userid, $key);
@@ -134,14 +169,17 @@ function auth($userid, $key, $kill = true, $simple = false, $userprefs = array()
 	}
 
 //logged in user
-	$session = $cache->get(array($userid, "session-$userid-$key"));
+	$session = $cache->get("session-$userid-$key");
+
+	$sessionmemcacheput = false;
 
 	if(!$session){
-		$sessiondb->prepare_query($userid, "SELECT id, activetime, cachedlogin, ip, lockip FROM sessions WHERE userid = # && sessionid = ?", $userid, $key);
+		$sessiondb->prepare_query("SELECT id, activetime, cachedlogin, ip, lockip, jstimezone FROM sessions WHERE userid = % && sessionid = ?", $userid, $key);
+		$session = $sessiondb->fetchrow();
 
-		if($sessiondb->numrows()){
-			$session = $sessiondb->fetchrow();
+		if($session){
 			$session['dbtime'] = $session['activetime'];
+			$sessionmemcacheput = true;
 		}
 	}
 
@@ -149,10 +187,9 @@ function auth($userid, $key, $kill = true, $simple = false, $userprefs = array()
 	if(!$session){
 		destroySession($userid,$key);
 		$userData['userid'] = createSession();
-		if($kill){
-			header("location: /login.php?referer=" . urlencode($REQUEST_URI));
-			die;
-		}
+		if($kill)
+			loginRedirect();
+
 		return $userData;
 	}
 
@@ -160,23 +197,22 @@ function auth($userid, $key, $kill = true, $simple = false, $userprefs = array()
 		($session['lockip']=='y' && (ip2int(getip()) & 0xFFFFFF00) != ($session['ip'] & 0xFFFFFF00))){ //same subnet?
 		destroySession($userid,$key);
 		$userData['userid'] = createSession();
-		if($kill){
-			header("location: /login.php?referer=" . urlencode($REQUEST_URI));
-			die;
-		}
+		if($kill)
+			loginRedirect();
+
 		return $userData;
 	}
 
 //logged in
-	if($session['ip'] != $ip || !isset($session['dbtime']) || $session['dbtime'] < ($time-$config['maxAwayTime'])){
-		$sessiondb->prepare_query($userid, "UPDATE sessions SET activetime = #, ip = # WHERE id = #", $time, $ip, $session['id']);
+	if($session['ip'] != $ip || !isset($session['dbtime']) || $session['dbtime'] < ($time-$config['friendAwayTime'])){
+		$sessiondb->squery($userid, $sessiondb->prepare("UPDATE sessions SET activetime = #, ip = # WHERE id = #", $time, $ip, $session['id']));
 		$session['dbtime'] = $time;
 	}
 
-	if($session['activetime'] < $time - 120 || $session['ip'] != $ip){
+	if($session['activetime'] < $time - 120 || $session['ip'] != $ip || $sessionmemcacheput){
 		$session['activetime'] = $time;
 		$session['ip'] = $ip;
-		$cache->put(array($userid, "session-$userid-$key"), $session, 3600);
+		$cache->put("session-$userid-$key", $session, 3600);
 	}
 
 
@@ -185,11 +221,11 @@ function auth($userid, $key, $kill = true, $simple = false, $userprefs = array()
 
 
 //not cached due to updates. Won't show new messages, etc.
-	$prefs = $cache->get(array($userid, "userprefs-$userid"));
+	$prefs = $cache->get("userprefs-$userid");
 
 	if($prefs){
-		$prefs['newmsgs'] = $cache->get(array($userid, "newmsgs-$userid"));
-		$prefs['newcomments'] = $cache->get(array($userid, "newcomments-$userid"));
+		$prefs['newmsgs'] = $cache->get("newmsgs-$userid");
+		$prefs['newcomments'] = $cache->get("newcomments-$userid");
 
 		if($prefs['newmsgs'] === false || $prefs['newcomments'] === false){
 
@@ -197,9 +233,9 @@ function auth($userid, $key, $kill = true, $simple = false, $userprefs = array()
 			$row = $db->fetchrow();
 
 			if($prefs['newmsgs'] === false)
-				$cache->put(array($userid, "newmsgs-$userid"), $row['newmsgs'], $config['maxAwayTime']);
+				$cache->put("newmsgs-$userid", $row['newmsgs'], $config['maxAwayTime']);
 			if($prefs['newcomments'] === false)
-				$cache->put(array($userid, "newcomments-$userid"), $row['newcomments'], $config['maxAwayTime']);
+				$cache->put("newcomments-$userid", $row['newcomments'], $config['maxAwayTime']);
 		}
 	}else{
 		$cols = array("username", "frozen", "online", "sex", "age", "loc", "premiumexpiry", 'email',
@@ -219,9 +255,9 @@ function auth($userid, $key, $kill = true, $simple = false, $userprefs = array()
 		$temp = $prefs;
 		$temp['online'] = 'y';
 
-		$cache->put(array($userid, "userprefs-$userid"), $temp, $config['maxAwayTime']);
-		$cache->put(array($userid, "newmsgs-$userid"), $prefs['newmsgs'], $config['maxAwayTime']);
-		$cache->put(array($userid, "newcomments-$userid"), $prefs['newcomments'], $config['maxAwayTime']);
+		$cache->put("userprefs-$userid", $temp, $config['maxAwayTime']);
+		$cache->put("newmsgs-$userid", $prefs['newmsgs'], $config['maxAwayTime']);
+		$cache->put("newcomments-$userid", $prefs['newcomments'], $config['maxAwayTime']);
 	}
 */
 
@@ -230,41 +266,29 @@ function auth($userid, $key, $kill = true, $simple = false, $userprefs = array()
 
 
 	if($simple)
-		$prefs = $cache->get(array($userid, "userprefs-$userid"));
+		$prefs = $cache->get("userprefs-$userid");
 	else
 		$prefs = false;
 
 	if($prefs === false){
 		$cols = array("username", "frozen", "online", "sex", "age", "loc", "premiumexpiry", 'email', 'activetime',
-				"posts", "newmsgs", "newcomments",
-				"showrightblocks", "timeoffset", "enablecomments", "defaultminage", "defaultmaxage", "defaultsex", "skin", "limitads", 'onlyfriends', 'ignorebyage',
-				'replyjump','autosubscribe', 'forumsort', 'forumpostsperpage', 'showsigs', 'friendslistthumbs', 'enablecomments', 'journalentries' ,'gallery', 'hideprofile'
+				"posts", "newmsgs", "newcomments", 'trustjstimezone',
+				"showrightblocks", "timeoffset", "enablecomments", "defaultminage", "defaultmaxage", "defaultsex", "defaultloc", "skin", "limitads", 'onlyfriends', 'ignorebyage',
+				'replyjump','onlysubscribedforums','orderforumsby','autosubscribe', 'forumsort', 'forumpostsperpage', 'showsigs', 'friendslistthumbs','recentvisitlistthumbs',
+				'enablecomments', 'gallery', 'hideprofile', 'forumjumplastpost', 'firstpic', 'signpic', 'blogskin', 'commentskin', 'friendskin', 'galleryskin', 'parse_bbcode, bbcode_editor'
 				);
 
-//		$cols = array_merge($cols, $userprefs);
 
-/*
-//original, and obvious way when the db can keep up
-		$db->prepare_query("SELECT " . implode(", ", $cols) . " FROM users WHERE userid = #", $userid);
-		$prefs = $db->fetchrow();
-/* /
-//pull from the backup db. Only pull this query, and disconnect ASAP
-		$db->backupdb->prepare_query("SELECT " . implode(", ", $cols) . " FROM users WHERE userid = #", $userid);
-		$prefs = $db->backupdb->fetchrow();
-		$db->backupdb->close();
-//*/
-
-
-		$query = $db->prepare("SELECT " . implode(", ", $cols) . " FROM users WHERE userid = #", $userid);
+		$query = $usersdb->prepare("SELECT " . implode(", ", $cols) . " FROM users WHERE userid = #", $userid);
 
 		$hour = gmdate("H");
-		if(isset($db->backupdb) && ($hour < 9 || $hour > 14)){ //don't use between 3am - 8am
-			$db->backupdb->query($query);
-			$prefs = $db->backupdb->fetchrow();
-			$db->backupdb->close();
+		if(isset($usersdb->backupdb) && ($hour < 9 || $hour > 14)){ //don't use between 3am - 8am
+			$usersdb->backupdb->query($query);
+			$prefs = $usersdb->backupdb->fetchrow();
+			$usersdb->backupdb->close();
 		}else{
-			$db->query($query);
-			$prefs = $db->fetchrow();
+			$usersdb->query($query);
+			$prefs = $usersdb->fetchrow();
 		}
 
 
@@ -275,29 +299,31 @@ function auth($userid, $key, $kill = true, $simple = false, $userprefs = array()
 		$temp = $prefs;
 		$temp['online'] = 'y';
 
-		$cache->put(array($userid, "userprefs-$userid"), $temp, $config['maxAwayTime']);
+		$cache->put("userprefs-$userid", $temp, $config['maxAwayTime']);
+		if($prefs['frozen'] == 'n')
+			$cache->put("useractive-$userid", time(), 86400*7);
 	}
 
 	if($prefs['frozen'] == 'y')
 		die("Your account is frozen");
 
 	if($prefs['online'] == 'n' || $prefs['activetime'] < $time - 3600){
-		$db->prepare_query("UPDATE users SET online = 'y', activetime = #, ip = # WHERE userid = #", $time, $ip, $userid);
-		$db->prepare_query("UPDATE usersearch SET active = 2 WHERE userid = #", $userid);
+		$usersdb->prepare_query("UPDATE users SET online = 'y', activetime = #, ip = # WHERE userid = #", $time, $ip, $userid);
+		$usersdb->prepare_query("UPDATE usersearch SET active = 2 WHERE userid = #", $userid);
 	}
 
-	$interests = $cache->get(array($userid, "userinterests-$userid"));
+	$interests = $cache->get("userinterests-$userid");
 
 	if($interests === false){
-		$db->prepare_query("SELECT interestid FROM userinterests WHERE userid = #", $userid);
+		$usersdb->prepare_query("SELECT interestid FROM userinterests WHERE userid = #", $userid);
 
 		$interests = array();
-		while($line = $db->fetchrow())
+		while($line = $usersdb->fetchrow())
 			$interests[] = $line['interestid'];
 
 		$interests = implode(',', $interests); //could be blank
 
-		$cache->put(array($userid, "userinterests-$userid"), $interests, 86400);
+		$cache->put("userinterests-$userid", $interests, 86400);
 	}
 
 	$userData['loggedIn']=true;
@@ -315,22 +341,46 @@ function auth($userid, $key, $kill = true, $simple = false, $userprefs = array()
 	$userData['enablecomments']=$prefs['enablecomments'];
 	$userData['newcomments']=$prefs['newcomments'];
 	$userData['timeoffset']=$prefs['timeoffset'];
+	$userData['trustjstimezone']=$prefs['trustjstimezone'];
 	$userData['premium'] = ($prefs['premiumexpiry'] > $time);
 	$userData['premiumexpiry'] = $prefs['premiumexpiry'];
 	$userData['defaultminage']=$prefs['defaultminage']; //search block
 	$userData['defaultmaxage']=$prefs['defaultmaxage'];
 	$userData['defaultsex']=$prefs['defaultsex'];
+	$userData['defaultloc'] = $prefs['defaultloc'];
 	$userData['skin']=$prefs['skin'];
 	$userData['limitads']=($prefs['limitads'] == 'y' && $userData['premium']);
 	$userData['ignorebyage']=$prefs['ignorebyage'];
 	$userData['onlyfriends']=$prefs['onlyfriends'];
 	$userData['forumpostsperpage']=$prefs['forumpostsperpage'];
+	$userData['gallery']=$prefs['gallery'];
 	$userData['debug'] = in_array($userid, $debuginfousers);
+	$userData['email']=$prefs['email'];
+	$userData['autosubscribe']=$prefs['autosubscribe'];
+	$userData['signpic']=$prefs['signpic'];
+	$userData['firstpic']=$prefs['firstpic'];
+	$userData['bbcode_editor'] = $prefs['bbcode_editor']== 'y'? true: false;
+	$userData['parse_bbcode']= $prefs['parse_bbcode']== 'y'? true: false;
+	$userData['recentvisitlistthumbs'] = $prefs['recentvisitlistthumbs'];
+
+	// fix up timezone info, first from the session table if set
+	if (isset($session['jstimezone']))
+	{
+		$userData['jstimezone'] = $session['jstimezone'];
+	}
+	// now fix it up again if we've got one in from the user and it differs
+	if ($newtz = checktimezone())
+	{
+		$userData['jstimezone'] = $newtz;
+		// update the session table to reflect the new one.
+		$sessiondb->squery($userid, $sessiondb->prepare("UPDATE sessions SET jstimezone = # WHERE id = #", $newtz, $session['id']));
+		$cache->remove("session-$userid-$key");
+	}
 
 	foreach($userprefs as $pref)
 		$userData[$pref] = $prefs[$pref];
 
-    return $userData;
+	return $userData;
 }
 
 
@@ -345,7 +395,10 @@ function createSession($userid=0, $cachedlogin=false, $lockip=false){
 	$cachedlogin = ($cachedlogin ? 'y' : 'n');
 	$lockip = ($lockip ? 'y' : 'n');
 
-	$sessiondb->prepare_query($userid, "INSERT INTO sessions SET ip = #, userid = #, activetime = #, sessionid = ?, cachedlogin = ?, lockip = ?", $ip, (!$userid ? NULL : $userid ), $time, $key, $cachedlogin, $lockip);
+	if ($newtz = checktimezone())
+		$sessiondb->squery($userid, $sessiondb->prepare("INSERT INTO sessions SET ip = #, userid = #, activetime = #, sessionid = ?, cachedlogin = ?, lockip = ?, jstimezone = #", $ip, (!$userid ? NULL : $userid ), $time, $key, $cachedlogin, $lockip, $newtz));
+	else
+		$sessiondb->squery($userid, $sessiondb->prepare("INSERT INTO sessions SET ip = #, userid = #, activetime = #, sessionid = ?, cachedlogin = ?, lockip = ?", $ip, (!$userid ? NULL : $userid ), $time, $key, $cachedlogin, $lockip));
 
 	$expire = ($cachedlogin == 'y' ? $time + 86400*31 : 0);  //cache for 1 month
 
@@ -364,19 +417,19 @@ function destroySession($userid,$key){
 	global $cookiedomain, $cache, $sessiondb;
 
 	if($userid<0){
-		$sessiondb->prepare_query(0, "DELETE FROM sessions WHERE id = # && sessionid = ?", abs($userid), $key);
+		$sessiondb->squery(0, $sessiondb->prepare("DELETE FROM sessions WHERE id = # && sessionid = ?", abs($userid), $key));
 	}else{
-		$sessiondb->prepare_query($userid, "DELETE FROM sessions WHERE userid = # && sessionid = ?", $userid, $key);
+		$sessiondb->squery($userid, $sessiondb->prepare("DELETE FROM sessions WHERE userid = # && sessionid = ?", $userid, $key));
 	}
 
-	$cache->remove(array($userid, "session-$userid-$key"));
+	$cache->remove("session-$userid-$key");
 
 	setCookie("userid",$userid,time()-10000000,'/',$cookiedomain);
 	setCookie("key",$key,time()-10000000,'/',$cookiedomain);
 }
 
 function newAccount($data){
-	global $wwwdomain, $emaildomain, $msgs, $config, $db, $statsdb, $profiledb;
+	global $wwwdomain, $emaildomain, $msgs, $config, $db, $masterdb, $usersdb, $configdb;
 	$error = false;
 
 	$ip = ip2int(getip());
@@ -420,7 +473,7 @@ function newAccount($data){
 		$error = true;
 	}
 
-	$locations = & new category( $db, "locs");
+	$locations = new category( $configdb, "locs");
 
 	if(!isset($data['loc']) || !$locations->isValidCat($data['loc'])){
 		$msgs->addMsg("Please specify your location");
@@ -442,7 +495,7 @@ function newAccount($data){
 
 	$db->prepare_query("SELECT id FROM deletedusers WHERE email = ? && jointime > #", $data['email'], $jointime - 86400*7); //past 7 days
 
-	if($db->numrows()>0){
+	if($db->fetchrow()){
 		$msgs->addMsg("This email was used to create an account this week, and can't be used again until that period is over.");
 		$error=true;
 	}
@@ -458,11 +511,13 @@ function newAccount($data){
 		$defaultsex = 'Female';
 		$defaultminage = floor($age/2+7);
 		$defaultmaxage = ceil(3*$age/2-7);
+
 	}else{
 		$defaultsex = 'Male';
 		$defaultminage = floor($age/2+7);
 		$defaultmaxage = ceil(3*$age/2-5);
 	}
+	$defaultloc = $data['loc'];
 
 
 	$key = makeRandkey();
@@ -474,14 +529,15 @@ function newAccount($data){
 
 	$plustime = 0;
 
-	$db->prepare_query("INSERT INTO `users` SET username = ?, `password` = PASSWORD(?), email = ?, dob = #, age = #, loc = #, sex = ?, jointime = #, timeoffset = #, activatekey = ?, ip = #, defaultsex = ?, defaultminage = #, defaultmaxage = #, premiumexpiry = #",
-		$data['username'], $data['password'], $data['email'], $dob, $age, $data['loc'], $data['sex'], $jointime, $config['timezone'], $key, $ip, $defaultsex, $defaultminage, $defaultmaxage, $plustime);
+	$usersdb->prepare_query("INSERT INTO `users` SET username = ?, `password` = ?, email = ?, dob = #, age = #, loc = #, sex = ?, jointime = #, timeoffset = #, activatekey = ?, ip = #, defaultsex = ?, defaultloc=#, defaultminage = #, defaultmaxage = #, premiumexpiry = #",
+		$data['username'], mysql_hash_password($data['password']), $data['email'], $dob, $age, $data['loc'], $data['sex'], $jointime, $config['timezone'], $key, $ip, $defaultsex, $defaultloc, $defaultminage, $defaultmaxage, $plustime);
 
-	$userid = $db->insertid();
+	$userid = $usersdb->insertid();
 
-	$profiledb->prepare_query($userid, "INSERT IGNORE INTO profile SET userid = #", $userid);
+	$usersdb->prepare_query("INSERT IGNORE INTO profile SET userid = %", $userid);
+	$usersdb->prepare_query("INSERT IGNORE INTO usernames SET userid = #, username = ?, live = 'y'", $userid, $data['username']);
 
-	$statsdb->query("UPDATE stats SET userstotal = userstotal + 1");
+	$masterdb->query("UPDATE stats SET userstotal = userstotal + 1");
 
 
 $message="Thanks for joining $config[title]! (http://$wwwdomain)
@@ -513,14 +569,42 @@ Please do not respond to this email. Always use the Contact section of our websi
 
 	global $messaging;
 
-$subject = "Welcome To $config[title]";
-$welcomemsg = "Ladies and Gentlemen, boys and girls, coming live to you from Edmonton to the world, welcome to Nexopia, community for all, playground of the sexes both short and tall.  Make yourself at home, and look around, I知 sure you値l find here features abound, from [url=/forums.php]forums[/url] to express your view, to [url=profile.php]personal pages[/url] with pics of you, you may be interested in the [url=/faq.php]FAQ[/url], which will outline more than I can do.  Articles and events stay up to date, but if you池e like most here, you池e here to rate, and debate about the state of our lives, be positive and help our family thrive.
-
-Keep in mind we have all ages, so lewd content is not tolerated, be your own judge of character and keep it clean, if you have a conscience you値l know what I mean.  As for photos, we have a few rules, first and foremost they must be of you, secondly no severe editing please, we will be forced to remove these.
-
-Have a great time and contribute to the site, I知 sure you値l see that it offers delight, so if you find you have little to do, feel free to sign up and join people like you.";
+	$subject = "Welcome To Nexopia";
+	$welcomemsg = getStaticValue('welcomemsg');
 
 	$messaging->deliverMsg($userid, $subject, $welcomemsg, 0, "Nexopia", 0, false);
+
+
+
+
+	$db->prepare_query("SELECT * FROM invites WHERE email = ?", $data['email']);
+
+	$invites = $db->fetchrowset();
+
+	global $usersdb;
+
+
+	$friendparts = array();
+	$msgto = array();
+
+	foreach($invites as $line){
+		$friendparts[] = $usersdb->prepare("(%,#)", $line['userid'], $userid);
+		$friendparts[] = $usersdb->prepare("(%,#)", $userid, $line['userid']);
+		$msgto[] = $line['userid'];
+	}
+
+	if(count($friendparts))
+		$usersdb->query("INSERT IGNORE INTO friends (userid, friendid) VALUES " . implode(',', $friendparts));
+
+	if(count($msgto)){
+		foreach($invites as $line){
+			$subject = "Friend Joined";
+			$message = "Your friend $line[name] has joined Nexopia.com, and has been added to your friends list. Click [url=profile.php?uid=$userid]here[/url] to see your friends profile.";
+			$messaging->deliverMsg($msgto, $subject, $message, 0, "Nexopia", 0, false);
+		}
+	}
+
+	$db->prepare_query("DELETE FROM invites WHERE email = ?", $data['email']);
 
 	ignore_user_abort($old_user_abort);
 
@@ -528,23 +612,25 @@ Have a great time and contribute to the site, I知 sure you値l see that it offers
 }
 
 function activateAccount($username,$key=0){
-	global $msgs, $userData,$db, $mods, $profiledb;
+	global $msgs, $userData, $db, $usersdb, $mods;
 
 	if($userData['loggedIn'] && !$mods->isAdmin($userData['userid'],"activateusers"))
 		die("You are already logged in");
 
+	$uid = getUserID($username);
 
-	if(!is_Numeric($username))	$col = 'username';
-	else 						$col = 'userid';
-
-	$db->prepare_query("SELECT userid,activated,activatekey,username,age,sex FROM users WHERE $col = ?", $username);
-
-	if($db->numrows()==0){
+	if(!$uid){
 		$msgs->addMsg("Bad Username. If you are sure there is no error, contact the webmaster");
 		return false;
 	}
+	$usersdb->prepare_query("SELECT userid, activated, activatekey, username, age, sex FROM users WHERE userid = #", $uid);
 
-	$line = $db->fetchrow();
+	$line = $usersdb->fetchrow();
+
+	if(!$line){
+		$msgs->addMsg("Bad Username. If you are sure there is no error, contact the webmaster");
+		return false;
+	}
 
 	if($line['activated']=='y'){
 		$msgs->addMsg("Account already activated");
@@ -558,17 +644,17 @@ function activateAccount($username,$key=0){
 		}
 	}
 
-	$db->prepare_query("UPDATE users SET activated = 'y', activatekey='' WHERE userid = #", $line['userid']);
+	$usersdb->prepare_query("UPDATE users SET activated = 'y', activatekey='' WHERE userid = #", $line['userid']);
 
-	$profiledb->prepare_query($line['userid'], "INSERT IGNORE INTO profile SET userid = #", $line['userid']);
+	$usersdb->prepare_query("INSERT IGNORE INTO profile SET userid = %", $line['userid']);
 
-	$db->prepare_query("INSERT IGNORE INTO newestusers SET userid = #, username = ?, age = #, sex = ?", $line['userid'], $line['username'], $line['age'], $line['sex']);
+	$db->prepare_query("INSERT IGNORE INTO newestusers SET userid = %, username = ?, time = #, age = #, sex = ?", $line['userid'], $line['username'], time(), $line['age'], $line['sex']);
 
 	return true;
 }
 
 function deactivateAccount($uid){
-	global $userData,$key,$config,$wwwdomain,$emaildomain,$db, $cache;
+	global $userData,$key,$config,$wwwdomain,$emaildomain,$db, $usersdb, $cache;
 
 	if(!is_numeric($uid))
 		$uid=getUserID($uid);
@@ -576,12 +662,12 @@ function deactivateAccount($uid){
 
 	$key = makeRandkey();
 
-	$db->prepare_query("UPDATE users SET activated = 'n',activatekey = ? WHERE userid = #", $key, $uid);
+	$usersdb->prepare_query("UPDATE users SET activated = 'n',activatekey = ? WHERE userid = #", $key, $uid);
 
-	$db->prepare_query("SELECT username, email FROM users WHERE userid = #", $uid);
-	$line = $db->fetchrow();
+	$usersdb->prepare_query("SELECT username, email FROM users WHERE userid = #", $uid);
+	$line = $usersdb->fetchrow();
 
-	$cache->remove(array($uid, "userprefs-$uid"));
+	$cache->remove("userprefs-$uid");
 
 	$message="To activate your account at http://$config[title] click on the following link or copy it into your webbrowser: http://$wwwdomain/activate.php?username=$line[username]&actkey=$key";
 	$subject="Activate your account at $wwwdomain.";
@@ -593,7 +679,7 @@ function deactivateAccount($uid){
 }
 
 function deleteAccount($uids,$reason=""){
-	global $userData, $msgs, $db, $statsdb, $forums, $mods, $cache, $sessiondb, $profviewsdb, $profiledb;
+	global $userData, $msgs, $db, $usersdb, $masterdb, $forums, $mods, $cache, $weblog;
 
 	$old_user_abort = ignore_user_abort(true);
 
@@ -625,41 +711,59 @@ function deleteAccount($uids,$reason=""){
 
 //admins/mods can delete themselves, but no one else can
 
-	$db->prepare_query("SELECT userid, frozen FROM users WHERE userid IN (#)", $uids);
+	$time = time();
 
-	if($db->numrows()==0)
+
+	$result = $usersdb->prepare_query("SELECT userid, username, frozen, email, jointime, ip FROM users WHERE userid IN (#)", $uids);
+	$lines = $result->fetchrowset();
+
+	if(!$lines)
 		return;
 
-	while($line = $db->fetchrow()){
+	$usernames = array();
+
+	foreach ($lines as $line){
 		if($line['frozen']=='y'){
 			$msgs->addMsg("Account $line[userid] is frozen, and wasn't deleted");
 			unset($uids[$line['userid']]);
+		}else{
+			$db->prepare_query("INSERT INTO deletedusers SET userid = #, username = ?, email = ?, time = #, reason = ?, deleteid = #, jointime = #, ip = #",
+						$line['userid'], $line['username'], $line['email'], $time, $reason, $deleteid, $line['jointime'], $line['ip']);
+
+			$usernames[$line['userid']] = $line['username'];
 		}
 	}
+
+//	$db->prepare_query("INSERT INTO deletedusers (userid, username, email, time, reason, deleteid, jointime, ip)
+//							SELECT userid, username, email, #, ?, #, jointime, ip FROM users WHERE userid IN (#)", time(), $reason, $deleteid, $uids);
+
+
 
 	if(!count($uids))
 		return false;
 
-	foreach($uids as $uid)
-		$cache->remove(array($uid, "userprefs-$uid"));
+	foreach($uids as $uid){
+		$cache->remove("userprefs-$uid");
+		$cache->remove("userinfo-$uid");
+		$cache->remove("useractive-$uid");
+		$cache->remove("profileviews-$uid");
+		$cache->remove("profile-$uid");
+		$cache->remove("comments5-$uid");
+		$cache->remove("username2userid-" . strtolower($usernames[$uid]));
+	}
 
-//	$db->prepare_query("INSERT INTO deletedusers SET userid = ?, username = ?, email = ?, time = ?, reason = ?, deleteid = ?,jointime = ?, ip = ?",
-//		$uid,  $line['username'], $line['email'], time(), $reason, $deleteid, $line['jointime'], $line['ip']);
 
-
-	$db->prepare_query("INSERT INTO deletedusers (userid, username, email, time, reason, deleteid, jointime, ip)
-							SELECT userid, username, email, #, ?, #, jointime, ip FROM users WHERE userid IN (#)", time(), $reason, $deleteid, $uids);
-
-
-	$db->prepare_query("DELETE FROM users WHERE userid IN (#)", $uids);
-	$profiledb->prepare_query($uids, "DELETE FROM profile WHERE userid IN (#)", $uids);
+	$usersdb->prepare_query("DELETE FROM users WHERE userid IN (#)", $uids);
+	$usersdb->prepare_query("DELETE FROM profile WHERE userid IN (%)", $uids);
 //	$db->prepare_query("DELETE FROM abuse WHERE userid IN (#)", $uids);
+
+	$usersdb->prepare_query("UPDATE usernames SET live = NULL WHERE userid IN (#)", $uids);
 
 	$db->prepare_query("DELETE FROM `ignore` WHERE userid IN (#)", $uids);
 	$db->prepare_query("DELETE FROM `ignore` WHERE ignoreid IN (#)", $uids);
 
-	$db->prepare_query("DELETE FROM friends WHERE userid IN (#)", $uids);
-	$db->prepare_query("DELETE FROM friends WHERE friendid IN (#)", $uids);
+	$usersdb->prepare_query("DELETE FROM friends WHERE userid IN (%)", $uids);
+	$usersdb->prepare_query("DELETE FROM friends WHERE friendid IN (#)", $uids);
 
 //	$db->prepare_query("DELETE FROM bookmarks WHERE userid IN (#)", $uids);
 
@@ -671,34 +775,14 @@ function deleteAccount($uids,$reason=""){
 
 //	$db->prepare_query("DELETE FROM schedule WHERE authorid IN (#) && scope!='global'", $uids);
 
-	$sessiondb->prepare_query($uids, "DELETE FROM sessions WHERE userid IN (#)", $uids);
+	$sessiondb->prepare_query("DELETE FROM sessions WHERE userid IN (%)", $uids);
 
-	$db->prepare_query("DELETE FROM picbans WHERE userid IN (#)", $uids);
-	$profviewsdb->prepare_query($uids, "DELETE FROM profileviews WHERE userid IN (#)", $uids);
-//	$profviewsdb->prepare_query(false, "DELETE FROM profileviews WHERE viewuserid IN (#)", $uids); //slow, pointless?
+	$usersdb->prepare_query("DELETE FROM profileviews WHERE userid IN (%)", $uids);
+//	$usersdb->prepare_query(false, "DELETE FROM profileviews WHERE viewuserid IN (#)", $uids); //slow, pointless?
 
+	removeAllUserPics($uids);
 
-	$db->prepare_query("SELECT picid,vote FROM votehist WHERE userid IN (#)", $uids);
-
-	$votes = array();
-	while($line = $db->fetchrow())
-		$votes[$line['vote']][] = $line['picid'];
-
-	foreach($votes as $score => $pics)
-		$db->prepare_query("UPDATE pics SET score=IF(votes=1,0,((score*votes)-$score)/(votes-1)), votes=votes-1, v$score=v$score-1 WHERE id IN (#)", $pics);
-
-	$db->prepare_query("DELETE FROM votehist WHERE userid IN (#)", $uids);
-
-	$result = $db->prepare_query("SELECT id FROM pics WHERE itemid IN (#)", $uids);
-
-	while($line = $db->fetchrow($result))
-		removePic($line['id']);
-
-	$result = $db->prepare_query("SELECT id FROM picspending WHERE itemid IN (#)", $uids);
-	while($line = $db->fetchrow($result))
-		removePicPending($line['id']);
-
-	$statsdb->query("UPDATE stats SET userstotal = userstotal - " . count($uids));
+	$masterdb->query("UPDATE stats SET userstotal = userstotal - " . count($uids));
 
 	ignore_user_abort($old_user_abort);
 
@@ -706,7 +790,7 @@ function deleteAccount($uids,$reason=""){
 }
 
 function deleteUserCleanup(){
-	global $db, $messaging, $usercomments, $forums;
+	global $db, $usersdb, $weblog, $messaging, $usercomments, $forums, $articlesdb;
 	$db->prepare_query("SELECT userid FROM deletedusers WHERE time > #", (time() - 25*3600)); //get users deleted in past 25 hours
 
 	$old_user_abort = ignore_user_abort(true);
@@ -720,17 +804,24 @@ function deleteUserCleanup(){
 
 
 	for($i=0;$i<count($users);$i++){
-		$messaging->db->prepare_query("DELETE FROM msgs WHERE userid IN (#)", $users[$i]);
-		$forums->db->prepare_query("UPDATE forumposts SET authorid='0' WHERE authorid IN (#)", $users[$i]);
-		$forums->db->prepare_query("UPDATE forumpostsdel SET authorid='0' WHERE authorid IN (#)", $users[$i]);
-		$forums->db->prepare_query("UPDATE forumthreads SET authorid='0' WHERE authorid IN (#)", $users[$i]);
-		$forums->db->prepare_query("UPDATE forumthreadsdel SET authorid='0' WHERE authorid IN (#)", $users[$i]);
+		$messaging->db->prepare_query("DELETE FROM msgs WHERE userid IN (%)", $users[$i]);
+		$messaging->db->prepare_query("DELETE FROM msgtext WHERE userid IN (%)", $users[$i]);
+		$messaging->db->prepare_query("DELETE FROM msgfolders WHERE userid IN (%)", $users[$i]);
+//		$forums->db->prepare_query("UPDATE forumposts SET authorid='0' WHERE authorid IN (#)", $users[$i]);
+//		$forums->db->prepare_query("UPDATE forumpostsdel SET authorid='0' WHERE authorid IN (#)", $users[$i]);
+//		$forums->db->prepare_query("UPDATE forumthreads SET authorid='0' WHERE authorid IN (#)", $users[$i]);
+//		$forums->db->prepare_query("UPDATE forumthreadsdel SET authorid='0' WHERE authorid IN (#)", $users[$i]);
 //		$messaging->db->prepare_query("UPDATE msgs SET `from`='0' WHERE `from` IN (#)", $users[$i]);
 //		$messaging->db->prepare_query("UPDATE msgs SET `to`='0' WHERE `to` IN (#)", $users[$i]);
-		$usercomments->db->prepare_query("UPDATE usercomments SET authorid='0' WHERE authorid IN (#)", $users[$i]);
+//		$usercomments->db->prepare_query("UPDATE usercomments SET authorid='0' WHERE authorid IN (#)", $users[$i]);
 		$db->prepare_query("UPDATE comments SET authorid='0' WHERE authorid IN (#)", $users[$i]);
-//		$db->prepare_query("UPDATE schedule SET authorid='0' WHERE authorid IN (#)", $users[$i]);
-		$db->prepare_query("UPDATE articles SET authorid='0' WHERE authorid IN (#)", $users[$i]);
+		$articlesdb->prepare_query("UPDATE articles SET authorid='0' WHERE authorid IN (#)", $users[$i]);
+
+		foreach ($users[$i] as $uid)
+		{
+			$userblog = new userblog($weblog, $uid);
+			$userblog->deleteBlog();
+		}
 	}
 
 	ignore_user_abort($old_user_abort);

@@ -4,38 +4,42 @@
 
 	require_once("include/general.lib.php");
 
+	$id = getREQval('id', 'int');
+
 	if(empty($id))
 		die("Bad invoice id");
 
 
 	$isAdmin = $mods->isAdmin($userData['userid'],'viewinvoice');
 
-	$shoppingcart->db->prepare_query("SELECT userid,username,creationdate,total,paymentdate,amountpaid,completed,paymentmethod FROM invoice WHERE id = ?", $id);
+	$res = $shoppingcart->db->prepare_query("SELECT userid,creationdate,total,paymentdate,amountpaid,completed,paymentmethod FROM invoice WHERE id = #", $id);
 
-	if($shoppingcart->db->numrows() == 0)
+	$invoice = $res->fetchrow();
+
+	if(!$invoice)
 		die("Bad invoice id");
-
-	$invoice = $shoppingcart->db->fetchrow();
+	
+	$invoice['username'] = getUserName($invoice['userid']);
 
 	if(!$isAdmin && $invoice['userid'] != $userData['userid'])
 		die("Bad invoice id");
 
-	$shoppingcart->db->prepare_query("SELECT productid,quantity,price,name,products.input as inputtype, invoiceitems.input FROM invoiceitems,products WHERE invoiceitems.productid = products.id && invoiceitems.invoiceid = ?", $id);
+	$res = $shoppingcart->db->prepare_query("SELECT productid,quantity,price,name,products.input as inputtype, invoiceitems.input FROM invoiceitems,products WHERE invoiceitems.productid = products.id && invoiceitems.invoiceid = #", $id);
 
 	$rows = array();
 	$mcids = array();
 	$mcs = array();
 
-	while($line = $shoppingcart->db->fetchrow()){
+	while($line = $res->fetchrow()){
 		$rows[] = $line;
 		if($line['inputtype']=='mc')
 			$mcids[] = $line['input'];
 	}
 
 	if(count($mcids)){
-		$shoppingcart->db->prepare_query("SELECT id,name FROM productinputchoices WHERE id IN (?)", $mcids);
+		$res = $shoppingcart->db->prepare_query("SELECT id,name FROM productinputchoices WHERE id IN (#)", $mcids);
 
-		while($line = $shoppingcart->db->fetchrow())
+		while($line = $res->fetchrow())
 			$mcs[$line['id']] = $line['name'];
 	}
 

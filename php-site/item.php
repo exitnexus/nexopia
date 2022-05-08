@@ -16,28 +16,28 @@
 
 
 	incHeader();
-	
+
 
 	echo "<table><tr>";
-	
+
 	if($itemdata['picup']=='y')
 		echo "<td><img src=$config[itemdir]$itemdata[id].jpg></td>";
 
 	echo "<td>";
 	print_r($itemdata);
-	
-	
+
+
 	echo "</td></tr></table>";
 
 
 
 
 
-	echo "<form action=cart.php>";
+	echo "<form action=/cart.php>";
 	echo "<input type=hidden name=id value=$itemdata[id]>";
 	echo "<input class=body type=text size=3 name=qty value=1>";
 	echo "<input class=body type=submit name=action value=Add>";
 	echo "</form>";
-	
-	
+
+
 	incFooter();

@@ -4,176 +4,391 @@
 
 	require_once("include/general.lib.php");
 
-	if(!isset($uid))
-		$uid = $userData['userid'];
+	class gallerypage extends pagehandler
+	{
+		function __construct()
+		{
+			$this->registerSubHandler(__FILE__,
+				new varsubhandler($this, 'filmStripThumbs', REQUIRE_ANY,
+					varargs('uid', 'integer', 'request'),
+					varargs('cat', 'integer', 'request'),
+					varargs('type', 'filmstrip', 'request')
+				)
+			);
+			$this->registerSubHandler(__FILE__,
+				new varsubhandler($this, 'allThumbs', REQUIRE_ANY,
+					varargs('uid', 'integer', 'request'),
+					varargs('cat', 'integer', 'request')
+				)
+			);
+			$this->registerSubHandler(__FILE__,
+				new varsubhandler($this, 'listCats', REQUIRE_ANY,
+					varargs('uid', 'integer', 'request')
+				)
+			);
 
-	if(!isset($cat))
-		listCats();
-	if(empty($picid))
-		$picid=0;
-	listCat($cat,$picid);
+			$this->registerSubHandler('/galleries',
+				new urisubhandler($this, 'showFullPicture', REQUIRE_ANY,
+					uriargs('username', 'string'),
+					uriargs('galleryid', 'integer'),
+					uriargs('galleryname', 'string'),
+					uriargs('picid', 'integer'),
+					uriargs('full', 'full')
+				)
+			);
+			$this->registerSubHandler('/galleries',
+				new urisubhandler($this, 'filmStripThumbsUsername', REQUIRE_ANY,
+					uriargs('username', 'string'),
+					uriargs('galleryid', 'integer'),
+					uriargs('galleryname', 'string'),
+					uriargs('picid', 'integer')
+				)
+			);
 
-function listCats(){
-	global $uid,$userData,$config, $db;
+			$this->registerSubHandler('/galleries',
+				new urisubhandler($this, 'allThumbsUsername', REQUIRE_ANY,
+					uriargs('username', 'string'),
+					uriargs('galleryid', 'integer'),
+					uriargs('galleryname', 'string'),
+					uriargs('all', 'all')
+				)
+			);
+			$this->registerSubHandler('/galleries',
+				new urisubhandler($this, 'filmStripThumbsUsername', REQUIRE_ANY,
+					uriargs('username', 'string'),
+					uriargs('galleryid', 'integer'),
+					uriargs('galleryname', 'string')
+				)
+			);
+			$this->registerSubHandler('/galleries',
+				new urisubhandler($this, 'listCatsUsername', REQUIRE_ANY,
+					uriargs('username', 'string')
+				)
+			);
+			$this->registerSubHandler('/galleries/pending',
+				new urisubhandler($this, 'showPending', array(REQUIRE_LOGGEDIN, 'editgallery'),
+					uriargs('username', 'string'),
+					uriargs('type', 'thumb|full'),
+					uriargs('sourceid', 'integer')
+				)
+			);
+		}
 
-	$isFriend = $userData['loggedIn'] && (isFriend($userData['userid'],$uid) || $userData['userid']==$uid);
+		function startPage($user, $isFriend, $userData)
+		{
+			global $weblog;
 
-	$perms = array('anyone');
-	if($userData['loggedIn'])
-		$perms[] = 'loggedin';
-	if($isFriend)
-		$perms[] = 'friends';
+			$template = new template('pictures/gallery/startPage');
+			ob_start();
+			injectSkin($user, 'gallery');
+			$template->set('injectSkin', ob_get_clean());
 
-	$db->prepare_query("SELECT userid, enablecomments, journalentries, gallery, premiumexpiry FROM users WHERE userid = ?", $uid);
-	$user = $db->fetchrow();
+			$cols=2;
+			if($user['enablecomments']=='y')
+				$cols++;
+			$userblog = new userblog($weblog, $user['userid']);
+			if ($userblog->isVisible($userData['loggedIn'], $isFriend))
+				$cols++;
+			if($user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend))
+				$cols++;
 
-	if($user['premiumexpiry'] < time())
-		die("this user's plus membership has expired");
+			$width = 100.0/$cols;
 
-	$db->prepare_query("SELECT id, name, firstpicture, description FROM gallerycats WHERE firstpicture != 0 && userid = ? && permission IN (?) ORDER BY name", $uid, $perms);
+			$template->set('width', $width);
+			$template->set('user', $user);
+			$template->set('canViewGallery', $user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend));
+			$template->set('canViewBlog', $userblog->isVisible($userData['loggedIn'], $isFriend));
+			$template->display();
+		}
 
-	$rows = array();
-	while($line = $db->fetchrow())
-		$rows[] = $line;
+		function endPage()
+		{
+			echo "</td></tr></table>";
+			incFooter();
+		}
 
+		function listCats($uid){
+			global $userData, $config, $galleries, $weblog;
 
-	incHeader(0,array('incTextAdBlock','incSortBlock','incTopGirls','incTopGuys','incNewestMembersBlock'));
+			$isFriend = $userData['loggedIn'] && (isFriend($userData['userid'],$uid) || $userData['userid']==$uid);
 
-	echo "<table width=100%>";
+			$perms = array('anyone');
+			if($userData['loggedIn'])
+				$perms[] = 'loggedin';
+			if($isFriend)
+				$perms[] = 'friends';
 
-	$cols=2;
-	if($user['enablecomments']=='y')
-		$cols++;
-	if(	$user['journalentries'] == WEBLOG_PUBLIC ||
-		($user['journalentries'] == WEBLOG_LOGGEDIN && $userData['loggedIn']) ||
-		($user['journalentries'] == WEBLOG_FRIENDS && $isFriend))
-		$cols++;
-	if($user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend))
-		$cols++;
+			$user = getUserInfo($uid);
 
-	$width = 100.0/$cols;
+			if(!$user)
+				die("Bad User");
 
-	echo "<tr>";
-	echo "<td class=header2>";
-	echo "<table width=100%>";
-	echo "<td class=header align=center width=$width%><a class=header href=\"profile.php?uid=$user[userid]\"><b>Profile</b></a></td>";
-	if($user['enablecomments']=='y')
-		echo "<td class=header align=center width=$width%><a class=header href=\"usercomments.php?id=$user[userid]\"><b>Comments</b></a></td>";
-	if($user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend))
-		echo "<td class=header align=center width=$width%><a class=header href=\"gallery.php?uid=$user[userid]\"><b>Gallery</b></a></td>";
-	if(	$user['journalentries'] == WEBLOG_PUBLIC ||
-		($user['journalentries'] == WEBLOG_LOGGEDIN && $userData['loggedIn']) ||
-		($user['journalentries'] == WEBLOG_FRIENDS && $isFriend))
-		echo "<td class=header align=center width=$width%><a class=header href=weblog.php?uid=$user[userid]><b>Blog</a></td>";
-	echo "<td class=header align=center width=$width%><a class=header href=\"friends.php?uid=$user[userid]\"><b>Friends</b></a></td></tr>";
-	echo "</table>";
-	echo "</td></tr>";
+			$userGalleries = new usergalleries($galleries, $uid);
+			$galleryaccess = $userGalleries->getAccessLevel($userData);
+			$galleryids = $userGalleries->getGalleryList($galleryaccess);
+			$galleryobjs = $userGalleries->getGalleries($galleryids);
 
-	echo "<tr><td class=body>";
+			$this->startPage($user, $isFriend, $userData);
 
-	echo "<table width=100%>";
-	foreach($rows as $line){
-		echo "<tr>";
-		echo "<td class=body><a class=body href=gallery.php?uid=$uid&cat=$line[id]><img src=http://" . chooseImageServer($line['firstpicture']) . $config['gallerythumbdir'] . floor($line['firstpicture']/1000) . "/$line[firstpicture].jpg border=0></a></td>";
-		echo "<td class=body valign=top><a class=body href=gallery.php?uid=$uid&cat=$line[id]><b>$line[name]</b></a><br>$line[description]</td></tr>";
-		echo "</tr>";
+			$template = new template('pictures/gallery/listCats');
+			$i = -1;
+			$class = array('body', 'body2');
+
+			foreach($galleryids as $id){
+				$i++;
+				$line = $galleryobjs[$id];
+				if ($i>1)
+					$class[$i] = $class[$i%2];
+
+				$previewurl[$i] = $line->getImageURL('thumb');
+			}
+			$template->set('config', $config);
+			$template->set('user', $user);
+			$template->set('previewurl', $previewurl);
+			$template->set('class', $class);
+			$template->set('galleryids', $galleryids);
+			$template->set('galleryobjs', $galleryobjs);
+			$template->display();
+
+			$this->endPage();
+
+			return true;
+		}
+
+		function listCatsUsername($username)
+		{
+			$uid = getUserId($username);
+			if (!$uid)
+				return false;
+
+			return $this->listCats($uid);
+		}
+
+		function allThumbs($uid, $cat){
+			global $userData, $db, $galleries, $config, $weblog, $reporev;
+
+			$isFriend = $userData['loggedIn'] && (isFriend($userData['userid'],$uid) || $userData['userid']==$uid);
+
+			$perms = array('anyone');
+			if($userData['loggedIn'])
+				$perms[] = 'loggedin';
+			if($isFriend)
+				$perms[] = 'friends';
+
+			$userGalleries = new usergalleries($galleries, $uid);
+			$galleryaccess = $userGalleries->getAccessLevel($userData);
+			$galleryobj = $userGalleries->getGallery("$uid:$cat");
+
+			if (!$galleryobj || !$galleryobj->hasAccess($galleryaccess))
+				return; // throw back to user's gallery main page?
+
+			$user = getUserInfo($uid);
+
+			if(!$user)
+				die("Bad User");
+
+			$linkbase = "/galleries/" . urlencode($user['username']) . "/$cat/" . urlencode($galleryobj->name);
+
+			$this->startPage($user, $isFriend, $userData);
+
+			$template = new template('pictures/gallery/allThumbs');
+			$template->set('jsurl', $config['jsloc']);
+			$template->set('reporev', $reporev);
+			$template->set('linkbase', $linkbase);
+			$template->set('slashedGalleryName', addslashes($galleryobj->name));
+			$template->set('user', $user);
+
+			$ids = $galleryobj->getPictureList();
+			$pics = $galleryobj->getPics($ids);
+
+			$i=-1;
+			$tmplids = array();
+			foreach ($ids as $id) {
+				$i++;
+				$line = $pics[$id];
+				$tmplids[$i] = $line->id;
+				$fullurl[$i] = ($user['premiumexpiry'] < time()? '' : $linkbase . "/{$line->id}/full");
+				$filterdesc[$i] = addslashes($line->parseDescription(true));
+				$imageURL[$i] = $line->getImageURL();
+				$imageURLThumb[$i] = $line->getImageURL('thumb');
+			}
+			$template->set('ids', $tmplids);
+			$template->set('fullurl', $fullurl);
+			$template->set('filterdesc', $filterdesc);
+			$template->set('imageURL', $imageURL);
+			$template->set('imageURLThumb', $imageURLThumb);
+			$template->display();
+			$this->endPage();
+
+			return true;
+		}
+		function allThumbsUsername($username, $cat, $galleryname)
+		{
+			$uid = getUserId($username);
+			if (!$uid)
+				return false;
+
+			return $this->allThumbs($uid, $cat);
+		}
+
+		function showFullPicture($username, $cat, $galleryname, $picid)
+		{
+			global $userData, $db, $galleries, $config, $weblog;
+			$uid = getUserId($username);
+			if (!$uid)
+				return false;
+
+			$isFriend = $userData['loggedIn'] && (isFriend($userData['userid'],$uid) || $userData['userid']==$uid);
+
+			$perms = array('anyone');
+			if($userData['loggedIn'])
+				$perms[] = 'loggedin';
+			if($isFriend)
+				$perms[] = 'friends';
+
+			$userGalleries = new usergalleries($galleries, $uid);
+			$galleryaccess = $userGalleries->getAccessLevel($userData);
+			$galleryobj = $userGalleries->getGallery("$uid:$cat");
+
+			if (!$galleryobj || !$galleryobj->hasAccess($galleryaccess))
+				return false; // throw back to user's gallery main page?
+
+			$picobj = $galleryobj->getPic("$uid:$picid");
+			if (!$picobj)
+				return false;
+
+			$user = getUserInfo($uid);
+
+			if(!$user)
+				die("Bad User");
+
+			if($user['premiumexpiry'] < time())
+				return false;
+
+			$this->startPage($user, $isFriend, $userData);
+
+			$linkbase = "/galleries/" . urlencode($user['username']) . "/$cat/" . urlencode($galleryobj->name);
+			echo "<center><a href=\"$linkbase/$picid\">";
+			echo "<img border=0 src=\"" . $picobj->getImageURL('full') . "\" />";
+			echo "</a></center>";
+
+			$this->endPage();
+
+			return true;
+		}
+
+		function filmStripThumbs($uid, $cat, $id)
+		{
+			global $userData, $db, $galleries, $config, $weblog, $reporev;
+
+			$isFriend = $userData['loggedIn'] && (isFriend($userData['userid'],$uid) || $userData['userid']==$uid);
+
+			$perms = array('anyone');
+			if($userData['loggedIn'])
+				$perms[] = 'loggedin';
+			if($isFriend)
+				$perms[] = 'friends';
+
+			$userGalleries = new usergalleries($galleries, $uid);
+			$galleryaccess = $userGalleries->getAccessLevel($userData);
+			$galleryobj = $userGalleries->getGallery("$uid:$cat");
+
+			if (!$galleryobj || !$galleryobj->hasAccess($galleryaccess))
+				return; // throw back to user's gallery main page?
+
+			$user = getUserInfo($uid);
+
+			if(!$user)
+				die("Bad User");
+
+			$this->startPage($user, $isFriend, $userData);
+
+			$thumbcount = 5;
+			$colcount = $thumbcount + 2;
+			$iframeheight = $config['maxGalleryPicHeight'];
+
+			$ids = $galleryobj->getPictureList();
+			$pics = $galleryobj->getPics($ids);
+
+			$linkbase = "/galleries/" . urlencode($user['username']) . "/$cat/" . urlencode($galleryobj->name);
+
+			if ($id && isset($pics["$uid:$id"]))
+			{
+				$line = $pics["$uid:$id"];
+			} else {
+				foreach ($pics as $id => $line)
+				{
+					// $id and $line set by loop construct
+					$id = $line->id;
+					break;
+				}
+			}
+			$template = new template('pictures/gallery/filmStripThumbs');
+			$template->set('line', $line);
+			if (isset($line)) {
+				$fullurl = ($user['premiumexpiry'] < time()? '' : $linkbase . "/$id/full");
+				$initialpic = "/imgframe.php?picid=$id&imgurl=" . $line->getImageURL() . "&fullurl=$fullurl";
+				$template->set('initialpic', $initialpic);
+				$template->set('jsurl', $config['jsloc']);
+				$template->set('reporev', $reporev);
+				$template->set('linkbase', $linkbase);
+				$items = array();
+				foreach ($ids as $id) {
+					$line = $pics[$id];
+					$items[$line->id] = array(
+						'obj' => $line,
+						'fullurl' => ($user['premiumexpiry'] < time()? '' : $linkbase . "/{$line->id}/full"),
+						'desc' => $line->parseDescription(),
+						'imageURL' => $line->getImageURL(),
+						'imageURLThumb' => $line->getImageURL('thumb')
+					);
+				}
+				$template->set('pics', $items);
+				$template->set('colcount', $colcount);
+				$template->set('user', $user);
+				$template->set('galleryname', $galleryobj->name);
+				$template->set('config', $config);
+				for ($i = 0; $i < $thumbcount; $i++)
+					$thumbcountarray[$i] = $i;
+				$template->set('thumbcountarray', $thumbcountarray);
+				$template->set('thumbcount', $thumbcount);
+				$template->set('intialpic', $initialpic);
+			}
+			$template->display();
+
+			$this->endPage();
+
+			return true;
+		}
+		function filmStripThumbsUsername($username, $cat, $galleryname, $picid = false)
+		{
+			$uid = getUserId($username);
+			if (!$uid)
+				return false;
+
+			return $this->filmStripThumbs($uid, $cat, $picid);
+		}
+
+		function showPending($username, $type, $sourceid)
+		{
+			global $sourcepictures, $userData;
+			$uid = getUserId($username);
+			$user = getUserInfo($uid);
+
+			$sourcePic = $sourcepictures->getSourcePicture("$uid:$sourceid");
+			if ($sourcePic && ($sourcePic->userid == $userData['userid'] || $this->getActualLevel() == REQUIRE_LOGGEDIN_ADMIN))
+			{
+				$path = $sourcePic->getPicPath($type == 'full');
+				if (!file_exists($path))
+					return false;
+
+				header('Content-Type: image/jpeg');
+				readfile($path);
+				return true;
+			}
+			return false;
+		}
 	}
-	echo "</table>";
 
-	echo "</td></tr></table>";
-
-	incFooter();
-
-	exit;
-}
-
-function listCat($cat,$picid=0){
-	global $uid,$userData, $db, $config, $skindir;
-
-	$isFriend = $userData['loggedIn'] && (isFriend($userData['userid'],$uid) || $userData['userid']==$uid);
-
-	$perms = array('anyone');
-	if($userData['loggedIn'])
-		$perms[] = 'loggedin';
-	if($isFriend)
-		$perms[] = 'friends';
-
-	$db->prepare_query("SELECT id,name FROM gallerycats WHERE id = ? && userid = ? && permission IN (?)", $cat, $uid, $perms);
-
-	if($db->numrows() == 0)
-		return;
-
-	$gallery = $db->fetchrow();
-
-	$db->prepare_query("SELECT userid,enablecomments,journalentries,gallery,premiumexpiry FROM users WHERE userid = ?", $uid);
-	$user = $db->fetchrow();
-
-	if($user['premiumexpiry'] < time())
-		return;
-
-	incHeader(0);
-
-	echo "<table width=680 align=center>";
-	$cols=2;
-	if($user['enablecomments']=='y')
-		$cols++;
-	if($user['journalentries'] == 'public' || ($user['journalentries']=='friends' && $isFriend))
-		$cols++;
-	if($user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend))
-		$cols++;
-
-	$width = 100.0/$cols;
-
-	echo "<tr>";
-	echo "<td class=header2>";
-	echo "<table width=100%>";
-	echo "<td class=header align=center width=$width%><a class=header href=\"profile.php?uid=$user[userid]\"><b>Profile</b></a></td>";
-	if($user['enablecomments']=='y')
-		echo "<td class=header align=center width=$width%><a class=header href=\"usercomments.php?id=$user[userid]\"><b>Comments</b></a></td>";
-	if($user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend))
-		echo "<td class=header align=center width=$width%><a class=header href=\"gallery.php?uid=$user[userid]\"><b>Gallery</b></a></td>";
-	if($user['journalentries'] == 'public' || ($user['journalentries']=='friends' && $isFriend))
-		echo "<td class=header align=center width=$width%><a class=header href=weblog.php?id=$user[userid]><b>Blog</a></td>";
-	echo "<td class=header align=center width=$width%><a class=header href=\"friends.php?uid=$user[userid]\"><b>Friends</b></a></td></tr>";
-	echo "</table>";
-	echo "</td></tr>";
-
-	echo "<tr><td class=body>";
-
-	echo "<table width=100%>\n";
-
-	echo "<script src=$config[imgserver]/skins/gallery.js></script>";
-
-	echo "<div id=outerdiv name=outerdiv></div>";
-
-
-	echo "<script>";
-
-	echo "setGalleryTitle('" . addslashes($gallery['name']) . "');";
-	echo "setUserid($user[userid]);";
-
-	$db->prepare_query("SELECT id,description FROM gallery WHERE userid = ? && category = ? ORDER BY priority", $uid, $cat);
-
-	$ids = array();
-	$i=0;
-	while($line = $db->fetchrow()){
-		echo "addPic('$line[id]','http://" . chooseImageServer($line['id']) . $config['gallerypicdir'] . floor($line['id']/1000) . "/$line[id].jpg','http://" . chooseImageServer($line['id']) . $config['gallerythumbdir'] . floor($line['id']/1000) . "/$line[id].jpg','" . addslashes($line['description']) . "');";
-		$ids[$line['id']] = $i;
-		$i++;
-	}
-
-	if(isset($ids[$picid]))
-		echo "showthumb(" . $ids[$picid] . ");";
-	else
-		echo "showthumbs();";
-
-	echo "</script><br>";
-
-	echo "</td></tr></table>";
-	echo "</td></tr></table>";
-
-	incFooter();
-
-	exit;
-}
-
+	$gallerypage = new gallerypage();
+	return $gallerypage->runPage();

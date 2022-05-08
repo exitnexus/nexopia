@@ -4,12 +4,12 @@
 
 	include("include/general.lib.php");
 
-	$db->unbuffered_query("SELECT id FROM pics");
+	$res = $usersdb->unbuffered_query("SELECT id FROM pics");
 
 	$i=0;
 
 	$pics = array();
-	while($line = $db->fetchrow()){
+	while($line = $res->fetchrow()){
 		$pics[] = $line['id'];
 		$i++;
 		if($i % 10000 == 0){
@@ -20,9 +20,9 @@
 
 	echo "pending: ";
 
-	$db->unbuffered_query("SELECT id FROM picspending");
+	$res = $usersdb->unbuffered_query("SELECT id FROM picspending");
 
-	while($line = $db->fetchrow()){
+	while($line = $res->fetchrow()){
 		$pics[] = $line['id'];
 		$i++;
 		if($i % 10000 == 0){

@@ -69,26 +69,18 @@ function addMod($data = array()){
 	if(!isset($data['username']))
 		$data['username']="";
 
-	incHeader();
-
-	echo "<table align=center><form action=$_SERVER[PHP_SELF] method=post>";
-	echo "<input type=hidden name=fid value=$fid>";
-	echo "<tr><td class=header colspan=2>Create New Moderator</td></tr>";
-	echo "<tr><td class=body>Username:<input class=body type=text name=data[username] value='$data[username]'></td></tr>";
-
 	foreach($possible as $k => $n){
 		if(!isset($data[$k]))
 			$data[$k]="";
-		echo "<tr><td class=body>" . makeCheckBox("data[$k]", $n, $data[$k] == 'y')  ."</td></tr>";
+		$checkBox[$k] = makeCheckBox("data[$k]", $n, $data[$k] == 'y');
 	}
 
-	echo "<tr><td class=body>Mod powers never take away abilities.<br>If you don't want someone to post, mute them.</td></tr>";
-
-	echo "<tr><td class=body align=center><input class=body type=submit name=action value=Create><input class=body type=submit value=Cancel></td></tr>";
-
-	echo "</form></table>";
-
-	incFooter();
+	$template = new template('forums/forummods/addMod');
+	$template->set('fid', $fid);
+	$template->set('possible', $possible);
+	$template->set('checkBox', $checkBox);
+	$template->set('data', $data);
+	$template->display();
 	exit;
 }
 
@@ -103,10 +95,11 @@ function insertMod($data){
 	if(!$userid)
 		addMod($data); //exit
 
-	$forums->db->prepare_query("SELECT unmutetime FROM forummute WHERE userid = ? && forumid = 0", $userid);
+	$res = $forums->db->prepare_query("SELECT unmutetime FROM forummute WHERE userid = ? && forumid = 0", $userid);
+	$mute = $res->fetchrow();
 
-	if($forums->db->numrows()){
-		$unmutetime = $forums->db->fetchfield();
+	if($mute){
+		$unmutetime = $mute['unmutetime'];
 		if($unmutetime == 0 || $unmutetime > time()){
 			$msgs->addMsg("Sorry, this user has been globally banned and cannot become a mod");
 			addMod($data); //exit
@@ -125,7 +118,7 @@ function insertMod($data){
 
 	$forums->db->prepare_query("INSERT INTO forummods SET forumid = ?, userid = ?, " . implode(", ", $commands), $fid, $userid);
 
-	$cache->remove(array($userid, "forummods-$userid-$fid"));
+	$cache->remove("forummodpowers-$userid-$fid");
 
 	$msgs->addMsg("Mod Created");
 }
@@ -133,26 +126,21 @@ function insertMod($data){
 function editMod($uid){
 	global $forums, $possible, $msgs, $fid;
 
-	$forums->db->prepare_query("SELECT * FROM forummods WHERE userid = ? && forumid = ?", $uid, $fid);
-	$data = $forums->db->fetchrow();
-
-	incHeader();
-
-	echo "<table align=center><form action=$_SERVER[PHP_SELF] method=post>";
-	echo "<input type=hidden name=fid value=$fid>";
-	echo "<input type=hidden name=uid value=$uid>";
-	echo "<tr><td class=header colspan=2>Edit Mod</td></tr>";
-
-	echo "<tr><td class=body>Username: <a class=body href=profile.php?uid=$data[userid]>". getUserName($data['userid']) . "</a></td></tr>";
+	$res = $forums->db->prepare_query("SELECT * FROM forummods WHERE userid = ? && forumid = ?", $uid, $fid);
+	$data = $res->fetchrow();
 
 	foreach($possible as $k => $n)
-		echo "<tr><td class=body>" . makeCheckBox("data[$k]", $n, $data[$k] == 'y')  ."</td></tr>";
+		$checkBox[$k] = makeCheckBox("data[$k]", $n, $data[$k] == 'y');
 
-	echo "<tr><td class=body><input class=body type=submit name=action value=Update><input class=body type=submit value=Cancel></td></tr>";
+	$template = new template('forums/forummods/editMod');
+	$template->set('fid', $fid);
+	$template->set('data', $data);
+	$template->set('uid', $uid);
+	$template->set('username', getUserName($data['userid']));
+	$template->set('checkBox', $checkBox);
+	$template->set('possible', $possible);
 
-	echo "</form></table>";
-
-	incFooter();
+	$template->display();
 	exit;
 }
 
@@ -171,7 +159,7 @@ function updateMod($uid, $data){
 
 	$forums->db->prepare_query("UPDATE forummods SET " . implode(", ", $commands) . " WHERE userid = ? && forumid = ?", $uid, $fid);
 
-	$cache->remove(array($uid, "forummods-$uid-$fid"));
+	$cache->remove("forummodpowers-$uid-$fid");
 
 	$msgs->addMsg("Mod Updated");
 }
@@ -183,94 +171,59 @@ function deleteMod($uid){
 
 	$forums->db->prepare_query("DELETE FROM forummods WHERE userid = ? && forumid = ?", $uid, $fid);
 
-	$cache->remove(array($uid, "forummods-$uid-$fid"));
+	$cache->remove("forummodpowers-$uid-$fid");
 
 	$msgs->addMsg("Mod Deleted");
 }
 
 function listMods(){
-	global $forums, $db, $fid, $config, $possible;
+	global $forums, $fid, $config, $possible;
 
-	if($fid != 0){
-		$forums->db->prepare_query("SELECT name, official, ownerid FROM forums WHERE id = ?", $fid);
-		$forumdata = $forums->db->fetchrow();
+	$forumdata = false;
+	if($fid){
+		$forumdata = $forums->getForums($fid);
 	}
 
 
-	$forums->db->prepare_query("SELECT forummods.*, '' as username FROM forummods WHERE forumid = ?", $fid);
+	$res = $forums->db->prepare_query("SELECT forummods.*, '' as username FROM forummods WHERE forumid = ?", $fid);
 
 	$rows = array();
 	$uids = array();
-	while($line = $forums->db->fetchrow()){
+	while($line = $res->fetchrow()){
 		$rows[$line['userid']] = $line;
 		$uids[] = $line['userid'];
 	}
 
-	$db->prepare_query("SELECT userid, username FROM users WHERE userid IN (?)", $uids);
+	if(count($uids)){
+		$users = getUserInfo($uids);
 
-	while($line = $db->fetchrow())
-		$rows[$line['userid']]['username'] = $line['username'];
+		foreach($users as $line)
+			$rows[$line['userid']]['username'] = $line['username'];
+	}
 
 	sortCols($rows, SORT_ASC, SORT_CASESTR, 'username');
 
-	incHeader();
-
-	echo "<table>";
-
-	echo "<tr><td class=body colspan=3>";
-	if($fid != 0){
-		if($forumdata['official']=='y')
-			echo "<a class=body href=forums.php>Forums</a> > ";
-		else
-			echo "<a class=body href=forumsusercreated.php>User Created Forums</a> > ";
-
-		echo "<a class=body href=forumthreads.php?fid=$fid>$forumdata[name]</a> > ";
-	}
-
-	echo "<a class=body href=$_SERVER[PHP_SELF]?fid=$fid>Edit Mods</a>";
-	echo "</td></tr>";
-
-
-	echo "<tr>";
-	echo "<td class=header>Username</td>";
-	echo "<td class=header>Mod Activity</td>";
-	echo "<td class=header>Funcs</td>";
-	echo "<td class=header>Powers</td>";
-/*
-	foreach($possible as $v){
-		echo "<td class=header valign=bottom align=center>";
-
-		for($i=0; $i < strlen($v); $i++)
-			echo $v{$i} . "<br>";
-
-		echo "</td>";
-	}
-*/
-	echo "</tr>";
-
 	foreach($rows as $line){
-		echo "<tr>";
-		echo "<td class=body nowrap><a class=body href=profile.php?uid=$line[userid]>$line[username]</a></td>";
-		echo "<td class=body nowrap>" . ($line['activetime'] ? userDate("F j, Y \\a\\t g:i a", $line['activetime']) : 'Unknown') . "</td>";
-		echo "<td class=body nowrap><a class=body href=$_SERVER[PHP_SELF]?action=edit&uid=$line[userid]&fid=$fid><img src=$config[imageloc]edit.gif border=0></a>";
-		echo "<a class=body href=$_SERVER[PHP_SELF]?action=delete&uid=$line[userid]&fid=$fid&k=" . makeKey("$line[userid]:$fid") . "><img src=$config[imageloc]delete.gif border=0></a></td>";
-//*
+		$key[$line['userid']][$fid] = makeKey("$line[userid]:$fid");
 		$vals = array();
 		foreach($possible as $n => $v)
 			if($line[$n] == 'y')
 				$vals[] = $v;
-		echo "<td class=body>" . implode(", ", $vals) . "</td>";
-/*/
-		foreach($possible as $n => $v)
-			echo "<td class=body>" . ($line[$n] == 'y' ? "X" : '' . "</td>";
-//*/
-
-		echo "</tr>";
+		$powers[$line['userid']] = implode(", ", $vals);
 	}
-	echo "<tr><td class=header colspan=4><a class=header href=$_SERVER[PHP_SELF]?action=add&fid=$fid>Create new moderator</a></td></tr>";
-	echo "</table><br>";
 
-	incFooter();
+	$forumTrail = false;
+	if ($fid)
+		$forumTrail = $forums->getForumTrail($forumdata, "body");
+
+	$template = new template('forums/forummods/listMods');
+	$template->set('forumTrail', $forumTrail);
+	$template->set('fid', $fid);
+	$template->set('rows', $rows);
+	$template->set('config', $config);
+	$template->set('powers', $powers);
+	$template->set('key', $key);
+	$template->display();
 	exit;
 }
 
