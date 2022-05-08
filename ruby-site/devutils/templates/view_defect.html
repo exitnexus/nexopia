@@ -1,0 +1,26 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<div style="background-color:white">
+		<h1>Details</h1>
+
+		<table>
+			<tr valign="top"><td width="150px">Description:</td><td>{defect.description}</td></tr>
+			<tr valign="top"><td width="150px">Workaround:</td><td>{defect.workaround}</td></tr>
+			<tr valign="top"><td width="150px">Defect Status:</td><td>{defect.status}</td></tr>
+			<tr valign="top"><td width="150px">Defect Type:</td><td>{defect.type}</td></tr>
+			<tr valign="top"><td width="150px">Priority:</td><td>{defect.priority}</td></tr>
+			<tr valign="top"><td width="150px">Reported by:</td><td>{defect.repusername}</td></tr>
+			<tr valign="top"><td width="150px">Assigned to:</td><td>{defect.ownusername}</td></tr>
+			<tr valign="top"><td width="150px">Tags:</td><td>{defect.tags}</td></tr>
+			<tr valign="top"><td width="150px">Test Class:</td><td>{defect.testclass}</td></tr>
+			<tr valign="top"><td width="150px">Test Name:</td><td>{defect.test}</td></tr>
+		</table>
+			
+		<h1>History</h1>
+		<t:template-include name="show_defect_history" module="devutils"/>
+		
+		<h1>Tests</h1>
+		<t:template-include name="defect_test_status" module="devutils"/>
+		
+		<a href="/defects/list">Back to defect list</a> 
+	</div>
+</div>

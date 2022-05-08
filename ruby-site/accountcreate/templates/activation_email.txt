@@ -1,0 +1,16 @@
+Thanks for joining Nexopia.com! ({wwwdomain})
+
+Believe it or not, we're just as bored as you.  So we figured we'd do something about it, and ended up with Nexopia.com.  In a nutshell, it's a customizable online community, with user interests kept in mind.  Rather then just have the traditional online community where you can surf around and message all the people you think are cute, we're constantly incorporating thoughts and ideas that come from you!
+
+All you have to do now is activate your account by clicking on this link:
+{wwwdomain}/accountcreate/activate?username={username}&key={key}
+
+Account information:
+        Username: {username}
+        Activation Key: {key}
+
+Thanks and enjoy,
+The Nexopia Team
+{wwwdomain}
+
+Please do not respond to this email. Always use the Contact section of our website instead.

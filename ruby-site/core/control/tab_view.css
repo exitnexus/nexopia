@@ -1,0 +1,73 @@
+.enhanced_text_input_wrapper .tab_view
+{
+	position: relative;
+	top: 0px;
+	left: 0px;
+	
+	padding: 0px;
+	margin: 0px;
+	padding-top: 17px;
+	border-bottom: solid 1px $secondary_text_color;
+}
+*html .enhanced_text_input_wrapper .tab_view
+{
+	padding-top: 18px;
+}
+
+.enhanced_text_input_wrapper .tab_view .tab_handle
+{
+	display: block;
+	position: absolute;
+	top: 0px;
+	height: 13px;
+	left: 0px;
+	width: 54px;
+	
+	margin: 0px;
+	padding: 2px;
+	
+	font-size: 11px;
+	text-decoration: none;
+	text-align: center;
+	
+	border: solid 1px $secondary_text_color;
+	border-bottom-width: 0px;
+	border-left-width: 0px;
+	
+	color: $secondary_text_color;
+	
+	cursor: pointer;
+	
+	background-color: $secondary_background_color;
+	
+	z-index: 0;
+	
+	font-weight: normal;
+}
+.enhanced_text_input_wrapper .tab_view .tab_handle.tab_handle_active
+{
+	cursor: default;
+	
+	z-index: 1;
+	font-weight: bold;
+	
+	color: $secondary_text_color;
+	background-color: $primary_background_color;
+}
+
+.enhanced_text_input_wrapper .tab_view .tab_body
+{
+	position: relative;
+
+	padding: 2px;
+	
+	border: solid 1px $secondary_text_color;;
+	
+	border-top-width: 0px;
+	border-bottom-width: 0px;
+}
+.enhanced_text_input_wrapper .tab_view .tab_body.tab_body_active
+{
+	border-top-width: 1px;
+	border-bottom-width: 0px;
+}

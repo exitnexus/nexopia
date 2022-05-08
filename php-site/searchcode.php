@@ -2,6 +2,8 @@
 
 	$forceserver = true;
 	$login=1;
+	$devutil = true;
+
 	require_once("include/general.lib.php");
 
 	if(!in_array($userData['userid'], $debuginfousers))
@@ -26,15 +28,15 @@
 	if($action){
 		$basedir = $docRoot;
 		$directories = array(	"/",
-								"/skins/",
 								"/include/",
+								"/include/skins/",
 							);
 
 		$results = array();
 		foreach($directories as $directory){
 
-			if(substr($directory,-1)=="/")
-				$directory=substr($directory,0,-1);
+			if(substr($directory,-1) == "/")
+				$directory = substr($directory,0,-1);
 
 			$dir = opendir($basedir . $directory);
 

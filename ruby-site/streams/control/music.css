@@ -1,0 +1,197 @@
+#music_doc div
+{
+	color: $music_primary_text_color;
+}
+
+#music_doc div.yui-b div.yui-g, #music_doc div.yui-b div.yui-u,
+#music_doc div.yui-gd, #music_doc div.yui-g
+{
+	background-color: $music_primary_background_color;
+	border: 1px solid #FAFAFA;
+}
+	
+#music_doc div, #music_doc div a, #music_doc div a:hover,
+#music_doc div a:visited, #music_doc div a:active
+{
+	font-family: Verdana;
+	font-size: 8pt;
+}
+
+#music_doc div a, #music_doc div a:hover, #music_doc div a:visited,
+#music_doc div a:active
+{
+	color: $music_article_link_color;
+	text-decoration: none;
+}
+
+.feature_stream_title
+{
+	font-family: Arial, sans-serif;
+	font-size: 14px;
+	font-weight: bold;
+}
+
+#feature_stream .stream_entry_title a:hover,
+#news_item .stream_entry_title span
+{
+	color: $music_article_link_color;
+}
+
+.secondary_stream_title
+{
+	font-family: Arial, sans-serif;
+	font-size: 14px;
+	font-weight: bold;
+}
+
+#feature_stream div.yui-u
+{
+	border: none;
+}
+
+.stream_entry_micro
+{
+	background-color: $music_micro_entry_background_color;
+}
+
+#feature_stream .large_stream_entry .stream_entry_title *, #feature_stream .stream_entry_title a:hover,
+#feature_stream .stream_entry_title a:visited, #feature_stream .stream_entry_title a:active,
+#news_item .stream_entry_title span, #news_item .stream_entry_title *
+{
+	font-family: Arial, sans-serif;
+	font-size: 18px;
+	font-weight: bold;
+}
+
+#music_administration
+{
+	font-size:8pt;
+}
+
+.nav_title
+{
+	font-family: Arial, sans-serif;
+	font-size: 14px;
+	font-weight: bold;
+}
+	
+#individual_band_entry h1
+{
+	font-family: Trebuchet MS, Tahoma, Arial, sans-serif;
+	font-size: 18pt;
+}
+
+#individual_band_entry h2
+{
+	font-family: Trebuchet MS, Tahoma, Arial, sans-serif;
+	font-size:12pt;
+	font-weight: bold;
+}
+	
+.band_entry_data h2
+{
+	font-size: 14pt; 
+	font-family: Trebuchet MS;
+}
+
+#music_doc tr.primary td
+{
+	background-color: $music_stripe_1_color;
+}
+	
+#music_doc tr.secondary td
+{
+	background-color: $music_stripe_2_color;
+}
+
+#music_popular_entries .stream_entry_micro a, #music_popular_entries .stream_entry_micro a:hover,
+#music_popular_entries .stream_entry_micro a:visited, #music_popular_entries .stream_entry_micro a:active,
+.secondary_stream .stream_entry_micro a, .secondary_stream .stream_entry_micro a:hover,
+.secondary_stream .stream_entry_micro a:visited, .secondary_stream .stream_entry_micro a:active
+{
+	color: $music_micro_entry_text_color;
+}
+
+.back_nav a, .back_nav_bottom a
+{
+	font-weight: bold;
+}
+
+.music_administration th
+{
+	font-weight: bold;
+	text-align: center;
+}
+
+.stream_entry_small a
+{
+	font-size: 9pt;
+}
+
+	
+.stream_entry_small
+{
+	font-family: Verdana;
+	font-size: 8pt;
+}
+
+.large_stream_entry .stream_entry_read_more
+{
+	font-weight: bold;
+}
+
+.large_stream_entry
+{
+	border-bottom: 1px solid #BBBBBB;
+}
+
+#music_feature
+{
+	text-align: center;
+	font-family: Arial, sans-serif;
+	font-size: 14pt;
+}
+
+#music_title
+{
+	text-align: left;
+	font-size: 14px;
+	font-weight: bold;
+	font-family: Arial, sans-serif;
+}
+
+.band_micro_icon_col
+{
+	text-align: left;
+}
+
+.micro_icon_col
+{
+	vertical-align: middle;
+	text-align: center;
+}
+
+.band_entry_micro, .stream_entry_micro, .stream_entry_micro td a
+{
+	font-size: 8pt;
+}
+
+#band_register
+{
+	text-align:right;
+}
+
+#music_doc #news_item .news_title, #music_doc #news_item .news_content
+{
+	border: none;
+}
+
+.music_administration table
+{
+	border-collapse: collapse;
+}
+
+#music_doc .yui-g img
+{
+	border:none;
+}

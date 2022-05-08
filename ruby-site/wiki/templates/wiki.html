@@ -1,0 +1,30 @@
+<div id="wiki">
+	<t:template-include module="wiki" name="header" />
+	
+	<t:if t:id="((!PageRequest.current.session.nil?) && PageRequest.current.session.has_priv?(CoreModule, :wiki))">
+	<div>
+		<span style="float: right; width:6em;">
+			[<a href="/wiki/edit{addr}">Edit</a>]
+			[<a href="/wiki/revision_history{addr}">History</a>]
+		</span>
+		<div class="clearit">
+		</div>
+	</div>
+	</t:if>
+	
+	<span>
+	<t:if t:id="content.length < 1">
+		<i>Edit this page to add content. </i>
+	</t:if>
+	#{content}
+	</span><p/>
+	
+	<div>
+		Children:
+		|&#160;
+		<t:loop t:id="children" t:iter="child">
+			<a t:id="child"/>&#160;|&#160;
+		</t:loop>
+		<a href="add_child">[Add]</a>&#160;|
+	</div>
+</div>

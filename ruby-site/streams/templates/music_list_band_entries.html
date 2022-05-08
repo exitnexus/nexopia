@@ -1,0 +1,39 @@
+<div class="yui-t1">
+	#{css}
+	<div id="yui-main">
+		<div class="yui-b">
+			<t:iter t:id="band_entries" t:iter="band_pair">
+			<div class="yui-g">
+				<div class="yui-u first">
+					<t:iter t:id="band_pair.band_1" t:iter="band">
+						<t:template-include module="streams" name="music_band_entry"></t:template-include>
+					</t:iter>
+				</div>
+				<div class="yui-u">
+					<t:iter t:id="band_pair.band_2" t:iter="band">
+						<t:template-include module="streams" name="music_band_entry"></t:template-include>
+					</t:iter>
+				</div>
+			</div>
+			</t:iter>
+		</div>
+	</div>
+	<div class="yui-b">
+		<div class="yui-g">
+			<a href="/music/">Music Front Page</a>
+		</div>
+		<div class="yui-g">
+			<div>
+				<t:if t:id="user_band">
+					<a t:id="user_band" t:linktype="user_edit"></a>
+				</t:if>
+				<t:if t:id="user_band == nil">
+					<a href="/music/bandentry/new/">Register your band</a>
+				</t:if>
+			</div>
+		</div>
+		<t:if t:id="show_admin_panel">
+			<t:template-include t:name="music_administration_panel" t:module="streams"></t:template-include>
+		</t:if>
+	</div>
+</div>

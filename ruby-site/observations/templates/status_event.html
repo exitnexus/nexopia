@@ -1,0 +1,28 @@
+<div>
+	<br/>
+	<ul class="status_list">
+		<li t:iter="event" t:id="events">
+			<div>
+				<t:loop t:id="event.users" t:iter="user">
+					<a t:id="user" t:linktype="empty">
+						<img t:id="user"/>
+					</a>
+				</t:loop>
+			</div>
+			#{event.message}
+			<ul>
+				<li>Updated {event.status.since_creation} ago.</li>
+				<li t:id="event.joinable">
+					<form action="/my/status/join" method="post">
+						<input type="hidden" name="type" value="{event.status.type}"/>
+						<input type="hidden" name="user" value="{event.status.userid}"/>
+						<input type="hidden" name="id" value="{event.status.id}"/>
+						<input type="submit" value="Join"/>
+					</form>
+				</li>
+			</ul>
+			<hr/>
+		</li>
+		<li t:id="events.empty?">No results to display.<hr/></li>
+	</ul>
+</div>

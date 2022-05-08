@@ -1,0 +1,34 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<div style="background-color:white">
+		<!-- TODO: This line should be set area admin once we start doing admin stuff -->
+		<handler-include path="/{module_name}/{ticket.primaryid}/{ticket.secondaryid}/ticket/{ticket.userid}/{ticket.threadid}"/>
+		<handler-include path="/messages_new/{ticket.userid}/{ticket.threadid}" area="Self"/>
+		<form action="{handler_root}/update" method="post">
+			<ul>
+				<li>Problem:
+					<input type="text" id="problem" name="problem" value="{ticket.problem}"/>
+				</li>
+				<li>Notes:
+					<textarea id="notes" name="notes">
+						{ticket.notes}
+					</textarea>
+				</li>
+				<li>Ticket Status
+					<ul>
+						<t:if id="status_open">
+							<li><input type="radio" name="status" id="open" value="open" checked="checked"/>Open</li>
+							<li><input type="radio" name="status" id="closed" value="closed"/>Closed</li>
+						</t:if>
+						<t:if id="status_closed">
+							<li><input type="radio" name="status" id="open" value="open"/>Open</li>
+							<li><input type="radio" name="status" id="closed" value="closed" checked="checked"/>Closed</li>
+						</t:if>
+					</ul>
+				</li>
+				<li><input type="submit" value="Update"/></li>
+			</ul>
+			<input type="hidden" id="userid" name="userid" value="{ticket.userid}"/>
+			<input type="hidden" id="threadid" name="threadid" value="{ticket.threadid}"/>
+		</form>
+	</div>
+</div>

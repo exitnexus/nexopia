@@ -1,0 +1,72 @@
+/*  Skin Name:  Friends by bettycrocker
+    Google Search:  GALT:#FFFFFF;GL:1;DIV:#FF7777;VLC:FFFFFF;AH:center;BGC:FF7777;LBGC:FF7777;ALC:FFFFFF;LC:FFFFFF;T:000000;GFNT:FFFFFF;GIMP:FFFFFF;FORID:1
+ */
+table {text-align: left;}
+tr {vertical-align: top;}
+
+body         { background: #12a80f; font-family: arial, sans-serif; font-size: 8pt; margin: 0; }
+
+a       		{ color: #d1d3d4; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a:hover			{ color: #598241; }
+
+td.footer		{ color:#d4d6d7; text-decoration:none; font: 6pt arial, sans-serif;}
+
+td.side					                { background-color: #ffc000; color: #000; font-family: arial, sans-serif; font-size: 8pt; }
+td.side a   	                 	{ color: #fff; text-decoration:none; }
+td.side a:hover	            		{ color: #0f5820; }
+td.side input, select, textarea { font-family: arial, sans-serif; font-size: 8pt; background: #fff; color: #000; border:1px solid #d4d6d7; margin: 1 0 0 0;}
+
+td.border		{ background-color:#fff; }
+
+td.sideheader		{ color:#000; font-family: arial, sans-serif; font-size: 8pt; padding:3px; padding-top:10px;  }
+
+td.header		{ background-color: #e04444; color: #fff; font-family: arial, sans-serif; font-size: 8pt}
+a.header  	{ color: #fff; text-decoration:none;  }
+a.header:hover	{ color: #d4d6d7; }
+
+td.headerfront	{ color:#000; background: #12a80f url(http://static.nexopia.com/skins/friends/fronthead.png); height:30px; padding-left:10px; }
+
+
+td.header2			{ color: #fff; font-family: arial, sans-serif; font-size: 8pt}
+a.header2     	{ color: #fff; text-decoration:none; }
+a.header2:hover		{ color: #000; }
+
+td.body			{ background-color: #ff7777; color: #000; font-family: arial, sans-serif; font-size: 8pt}
+td.body2		{ background-color: #ffc000; color: #000; font-family: arial, sans-serif; font-size: 8pt}
+a.body { color: #fff; }
+a.body:hover	{ color: #0f5820; }
+body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; color: #000; border:1px solid #d4d6d7;}
+body textarea { font-size: 9pt; }
+
+td.menu				{ color: #fff; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a			{ color: #fff; text-decoration:none; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a:hover		{ color: #000; }
+
+td.forumlst							{ color: #fff; font: 8pt arial, sans-serif;}
+a.forumlst:link,a.forumlst:visited 	{ color: #9F9F9F; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst:hover,a.forumlst:active 	{ color: #555555; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.forumlst1 { background-color:#D6E3EE; color: #fff; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst1:link,a.forumlst1:visited { color: #ddd; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst1:hover,a.forumlst1:active { color: #000; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.forumlst0 { background-color:#D6E3EE; color: #0353A2; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst0:link,a.forumlst0:visited { color: #000; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst0:hover,a.forumlst0:active { color: #fff; text-decoration:none; font: 8pt arial, sans-serif; }
+
+a.forumlst2:link,a.forumlst2:visited { color: #fff; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst2:hover,a.forumlst2:active { color: #516068; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.small  		{ background-color: #e0e3ea; color: #000; font-family: arial, sans-serif; font-size: 8pt}
+a.small     	{ color: #000; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bold }
+a.small:hover	{ color: #3A3A3A; }
+
+td.msg		  	{ background-color:#d7dff2; font-family: arial, sans-serif; font-size: 8pt}
+a.msg       	{ color: #000; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.msg:hover		{ color: #3A3A3A; }
+
+a.vote      	{ color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bold }
+a.vote:hover	{ color: #d1d3d4; }
+
+td.online		{ color: #fff; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}
+td.offline		{ color: #BF0E00; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}

@@ -1,0 +1,82 @@
+
+<t:nothing t:id="true" xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+
+<t:define t:name="trans_div" t:inner="inner" t:attrs="class1,style1">
+		<div class="{class1} test_main" style="{style1}">
+			<div class="" style="height:100%; visibility: visible;">
+				<div class="test_bd" style="background: transparent !important;">
+					inner
+				</div>
+				<div class="{class1} test_ft" style="{style1}">
+				</div>
+			</div>
+		</div>
+</t:define>
+
+<t:define t:name="list-scroll" t:inner="inside" t:attrs="element,num,target">
+	<div class="nex_index row_display">
+		<script> 
+			onload_funcs.push(function(){
+				var i;
+				for(i = 0; i != {num}; i++){
+					document.getElementById('{element}' + i).innerHTML = i; 
+				}
+			});
+		</script>
+		<button type="button" onclick="for (i=0; i!={num.to_i}-1; i++){ document.getElementById('{element}'+i).innerHTML = document.getElementById('{element}'+(i+1)).innerHTML; } forward_req('{element}' + ({num.to_i}-1), '{target}'); "> 
+			Next
+		</button> 
+	</div>
+</t:define>
+							
+<t:define t:name="drop_shadow" t:inner="inner">
+	<div style="position: relative; display: inline;"> 
+		<div style="display: inline">
+		<div style="position: relative; left: 2px; top: 2px; color: #000000; display: inline">
+			<b> 
+				inner
+			</b> 
+		</div>
+		<div style="position: absolute; left: 0px; top: 0px; color: #FFFFFF;"> 
+			<b> 
+				inner
+			</b> 
+		</div> 
+		</div>
+	</div>
+</t:define>
+
+	<div class="yui-b">
+		<t:handler-include path="/dev/" out="devutils">
+			#{devutils}
+		</t:handler-include>
+	</div>
+	
+	<div id="mantle">
+		<h1>
+		TAKE<br/>
+		THE<br/>
+		TOUR<br/>
+		</h1>
+	</div>
+	<div id="mantle">
+		<h1>
+		Advert
+		</h1>
+	</div>
+	<div id="mantle">
+		<h1>
+		NexFeed
+		</h1>
+	</div>
+	<div class="clearit"></div>
+	<t:loop t:id="wikis" t:iter="wiki">
+		<div>
+		<h1>{wiki.name}</h1>
+		#{wiki.get_revision.content}
+		</div>
+	</t:loop>
+<div t:id="footer">
+</div>
+{users}
+</t:nothing>

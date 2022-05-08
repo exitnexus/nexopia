@@ -1,0 +1,65 @@
+table {text-align: left;}
+tr {vertical-align: top;}
+
+body         { background: #000000; font-family: arial, sans-serif; font-size: 8pt;margin: 0; }
+
+td.footer		{ color:#CCCCCC; text-decoration:none; font: 6pt arial, sans-serif;}
+
+td.side					                { background-color: #2A2A2B; color: #BCBEC0; font-family: arial, sans-serif; font-size: 8pt; }
+td.side a   	                 	{ color: #888888; text-decoration:none; }
+td.side a:hover	            		{ color: #fff; }
+td.side input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; border:1px solid #636466; margin: 1 0 0 0;}
+
+td.border		{ background-color:#9A9A9A; }
+
+td.sideheader		{ color:#BCBEC0; font-family: arial, sans-serif; font-size: 8pt; }
+
+td.header		{ background-color: #565656; color: #c0c0c0; font-family: arial, sans-serif; font-size: 8pt}
+a.header  	{ color: #c0c0c0; text-decoration:none;  }
+a.header:hover	{ color: #FFF; }
+
+td.headerfront	{ color:#BCBEC0; background: url(http://static.nexopia.com/skins/black/blockhead.png); font-size: 12pt;}
+
+td.header2			{ color: #9F9F9F; font-family: arial, sans-serif; font-size: 8pt}
+a.header2     	{ color: #9F9F9F; text-decoration:none; }
+a.header2:hover		{ color: #fff; }
+
+td.body			{ background-color: #2a2a2b; color: #BCBEC0; font-family: arial, sans-serif; font-size: 8pt}
+td.body2		{ background-color: #161616; color: #BCBEC0; font-family: arial, sans-serif; font-size: 8pt}
+a.body { color: #888888; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.body:hover	{ color: #FFFFFF; }
+body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; border:1px solid #636466;}
+body textarea { font-size: 9pt; }
+
+td.menu				{ color: #9F9F9F; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a			{ color: #9F9F9F; text-decoration:none; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a:hover		{ color: #fff; }
+
+td.forumlst							{ color: #fff; font: 8pt arial, sans-serif;}
+a.forumlst:link,a.forumlst:visited 	{ color: #9F9F9F; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst:hover,a.forumlst:active 	{ color: #555555; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.forumlst0 { background-color:#D6E3EE; color: #000000; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst0:link,a.forumlst0:visited { color: #979797; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst0:hover,a.forumlst0:active { color: #fff; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.forumlst1 { background-color:#D6E3EE; color: #9F9F9F; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst1:link,a.forumlst1:visited { color: #fff; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst1:hover,a.forumlst1:active { color: #9F9F9F; text-decoration:none; font: 8pt arial, sans-serif; }
+
+a.forumlst2:link,a.forumlst2:visited { color: #56aff4; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst2:hover,a.forumlst2:active { color: #888888; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.small  		{ background-color: #999999; color: #000000; font-family: arial, sans-serif; font-size: 8pt}
+a.small     	{ color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bold }
+a.small:hover	{ color: #3A3A3A; }
+
+td.msg		  	{ background-color:#cccccc; font-family: arial, sans-serif; font-size: 8pt}
+a.msg       	{ color: #598241; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.msg:hover		{ color: #598241; }
+
+a.vote      	{ color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bold }
+a.vote:hover	{ color: #000000; }
+
+td.online		{ color: #56aff4; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}
+td.offline		{ color: #cf3636; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}

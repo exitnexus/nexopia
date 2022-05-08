@@ -1,0 +1,30 @@
+<div class="list" id="groups_block_group_list" style="overflow:-moz-scrollbars-vertical; position: relative">
+	<t:if t:id="!user_group_types.nil? && !user_group_types.empty?">
+		<table width="100%" border="0" class="tblContent" cellspacing="0" cellpadding="0">
+			<t:loop t:id="user_group_types" t:iter="user_group_type">
+				<tr valign="top">
+					<td>
+						<div class="list_row"><span class="title">{user_group_type.first.group_type_name}</span></div>
+					</td>
+				</tr>
+				<t:loop t:id="user_group_type" t:iter="user_group" t:index="num">
+					<tr>
+						<td>
+							<div class="list_row" id="list_row_{user_group.groupid}"
+								onmouseover="GroupsProfileBlock.hoverOn(this, {user_group.groupid});"
+								onmouseout="GroupsProfileBlock.hoverOff(this, {user_group.groupid});">
+								<t:if t:id="!PageRequest.current.impersonation?">
+									<a href="javascript:;" onclick="GroupsProfileBlock.editGroup({user_group.groupid});">{user_group.group_name}</a>
+								</t:if>
+								<t:if t:id="PageRequest.current.impersonation?">
+									{user_group.group_name}
+								</t:if><br />
+								<span class="location">{user_group.group_location_name}</span>
+							</div>
+						</td>
+					</tr>
+				</t:loop>
+			</t:loop>
+		</table>
+	</t:if>
+</div>

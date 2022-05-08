@@ -14,7 +14,7 @@
 		$tableresult = $dbs[$dbname]->listtables();
 
 		while(list($tname) = $dbs[$dbname]->fetchrow($tableresult, DB_NUM)){
-			$result = $dbs[$dbname]->query(null, "SHOW CREATE TABLE `$tname`");
+			$result = $dbs[$dbname]->query("SHOW CREATE TABLE `$tname`");
 			$output = $dbs[$dbname]->fetchfield(1,0,$result);
 
 			$tables["$tname"] = "-- $dbname.$tname\n$output";

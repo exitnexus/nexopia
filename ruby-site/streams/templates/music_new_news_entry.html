@@ -1,0 +1,63 @@
+<div id="music_doc">
+	<div>
+		<form name="new_news_item" method="post" action="/music/administration/item/news/{submit_location}/submit/">
+			<table>
+				<tbody>
+					<tr>
+						<td>
+							Title
+						</td>
+						<td>
+							<input type="text" name="news_title" id="news_title" value="{news.title}"></input>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							Short Synopsis
+						</td>
+						<td>
+							<textarea name="news_brief" id="news_brief" rows="10" cols="120">{news.brief}</textarea>
+						</td>
+					</tr>
+					<tr>
+						<td style="vertical-align:top;">
+							News Item Body
+						</td>
+						<td>
+							<textarea rows="20" cols="120" name="news_body" id="news_body">{news.body}</textarea>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							Update Timestamp?
+						</td>
+						<td>
+							<input type="checkbox" name="news_update_date" id="news_update_date" value="update"></input>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							Tagging
+						</td>
+						<td>
+							<t:template-include t:name="music_tagging" t:module="streams"></t:template-include>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							Icon choice
+						</td>
+						<td>
+							<t:template-include t:name="music_stream_icon_widget" t:module="streams"></t:template-include>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<input type="submit" name="news_submit" id="news_submit"></input>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</form>
+	</div>
+</div>

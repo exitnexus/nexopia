@@ -1,0 +1,66 @@
+<div id="music_doc">
+	<div class="yui-t2 music_administration">
+		#{css}
+		<div id="yui-main_music">
+			<div class="yui-b">
+				<div class="yui-g">
+					New Sidebar Feature
+				</div>
+				<div class="yui-g">
+					<form name="new_sidebar_feature" id="new_sidebar_feature" method="post" action="/music/administration/sidebarfeature/{submit_location}/submit/">
+						<table>
+							<tbody>
+								<tr>
+									<td>
+										Feature Location
+									</td>
+									<td>
+										<input type="text" name="feature_location" id="feature_location" value="{feature.content}"></input>
+									</td>
+								</tr>
+								<tr>
+									<td>
+										Link
+									</td>
+									<td>
+										<input type="text" id="feature_link" name="feature_link" value="{feature.link}"></input>
+									</td>
+								</tr>
+								<tr>
+									<td>
+										Dimensions
+									</td>
+									<td>
+										<input type="text" name="feature_width" id="feature_width" maxlength="3" value="{feature.width}"></input>
+										x
+										<input type="text" name="feature_height" id="feature_height" maxlength="3" value="{feature.height}"></input>
+									</td>
+								</tr>
+								<tr>
+									<td>
+										Active?
+									</td>
+									<td>
+										<input type="checkbox" cond:checked="feature.checked?()" name="feature_active" id="feature_active" value="active"></input> 
+									</td>
+								</tr>
+								<tr>
+									<td colspan="2">
+										<input type="submit" id="feature_submit" name="feature_submit" value="Create Special Feature"></input>
+										<input type="submit" id="feature_cancel" name="feature_cancel" value="Cancel"></input>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</form>
+				</div>
+			</div>
+		</div>
+		<div class="yui-b">
+			<t:template-include t:module="streams" t:name="music_administration_panel"></t:template-include>
+			<div class="yui-g">
+				<a href="/music/">Music Front Page</a>
+			</div>
+		</div>
+	</div>
+</div>

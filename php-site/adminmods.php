@@ -44,9 +44,9 @@
 
 			case "Create":
 				$username = getPOSTval('username');
-				$level = getPOSTval('level', 'int');
+				$level = getPOSTval('level', 'int', -1);
 
-				if($username && $level)
+				if($username && $level != -1)
 					insertMod($username,$level);
 				break;
 
@@ -58,9 +58,9 @@
 
 			case "Update":
 				$uid = getPOSTval('uid', 'int');
-				$level = getPOSTval('level', 'int');
+				$level = getPOSTval('level', 'int', -1);
 
-				if($uid && $level)
+				if($uid && $level != -1)
 					updateMod($uid,$level);
 				break;
 
@@ -84,33 +84,27 @@
 /////////////////////////////
 
 function listMods($type){
-	global $usersdb, $db, $sortlist, $sortt, $sortd, $type, $isAdmin, $config, $mods, $forumdb;
+	global $usersdb, $db, $sortlist, $sortt, $sortd, $type, $isAdmin, $config, $mods, $forums;
 
 	$res = $mods->db->prepare_query("SELECT userid, `right`+`wrong` AS `total`, `right`, `wrong`, strict, lenient, level, time, creationtime, IF(`right`+`wrong`=0,0,100.0*`wrong`/(`right` + `wrong`)) AS percent, 'n' AS online, '0' AS activetime FROM mods WHERE type = #", $type);
 
 	$rows = array();
-	while($line = $res->fetchrow()) {
+	while($line = $res->fetchrow()){
 		$rows[$line['userid']] = $line;
 		$rows[$line['userid']]['adminormod'] = 'pic mod';
-		$rows[$line['userid']]['username'] = getUserName($line['userid']);
 
-		$allowdel = true;
-		if ($type == MOD_PICS) { // only strip deletion for pic mod type
-			if (!$mods->isAdmin($line['userid'])) {
-				$fres = $forumdb->prepare_query('SELECT COUNT(*) AS modcnt FROM forummods, forums WHERE forummods.userid=# AND forummods.forumid=forums.id AND forums.official=?', $line['userid'], 'y');
-				$isforummod = $fres->fetchfield();
-
-				if (!is_null($isforummod) and $isforummod > 0) {
-					$rows[$line['userid']]['adminormod'] = 'forum mod';
-					$allowdel = false;
-				}
-			}
-			else {
+		if($type == MOD_PICS){ // only strip deletion for pic mod type
+			if($mods->isAdmin($line['userid']))
 				$rows[$line['userid']]['adminormod'] = 'admin';
-				$allowdel = false;
-			}
+			elseif($forums->isOfficialMod($line['userid']))
+				$rows[$line['userid']]['adminormod'] = 'forum mod';
 		}
 	}
+
+	$usernames = getUserName(array_keys($rows));
+	
+	foreach($rows as $userid => $line)
+		$rows[$userid]['username'] = $usernames[$userid];
 
 	$res = $usersdb->prepare_query("SELECT userid, online, activetime FROM useractivetime WHERE userid IN (%)", array_keys($rows));
 
@@ -327,7 +321,7 @@ function editMod($userid){
 	echo "<tr><td class=body>Creation Time:</td><td class=body>" . ($line['creationtime'] == 0 ? "Unknown" : userDate("D M j, Y G:i:s", $line['creationtime']) ) . "</td></tr>";
 
 	echo "<tr><td class=body>Suggested Level:</td><td class=body>" . $mods->suggestedModLevel($line['right'], $line['percent'], $line['level']) . "</td></tr>";
-	echo "<tr><td class=body>Level:</td><td class=body><select class=body name=level>" . make_select_list(range(0,5), $line['level']) . "</select></td></tr>";
+	echo "<tr><td class=body>Level:</td><td class=body><select class=body name=level>" . make_select_list(range(0,6), $line['level']) . "</select></td></tr>";
 	echo "<tr><td class=body colspan=2 align=center>";
 	echo "<input class=body type=submit name=action value=Update>";
 	echo "<input class=body type=submit name=action value=Cancel>";

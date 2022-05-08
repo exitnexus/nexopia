@@ -1,0 +1,51 @@
+<span>
+	<div class="title">
+		General
+	</div>
+
+	<table class="descr">
+		<tr>
+			<td class="left"> Show status bar (right side, not suggested for 800x600 users) </td>
+		    <td class="right"> <input id="showrightblocks" name="showrightblocks" type="checkbox" /> </td>
+		</tr>
+	<t:if t:id="has_plus">
+		<tr>
+			<td class="left"> Show fewer ads </td>
+		    <td class="right"> <input id="limitads" name="limitads" type="checkbox" /> </td>
+		</tr>
+	</t:if>
+		<tr>
+			<td class="left"> Trust autodetected timezone	</td>
+		    <td class="right"> <input id="trustjstimezone" name="trustjstimezone" type="checkbox" /> </td>
+		</tr>
+		<tr>
+			<td class="left">
+				Autodetecting timezone:
+			</td>
+		    <td class="right">
+		    	<t:if t:id="time_zone_fail">
+			    	Autodetection failed
+			    </t:if>
+		        {autodetect_timezone}
+		    </td>
+		</tr>
+		<tr>
+			<td class="left">
+				Using fallback timezone:
+			</td>
+		    <td class="right">
+		    	<select id="timezone" name="timezone" class="medium"></select>
+		    </td>
+		</tr>
+		<tr>
+			<td class="left"> Date and Time in Fallback Timezone </td>
+		    <td class="right"> {prefdate} </td>
+		</tr>
+		<tr>
+			<td class="left"> Choose a skin	</td>
+		    <td class="right">
+				<select id="skin" name="skin" class="medium" onChange="changeLayout('{$site.static_url}', this.options[this.selectedIndex].value);"></select>
+		    </td>
+		</tr>
+	</table>
+</span>

@@ -1,0 +1,57 @@
+<div t:docid="gallery_upload" class="gallery_upload">
+	<div id="gallery_overlay">
+		<t:handler-include path="/gallery/create/" area="Self"/>
+	</div>
+	<h1>PICTURES + GALLERIES</h1>
+	<a href="{$site.upload_url}/swfupload" id="gallery_upload_link"> </a>
+	<input type="hidden" id="session" value="%{session}"/>
+	<input type="hidden" id="iv" value="%{iv}"/>
+	<div id="gallery_upload_header">
+		<a class="body" style="float:right" href="/my/gallery/">View galleries</a>
+		<h2>PICTURE UPLOAD</h2>
+		<h3>Choose picture(s) to upload</h3>
+		<form action="{$site.upload_url}/httpupload/my/gallery/uploadfinished" method="post" enctype="multipart/form-data">
+			<input type="hidden" name="type" value="Gallery"/>
+			<div class="gallery_section">
+				<div id="gallery_browse_target">
+					<input type="file" name="Filedata" id="Filedata" />
+				</div>
+				<span class="minor script">You may upload multiple pictures at once by selecting more than one file from a folder.</span>
+			</div>
+			<div class="gallery_section">
+				Upload to <t:handler-include path="/gallery/select/{selected_gallery}" area="Internal"/>
+			</div>
+			<ul id="gallery_queue"></ul>
+			<div class="gallery_section">
+				<input id="certify" type="checkbox"/>
+				I certify that I have the right to distribute all the pictures and that they do not violate the&#160;
+				<a class="body" href="/terms.php">Terms of Use</a>.
+			</div>
+			<span class="gallery_section" id="gallery_upload_target">
+				<input type="submit" id="upload_queue" value="Upload"/>
+			</span>
+			<a id="view_gallery" class="body" style="display:none">View galleries</a>
+		</form>
+	</div>
+	<div id="gallery_templates" class="template">
+		<ul>
+			<li id="template_file" class="file_upload">
+				<table>
+					<tr>
+						<td class="file_info">
+							<input type="text" id="template_description"/>
+						</td>
+						<td>
+							<img id="template_cancel" class="gallery_cancel" src="{$site.static_files_url}/Gallery/images/cross.gif"/>
+						</td>
+					</tr>
+					<tr>
+						<td colspan="2">
+							<div id="template_progress" class="progress_bar"><div id="template_complete" class="progress_complete"></div></div>
+						</td>
+					</tr>
+				</table>
+			</li>
+		</ul>
+	</div>
+</div>

@@ -1,0 +1,11 @@
+<div class="comment_post" t:id="!PageRequest.current.session.nil?">
+	<form action="{handler_root}/comments/post" method="post" name="editbox">
+		Post a Comment:<br/>
+		<textarea rows="5" name="comment" style="width: 100%">{comment_text}</textarea><br/>
+		<input type="hidden" id="back_link" name="back_link" value="{back_link}"/>
+		<input type="hidden" id="videoid" name="videoid" value="{videoid}"/>
+		<input type="hidden" id="last_page" name="last_page" value="{last_page}"/>
+		<input class="body" type="submit" name="action" value="Preview"/>
+		<input class="body" type="submit" name="action" value="Post"/>
+	</form>
+</div>

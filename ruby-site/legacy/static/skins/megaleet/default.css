@@ -1,0 +1,235 @@
+table {text-align: left;}
+tr {vertical-align: top;}
+
+/*scroll bar colors*/
+body            {background-color: #000000; font-family: arial, sans-serif; font-size: 8pt; SCROLLBAR-FACE-COLOR: black; SCROLLBAR-HIGHLIGHT-COLOR: #cccccc; SCROLLBAR-SHADOW-COLOR: #cccccc; SCROLLBAR-3DLIGHT-COLOR: #cccccc; SCROLLBAR-ARROW-COLOR: #cccccc; SCROLLBAR-DARKSHADOW-COLOR: #cccccc; scrollbar-track-COLOR: #cccccc; margin: 0;  }
+
+/*textbox text color*/
+input,select,textarea	{ font: 10pt arial, sans-serif; color: #000000 }
+
+/*color of link below smiley face menu in forums*/
+a:active	{ color: #000000; font-size: 8pt; font-family: arial, sans-serif; text-decoration:none }
+a:link		{ color: #000000; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a:visited	{ color: #000000; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a:hover		{
+	color: #4169E1;
+	text-decoration:none;
+	font-family: arial, sans-serif;
+	font-size: 8pt
+}
+
+/*looks to be unused*/
+a.main:active	{ color: #ffffff; font-size: 10pt; font-family: arial, sans-serif; text-decoration:none }
+a.main:link	{ color: #ffffff; text-decoration:none; font-family: arial, sans-serif; font-size: 10pt }
+a.main:visited	{ color: #ffffff; text-decoration:none; font-family: arial, sans-serif; font-size: 10pt }
+a.main:hover	{ color: #598241; text-decoration:none; font-family: arial, sans-serif; font-size: 10pt }
+
+/*looks to be unused*/
+td.main		{
+	background-color: Black;
+	font-family: arial, sans-serif;
+	font-size: 10pt
+}
+
+/*color of copyright text on footer*/
+td.footer		{ color:#FFFFFF; text-decoration:none; font: 6pt arial, sans-serif;}
+
+td.sideheader		{ color:#FFFFFF; font-family: arial, sans-serif; font-size: 8pt }
+
+/*colors of links on menu*/
+td.side				{ background-color: #191970; font-family: arial, sans-serif;	font-size: 8pt;	color : White; }
+td.side a:active	{ color: White;	text-decoration:none;	font-family: arial, sans-serif;	font-size: 8pt }
+td.side a:link		{ color: White;	text-decoration:none;	font-family: arial, sans-serif;	font-size: 8pt }
+td.side a:visited	{ color: White;	text-decoration:none;	font-family: arial, sans-serif;	font-size: 8pt }
+td.side a:hover		{ color: #4169E1; text-decoration:none;	font-family: arial, sans-serif;	font-size: 8pt }
+td.side label		{ font-family: arial, sans-serif; font-size: 8pt;	color : White;}
+td.side input,
+td.side select		{ font-family: arial, sans-serif; font-size: 8pt; }
+
+/*menus on side border*/
+td.border	{
+	background-color: #191970;
+}
+
+a.sidelink:active		{ color: #EFF09D; text-decoration:underline; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+a.sidelink:link			{ color: #EFF09D; text-decoration:underline; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+a.sidelink:visited		{ color: #EFF09D; text-decoration:underline; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+a.sidelink:hover		{ color: #EFF09D; text-decoration:underline; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+
+
+/*small text under articles on main page*/
+a.header:active	{ color: #FFFFFF; font-size: 8pt; font-family: arial, sans-serif; text-decoration:none }
+a.header:link	{ color: #FFFFFF; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.header:visited{ color: #FFFFFF; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.header:hover	{
+	color: #4169E1;
+	text-decoration:none;
+	font-family: arial, sans-serif;
+	font-size: 8pt
+}
+
+/*color of header backgrounds and text on main page*/
+td.header	{
+	background-color: #191970;
+	color: #FFFFFF;
+	font-family: arial, sans-serif;
+	font-size: 8pt
+}
+
+
+/*color small nav text in forum */
+a.header2:active	{ color: #FFFFFF; font-size: 8pt; font-family: arial, sans-serif; text-decoration:none }
+a.header2:link		{ color: #FFFFFF; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.header2:visited	{ color: #FFFFFF; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.header2:hover		{
+	color: #4169E1;
+	text-decoration:none;
+	font-family: arial, sans-serif;
+	font-size: 8pt
+}
+td.header2		{ color: #FFFFFF; font-family: arial, sans-serif; font-size: 8pt}
+
+/*looks to be unused*/
+a.header3:active	{ color: #FFFFFF; font-size: 10pt; font-family: arial, sans-serif; text-decoration:none }
+a.header3:link		{ color: #FFFFFF; text-decoration:none; font-family: arial, sans-serif; font-size: 10pt }
+a.header3:visited	{ color: #FFFFFF; text-decoration:none; font-family: arial, sans-serif; font-size: 10pt }
+a.header3:hover		{ color: #97DA70; text-decoration:none; font-family: arial, sans-serif; font-size: 10pt }
+td.header3			{ color: #FFFFFF; font-family: arial, sans-serif; font-size: 10pt}
+
+/*text above avatars in forum*/
+a.body:active	{
+	color: #7995E5;
+	font-size: 8pt;
+	font-family: arial, sans-serif;
+	text-decoration:none
+}
+a.body:link	{
+	color: #7995E5;
+	text-decoration:none;
+	font-family: arial, sans-serif;
+	font-size: 8pt
+}
+a.body:visited	{
+	color: #7995E5;
+	text-decoration:none;
+	font-family: arial, sans-serif;
+	font-size: 8pt
+}
+a.body:hover	{
+	color: #0000CD;
+	text-decoration:none;
+	font-family: arial, sans-serif;
+	font-size: 8pt
+}
+
+/*color of forum listing and postings bg and text */
+td.body2		{
+	background-color: #363636;
+	color: White;
+	font-family: arial, sans-serif;
+	font-size: 8pt
+}
+
+/*color of button text in forum reply*/
+input.body,select.body			{ font: 8pt arial, sans-serif;, sans-serif; color: #000000 }
+textarea.body					{ font: 8pt arial, sans-serif;, sans-serif; color: #000000 }
+
+td.body			{
+	background-color: #000000;
+	color: White;
+	font-family: arial, sans-serif;
+	font-size: 8pt
+}
+
+/*color of some of the top menu links*/
+td.menu					{ color: #ffffff; font-family: arial, sans-serif; font-size: 9pt }
+td.menu a:active	{ color: #ffffff; font-size: 9pt; font-family: arial, sans-serif; text-decoration:none }
+td.menu a:link 	{ color: #ffffff; text-decoration:none; font-family: arial, sans-serif; font-size: 9pt }
+td.menu a:visited	{ color: #ffffff; text-decoration:none; font-family: arial, sans-serif; font-size: 9pt }
+td.menu a:hover	{ color: #4169E1; text-decoration:none;	font-family: arial, sans-serif;	font-size: 9pt }
+
+/*looks to be unused*/
+a.menu2:active	{ color: #ffffff; font-size: 8pt; font-family: arial, sans-serif; text-decoration:none; letter-spacing: 1pt; }
+a.menu2:link	{ color: #ff00ff; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; letter-spacing: 1pt; }
+a.menu2:visited	{ color: #ffffff; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; letter-spacing: 1pt; }
+a.menu2:hover	{ color: #598241; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; letter-spacing: 1pt; }
+td.menu2		{ background-color: #727272; font-family: arial, sans-serif; font-size: 8pt; letter-spacing: 1pt; }
+
+
+/*author color and some unread posts*/
+td.forumlst				{
+	background-color: #202020;
+	color: White;
+	text-decoration:none;
+	font: 8pt arial, sans-serif;
+}
+a.forumlst:link,a.forumlst:visited 	{
+	color: Silver;
+	text-decoration:none;
+	font: 8pt arial, sans-serif;
+}
+a.forumlst:hover,a.forumlst:active 	{
+	color: #2F4F4F;
+	text-decoration:none;
+	font: 8pt arial, sans-serif;
+}
+
+
+/*color of above in the legend*/
+td.forumlst0							{ background-color:#DFDED9; color: #000000; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst0:link,a.forumlst0:visited 	{
+	color: #DA70D6;
+	text-decoration:none;
+	font: 8pt arial, sans-serif;
+}
+a.forumlst0:hover,a.forumlst0:active 	{
+	color: #9932CC;
+	text-decoration:none;
+	font: 8pt arial, sans-serif;
+}
+
+/*some unread posts color in forum*/
+td.forumlst1							{ background-color:#F0F0F0; color: #000000; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst1:link,a.forumlst1:visited 	{
+	color: #ADD8E6;
+	text-decoration:none;
+	font: 8pt arial, sans-serif;
+}
+a.forumlst1:hover,a.forumlst1:active 	{
+	color: #1E90FF;
+	text-decoration:none;
+	font: 8pt arial, sans-serif;
+}
+
+/*new topic posts color in forum*/
+a.forumlst2:link,a.forumlst2:visited 	{
+	color: #FF8686;
+	text-decoration:none;
+	font: 8pt arial, sans-serif;
+}
+a.forumlst2:hover,a.forumlst2:active 	{
+	color: #DC143C;
+	text-decoration:none;
+	font: 8pt arial, sans-serif;
+}
+
+/*looks to be unused*/
+a.small:active	{ color: #CCCCCC; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+a.small:link	{ color: #CCCCCC; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+a.small:visited	{ color: #CCCCCC; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+a.small:hover	{ color: #CCCCCC; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+td.small		{background-color: #6E6E6E;	color: #FFFFFF; font-family: arial, sans-serif;	font-size: 8pt;	}
+/*looks to be unused*/
+a.msg:active	{ color: #598241; font-size: 8pt; font-family: arial, sans-serif; text-decoration:none }
+a.msg:link	{ color: #ff00ff; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.msg:visited	{ color: #598241; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.msg:hover	{ color: #598241; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+td.msg		{ background-color:#cccccc; font-family: arial, sans-serif; font-size: 8pt}
+
+a.vote:active	{ color: #CCCCCC; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bolder }
+a.vote:link		{ color: #CCCCCC; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bolder }
+a.vote:visited	{ color: #CCCCCC; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bolder }
+a.vote:hover	{ color: #FFFFFF; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bolder }
+
+td.online		{ color: #00AA00; font-family: arial, sans-serif; font-size: 16pt; font-weight: bolder}
+td.offline		{ color: #FF0000; font-family: arial, sans-serif; font-size: 16pt; font-weight: bolder}

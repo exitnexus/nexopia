@@ -1,0 +1,16 @@
+<div class="comment_container">
+	<div class="non_ie_left_panel_stretch"><!-- Comment to fix IE empty DIV problem. --></div>
+	<div class="comments_top_divider"><!-- Comment to fix IE empty DIV problem. --></div>
+
+	<t:loop t:id="comments" t:iter="comment">
+		<t:template-include name="comments_comment" module="video"/>
+	</t:loop>
+
+	<div class="clearit"><!-- Comment to fix IE empty DIV problem. --></div>
+
+	<div id="inline_comment_footer">
+		<div id="view_all"><a href="{handler_root}/comments/full/{videoid}">View All</a></div>
+
+		<t:template-include name="comments_post" module="video"/>
+	</div>
+</div>

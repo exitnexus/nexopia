@@ -1,0 +1,17 @@
+<t:template>
+	temp = new ProfileDisplayBlock();
+	temp.html_id = "#{html_id}";\n
+	<t:iter t:id="display_block.columns.keys" t:iter="column">
+		<t:varsub t:new="column_value" t:old="display_block.send(column.to_sym())"></t:varsub>
+		<t:if t:id="!display_block.enums[column.to_sym()].nil?()">
+			<t:varsub t:new="column_value" t:old="display_block.enums[column.to_sym()][column_value]"></t:varsub>
+		</t:if>
+		<t:if t:id="column_value.kind_of?(String) || column_value.kind_of?(Symbol)">
+			temp.{column} = "#{column_value}";\n
+		</t:if>
+		<t:if t:id="!(column_value.kind_of?(String) || column_value.kind_of?(Symbol))">
+			temp.{column} = #{column_value};\n
+		</t:if>
+	</t:iter>
+	YAHOO.profile.display_block_list.push(temp);\n
+</t:template>

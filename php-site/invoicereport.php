@@ -23,74 +23,34 @@
 	$endday = getREQval('endday', 'int', 31);
 	$endyear = getREQval('endyear', 'int', userdate("Y"));
 
+	$sortt = getREQval('sortt');
+	$sortd = getREQval('sortd');
 
-	$reports = array(	"Full",
+	$formatting = getREQval('formatting', 'bool');
+	$completed = getREQval('completed', 'bool');
+
+	$report = getREQval('report');
+
+	$reports = array(
+						"Daily Summary",
+						"Monthly Summary",
+						"Weekly Summary",
+						"Day of Week Summary",
+						"Full",
 						"Summary",
 						"Errors",
 						"Incomplete",
 						"Summary by Type",
 						"Summary by Contact",
-						"Daily Summary",
 						"Moneris Summary",
 						"Billing People",
 						);
 
 
 	for($i=1;$i<=12;$i++)
-		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+		$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
 
-	if($action == "Go"){
-		$start = gmmktime(0,0,0,$startmonth,$startday,$startyear);
-		$end =  gmmktime(23,59,59,$endmonth,$endday,$endyear);
-
-		if(!isset($sortt) || ($sortt != 'creationdate' && $sortt != 'paymentdate'))
-			$sortt = 'creationdate';
-
-		$completed = isset($_REQUEST['completed']);
-
-		$query = "SELECT SQL_CALC_FOUND_ROWS * FROM invoice ";
-
-		$parts = array();
-		$params = array();
-
-		if($completed)
-			$parts[] = "completed = 'y'";
-
-		if(count($methods)){
-			$parts[] = "paymentmethod IN (?)";
-			$params[] = $methods;
-		}
-		if(count($contacts)){
-			$parts[] = "paymentcontact IN (?)";
-			$params[] = $contacts;
-		}
-
-		$column = ($completed ? 'paymentdate' : 'creationdate');
-		$parts[] = "$column >= # && $column < #";
-		$params[] = $start;
-		$params[] = $end;
-		
-		if($parts)
-			$query .= "WHERE " . implode(" && ", $parts);
-		
-		$query .= " ORDER BY $sortt";
-
-		$res = $shoppingcart->db->prepare_array_query($query, $params);
-
-		$uids = array();
-		while($line = $res->fetchrow()){
-			$invoices[] = $line;
-			$uids[$line['userid']] = $line['userid'];
-		}
-		
-		$usernames = getUserName($uids);
-		
-		foreach($invoices as $k => $v)
-			$invoices[$k]['username'] = $usernames[$v['userid']];
-	}
-
-	if(count($invoices) == 0){
-
+	if(!$action){
 		incHeader(true,array('incShoppingCartMenu'));
 
 		echo "<table><form action=$_SERVER[PHP_SELF]>";
@@ -146,10 +106,43 @@
 		incFooter();
 
 	}else{
+		$start = gmmktime(0,  0,  0,  $startmonth, $startday, $startyear);
+		$end =   gmmktime(23, 59, 59, $endmonth, $endday, $endyear);
 
-		$report = $_REQUEST['report'];
+		if($sortt != 'creationdate' && $sortt != 'paymentdate')
+			$sortt = 'creationdate';
 
-		$formatting  = isset($_REQUEST['formatting']);
+		$query = "SELECT * FROM invoice ";
+
+		$parts = array();
+		$params = array();
+
+		if($completed)
+			$parts[] = "completed = 'y'";
+
+		if(count($methods)){
+			$parts[] = "paymentmethod IN (?)";
+			$params[] = $methods;
+		}
+		if(count($contacts)){
+			$parts[] = "paymentcontact IN (?)";
+			$params[] = $contacts;
+		}
+
+		$column = ($completed ? 'paymentdate' : 'creationdate');
+		$parts[] = "$column >= # && $column < #";
+		$params[] = $start;
+		$params[] = $end;
+		
+		if($parts)
+			$query .= "WHERE " . implode(" && ", $parts);
+		
+		$query .= " ORDER BY $sortt";
+
+		$res = $shoppingcart->db->prepare_array_query($query, $params);
+
+		//$res is used by the reports
+
 
 		if($formatting)
 			incHeader(true,array('incShoppingCartMenu'));
@@ -169,6 +162,18 @@
 
 		switch($report){
 			case "Full":
+	
+				$uids = array();
+				while($line = $res->fetchrow()){
+					$invoices[] = $line;
+					$uids[$line['userid']] = $line['userid'];
+				}
+				
+				$usernames = getUserName($uids);
+				
+				foreach($invoices as $k => $v)
+					$invoices[$k]['username'] = $usernames[$v['userid']];
+
 
 				echo "<table width=100%>";
 
@@ -201,7 +206,7 @@
 
 			case "Summary":
 				$total = 0;
-				foreach($invoices as $invoice)
+				while($invoice = $res->fetchrow())
 					$total += $invoice['amountpaid'];
 
 				echo "<table width=100%>";
@@ -211,6 +216,16 @@
 				break;
 
 			case "Errors":
+				$uids = array();
+				while($line = $res->fetchrow()){
+					$invoices[] = $line;
+					$uids[$line['userid']] = $line['userid'];
+				}
+				
+				$usernames = getUserName($uids);
+				
+				foreach($invoices as $k => $v)
+					$invoices[$k]['username'] = $usernames[$v['userid']];
 
 				echo "<table width=100%>";
 
@@ -259,7 +274,7 @@
 
 				$total = 0;
 				$num = 0;
-				foreach($invoices as $invoice){
+				while($invoice = $res->fetchrow()){
 					$totals[$invoice['paymentmethod']] += $invoice['amountpaid'];
 					$nums[$invoice['paymentmethod']]++;
 
@@ -274,6 +289,7 @@
 				echo "<td class=header align=center>Method</td>";
 				echo "<td class=header align=center>Invoices</td>";
 				echo "<td class=header align=center>Revenue</td>";
+				echo "<td class=header align=center>Percent</td>";
 				echo "</tr>";
 
 
@@ -281,7 +297,8 @@
 					echo "<tr>";
 					echo "<td class=body>" . $shoppingcart->paymentmethods[$method] . "</td>";
 					echo "<td class=body align=right>$nums[$method]</td>";
-					echo "<td class=body align=right>\$" . number_format($totals[$method],2) . "</td>";
+					echo "<td class=body align=right>\$" . number_format($totals[$method], 2) . "</td>";
+					echo "<td class=body align=right>" . number_format(100*$totals[$method]/$total, 2) . " %</td>";
 					echo "</tr>";
 				}
 
@@ -289,6 +306,7 @@
 				echo "<td class=header></td>";
 				echo "<td class=header align=right>$num</td>";
 				echo "<td class=header align=right>\$" . number_format($total,2) . "</td>";
+				echo "<td class=header></td>";
 				echo "</tr>";
 
 				echo "</table>";
@@ -303,7 +321,7 @@
 				$invoicetotals = array();
 				$invoicecontacttotals = array();
 
-				foreach($invoices as $invoice){
+				while($invoice = $res->fetchrow()){
 					if(!isset($contacts[$invoice['paymentcontact']])){
 						$totals[$invoice['paymentcontact']] = 0;
 						$num[$invoice['paymentcontact']] = 0;
@@ -387,7 +405,7 @@
 				$total = 0;
 				$num = 0;
 
-				foreach($invoices as $invoice){
+				while($invoice = $res->fetchrow()){
 					$date = gmdate("M j, y", $invoice['paymentdate']);
 
 					if(!isset($days[$date]))
@@ -421,7 +439,7 @@
 				foreach($days as $date => $day){
 					echo "<tr>";
 					echo "<td class=body>$date</td>";
-					echo "<td class=body align=right>$day[num]</td>";
+					echo "<td class=body align=right>" . number_format($day['num']) . "</td>";
 					echo "<td class=body align=right>\$" . number_format($day['total'], 2) . "</td>";
 
 					array_push($nums, $day['num']);
@@ -438,16 +456,23 @@
 						array_shift($totals);
 					}
 
-					echo "<td class=body align=right>" . number_format($avgnum) . "</td>";
-					echo "<td class=body align=right>\$" . number_format($avgtotal, 2) . "</td>";
+					echo "<td class=body align=right>" . ($avgnum ? number_format($avgnum) : '') . "</td>";
+					echo "<td class=body align=right>" . ($avgtotal ? '$' . number_format($avgtotal, 2) : '') . "</td>";
 
 					echo "</tr>";
-
 				}
 
 				echo "<tr>";
-				echo "<td class=header></td>";
-				echo "<td class=header align=right>$num</td>";
+				echo "<td class=header>Average:</td>";
+				echo "<td class=header align=right>" . number_format($num/count($days)) . "</td>";
+				echo "<td class=header align=right>\$" . number_format($total/count($days), 2) . "</td>";
+				echo "<td class=header align=right></td>";
+				echo "<td class=header align=right></td>";
+				echo "</tr>";
+
+				echo "<tr>";
+				echo "<td class=header>Total:</td>";
+				echo "<td class=header align=right>" . number_format($num) . "</td>";
 				echo "<td class=header align=right>\$" . number_format($total, 2) . "</td>";
 				echo "<td class=header align=right></td>";
 				echo "<td class=header align=right></td>";
@@ -455,7 +480,7 @@
 
 				if(time() < $end){
 					echo "<tr>";
-					echo "<td class=header>Expected</td>";
+					echo "<td class=header>Expected:</td>";
 					echo "<td class=header align=right>" . number_format((($end-$start)/(time()-$start)) * $num) . "</td>";
 					echo "<td class=header align=right>\$" . number_format((($end-$start)/(time()-$start)) * $total, 2) . "</td>";
 					echo "<td class=header align=right></td>";
@@ -466,10 +491,179 @@
 				echo "</table>";
 				break;
 
+			case "Monthly Summary":
+				$buckets = array();
+				$total = 0;
+				$num = 0;
+
+				$first = 0;
+
+				while($invoice = $res->fetchrow()){
+					$date = gmdate("M y", $invoice['paymentdate']);
+					
+					if(!$first)
+						$first = $invoice['paymentdate'];
+					$last = $invoice['paymentdate'];
+
+					if(!isset($buckets[$date]))
+						$buckets[$date] = array("total" => 0, "num" => 0, "start" => $invoice['paymentdate']);
+
+					$buckets[$date]['total'] += $invoice['amountpaid'];
+					$buckets[$date]['num']++;
+					$buckets[$date]['last'] = $invoice['paymentdate'];
+
+					$total += $invoice['amountpaid'];
+					$num++;
+				}
+
+				echo "<table align=center>";
+
+				echo "<tr>";
+				echo "<td class=header align=center rowspan=2>Date</td>";
+				echo "<td class=header align=center colspan=2>Total</td>";
+				echo "<td class=header align=center colspan=2>Average per Day</td>";
+				echo "</tr>";
+
+				echo "<tr>";
+				echo "<td class=header align=center>Invoices</td>";
+				echo "<td class=header align=center>Revenue</td>";
+				echo "<td class=header align=center>Invoices</td>";
+				echo "<td class=header align=center>Revenue</td>";
+				echo "</tr>";
+
+				foreach($buckets as $date => $bucket){
+					echo "<tr>";
+					echo "<td class=body>$date</td>";
+					echo "<td class=body align=right>" . number_format($bucket['num']) . "</td>";
+					echo "<td class=body align=right>\$" . number_format($bucket['total'], 2) . "</td>";
+					echo "<td class=body align=right>" . number_format($bucket['num']/(($bucket['last']-$bucket['start'])/86400)) . "</td>";
+					echo "<td class=body align=right>\$" . number_format($bucket['total']/(($bucket['last']-$bucket['start'])/86400), 2) . "</td>";
+					echo "</tr>";
+				}
+
+				echo "<tr>";
+				echo "<td class=header>Average:</td>";
+				echo "<td class=header align=right>" . number_format($num/count($buckets)) . "</td>";
+				echo "<td class=header align=right>\$" . number_format($total/count($buckets), 2) . "</td>";
+				echo "<td class=header align=right>" . number_format($num/(($last-$first)/86400)) . "</td>";
+				echo "<td class=header align=right>\$" . number_format($total/(($last-$first)/86400), 2) . "</td>";
+				echo "</tr>";
+
+				echo "<tr>";
+				echo "<td class=header>Total:</td>";
+				echo "<td class=header align=right>" . number_format($num) . "</td>";
+				echo "<td class=header align=right>\$" . number_format($total, 2) . "</td>";
+				echo "<td class=header></td>";
+				echo "<td class=header></td>";
+				echo "</tr>";
+
+				echo "</table>";
+				break;
+
+			case "Weekly Summary":
+				$buckets = array();
+				$total = 0;
+				$num = 0;
+
+				while($invoice = $res->fetchrow()){
+					$date = "Week " . gmdate("W - Y", $invoice['paymentdate']);
+
+					if(!isset($buckets[$date]))
+						$buckets[$date] = array("total" => 0, "num" => 0, 'start' => $invoice['paymentdate']);
+
+					$buckets[$date]['total'] += $invoice['amountpaid'];
+					$buckets[$date]['num']++;
+
+					$total += $invoice['amountpaid'];
+					$num++;
+				}
+
+				echo "<table align=center>";
+
+				echo "<tr>";
+				echo "<td class=header align=center>Date</td>";
+				echo "<td class=header align=center>Invoices</td>";
+				echo "<td class=header align=center>Revenue</td>";
+
+				echo "</tr>";
+
+				foreach($buckets as $date => $bucket){
+					echo "<tr>";
+					echo "<td class=body>" . gmdate("M j, Y", $bucket['start']) . "</td>";
+					echo "<td class=body align=right>" . number_format($bucket['num']) . "</td>";
+					echo "<td class=body align=right>\$" . number_format($bucket['total'], 2) . "</td>";
+					echo "</tr>";
+				}
+
+				echo "<tr>";
+				echo "<td class=header>Average:</td>";
+				echo "<td class=header align=right>" . number_format($num/count($buckets)) . "</td>";
+				echo "<td class=header align=right>\$" . number_format($total/count($buckets), 2) . "</td>";
+				echo "</tr>";
+
+				echo "<tr>";
+				echo "<td class=header>Total:</td>";
+				echo "<td class=header align=right>" . number_format($num) . "</td>";
+				echo "<td class=header align=right>\$" . number_format($total, 2) . "</td>";
+				echo "</tr>";
+
+				echo "</table>";
+				break;
+
+			case "Day of Week Summary":
+				$buckets = array();
+				$total = 0;
+				$num = 0;
+
+				while($invoice = $res->fetchrow()){
+					$date = gmdate("l", $invoice['paymentdate']);
+
+					if(!isset($buckets[$date]))
+						$buckets[$date] = array("total" => 0, "num" => 0);
+
+					$buckets[$date]['total'] += $invoice['amountpaid'];
+					$buckets[$date]['num']++;
+
+					$total += $invoice['amountpaid'];
+					$num++;
+				}
+
+				echo "<table align=center>";
+
+				echo "<tr>";
+				echo "<td class=header align=center>Date</td>";
+				echo "<td class=header align=center>Invoices</td>";
+				echo "<td class=header align=center>Revenue</td>";
+
+				echo "</tr>";
+
+				foreach($buckets as $date => $bucket){
+					echo "<tr>";
+					echo "<td class=body>$date</td>";
+					echo "<td class=body align=right>" . number_format($bucket['num']) . "</td>";
+					echo "<td class=body align=right>\$" . number_format($bucket['total'], 2) . "</td>";
+					echo "</tr>";
+				}
+
+				echo "<tr>";
+				echo "<td class=header>Average:</td>";
+				echo "<td class=header align=right>" . number_format($num/count($buckets)) . "</td>";
+				echo "<td class=header align=right>\$" . number_format($total/count($buckets), 2) . "</td>";
+				echo "</tr>";
+
+				echo "<tr>";
+				echo "<td class=header>Total:</td>";
+				echo "<td class=header align=right>" . number_format($num) . "</td>";
+				echo "<td class=header align=right>\$" . number_format($total, 2) . "</td>";
+				echo "</tr>";
+
+				echo "</table>";
+				break;
+
 			case "Moneris Summary":
 				$days = array();
 
-				foreach($invoices as $invoice){
+				while($invoice = $res->fetchrow()){
 
 					if(!($invoice['paymentmethod'] == 'visa' || $invoice['paymentmethod'] == 'mc' || $invoice['paymentmethod'] == 'debit'))
 						continue;
@@ -556,7 +750,7 @@
 
 			case "Billing People":
 				$newinvoices = array();
-				foreach($invoices as $v)
+				while($v = $res->fetchrow())
 					if($v['paymentmethod'] == 'bp')
 						$newinvoices[$v['id']] = $v + array('transactionid' => '');
 				
@@ -606,6 +800,17 @@
 				break;
 
 			case "Incomplete":
+				$uids = array();
+				while($line = $res->fetchrow()){
+					$invoices[] = $line;
+					$uids[$line['userid']] = $line['userid'];
+				}
+
+				$usernames = getUserName($uids);
+
+				foreach($invoices as $k => $v)
+					$invoices[$k]['username'] = $usernames[$v['userid']];
+
 				echo "<table width=100%>";
 
 				echo "<tr>";

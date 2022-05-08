@@ -1,0 +1,20 @@
+.accordion_view .accordion_handle
+{
+	font-size: 12px;
+	font-weight: bold;
+	color: #333;
+	
+	background-color: #dfdfdf;
+}
+.accordion_view .accordion_handle_active
+{
+	border-bottom: solid 0px transparent;
+}
+
+.accordion_view .accordion_body
+{
+	
+	background-color: #dfdfdf;
+	
+	border-bottom: solid 2px #fff;
+}

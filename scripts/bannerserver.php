@@ -25,12 +25,13 @@ define("VIEW_WINDOWS", 5);
 
 set_time_limit (0);
 
-$logserver = "adblaster-test.nexopia.com";
-$logserver_port = 5556;
+$adblaster = $config['adblasterserver'];
+$logserver = $config['bannerlogserver'];
+
 
 $bannerserver = new bannerserver( $bannerdb, count($bannerservers));
 
-$version = "2.2.2";
+$version = "2.3.0";
 
 $initialsocktimeout = 10; //10 sec timeout
 $socktimeout = $initialsocktimeout; 
@@ -80,16 +81,8 @@ for($i = 0; $i < VIEW_WINDOWS; $i++) {
 }
 $currentwindow = 0;
 
-$logsock = null;
-if($logserver){
-	$logsock = fsockopen($logserver, $logserver_port, $errno, $errstr, 0.05);
-	if($logsock){
-		stream_set_timeout($logsock, 0.02);
-//		stream_set_blocking($logsock, 0); //non blocking
-	}else{
-		$logsock = null;
-	}
-}
+$logsock = connectServer($logserver);
+$adblastersock = connectServer($adblaster);
 
 
 while(1){
@@ -235,13 +228,14 @@ while(1){
 								if($debug['get'] || ($debug['getfail'] && !$ret))
 									bannerDebug("get $params => $ret");
 
-								if($debug['getlog'] && $logsock){
-									if(fwrite($logsock, "get $params => $ret\n") == false){
-										bannerDebug("log server connection error: $errstr ($errno)<br />");
-										fclose($logsock);
-										$logsock = null;
-									}
-								}
+								sendLog($logsock, 'b'); //log attempts
+								if($passback)
+									sendLog($logsock, 'p'); //log passbacks
+								if(!$ret)
+									sendLog($logsock, 'f'); //log failures
+
+								if($debug['getlog'])
+									sendLog($adblastersock, "get $params => $ret\n");
 
 								if(!$ret){
 									$stats['getfail']++;
@@ -270,6 +264,8 @@ while(1){
 
 
 								$bannerserver->clickBanner($id, $age, $sex, $loc, $interests, $page, $time);
+
+								sendLog($logsock, 'c');
 
 								unset($id, $age, $sex, $loc, $interests, $page);
 
@@ -377,32 +373,34 @@ while(1){
 							case "version":
 								socket_write($sock, "$version\n");
 								break;
-								
-							case "reconnect":
+							
+							case "logconnect":
 								if($logsock)
 									fclose($logsock);
 
 								if($params)
-									list($logserver, $logserver_port) = explode(':', $params);
+									$logserver = $params;
 
-								if($logserver && $logserver_port){
-									if($logsock = fsockopen($logserver, $logserver_port, $errno, $errstr, 0.05)){
-										stream_set_timeout($logsock, 0.02);
-//										stream_set_blocking($logsock, 0); //non blocking
-										socket_write($sock, "success: $logserver, $logserver_port\n");
-									}else{
-										socket_write($sock, "failed: $logserver, $logserver_port\n");
-										$logsock = null;
-									}
-								}else{
-									socket_write($sock, "no logserver defined\n");
-								}
-									
+								$logsock = connectServer($logserver, $sock);
 								break;
+
+							case "blasterconnect":
+								if($adblastersock)
+									fclose($adblastersock);
+
+								if($params)
+									$adblaster = $params;
+
+								$adblastersock = connectServer($adblaster, $sock);
+
+								break;
+
 							case "logstat":
-								socket_write($sock, ($logsock ? "connected" : "not") . ": $logserver, $logserver_port\n");
+								socket_write($sock, ($logsock ? "connected" : "not") . ": $logserver\n");
 								break;
-
+							case "blasterstat":
+								socket_write($sock, ($adblastersock ? "connected" : "not") . ": $adblaster\n");
+								break;
 /*
 							case "globals":
 								ob_start();
@@ -436,4 +434,36 @@ function myerror($error, $line, $die = false) {
 		exit;
 }
 
+function connectServer($server, $clientsock = null){
+	list($host, $port) = explode(':', $server); //assume in the form: ip:port
 
+	$sock = null;
+
+	if($host && $port){
+		if($sock = fsockopen("udp://$host", $port, $errno, $errstr, 0.05)){
+			stream_set_timeout($sock, 0.02);
+//			stream_set_blocking($sock, 0); //non blocking
+			$response = "success: $host, $port";
+		}else{
+			$response = "failed: $host, $port";
+			$sock = null;
+		}
+	}else{
+		$response = "no server defined";
+	}
+	if($clientsock)
+		socket_write($clientsock, "$response\n");
+	
+	return $sock;
+}
+
+function sendLog(& $sock, $value){
+	if($sock){
+		if(fwrite($sock, $value) == false){
+//do nothing because it's udp
+			bannerDebug("log server connection error on value: $value<br />");
+			fclose($sock);
+			$sock = null;
+		}
+	}
+}

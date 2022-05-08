@@ -1,0 +1,33 @@
+div.script, form.script, h1.script, h2.script, h3.script, h4.script, 
+h5.script, h6.script, ol.script, p.script, pre.script, 
+ul.script, li.script, td.script, tbody.script, th.script
+{ display:block; }
+
+thead.script {
+	display:table-header-group;
+}
+tfoot.script {
+	display:table-footer-group;
+}
+tr.script {
+	display:table-row;
+}
+table.script {
+	display:table;
+}
+
+.script { 
+	display:inline;
+}
+
+div.noscript, form.noscript, h1.noscript, h2.noscript, h3.noscript, h4.noscript, 
+h5.noscript, h6.noscript, ol.noscript, p.noscript, pre.noscript,
+ul.noscript, li.noscript, td.noscript, tbody.noscript, th.noscript,
+thead.script, tfoot.script, table.script
+{
+	display:none;
+}
+
+.noscript {
+	display:none;
+}

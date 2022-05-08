@@ -1,0 +1,94 @@
+.gallery_upload ul {
+	padding-left:0px;
+	width:650px;
+	margin: 0px;
+}
+
+.gallery_upload {
+	text-align: left;
+}
+
+.gallery_upload .minor {
+	color: $minor_font_color;
+}
+
+.gallery_upload h1{
+	color: $section_header_text_color;
+	font-size: 9pt;
+	padding-top: 5px;
+	padding-bottom: 8px;
+	margin:0px;
+	background: $section_header_background_color $section_header_background_image;
+}
+
+.gallery_upload h2 {
+	font-size: $page_font_size;
+	font-family: $page_font_family;
+}
+
+.gallery_upload h3 {
+	font-size: $page_font_size;
+	font-family: $page_font_family;
+}
+
+.gallery_upload li.file_upload {
+	font-family: $page_font_family;
+	font-size: $page_font_size;
+	margin: 6px;
+	display: inline;
+	list-style: none;
+	background-color:#E3E3E3;
+	width:192px;
+	float:left;
+}
+
+.gallery_upload li.file_upload div {
+	font-family: $page_font_family;
+	font-size: $page_font_size;
+	overflow:hidden;
+	white-space:nowrap;
+	height:15px;
+	float:left;
+	margin: 0px;
+}
+.gallery_upload li.file_upload input {
+	width: 168px;
+	overflow: hidden;
+}
+
+.gallery_upload li.file_upload table {
+	margin:0px;
+}
+
+.gallery_upload li.file_upload .progress_bar {
+	height: 2px;
+	width: 100%;
+	background-color:#CCCCCC;
+}
+
+.gallery_upload li.file_upload .progress_complete {
+	height: 2px;
+	width: 0%;
+	border-width:0px;
+	background-color:#888888;
+}
+
+.gallery_upload li.file_upload textarea {
+	background-color:white;
+	color:black;
+	border-style:none;
+}
+
+.gallery_upload li.file_upload .file_info {
+	width: 100%;
+}
+
+.gallery_upload .gallery_section {
+	float:none;
+	clear:both;
+	margin: 10px;
+}
+
+.gallery_upload .gallery_cancel {
+	cursor: pointer;
+}

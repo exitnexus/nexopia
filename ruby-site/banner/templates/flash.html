@@ -1,0 +1,5 @@
+<div id='banner_{banner.size}'>
+	<t:template-include name="refresh" module="banner"/>
+	<script src="#{$site.static_url}/javascript/banner.js"></script>
+	<script>flashbanner('#{banner.alt}', '#{banner.image}', '#{banner.link}', #{banner.width}, #{banner.height}, '#000000');</script>
+</div>

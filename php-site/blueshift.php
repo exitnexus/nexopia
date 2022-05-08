@@ -4,7 +4,7 @@
 
 	include_once("include/general.lib.php");
 
-	incHeader(600,array('incShoppingCartMenu'));
+	incHeader(600);
 
 ?>
 <center><a class=body href=http://www.blueshiftgaming.ca target=_new><img src=<?=$config['imageloc'];?>/blueshift.png border=0></a></center>

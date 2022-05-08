@@ -1,0 +1,31 @@
+<div>
+
+	<call:page t:id="muted_users" t:url="'/admin/videos/mutes'" t:iter="muted_user">
+		<call:yield>
+			<h1>{muted_user.username}</h1>
+			<table>
+				<tr>
+					<th>Video Title</th>
+					<th>Video ID</th>
+					<th>Mute Time</th>
+					<th>Unmute Time</th>
+					<th>Reason</th>
+					<th>Global?</th>
+					<th>Moderator</th>
+				</tr>
+	
+				<t:loop t:id="muted_user.mutes" t:iter="comment_mute">
+					<tr>
+						<td>{comment_mute.video_title}</td>
+						<td>{comment_mute.videoid}</td>
+						<td>{comment_mute.display_mute_time}</td>
+						<td>{comment_mute.display_unmute_time}</td>
+						<td>{comment_mute.reason}</td>
+						<td>{comment_mute.global}</td>
+						<td>{comment_mute.mod_name}</td>
+					</tr>
+				</t:loop>
+			</table><br/>
+		</call:yield>
+	</call:page>
+</div>

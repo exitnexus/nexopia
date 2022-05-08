@@ -1,0 +1,53 @@
+<div class="yui-b">
+	<div>
+		{forum_name} {forum_id}
+	</div>
+	<div>
+		<table>
+			<tbody>
+				<tr>
+					<td>
+						Show Threads from the last:
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<select name="thread_date_range" id="forum_thread_date_range">
+							<t:iter t:id="date_range_options" t:iter="date_option">
+								<option value="{date_option.value}">{date_option.caption}</option>
+							</t:iter>
+						</select>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div>
+		<table>
+			<tbody>
+				<tr>
+					<td>
+						Forum Rules
+					</td>
+					<td>
+						Forum Guide
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div>
+		<table>
+			<tbody>
+				<tr>
+					<td>
+						Subscribe
+					</td>
+					<td>
+						Mark all as read
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+</div>

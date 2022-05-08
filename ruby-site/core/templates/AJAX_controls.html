@@ -1,0 +1,315 @@
+<t:ajax-controls xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+<style type="text/css">
+body {
+	background-color:#ffffff;
+	font-family: Arial;
+	font-size: 9pt;
+}
+button {
+	font-family: Arial;
+	font-size: 9pt;
+}
+div.movable {
+	border:	solid 0px;
+	margin:0;
+	padding:1px;
+	padding-top:1px;
+	background:#e7e7e7;
+	border-collapse: no;
+	cursor:move;
+	z-index:2;
+}
+
+div.movable_sel {
+	border:	solid 2px;
+	margin:0;
+	padding:1px;
+	padding-top:1px;
+	background:#e7e7e7;
+	border-collapse: no;
+	z-index:2;
+}
+
+div.movable_sel table tr, div.movable table tr{
+	text-align: center;
+	border:none;
+	margin:5px;
+	padding:5px;
+}
+
+div.movable_sel table tr td, div.movable table tr td{
+	text-align: center;
+	border:none;
+	margin:5px;
+	padding:5px;
+}
+</style>
+
+<div id="docroot">&nbsp;</div>
+
+<script>
+<![CDATA[
+function delegateFunction(delegateObj, delegateFunc, e){
+	delegateFunc.apply(delegateObj, [e]);
+}
+
+Function.prototype.method = function (name, func) {
+    this.prototype[name] = func;
+    return this;
+};
+nowClicked=0;
+
+
+function BrowserCheck() {
+	var b = navigator.appName;
+	blur
+	if (b == "Netscape")
+		this.b = "NS";
+	else if (b == "Microsoft Internet Explorer")
+		this.b = "IE";
+	else this.b = b;
+
+	this.v = parseInt(navigator.appVersion);
+	this.NS = (this.b == "NS" && this.v>=4);
+	this.NS4 = (this.b == "NS" && this.v == 4);
+	this.NS5 = (this.b == "NS" && this.v == 5);
+	this.IE = (this.b == "IE" && this.v>=4);
+	this.IE4 = (navigator.userAgent.indexOf('MSIE 4')>0);
+	this.IE5 = (navigator.userAgent.indexOf('MSIE 5')>0);
+
+	if (this.IE5 || this.NS5)
+		this.VER5 = true;
+	if (this.IE4 || this.NS4)
+		this.VER4 = true;
+
+	this.OLD = (! this.VER5 && ! this.VER4) ? true : false;
+	this.min = (this.NS||this.IE);
+}
+
+var is = new BrowserCheck();
+
+buttonUp = function (e){
+	nowClicked = 0;
+	this.down = false;
+	this.obj.position = "fixed";
+	this.obj.left = "" + this.sx + "px";
+	this.obj.top = "" + this.sy + "px";
+	//document.getElementById("report").innerHTML = "up";
+	document.onmouseup = "";
+	document.onmousemove = "";
+	document.getElementById(this.objID).className = "movable";
+	return true;
+};
+
+WebBox.method('buttonDown', function (e){
+	if (this.obj && nowClicked==0){
+		document.getElementById(this.objID).className = "movable_sel";
+		nowClicked = this;
+		if (!this.down){
+			this.obj.position = "absolute";
+			this.obj.left = "" + (this.sx + window.scrollX) + "px";
+			this.obj.top = "" + (this.sy + window.scrollY) + "px";
+			this.bx = e.clientX;
+			this.by = e.clientY;
+			//document.getElementById("report").innerHTML = "down";
+			document.onmouseup =
+				function(e){
+					return delegateFunction(nowClicked,buttonUp,e);
+				};
+			document.onmousemove =
+				function(e){
+					return delegateFunction(nowClicked,buttonMove,e);
+				};
+		}
+		this.down = true;
+	}
+	return true;
+});
+
+function scroll(e){
+}
+
+buttonMove = function (e){
+	if (this.down){
+
+		this.sx = this.sx + (e.clientX - this.bx);
+		this.sy = this.sy + (e.clientY - this.by);
+		if (this.sx < 0) this.sx = 0;
+		if (this.sy < 0) this.sy = 0;
+		this.obj.left = "" + (this.sx + window.scrollX) + "px";
+		this.obj.top = "" + (this.sy + window.scrollY) + "px";
+		this.bx = e.clientX;
+		this.by = e.clientY;
+		//document.getElementById("report").innerHTML = "Move";
+	}
+	//window.status = this.obj.top + " : " + this.obj.left;
+	return true;
+};
+
+WebBox.method('initBox', function (objID){
+
+	this.down = false;
+	this.obj = document.getElementById(this.objID).style;
+	document.getElementById(this.objID).delegate = this;
+	winH = (is.NS) ? window.innerHeight - 55 : document.body.offsetHeight - 55;
+	document.getElementById(this.objID).onmousedown =
+		function(e){
+			return delegateFunction(this.delegate, this.delegate.buttonDown,e);
+		};
+	document.getElementById(this.objID).controller = this;
+
+	window.onscroll = scroll;
+	//	window.setScroll(0,0);
+
+/*	if (is.NS4)
+		document.getElementById(objID).captureEvents(Event.MOUSEUP);
+	if (is.NS4)
+		document.getElementById(objID).captureEvents(Event.MOUSEDOWN);
+	if (is.NS4)
+		document.captureEvents(Event.MOUSEMOVE);*/
+
+	this.down = false;
+	this.bx = 0;
+	this.by = 0;
+	this.sx = 10.0;
+	this.sy = 200.0;
+});
+
+
+function WebBox(id){
+	this.objID=id;
+	this.initBox(this.objID);
+}
+
+TextBox.method('buttonDown', function (objID){
+	nowClicked = this;
+
+	v = document.getElementById(this.objID).innerHTML;
+	document.getElementById(this.objID).innerHTML =
+		"<form><input id=\\"prop\\" type=\\"text\\" value=\\"" + v + "\\"></form>";
+
+	document.getElementById('prop').delegate = this;
+	document.getElementById('prop').onblur = function(e){
+		nowClicked=0;
+		v = document.getElementById('prop').value;
+		document.getElementById(document.getElementById('prop').delegate.objID).innerHTML= v;
+	};
+	document.getElementById('prop').select();
+	document.getElementById('prop').focus();
+	return true;
+});
+
+TextBox.method('initBox', function (objID){
+	this.edit=false;
+	this.obj = document.getElementById(this.objID).style;
+	document.getElementById(this.objID).delegate = this;
+	winH = (is.NS) ? window.innerHeight - 55 : document.body.offsetHeight - 55;
+	document.getElementById(this.objID).onmousedown =
+		function(e){
+			e.stopPropagation();
+			document.getElementById('prop').select();
+			document.getElementById('prop').focus();
+			return true;
+		};
+	document.getElementById(this.objID).controller = this;
+});
+
+function TextBox(id){
+	this.objID=id;
+	this.initBox(this.objID);
+}
+
+function table_entry(name, str){
+	output = "<table class=\\"none\\" width=\\"100%\\"><tr><td width=\\"20%\\">" + name + "</td><td width=80%>" + str + "</td></tr></table>";
+	return output;
+}
+
+function SentMessage(){
+}
+
+function newFrame(){
+	var root = document.getElementById('docroot');
+	var newObj = document.createElement('div');
+	root.appendChild(newObj);
+	newObj.className = "movable"
+	counter++;
+
+	innerHTML = "<table style=\\"cursor:move\\"><tr><td><div id=\\"text" + counter;
+	innerHTML += "\\" style=\\"cursor:auto\\">Loading</div></td></tr><tr><td>";
+	innerHTML += "<form><input id=\\"textbox" + counter + "\\" type=\\"text\\" value=\\"\\"\>";
+	innerHTML += "<button type=button id=\\"button" + counter + "\\">Send</button></form>";
+	innerHTML += "</td></tr></table>";
+	newObj.innerHTML = innerHTML;
+
+	document.getElementById("textbox" + counter).onmousedown =
+		function(e){
+			e.stopPropagation();
+		};
+	document.getElementById("button" + counter).onclick = function(e){
+		v = document.getElementById("textbox" + counter).value;
+
+		loadXMLDoc("sendmsg?msg=" + v + "&subject=auto&from=203&to=203", function(e){
+			v = document.getElementById("text" + counter).innerHTML += v;
+		});
+	};
+	newObj.id = "box" + counter;
+	newObj.setAttribute('width', 100);
+	newObj.setAttribute('bgcolor', "#ff0000");
+	newObj.setAttribute('style', 'position: fixed; left:50; top:400;');
+	obj = new WebBox("box" + counter);
+	//txt = new TextBox("text" + counter);
+	return "text" + counter;
+}
+
+/* Create a floating div object out of an existing obj specified by childID, whose
+ * parent is supplied.
+ */
+function floatObject(parentID, childID){
+	var parent = document.getElementById(parentID);
+	var child = parent.removeChild(document.getElementById(childID));
+	var newObj = document.createElement('div');
+	parent.appendChild(newObj);
+
+	newObj.className = "movable"
+	counter++;
+
+	innerHTML = "<table id=\\"inner\\" cellspacing='0' cellpadding='0'><tr><td>";
+	innerHTML += "<A HREF=\\"#\\" onclick=\\"if (document.getElementById('menu').style.display=='none') ";
+	innerHTML += "document.getElementById('menu').style.display=''; ";
+	innerHTML += "else document.getElementById('menu').style.display='none';\\">Minimize</A>";
+	innerHTML += "<div id=\\"" + childID;
+	innerHTML += "\\" style=\\"cursor:auto\\">" + child.innerHTML + "</div>"
+	innerHTML += "</td></tr></table>";
+	newObj.innerHTML = innerHTML;
+
+	document.getElementById(childID).onmousedown =
+		function(e){
+			e.stopPropagation();
+		};
+
+	newObj.id = "box" + counter;
+	newObj.setAttribute('bgcolor', "#ff0000");
+	newObj.setAttribute('style', 'position: fixed; left:10; top:200;');
+	obj = new WebBox("box" + counter);
+	return newObj;
+}
+
+function newLink(linkname, docname, func){
+	var root = document.getElementById('docroot');
+	var newObj = document.createElement('div');
+	root.appendChild(newObj);
+	newObj.className = ""
+	counter++;
+
+	innerHTML = "<A HREF=\\"javascript:void(0)\\" id=\\"link" + counter + "\\" >" + linkname + "</A>";
+	newObj.innerHTML = innerHTML;
+
+	document.getElementById("link" + counter).onclick = function(e){
+		loadXMLDoc(docname, func);
+	};
+	newObj.id = "linkdiv" + counter;
+	return "link" + counter;
+}
+]]>
+</script>
+</t:ajax-controls>

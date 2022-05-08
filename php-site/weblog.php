@@ -3,30 +3,30 @@
 	$login=0;
 
 	require_once("include/general.lib.php");
-
-    $template = new Template("weblog/weblog_main");
+	$template = new template("weblog/weblog_main");
 	// If newreplies=1, basically rewrite the request to show the oldest comment first.
-    $newreplies = 0;
-    if ($userData['loggedIn'] && ($newreplies = getREQval('newreplies', 'integer')))
+	$newreplies = 0;
+
+	$uid = getREQval('uid', 'int', ($userData['loggedIn'] ? $userData['userid'] : 0));
+	$id = getREQval('id', 'int');
+
+	if ($userData['loggedIn'] && ($newreplies = getREQval('newreplies', 'integer')))
 	{
 		// get the oldest new reply comment.
-        $userblog = new userblog($weblog, $userData['userid']);
+		$userblog = new userblog($weblog, $userData['userid']);
 		$post = $userblog->getFirstUnreadReplyPost();
 		if ($post)
 		{
-			$_REQUEST['uid'] = $post['bloguserid'];
-			$_REQUEST['id'] = $post['blogid'];
+			$uid = $post['bloguserid'];
+			$id = $post['blogid'];
 		} else {
-			$newreplies = false; // don't bother doing any further checking, nothing to find.
+			$newreplies = 0; // don't bother doing any further checking, nothing to find.
 		}
 	}
 
-	$uid = getREQval('uid', 'int', ($userData['loggedIn'] ? $userData['userid'] : 0));
 	if (!$uid)
-        die("Bad user");
+		die("Bad user");
 
-
-	$id = getREQval('id', 'int');
 
 	$page = getREQval('page', 'int');
 
@@ -35,16 +35,16 @@
 
 	$user = getUserInfo($uid);
 
-	if($userData['loggedIn'] && $userData['userid'] == $uid){
+	if($userData['halfLoggedIn'] && $userData['userid'] == $uid){
 		$isFriend = true;
 	}else{
-
-		if(!$user || ($user['state'] == 'frozen' && !$mods->isAdmin($userData['userid'], 'listusers')))
+		$hidden = ($user['hideprofile'] == 'y' && isIgnored($uid, $userData['userid'], false, 0, true));
+		$gone = (!$user || ($user['state'] == 'frozen' && !$mods->isAdmin($userData['userid'], 'listusers')));
+		if($gone || $hidden)
 		{
 			if ($newreplies)
 			{
 				$userblog = new userblog($weblog, $uid);
-				$ishmtl = fckeditor::IsCompatible();
 				$entry = new blogpost($userblog, array(), $userData);
 
 				// $entry is not really valid at this point, but we'll hack it a bit.
@@ -53,32 +53,31 @@
 				$entry->invalidateNewReplies($userData['userid']);
 			}
 
-			incHeader();
-			echo "Bad user";
-			incFooter();
-			exit;
+			if ($gone)
+			{
+				incHeader();
+				echo "Bad user";
+				incFooter();
+				exit;
+			} else {
+				incHeader();
+				echo "This user is ignoring you.";
+				incFooter();
+				exit;
+			}
 		}
 
 		$user['plus'] = $user['premiumexpiry'] > time();
 
-		if($user['plus'] && $user['hideprofile'] == 'y' && isIgnored($uid, $userData['userid'], false, 0, true)){
-			incHeader();
-
-			echo "This user is ignoring you.";
-
-			incFooter();
-			exit;
-		}
-
-		$isFriend = $isFriendViewAdmin || ($userData['loggedIn'] && isFriend($userData['userid'], $uid));
+		$isFriend = $isFriendViewAdmin || ($userData['halfLoggedIn'] && isFriend($userData['userid'], $uid));
 	}
 
 	$scope = WEBLOG_PUBLIC;
-	if($userData['loggedIn'])
+	if($userData['halfLoggedIn'])
 		$scope = WEBLOG_LOGGEDIN;
 	if($isFriend || $isFriendViewAdmin)
 		$scope = WEBLOG_FRIENDS;
-	if($userData['loggedIn'] && $uid == $userData['userid'])
+	if($userData['halfLoggedIn'] && $uid == $userData['userid'])
 		$scope = WEBLOG_PRIVATE;
 
 	$userblog = new userblog($weblog, $uid);
@@ -93,7 +92,6 @@
 	$day = getREQval('day', 'integer');
 
 	$key = getREQval('k');
-	$ishtml = FCKeditor::IsCompatible();
 
 	$entry = new blogpost($userblog, array(), $userData);
 	$userinfo = false;
@@ -112,7 +110,7 @@
 				$id = 0;
 			}
 		}
-		if ($entry && (!$userData['loggedIn'] || $entry->uid != $userData['userid']))
+		if ($entry && (!$userData['halfLoggedIn'] || $entry->uid != $userData['userid']))
 		{
 			$userinfo = getUserInfo($entry->uid);
 		}
@@ -175,6 +173,17 @@
 					$cache->put("blogpostdupe-$uid", 1, 30); //block dupes for 30 seconds
 
 				$entry->commit();
+
+				scan_string_for_notables($entry->msg->getText());
+
+				if ($uid == $userData['userid']){
+					if ((!$id) && ($entry->scope != WEBLOG_PRIVATE)){
+						enqueue( "Blog", "create", $uid, array($uid, $entry->entryid) );
+					} //else {
+					//	enqueue( "Blog", "edit", $uid, array($uid, $id) );
+					//}
+				}
+
 				$id = $entry->entryid;
 				if ($uid != $userData['userid'])
 					$mods->adminLog('blog entry edit', "edited blog entry {$entry->entryid}");
@@ -238,36 +247,18 @@
 			$replies['page'] = 0;
 			$replies['numpages'] = 1;
 		}
-		$entry->invalidateNewReplies($userData['userid'], $replies['allids']);
+		if ($userData['loggedIn'])
+			$entry->invalidateNewReplies($userData['userid'], $replies['allids']);
 	} else {
 		if ($id && $newreplies) // if we get here and $newreplies is set, the post the replies were from must have been removed.
 			$weblog->invalidateNewReplies($userData['userid'], $id);
 	}
 
 
-	ob_start();
-    injectSkin($user, 'blog');
-    $template->set("skin", ob_get_contents());
-    ob_end_clean();
+	$template->set("skin", injectSkin($user, 'blog'));
+	$template->set("profilehead", incProfileHead($user));
 
-
-
-	$cols=2;
-	if($user['enablecomments']=='y')
-		$cols++;
-	if($userblog->getVisibleScope() <= $scope)
-		$cols++;
-	if($user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend))
-		$cols++;
-
-	$width = 100.0/$cols;
-    $template->set("width", $width);
     $template->set("uid", $uid);
-
-
-	$template->set("show_comments", $user['enablecomments']=='y');
-	$template->set("show_gallery", $user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend));
-    $template->set("show_blog", $userblog->getVisibleScope() <= $scope);
 
 	$linkbar = array();
 	if ($uid == $userData['userid'])
@@ -293,45 +284,28 @@
 	{
 		$commententrystyle = ' style="display: none;"';
 	}
-    $template->set("loggedin",$userData['loggedIn'] );
+    $template->set("loggedin",$userData['halfLoggedIn'] );
     $template->set("commentstyle", $commententrystyle);
 	$ignored = isIgnored($uid, $userData['userid'], 'comments', (isset($userData['age'])? $userData['age'] : 0));
     $template->set("ignored", $ignored);
     $template->set("id", ($id? $id : 0));
 
 	$editbox = '';
-    if($userData['loggedIn'] && !$ignored)
-    {
-        ob_start();
-		editBox("");
-        $editbox =  ob_get_contents();
-        ob_end_clean();
-	}
+    if($userData['halfLoggedIn'] && !$ignored)
+        $editbox =  editBoxStr("");
 
-	$oFCKeditor = new FCKeditor($id) ;
-	//this is a hack.
-	if($oFCKeditor->IsCompatible() && (!isset($userData['bbcode_editor']) || !$userData['bbcode_editor']) )
-	{
-		$template->set("editbox", $editbox);
-		$template->set("fckeditor", true);
-		$template->set('smilies','');
-	}
-	else
-	{
-		$template->set("fckeditor", false);
-		$smileypics = substr($editbox, strpos($editbox,'var'), strpos($editbox,';')+ 1 - strpos($editbox, 'var') );
+	$smileypics = substr($editbox, strpos($editbox,'var'), strpos($editbox,';')+ 1 - strpos($editbox, 'var') );
 
-		$editbox = str_replace( $smileypics, '',$editbox);
-		$smileycodes = substr($editbox, strpos($editbox,'var'), strpos($editbox, ');')+ 2 - strpos($editbox,'var'));
+	$editbox = str_replace( $smileypics, '',$editbox);
+	$smileycodes = substr($editbox, strpos($editbox,'var'), strpos($editbox, ');')+ 2 - strpos($editbox,'var'));
 
-		$editbox = str_replace( $smileycodes, '',$editbox);
-		$smileyloc =  substr($editbox, strpos($editbox, 'var'), strpos($editbox,';')+ 1 - strpos($editbox, 'var'));
+	$editbox = str_replace( $smileycodes, '',$editbox);
+	$smileyloc =  substr($editbox, strpos($editbox, 'var'), strpos($editbox,';')+ 1 - strpos($editbox, 'var'));
 
-		$smilies_javascript = $smileypics . $smileycodes . $smileyloc;
-		$editbox_javascript = substr($editbox, strpos($editbox, 'editBox'), strpos($editbox,')')+ 1 - strpos($editbox, 'editBox')) . ';';
-		$template->set('smilies',$smilies_javascript);
-		$template->set("editbox", $editbox_javascript);
-	}
+	$smilies_javascript = $smileypics . $smileycodes . $smileyloc;
+	$editbox_javascript = substr($editbox, strpos($editbox, 'editBox'), strpos($editbox,')')+ 1 - strpos($editbox, 'editBox')) . ';';
+	$template->set('smilies',$smilies_javascript);
+	$template->set("editbox", $editbox_javascript);
 
 	if($id)
     {
@@ -504,8 +478,11 @@ function listEntries($uid, $friendsview, $year, $month, $day, &$entries_pagelist
 	$replycounts = blogpost::getReplyCountMulti($weblog, $entries);
     $displaystring = "";
 	foreach($pageitems as $postid => $time){
-		$userid = $entries[$postid]->uid;
-		$displaystring .= showEntry($userid, $entries[$postid], $replycounts[$postid], (isset($userobjs[$userid])?$userobjs[$userid] : $userid), false);
+		if ($entries[$postid])
+		{
+			$userid = $entries[$postid]->uid;
+			$displaystring .= showEntry($userid, $entries[$postid], $replycounts[$postid], (isset($userobjs[$userid])?$userobjs[$userid] : $userid), false);
+		}
 	}
 
 	$entries_pagelist =  pageList("$_SERVER[PHP_SELF]?uid=$uid&friendsview=$friendsview", $page, $numpages, 'header');
@@ -600,7 +577,7 @@ function showEntry($uid, $entry, $commentcount, $userinfo, $showcomments, $repli
     $template->set("is_curr_user", $uid == $userData['userid']);
     $template->set("uid",$uid);
     $template->set("id", $id);
-    $template->set("loggedin",$userData['loggedIn'] );
+    $template->set("loggedin",$userData['halfLoggedIn'] );
     $template->set("user_is_admin", $uid == $userData['userid'] || $isRegularAdmin);
 
     $template->set("mod_userabuse", MOD_USERABUSE);
@@ -620,7 +597,7 @@ function showEntry($uid, $entry, $commentcount, $userinfo, $showcomments, $repli
     $entry_array['entryid'] = $entry->entryid;
     $entry_array['scope']   = $weblog->scopes[$entry->scope] ;
     $entry_array['time']    = $entry->time;
-    $entry_array['allow_comments' ] = ($entry->allowcomments == 'y');
+    $entry_array['allow_comments' ] = $userData['loggedIn'] && ($entry->allowcomments == 'y');
     $entry_array['uid'] = $entry->uid;
     $entry_array['show_comments'] = $showcomments;
     $entry_array['comment_count']= 0;
@@ -631,7 +608,7 @@ function showEntry($uid, $entry, $commentcount, $userinfo, $showcomments, $repli
     }
 
 
-$entry_array['count_commentids'] = count($comments);
+	$entry_array['count_commentids'] = count($comments);
 	if($entry->allowcomments == 'y' && $showcomments)
     {
         $entry_array['count_commentids'] = count($comments);
@@ -644,12 +621,15 @@ $entry_array['count_commentids'] = count($comments);
             $comments_array = array();
 
 			foreach($commentids as $commentid => $depth){
+ 				if (!isset($comments[$commentid]))
+					continue;
                 $line = $comments[$commentid];
                 $comment_array = array();
                 $comment_array['commentid'] = $line->commentid;
                 $width = 100 - ($depth * 2);
 				if ($width < 50) $width = 50;
 				$comment_array['width'] = $width;
+				$comment_array['ignorekey'] = makeKey($line->userid);
 
 
 				if ($line->deleted == 'f')
@@ -668,7 +648,7 @@ $entry_array['count_commentids'] = count($comments);
 
 					$links = array();
 
-					if($userData['loggedIn'] && $line->userid){
+					if($userData['halfLoggedIn'] && $line->userid){
 					   $comment_array['show_user_links'] = true;
 						$rootid = $line->rootid? $line->rootid : $line->commentid; // if no rootid set, use the commentid
 						$comment_array['rootid'] = $rootid ;
@@ -732,11 +712,10 @@ function addBlogEntry($line, $preview = false, $edit=false){
 	}
 
 
-
 	$template->set("id", $id);
 	$template->set("line_entryid", $line->entryid);
 	$template->set("uid", $uid);
-	$template->set("is_curr_user", $uid == $userData['userid'] || 
+	$template->set("is_curr_user", $uid == $userData['userid'] ||
 		($edit && $mods->isAdmin($userData['userid'], "editjournal")) ||
 		$mods->isAdmin($userData['userid'], "viewfriendblogs")
 	);
@@ -745,20 +724,7 @@ function addBlogEntry($line, $preview = false, $edit=false){
     $template->set("checkbox_resettime", makeCheckBox('data[time]', 'Reset Time'));
     $template->set("checkbox_allowcomments", makeCheckBox('data[allowcomments]', 'Allow Comments', ($line->allowcomments != 'n')));
 
-
-/*    if(!isset($line->parse_bbcode ) ){
-        $template->set("checkbox_parsebbcode", makeCheckBox('data[parse_bbcode]', 'Parse bbcode', $userData['parse_bbcode']));
-
-	}
-	else
-        $template->set("checkbox_parsebbcode", makeCheckBox('data[parse_bbcode]', 'Parse bbcode', ($line->parse_bbcode == 'y'? true : false)));*/
-	$template->set("checkbox_parsebbcode", '<input type="hidden" name="data[parse_bbcode]" value="y"/>');
-
-
-    ob_start();
-	editBox($line->getText());
-    $template->set("editbox", ob_get_contents());
-    ob_end_clean();
+    $template->set("editbox", editBoxStr($line->getText()));
     $template->display();
     exit;
 }
@@ -766,18 +732,20 @@ function addBlogEntry($line, $preview = false, $edit=false){
 function updateBlogEntry($blogentry, $data, $notify){
 	global $weblog, $uid, $msgs, $userblog;
 
-	$title = "";
-	$msg = "";
-	$scope = 0;
-	$time = false;
-	$allowcomments = false;
+	$defaults = Array(
+		'title' => "",
+		'msg' => "",
+		'scope' => 0,
+		'time' => false,
+		'allowcomments' => false,
+	);
 
 	$flistdelta = 0;
 	$existingpost = false;
 
 	$iserror = false;
 
-	extract($data);
+	extract(setDefaults($data, $defaults));
 
 	if(!isset($weblog->scopes[$scope]))
 		$scope = WEBLOG_PUBLIC;
@@ -809,15 +777,6 @@ function updateBlogEntry($blogentry, $data, $notify){
 	}
 
 	if($blogentry){
-
-        if(isset($parse_bbcode)){
-
-           $blogentry->setParseBBcode($parse_bbcode == 'y'? true : false);
-	    }
-        else
-	       $blogentry->setParseBBcode('n');
-
-
         $blogentry->setTitle($ntitle);
 		$blogentry->setText($nmsg);
 		if (isset($scope))
@@ -885,6 +844,8 @@ function postNewReply($entry, $rootid, $parentid, $msg)
 		$replytocomment = false;
 		if ($parentid)
 			$replytocomment = new blogcomment($entry, $parentid);
+
+		scan_string_for_notables($newcomment->msg->getText());
 
 		$entry->notifyReply($replytocomment, $newcomment);
 	}

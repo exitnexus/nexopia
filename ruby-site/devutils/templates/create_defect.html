@@ -1,0 +1,52 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<div style="background-color:white">
+		Please enter some information about the defect.
+		<form name="create_defect" id="create_defect" action="{handler_root}/update" method="post">
+			<ul>
+				<li>Description:
+					<textarea id="description" name="description"></textarea>
+				</li>
+				
+				<li>Workaround:
+					<textarea id="workaround" name="workaround"></textarea>
+				</li>
+				
+				<li>Defect Status:
+					<select name="status">
+						<option value="open">Open</option>
+						<option value="closed">Closed</option>						
+						<option value="fixed">Fixed</option>
+						<option value="inprogress">In Progress</option>						
+						<option value="deferred">Deferred</option>
+					</select>
+				</li>
+				
+				<li>Defect Type:
+					<select name="type">
+						<option value="bug">Bug</option>
+						<option value="suggestion">Suggestion</option>						
+						<option value="cosmetic">Cosmetic</option>
+					</select>
+				</li>
+				
+				<li>Priority:
+					<select name="priority">
+						<option value="low">Low</option>
+						<option value="medium">Medium</option>						
+						<option value="high">High</option>
+					</select>
+				</li>
+				
+				<li>Assigned to: 
+					<input type="text" id="ownusername" name="ownusername"/>
+				</li>
+
+				<li><input type="submit" value="Create"/></li>
+
+			</ul>
+			
+		</form>
+		<br/>
+		<a href="/defects/list">Back to defect list</a> 
+	</div>
+</div>

@@ -1,0 +1,28 @@
+<table class="banner_info">
+	<tr t:iter="name">
+		<th>Banner ID</th>
+		<th>Pay Type</th>
+		<th>Pay Rate</th>
+		<th>Views</th>
+		<th>Clicks</th>
+		<th>Times</th>
+		<th>Clicks/Day</th>
+		<th>Views/Day</th>
+		<th>Views/User</th>
+		<th>Limit By</th>
+		<th>Enabled</th>
+	</tr>
+	<tr t:id="banners" t:iter="banner">
+		<td>{banner.id}</td>
+		<td>{banner.paytype}</td>
+		<td>{banner.payrate}</td>
+		<td>{banner.views}</td>
+		<td>{banner.clicks}</td>
+		<td>{banner.times}</td>
+		<td>{banner.clicksperday}</td>
+		<td>{banner.viewsperday}</td>
+		<td>{banner.viewsperuser}</td>
+		<td>{banner.limitbyperiod}</td>
+		<td>{banner.enabled}</td>
+	</tr>
+</table>

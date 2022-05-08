@@ -53,7 +53,7 @@
 									$deletedids[] = $userid;
 									$errmsgs['deleted'][] = "'${username}' (userid #${userid})";
 									$mods->adminlog("delete mod", "Delete 1 mod: $username");
-									$abuselog->addAbuse($userid, ABUSE_ACTION_NOTE, ABUSE_REASON_OTHER, 'Removed as pic mod', 'User stripped of pic mod privileges.');
+									$abuselog->addAbuse($userid, ABUSE_ACTION_NOTE, ABUSE_REASON_OTHER, 'Removed as pic mod', $body);
 								}
 							}
 							else {

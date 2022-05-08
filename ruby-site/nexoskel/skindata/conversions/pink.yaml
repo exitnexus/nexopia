@@ -1,0 +1,200 @@
+a_hover_FONT_SIZE: '8pt'
+
+a_hover_COLOR: '#FF99CC'
+
+a_hover_FONT_FAMILY: 'arial'
+
+a_hover_TEXT_DECORATION: 'none'
+
+a_link_FONT_SIZE: '8pt'
+
+a_link_COLOR: '#000000'
+
+a_link_FONT_FAMILY: 'arial'
+
+a_link_TEXT_DECORATION: 'none'
+
+a_body_hover_FONT_SIZE: '8pt'
+
+a_body_hover_COLOR: '#000000'
+
+a_body_hover_FONT_FAMILY: 'arial'
+
+a_body_hover_TEXT_DECORATION: 'none'
+
+a_body_link_FONT_SIZE: '8pt'
+
+a_body_link_COLOR: '#FF1493'
+
+a_body_link_FONT_FAMILY: 'arial'
+
+a_body_link_TEXT_DECORATION: 'none'
+
+a_header_hover_FONT_SIZE: '8pt'
+
+a_header_hover_COLOR: '#FF1493'
+
+a_header_hover_FONT_FAMILY: 'arial'
+
+a_header_hover_TEXT_DECORATION: 'none'
+
+a_header_link_FONT_SIZE: '8pt'
+
+a_header_link_COLOR: '#ffffff'
+
+a_header_link_FONT_FAMILY: 'arial'
+
+a_header_link_TEXT_DECORATION: 'none'
+
+a_msg_hover_FONT_SIZE: '8pt'
+
+a_msg_hover_COLOR: '#FFFFFF'
+
+a_msg_hover_FONT_FAMILY: 'arial'
+
+a_msg_hover_TEXT_DECORATION: 'none'
+
+a_msg_link_FONT_SIZE: '8pt'
+
+a_msg_link_COLOR: '#598241'
+
+a_msg_link_FONT_FAMILY: 'arial'
+
+a_msg_link_TEXT_DECORATION: 'none'
+
+body_SCROLLBAR_FACE_COLOR: 'black'
+
+body_FONT_SIZE: '8pt'
+
+body_MARGIN: '0px'
+
+body_SCROLLBAR_HIGHLIGHT_COLOR: '#cccccc'
+
+body_SCROLLBAR_SHADOW_COLOR: '#cccccc'
+
+body_SCROLLBAR_3DLIGHT_COLOR: '#cccccc'
+
+body_SCROLLBAR_ARROW_COLOR: '#cccccc'
+
+body_SCROLLBAR_TRACK_COLOR: '#cccccc'
+
+body_FONT_FAMILY: 'arial'
+
+body_SCROLLBAR_DARKSHADOW_COLOR: '#cccccc'
+
+body_BACKGROUND_COLOR: '#444444'
+
+input_FONT: '10ptarial'
+
+input_COLOR: '#000000'
+
+select_FONT: '10ptarial'
+
+select_COLOR: '#000000'
+
+td_body_FONT_SIZE: '8pt'
+
+td_body_COLOR: '#000000'
+
+td_body_FONT_FAMILY: 'arial'
+
+td_body_BACKGROUND_COLOR: '#dfded9'
+
+td_body2_FONT_SIZE: '8pt'
+
+td_body2_COLOR: '#000000'
+
+td_body2_FONT_FAMILY: 'arial'
+
+td_body2_BACKGROUND_COLOR: '#D6D6D6'
+
+td_footer_FONT: '6ptarial'
+
+td_footer_COLOR: '#ffffff'
+
+td_footer_TEXT_DECORATION: 'none'
+
+td_header_FONT_SIZE: '8pt'
+
+td_header_COLOR: '#ffffff'
+
+td_header_FONT_FAMILY: 'arial'
+
+td_header_BACKGROUND_COLOR: '#FF99CC'
+
+td_menu_FONT_SIZE: '9pt'
+
+td_menu_COLOR: '#ffffff'
+
+td_menu_FONT_FAMILY: 'arial'
+
+td_menu_a_hover_FONT_SIZE: '9pt'
+
+td_menu_a_hover_COLOR: '#FFC0CB'
+
+td_menu_a_hover_FONT_FAMILY: 'arial'
+
+td_menu_a_hover_TEXT_DECORATION: 'none'
+
+td_menu_a_link_FONT_SIZE: '9pt'
+
+td_menu_a_link_COLOR: '#ffffff'
+
+td_menu_a_link_FONT_FAMILY: 'arial'
+
+td_menu_a_link_TEXT_DECORATION: 'none'
+
+td_msg_FONT_SIZE: '8pt'
+
+td_msg_FONT_FAMILY: 'arial'
+
+td_msg_BACKGROUND_COLOR: '#cccccc'
+
+td_offline_color: '#BF0E00'
+
+td_offline_font_family: 'arial'
+
+td_offline_font_size: '16pt'
+
+td_offline_font_weight: 'bolder'
+
+td_online_color: '#00AA00'
+
+td_online_font_family: 'arial'
+
+td_online_font_size: '16pt'
+
+td_online_font_weight: 'bolder'
+
+td_side_FONT_SIZE: '8pt'
+
+td_side_FONT_FAMILY: 'arial'
+
+td_side_BACKGROUND_COLOR: 'F4CBDD'
+
+td_side_a_hover_FONT_SIZE: '8pt'
+
+td_side_a_hover_COLOR: '#FF1493'
+
+td_side_a_hover_FONT_FAMILY: 'arial'
+
+td_side_a_hover_TEXT_DECORATION: 'none'
+
+td_side_a_link_FONT_SIZE: '8pt'
+
+td_side_a_link_COLOR: '#000000'
+
+td_side_a_link_FONT_FAMILY: 'arial'
+
+td_side_a_link_TEXT_DECORATION: 'none'
+
+td_sideheader_color: '#FFFFFF'
+
+td_sideheader_font_family: 'arial'
+
+td_sideheader_font_size: '8pt'
+
+textarea_FONT: '10ptarial'
+
+textarea_COLOR: '#000000'
+

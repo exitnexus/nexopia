@@ -1,0 +1,34 @@
+<div class="date_selector" t:docid="date_selector">
+	<t:if text="{selected_day}"/>
+	<t:if text="{selected_month}"/>
+	<t:if text="{selected_year}"/>
+
+	<t:if t:id="!hide_months">
+		<select id="{month_ref}" class="month" name="{month_ref}" 
+			onchange="{month_onchange_handler}">
+			<option value="-1" style="display: block">{display_month_name}</option>
+			<t:loop t:id="months" t:iter="month" t:index="index">
+				<option value="{index + 1}" style="display: block" cond:selected="index + 1 == selected_month">{month}</option>
+			</t:loop>
+		</select>
+	</t:if>
+	
+	<t:if t:id="!hide_days">
+		<select id="{day_ref}" class="day" name="{day_ref}" onchange="{day_onchange_handler}">
+			<option value="-1" style="display: block">{display_day_name}</option>
+			<t:loop t:id="days" t:iter="day">
+				<option value="{day}" style="display: block" cond:selected="day == selected_day">{day}</option>
+			</t:loop>
+		</select>
+	</t:if>
+	
+	<t:if t:id="!hide_years">	
+		<select id="{year_ref}" class="year" name="{year_ref}" 
+			onchange="{year_onchange_handler}">
+			<option value="-1" style="display: block">{display_year_name}</option>
+			<t:loop t:id="years" t:iter="year">
+				<option value="{year}" style="display: block" cond:selected="year == selected_year">{year}</option>
+			</t:loop>
+		</select>
+	</t:if>
+</div>

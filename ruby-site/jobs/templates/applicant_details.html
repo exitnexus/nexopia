@@ -1,0 +1,61 @@
+<div class="yui-g" id="job_app">
+	<div class="jobs_section_header">
+		Personal Information
+	</div>
+	<table class="applicant_information">
+		<tbody>
+			<tr>
+				<td class="app_summary_description">
+					Full Name
+				</td>
+				<td>
+					{app.name}
+				</td>
+			</tr>
+			<tr>
+				<td class="app_summary_description">
+					E-mail Address
+				</td>
+				<td>
+					{app.email}
+				</td>
+			</tr>
+			<tr>
+				<td class="app_summary_description">
+					Telephone Number
+				</td>
+				<td>
+					{app.formatted_phone_number}
+				</td>
+			</tr>
+			<tr>
+				<td class="app_summary_description">
+					Preferred Contact
+				</td>
+				<td>
+					{app.preferred_contact_method()}
+				</td>
+			</tr>
+			<tr>
+				<td class="app_summary_description">
+					Contact Notes
+				</td>
+				<td>
+					{app.contactnotes}
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2" class="applicant_edit">
+					<t:if t:id="!admin_view">
+						<a href="/jobs/applicant/{app_hash}/edit/">
+							<img src="{$site.static_files_url}/jobs/icons/jobs_btn_edit.gif"></img>
+						</a>
+					</t:if>
+					<t:if t:id="admin_view">
+						&#160;
+					</t:if>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+</div>

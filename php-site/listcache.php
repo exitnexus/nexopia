@@ -1,7 +1,9 @@
 <?
 
 	$forceserver = true;
-	$login=1;
+	$login = 1;
+	$devutil = true;
+
 	require_once("include/general.lib.php");
 
 	if(!in_array($userData['userid'], $debuginfousers))

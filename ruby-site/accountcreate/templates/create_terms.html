@@ -1,0 +1,54 @@
+<div class="accountcreate_content_container">
+	<div class="content">
+		<div id="create_terms">
+			<div class="header_box"><div class="header"><div class="header_text">JOIN NEXOPIA.COM</div></div></div>
+			<div class="section">
+				<div style="margin-bottom: 4px">
+					#{general_vi} #{general_vm}
+				</div>
+				<b>Terms of use:</b>
+				<div id="terms_box">
+					#{Terms.with_breaks}
+				</div>
+			
+				<form method="post" action="/accountcreate/create" target="_top">
+					<div id="over18div"><input type="checkbox" id="over18" name="over18">
+						I, the user, am over the age of 18, or</input>
+					</div>
+				
+					<div id="under18div">
+						<div><input type="checkbox" id="over14" name="over14">
+							If No, I, the user, am over the age of 14.</input>
+						</div>
+						<div><input type="checkbox" id="consent" name="consent">
+							AND I have consent from my legal guardian who is over 18 and accepts these Terms of Use.</input>
+						</div>
+					</div>
+					<div id="statement_warning"><b>It is illegal to knowingly misstate this information.</b></div>
+				
+					<div id="agree_to_terms"><input type="checkbox" id="agree" name="agree">
+						I, the user, read, understand and agree to these Terms of Use.</input>
+					</div>
+					
+					<div id="captcha_container">
+						<div>#{captcha_vi} #{captcha_vm}</div>
+					
+						<div id="captcha">#{captcha}</div>
+					</div>
+					
+					<input type="hidden" id="username" name="username" value="{username}" />
+					<input type="hidden" id="email" name="email" value="{email}" />
+					<input type="hidden" id="password" name="password" value="{password}" />
+					<input type="hidden" id="dob" name="dob" value="{dob}" />
+					<input type="hidden" id="location" name="location" value="{location}" />
+					<input type="hidden" id="sex" name="sex" value="{sex}" />
+					<input type="hidden" id="timezone" name="timezone" value="{timezone}" />
+					
+					<input type="hidden" id="termsversion" name="termsversion" value="1" />
+				
+					<input type="submit" class="button" id="join_button" value="Join!" />
+				</form>
+			</div>
+		</div>
+	</div>
+</div>

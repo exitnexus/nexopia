@@ -1,9 +1,12 @@
 <?
 
-	$login=0;
+	$login = 0;
 
 	require_once("include/general.lib.php");
-	require_once("include/payment.php");
+
+
+	$gstpercent = 6;
+	$gstproductid = 3;
 
 	$amounts = array(	5  => "1 Month (\$5.00)",
 						10 => "2 Months (\$10.00)",
@@ -21,202 +24,307 @@
 	$freeamounts = array( '2.00' => (7.00/31) );
 
 	if(!$userData['loggedIn'] && $action)
-		loginRedirect();
+		$auth->loginRedirect();
 
 	switch($action){
 		case "moneris":
 		case "credit":
 		case "mail":
 			payBasic($action);
-		
+
 		case "voucher":
 			collectVouchers();
-			
+
 		case "free":
 			collectFreeVoucher();
-		
+
 		case "vouchercheck":
-			$voucher = getREQval('voucher');
+			$voucher = trim(getREQval('voucher'));
+
+			if($voucher == '')
+				exit;
 
 			$value = $payg->cardValue($voucher);
-			
-			if($value)
+
+			if(isset($freeamounts[$value]))
+				echo "<a class=body href=plus.php?action=free>Free Voucher</a>";
+			elseif($value)
 				echo "<input type=hidden name=value[] value=$value>\$$value";
 			else
 				echo "Invalid";
 			exit;
 
+
+		case "Activate":
+			$voucher = getPOSTval('freevoucher');
+			finishFreeVoucher($voucher);
+			pluspage();
+			break;
+
 		case "Complete":
 		case "Continue":
-		
-			$type = getREQval('type');
-	
+
+			$paymentmethod = getREQval('paymentmethod');
+
 			$users = getREQval('user', 'array');
 			$amount = getREQval('amount', 'array');
-			
-			switch($type){
+			$vouchers = getREQval('voucher', 'array');
+
+			switch($paymentmethod){
 				case "moneris":
 					finishMoneris($users, $amount);
+					break;
 
 				case "credit":
 					finishCredit($users, $amount);
+					break;
 
 				case "mail":
 					finishMail($users, $amount);
+					break;
 
 				case "voucher":
-					$vouchers = getREQval('voucher', 'array');
-
 					finishVouchers($users, $amount, $vouchers);
-				
-				case "free":
-					$voucher = getREQval('voucher');
-
-					finishFreeVoucher($voucher);
-				
-				
+					break;
 			}
 
+			plusPage($paymentmethod, $users, $amount, $vouchers);
+			
+			
+			
+
 		default:
-			paymentMethod();
+			pluspage();
 	}
 
 
-function paymentMethod(){
 
-	$template = new template('plus/paymentMethod');
 
-	$features = array(	
+
+
+function pluspage($paymentmethod = '', $users = array(), $amount = array(), $vouchers = array()){
+
+	$template = new template('plus/pluspage');
+
+	$features = array(
 						'Profile Skins' => "Give your profile that extra bit of flair by customizing the colours.",
 						'Recent Visitors List' => "See who has visited your profile.",
 						'Fewer Ads' => "Choose to disable most advertising on the site.",
-						'Frame-Less Skins' => "Use the site without frames by selecting the Frame-Less version of that skin.",
-						'Friends List Removal' => "Remove yourself from someone else's Friends List.",
-						'Friends List Notifications' => "Receive a message whenever someone adds or removes you as a friend.",
+						'Frame-Less Skins' => "Option to use the site without frames.",
+
+						'Friends List Notifications' => "Receive a message whenever someone removes you as a friend.",
 						'See Common Friends' => "When visiting someone's profile, your friends in common are bolded.",
-						'Extra Friends' => "Double the amount of friends you can add.",
+						'Extra Friends' => "Four times the amount of friends you can add.",
 						'Longer Profile Sections' => "Double the amount of stuff you can put in your profile.",
+
 						'Extra Profile Pics' => "Upload 12 pictures to your profile (instead of 8).",
 						'Priority Picture Approval' => "Your pictures get moderated before everybody else.",
 						'Enhanced Photo Gallery' => "50 times more pictures; no tag option; larger picture resolution.",
-						'Spotlight' => "A random Plus user is spotlighted every 5 minutes on the front page.",
+						'Spotlight' => "A random Plus user is spotlighted every minute on the front page.",
+
 						'Visit Anonymously' => "View other people's profiles without them knowing you were there.",
 						'File Uploads and Hosting' => "Upload up to 10MB of files for storage.",
 						'Message Status' => "See whether a message you sent has been read.",
-						'Hide Profile' => "Hide your entire Profile from people not logged in or people on your Ignore List.",
+						'Multiple Message' => "Send the same message to several mutual friends at once.",
+
 						'Advanced User Search' => "More options when searching for users.",
+						'Hide Profile Hits' => "Hide the number of hits to your profile.",
 						'Custom Forum Rank' => "Customize the text that appears below your username in the Forums.",
 						'Create a User Forum' => "Create your own User Forum and control who gets to be a part of it.",
 						);
 	$template->set('features', $features);
 
 
-	$i = -1;
+	$i = 0;
 	$classList = array('body','body2');
 
 	foreach($features as $name => $desc){
+		$classes[$i] = $classList[floor($i/4) %2];
 		$i++;
-		$classes[$i] = $classList[(floor($i/4) %2)];
 	}
 	$template->set('classes', $classes);
+
+
+	global $userData, $amounts, $gstpercent, $payg, $config;
+	
+	$template->set('config', $config);
+
+	if(count($users) == 0 && $userData['loggedIn'])
+		$users[] = $userData['username'];
+	if(!in_array("", $users))
+		$users[] = "";
+
+	$i = 0;
+	$selectAmount = array();
+	$amounttotal = 0;
+	foreach($users as $k => $v){
+		if(isset($amount[$k])){
+			$selectAmount[$k] = make_select_list_key($amounts, $amount[$k]);
+			$amounttotal += $amount[$k];
+		}else{
+			$selectAmount[$k] = make_select_list_key($amounts);
+		}
+	}
+	$template->set('users', $users);
+	$template->set('selectAmount', $selectAmount);
+	$template->set('amounttotal', number_format($amounttotal, 2));
+
+	if(count($vouchers) == 0)
+		$vouchers[] = '';
+
+	$voucherval = array();
+	$vouchertotal = 0;
+	foreach($vouchers as $k => $voucher){
+		if($voucher){
+			$val = $payg->cardValue($voucher);
+
+			if(isset($freeamounts[$val])){
+				$voucherval[$k] = "<a class=body href=plus.php?action=free>Free Voucher</a>";
+			}elseif($val){
+				$voucherval[$k] = "<input type=hidden name=value[] value=$val>\$$val";
+				$vouchertotal += $val;
+			}else{
+				$voucherval[$k] = "Invalid";
+			}
+		}else{
+			$voucherval[$k] = "";
+		}
+	}
+
+	$template->set('vouchers', $vouchers);
+	$template->set('voucherval', $voucherval);
+
+	$template->set('voucherTotal', number_format($vouchertotal, 2));
+
+	$template->set('gstpercent', $gstpercent);
+	$template->set('gst', number_format($amounttotal*$gstpercent/100, 2));
+	$template->set('total', number_format($amounttotal + $amounttotal*$gstpercent/100, 2));
+
+	$template->set('paymentmethod', $paymentmethod);
+	
+	
 	$template->display();
 	exit;
 }
 
-
-function payBasic($type, $users = array(), $amount = array()){
-	global $userData, $amounts, $config;
-
-	$template = new template('plus/payBasic');
-	$template->set('type', $type);
-	$template->set('config', $config);
-	$template->set('userData', $userData);
+function printInvoice($id){
+	global $shoppingcart;
 	
-	$total = 0;
-	if(count($users) && count($users) == count($amount)){
-		$template->set('listMultipleUsers', true);
-		foreach($users as $k => $user){
-			$selectAmountMultiple[$k] = make_select_list_key($amounts,$amount[$k]);
-			$total += $amount[$k];
-		}
-		$template->set('selectAmountMultiple', $selectAmountMultiple);
-	}else{
-		$template->set('listMultipleUsers', false);
-		$template->set('selectAmount', make_select_list_key($amounts));
+	$res = $shoppingcart->db->prepare_query("SELECT * FROM invoice WHERE id = #", $id);
+
+	$invoice = $res->fetchrow();
+
+	if(!$invoice)
+		return "Bad invoice id";
+
+	$invoice['username'] = getUserName($invoice['userid']);
+
+//	if(!$isAdmin && $invoice['userid'] != $userData['userid'])
+//		die("Bad invoice id");
+
+	$res = $shoppingcart->db->prepare_query("SELECT productid,quantity,price,name,products.input as inputtype, invoiceitems.input FROM invoiceitems,products WHERE invoiceitems.productid = products.id && invoiceitems.invoiceid = #", $id);
+
+	$rows = array();
+	$mcids = array();
+	$mcs = array();
+
+	while($line = $res->fetchrow()){
+		$rows[] = $line;
+		if($line['inputtype']=='mc')
+			$mcids[] = $line['input'];
 	}
-	$template->set('users', $users);
-	$template->set('total', number_format($total, 2));
-	$template->display();
-	
-	exit;
+
+	if(count($mcids)){
+		$res = $shoppingcart->db->prepare_query("SELECT id,name FROM productinputchoices WHERE id IN (#)", $mcids);
+
+		while($line = $res->fetchrow())
+			$mcs[$line['id']] = $line['name'];
+	}
+
+
+	$total = 0;
+
+	foreach($rows as $k => $row){
+		if($row['inputtype'] == 'mc')
+			$rows[$k]['input'] = $mcs[$row['input']];
+			
+		$rows[$k]['total'] = $row['price'] * $row['quantity'];
+
+		$total += round($row['price'] * $row['quantity'], 2);
+	}
+
+	$paid = $invoice['amountpaid'];
+	$due = $total - $paid;
+
+	$template = new template('plus/printinvoice');
+	$template->set('invoice', $invoice);
+	$template->set('rows', $rows);
+	$template->set('total', $total);
+	$template->set('paid', $paid);
+	$template->set('due', $due);
+	return $template->toString();
 }
 
 function finishMail($users, $amount){
-	global $userData;
-	if (count($users) != count($amount)) {
-		$msgs->add("Missing data");
-		payBasic();
-	}
-	
-	$amount = convertAmount($amount);
-	$basket = new Basket();
-	$basket->setUser($userData['userid']);
-	for ($i = 0; $i<count($users); $i++) {
-		$item = new Item($basket, Item::PLUS, $amount[$i], getUserID($users[$i]));
-		$basket->addItem($item);
-	}
-	
-	$payment = Payment::createPayment("MailPayment", $basket);
-	$payment->setAmountPending($basket->getTotal());
-	$payment->showPaymentPage();
-	/*
-	$id = createInvoice($users, $amount);
-	
+	$id = createInvoice($users, $amount, true);
+
 	if($id === false)
-		payBasic('mail', $users, $amount);
-	
-	$template = new template('plus/finishMail');
+		return false;
+		
+	$invoice = printInvoice($id);
+
+	$template = new template('plus/finishMailContent');
 	$template->set('id', $id);
+	$template->set('invoice', $invoice);
+	$content = $template->toString();
+
+
+	$template = new template('plus/finishMail');
+	$template->set('normalcontent', $content);
+	$template->set('printcontent', preg_replace("/class ?= ?['\"]?(body|header)['\"]?/", "", $content));
 	$template->display();
-	
-	exit;*/
+	exit;
 }
 
+
 function finishMoneris($users, $amount){
-	global $config, $userData;
-	
-	$id = createInvoice($users, $amount);
-	
+	global $config, $userData, $gstpercent;
+
+	$id = createInvoice($users, $amount, true);
+
 	if($id === false)
-		payBasic('moneris', $users, $amount);
-	
+		return false;
+
 	$total = 0;
 	foreach($amount as $amt)
 		$total += $amt;
-	
+
+	$total *= (1 + $gstpercent/100);
+
 	$template = new template('plus/finishMoneris');
 	$template->set('total', number_format($total, 2));
 	$template->set('config', $config);
 	$template->set('userData', $userData);
 	$template->set('id', $id);
 	$template->display();
-	
 	exit;
 }
 
 
 function finishCredit($users, $amount){
-	global $config, $userData;
-	
-	$id = createInvoice($users, $amount);
-	
+	global $config, $userData, $gstpercent;
+
+	$id = createInvoice($users, $amount, true);
+
 	if($id === false)
-		payBasic('credit', $users, $amount);
-	
+		return false;
+
 	$total = 0;
 	foreach($amount as $amt)
 		$total += $amt;
-	
+
+	$total *= (1 + $gstpercent/100);
+
 	$template = new template('plus/finishCredit');
 	$template->set('total', number_format($total, 2));
 	$template->set('config', $config);
@@ -226,7 +334,7 @@ function finishCredit($users, $amount){
 	exit;
 }
 
-function createInvoice($users, $amount){ // $users = array('username', ...), $amount = array(amount, ...) . Sizes must match
+function createInvoice($users, $amount, $gst){ // $users = array('username', ...), $amount = array(amount, ...) . Sizes must match
 	global $msgs, $shoppingcart, $userData, $amounts, $quantities;
 
 	$valid = array();
@@ -239,9 +347,9 @@ function createInvoice($users, $amount){ // $users = array('username', ...), $am
 
 	for($i = 0; $i < count($users); $i++){
 	//both blank
-		if($users[$i] == '' && ($amount[$i] == 0 || !isset($amounts[$amount[$i]])))
+		if($users[$i] == '' && $amount[$i] == 0)
 			continue;
-		
+
 	//bad username
 		if($users[$i] == '' || !validUserName($users[$i])){
 			$msgs->addMsg("Invalid Username");
@@ -256,13 +364,13 @@ function createInvoice($users, $amount){ // $users = array('username', ...), $am
 
 
 	//bad amount
-		if($amount[$i] == 0 || !isset($amount[$i])){
+		if($amount[$i] == 0 || !isset($amount[$i]) || !isset($amounts[$amount[$i]])){
 			$msgs->addMsg("Bad Amount");
 			return false;
 		}
 
 	//fine
-		$total += $amount[$i];	
+		$total += $amount[$i];
 		$valid[strtolower($users[$i])] = $amount[$i];
 	}
 
@@ -281,82 +389,82 @@ function createInvoice($users, $amount){ // $users = array('username', ...), $am
 				$invoiceid, 1, $quantities[$amt], number_format($amt/$quantities[$amt], 3), $user);
 	}
 
+	if($gst){
+		global $gstpercent, $gstproductid;
+		$shoppingcart->db->prepare_query("INSERT INTO invoiceitems SET invoiceid = #, productid = #, quantity = #, price = ?",
+				$invoiceid, $gstproductid, 1, number_format($total*$gstpercent/100, 3));
+	}
+
 	return $invoiceid;
 }
 
-function collectVouchers($users = array(), $amount = array(), $vouchers = array()){
-	global $userData, $amounts, $payg;
-
-	$template = new template('plus/collectVouchers');
-	$template->set('payglocations', getStaticValue('payglocations'));
-
-	$total = 0;
-	
-	if(count($vouchers)){
-		$template->set('vouchersExist', true);
-		$i = -1;
-		foreach($vouchers as $voucher){
-			$i++;
-			$value[$i] = $payg->cardValue($voucher);
-			$total += $value[$i];
-		}
-		$template->set('value', $value);
-	}else{
-		$template->set('vouchersExist', false);
-	}
-	
-	$template->set('voucherTotal', number_format($total, 2));
-
-	$total = 0;
-	$template->set('users', $users);
-	$template->set('userData', $userData);
-	$template->set('amount', $amount);
-	$template->set('amounts', $amounts);
-	if(count($users) && count($users) == count($amount)){
-		$template->set('multipleUsers', true);
-		foreach($users as $k => $user){
-			$selectAmountMultiple[$k] = make_select_list_key($amounts,$amount[$k]);
-			$total += $amount[$k];
-		}
-		$template->set('selectAmountMultiple', $selectAmountMultiple);
-	}else{
-		$template->set('multipleUsers', false);
-		$template->set('selectAmount', make_select_list_key($amounts));
-	}
-
-	$template->set('total', number_format($total, 2));
-	$template->display();
-	exit;
-}
 
 
-function collectFreeVoucher($voucher = ''){
-	global $freeamounts;
 
-	$template = new template('plus/collectFreeVoucher');
-	$template->set('voucher', $voucher);
-	$template->display();
-	exit;
-}
+
+
+
+
+
 
 function finishVouchers($users, $amount, $vouchers){
-	global $payg, $shoppingcart, $msgs;
+	global $payg, $shoppingcart, $msgs, $freeamounts;
 
-	$basket = new Basket();
-	$amount = convertAmount($amount);
-	foreach ($users as $key => $user) {
-		$item = new Item($basket, Item::PLUS, $amount[$key], $user);
-		$basket->addItem($item);
+	$valid = array();
+
+	$vtotal = 0;
+	foreach($vouchers as $voucher){
+		if($voucher == '')
+			continue;
+
+		if(isset($valid[$voucher])){ //skip dupe vouchers
+			$msgs->addMsg("Duplicate Voucher");
+			return false;
+		}
+
+		$value = $payg->cardValue($voucher); //$voucher is fixed by cardValue(), if possible
+
+		if(isset($freeamounts[$value])){
+			$msgs->addMsg(htmlentities($voucher) . " is a free voucher and must be redeemed as such.");
+		}elseif($value){
+			$valid[$voucher] = $value;
+			$vtotal += $value;
+		}else{
+			$msgs->addMsg(htmlentities($voucher) . " is invalid, please try again");
+		}
 	}
-	$payment = Payment::createPayment("VoucherPayment", $basket);
-	$success = $payment->processPayment($vouchers);
-	if (!$success) {
-		$payment->showPaymentPage();
+
+	if($vtotal == 0)
+		return false;
+
+
+	$atotal = 0;
+	foreach($amount as $amt)
+		$atotal += $amt;
+
+	if($vtotal != $atotal){
+		$msgs->addMsg("Totals don't match");
+		return false;
+	}
+
+
+	$id = createInvoice($users, $amount, false);
+
+	if($id === false)
+		return false;
+
+	$stores = $payg->useCards(array_keys($valid), $id);
+
+	if($stores){
+		$output = $shoppingcart->updateInvoice($id, 'payg', implode(', ', $stores), $vtotal, implode(", ", array_keys($valid)), true);
+
+		$template = new template('plus/finishVouchers');
+		$template->display();
 		exit;
-	} else {
-		$basket->showCompleted();
+	}else{
+		$msgs->addMsg("One of your vouchers was invalid");
+		return false;
 	}
-	
 }
 
 function finishFreeVoucher($voucher){
@@ -367,7 +475,7 @@ function finishFreeVoucher($voucher){
 
 	if(!$value || !isset($freeamounts[$value])){
 		$msgs->addMsg("Invalid Voucher");
-		collectFreeVoucher($voucher);
+		return false;
 	}
 
 
@@ -376,41 +484,18 @@ function finishFreeVoucher($voucher){
 
 	if($res->fetchrow()){
 		$msgs->addMsg("You've already used a card from this batch");
+		return false;
 	}else{
 		$stores = $payg->useCards($voucher, 0);
 		if($stores){
 			addPlus($userData['userid'], $freeamounts[$value], 0, 0);
-			
-			incHeader();
-			
-			echo "You've got Plus.";
-			
-			incFooter();
+
+			$template = new template('plus/finishFreeVouchers');
+			$template->display();
 			exit;
 		}else{
 			$msgs->addMsg("Invalid Voucher");
-			collectFreeVoucher($voucher);
+			return false;
 		}
 	}
-}
-
-function convertAmount(array $amount) {
-	for ($i = 0; $i<count($amount); $i++) {
-		//TODO: change the form to give us a number of months rather than a price
-		switch ($amount[$i]) {
-			case 5:
-				$amount[$i] = 1; break;
-			case 10:
-				$amount[$i] = 2; break;
-			case 15:
-				$amount[$i] = 3; break;
-			case 20:
-				$amount[$i] = 6; break;
-			case 30:
-				$amount[$i] = 12; break;
-			default:			
-				$amount[$i] = 0;
-		}
-	}
-	return $amount;
 }

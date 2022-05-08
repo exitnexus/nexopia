@@ -1,0 +1,76 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<div style="background-color:white">
+
+		<script type="text/javascript">
+			<![CDATA[
+			
+				// Counter to differentiate new tag/username fields
+				counter = 0;
+			
+				function addTag() {
+					// Get the table and form from the page
+					form = document.getElementById("tag_form");
+					table = document.getElementById("tag_table");
+					
+					// Create a new input field for the tag
+					tag_input = document.createElement("input");
+					tag_input.setAttribute("type","text");
+					tag_input.setAttribute("name","tag_new[" + counter + "]");
+					tag_input.setAttribute("id","tag_new[" + counter + "]");
+					tag_input.setAttribute("value","");
+					
+					// Create a new input field for the username
+					username_input = document.createElement("input");
+					username_input.setAttribute("type","text");
+					username_input.setAttribute("name","username_new[" + counter + "]");
+					username_input.setAttribute("id","username_new[" + counter + "]");
+					username_input.setAttribute("value","");
+					
+					// Get the table body
+					table_body = table.getElementsByTagName("tbody")[0];
+					
+					// Create the new tr/td elements for the table.
+					tr = document.createElement("tr");
+					td_tag = document.createElement("td");
+					td_username = document.createElement("td");
+					
+					// Put the input fields in the appropriate td elements.
+					td_tag.appendChild(tag_input);
+					td_username.appendChild(username_input);
+					
+					// Attach the td elements to their tr parent
+					tr.appendChild(td_tag);
+					tr.appendChild(td_username);
+					
+					// Attach the entire row to the table body.
+					table_body.appendChild(tr);
+					
+					// Prepare the counter for the next row.
+					counter++;
+				}
+			]]>
+		</script>
+				
+		<h1>Defect Tags</h1>
+		
+		<form action="{handler_root}/update" method="post" id="tag_form" name="tag_form">
+			<table id="tag_table">
+				<tr>
+					<th>Tag</th>
+					<th>Developer</th>
+				</tr>
+				<tr t:id="defect_tags" t:iter="defect_tag">
+					<td><input type="text" id="tag[{defect_tag.id}]" name="tag[{defect_tag.id}]" value="{defect_tag.tag}"/></td>
+					<td><input type="text" id="username[{defect_tag.id}]" name="username[{defect_tag.id}]" value="{defect_tag.username}"/></td>
+				</tr>
+			</table>
+			
+			<a href="javascript:;" onclick="addTag();">Add a Tag</a><br/>
+			
+			<input type="submit" value="Update"/>
+			
+		</form>
+		
+	</div>
+</div>
+

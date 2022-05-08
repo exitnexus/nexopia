@@ -1,0 +1,23 @@
+<div style="background-color:#ffffff">
+<h1> Projects</h1>
+	<ul>
+		<li t:id="projects" t:iter="project"><a href="{project.uri}">{project.name}</a></li>
+	</ul>
+
+<h2>New Project</h2>
+	<form method="post" action="{url}/project/add_project">
+		<table>
+			<tr>
+				<td>Name</td>
+				<td><input type="text" name="Name"/></td>
+			</tr>
+			<tr>
+				<td>Description</td>
+				<td><input type="textarea" name="Description"/></td>
+			</tr>
+			<tr>
+				<td colspan="2"><input type="submit"/></td>
+			</tr>
+		</table>
+	</form>
+</div>

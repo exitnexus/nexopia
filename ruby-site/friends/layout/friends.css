@@ -1,0 +1,138 @@
+.friends {
+	width: 630px;
+	min-height: 400px;
+	background-color: @primary_background_color;
+	padding: 6px;
+	color: @primary_text_color;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.friends .top_menu {
+	text-align: right;
+	width: 630px;
+}
+
+.friends .top_menu .selected {
+	font-weight: bold;
+}
+
+.friends ul {
+	clear:both;
+	list-style: none;
+	padding: 0px;
+	margin: 0px;
+}
+
+.friends li {
+	margin: 2px 0px;
+}
+
+.friends table {
+	background-color: @secondary_background_color;
+	width: 630px;
+	margin-left: auto;
+	margin-right: auto;
+	border-spacing: 0px;
+}
+
+.friends td {
+	text-align:left;
+	color: @primary_text_color;
+	padding: 3px;
+}
+
+.friends td.minor {
+	color: $minor_font_color;
+	width: 50px;
+}
+
+.friends img {
+	border: 0px;
+}
+
+.friends .picture {
+	width: 100px;
+	vertical-align: top;
+}
+
+.friends .comment_cell {
+	vertical-align: top;
+	width: 340px;
+}
+
+.friends .comment {
+	background-color: @secondary_background_color;
+	color: @primary_text_color;
+	width: 100%;
+	height: 100%;
+	padding: 0px;
+	margin: 0px;
+	cursor:pointer;
+}
+
+.friends .comment textarea{
+	width: 100%;
+	height: 40px;
+}
+
+.friends .name {
+	height: 25px;
+	width: 530px;
+}
+
+.friends a {
+	color: @link_color;
+}
+
+.friends a:hover {
+	color: @link_accent_color;
+}
+
+.friends .name a {
+	font-size:1.5em;
+	font-weight: bold;
+}
+
+.friends .show_all {
+	padding-top: 1px;
+	width: 630px;
+	text-align: right;
+	float: right;
+	position:absolute;
+}
+
+.friends .actions {
+	float: right;
+}
+
+.friends .actions img {
+	margin-left: 5px;
+}
+
+.friend .connected_friends {
+	width: 100%;
+	padding-left: 20px;
+}
+
+.friend .connected_friends .connected_friend {
+	padding: 2px;
+}
+
+.friends .connected_friends li {
+	float: left;
+}
+
+.friends .connected_friends img.picture {
+	width: 50px;
+}
+
+.friends a.current_page {
+	background-color: @secondary_background_color;
+	font-weight: bold;
+}
+
+.friends .pages {
+	width: 630px;
+	text-align: right;
+}

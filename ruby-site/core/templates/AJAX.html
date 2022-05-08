@@ -1,0 +1,508 @@
+<t:ajax-framework xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+
+<script type="text/javascript" src="/static/javascript/yui/build/yahoo/yahoo-debug.js"></script>
+<script type="text/javascript" src="/static/javascript/yui/build/dom/dom.js"></script>
+<script type="text/javascript" src="/static/javascript/yui/build/event/event-debug.js"></script>
+<script type="text/javascript" src="/static/javascript/yui/build/logger/logger-debug.js"></script>
+<!-- Source file -->
+<script type="text/javascript" src="/static/javascript/yui/build/container/container.js"></script>
+
+<script type="text/javascript" src="/static/javascript/yui/build/connection/connection-debug.js"></script>
+
+<!-- CSS -->
+<link rel="stylesheet" type="text/css" href="/static/javascript/yui/build/container/assets/container.css" />
+
+<script>
+/*<![CDATA[*/
+
+static_root = '{$site.static_url}/javascript/dhtml_history/';
+/*]]>*/
+</script>
+<script type="text/javascript" src="{$site.static_url}/javascript/dhtml_history/dhtmlHistory.js?rev=13">
+</script>
+<script>
+/*<![CDATA[*/
+
+var DEBUG = true;
+var req = new Array();
+var count = 0;
+var counter=1;
+
+/*----------The site's sweet sweet text editor----------------------------*/
+var smileycols = 4;
+var smileyrows = 7;
+var smileypos = new Array();
+function editBox(parent, text, smilies, id, formid, maxlength, height, width) {
+    var str = "";
+    str += "\\n<table cellspacing='0' align='center'>";
+    if (maxlength > 0) {
+        str += "\\n	<tr><td class='body' align='center'>"
+        str += "\\n		<div id='length_" + id + "'>Length: 0 / " + maxlength + "</div>";
+        str += "\\n	</td></tr>"
+    } else {
+        maxlength = 0;
+    }
+    str += "\\n	<tr><td align='center'>";
+    str += "\\n<input type='button' class='body button' accesskey='b' id='" + formid + "_addbbcode0' value=' B ' style='font-weight:bold; width: 30px' onClick='bbstyle(0,\\"" + id + "\\" ,\\"" + formid + "\\", \\"" + maxlength + "\\" )'/>";
+    str += "\\n<input type='button' class='body button' accesskey='i' id='" + formid + "_addbbcode2' value=' i ' style='font-style:italic; width: 30px' onClick='bbstyle(2, \\"" + id + "\\" ,\\"" + formid + "\\",\\"" + maxlength + "\\")'/>";
+    str += "\\n<input type='button' class='body button' accesskey='u' id='" + formid + "_addbbcode4' value=' u ' style='text-decoration: underline; width: 30px' onClick='bbstyle(4, \\"" + id + "\\" ,\\"" + formid + "\\",\\"" + maxlength + "\\")'/>";
+    str += "\\n<input type='button' class='body button' accesskey='q' id='" + formid + "_addbbcode6' value='Quote' style='width: 50px' onClick='bbstyle(6, \\"" + id + "\\" ,\\"" + formid + "\\",\\"" + maxlength + "\\")'/>";
+    str += "\\n<input type='button' class='body button' accesskey='p' id='" + formid + "_addbbcode8' value='Img' style='width: 40px'  onClick='bbstyle(8, \\"" + id + "\\" ,\\"" + formid + "\\",\\"" + maxlength + "\\")'/>";
+    str += "\\n<input type='button' class='body button' accesskey='w' id='" + formid + "_addbbcode10' value='URL' style='text-decoration: underline; width: 40px' onClick='bbstyle(10, \\"" + id + "\\" ,\\"" + formid + "\\",\\"" + maxlength + "\\")'/>";
+    str += "\\n<select style='width: 60px' class='body' onChange=\\"if(this.selectedIndex!=0) bbfontstyle('[font=' + this.options[this.selectedIndex].value + ']', '[/font]', '" + id + "' ,'" + formid + "'," + maxlength + ");this.selectedIndex=0\\">";
+    str += "\\n<option value='0'>Font</option>";
+    str += "\\n<option value='Arial' style='font-family:Arial'>Arial</option>";
+    str += "\\n<option value='Times' style='font-family:Times'>Times</option>";
+    str += "\\n<option value='Courier' style='font-family:Courier'>Courier</option>";
+    str += "\\n<option value='Impact' style='font-family:Impact'>Impact</option>";
+    str += "\\n<option value='Geneva' style='font-family:Geneva'>Geneva</option>";
+    str += "\\n<option value='Optima' style='font-family:Optima'>Optima</option>";
+    str += "\\n</select>";
+    str += "\\n<select style='width: 60px' class='body' onChange=\\"if(this.selectedIndex!=0) bbfontstyle('[color=' + this.options[this.selectedIndex].value + ']', '[/color]', '" + id + "' ,'" + formid + "'," + maxlength + ");this.selectedIndex=0\\">";
+    str += "\\n<option style='color:black; background-color: #FFFFFF' value='0'>Color</option>";
+    str += "\\n<option style='color:darkred; background-color: #DEE3E7' value='darkred'>Dark Red</option>";
+    str += "\\n<option style='color:red; background-color: #DEE3E7' value='red'>Red</option>";
+    str += "\\n<option style='color:orange; background-color: #DEE3E7' value='orange'>Orange</option>";
+    str += "\\n<option style='color:brown; background-color: #DEE3E7' value='brown'>Brown</option>";
+    str += "\\n<option style='color:yellow; background-color: #DEE3E7' value='yellow'>Yellow</option>";
+    str += "\\n<option style='color:green; background-color: #DEE3E7' value='green'>Green</option>";
+    str += "\\n<option style='color:olive; background-color: #DEE3E7' value='olive'>Olive</option>";
+    str += "\\n<option style='color:cyan; background-color: #DEE3E7' value='cyan'>Cyan</option>";
+    str += "\\n<option style='color:blue; background-color: #DEE3E7' value='blue'>Blue</option>";
+    str += "\\n<option style='color:darkblue; background-color: #DEE3E7' value='darkblue'>Dark Blue</option>";
+    str += "\\n<option style='color:indigo; background-color: #DEE3E7' value='indigo'>Indigo</option>";
+    str += "\\n<option style='color:violet; background-color: #DEE3E7' value='violet'>Violet</option>";
+    str += "\\n<option style='color:white; background-color: #DEE3E7' value='white'>White</option>";
+    str += "\\n<option style='color:black; background-color: #DEE3E7' value='black'>Black</option>";
+    str += "\\n</select>";
+    str += "\\n<select style='width: 60px' class='body' onChange=\\"if(this.selectedIndex!=0) bbfontstyle('[size=' + this.options[this.selectedIndex].value + ']', '[/size]', '" + id + "' ,'" + formid + "'," + maxlength + ");this.selectedIndex=0\\">";
+    str += "\\n<option value='0'>Size</option>";
+    str += "\\n<option value='1'>Tiny</option>";
+    str += "\\n<option value='2'>Small</option>";
+    str += "\\n<option value='3'>Normal</option>";
+    str += "\\n<option value='4'>Large</option>";
+    str += "\\n<option value='5'>Huge</option>";
+    str += "\\n</select>";
+    str += "\\n</td>\\n";
+    if (smilies) {
+        str += "\\n<td rowspan='2'>";
+        str += "\\n<table cellspacing='0' cellpadding='3' border='1' style=\\"border-collapse: collapse\\">";
+        var num = Math.min(smileycols * smileyrows, Math.ceil(smileycodes.length / smileycols) * smileycols);
+        for (i = 0; i < num; i++) {
+            if (i % smileycols == 0) {
+                str += "\\n<tr>";
+            }
+            str += "\\n<td class='body'><div name='smiley_" + formid + i + "' id='smiley_" + formid + i + "'>";
+            if (i < smileycodes.length) {
+                str += "\\n<a href=\\"javascript:emoticon('" + smileycodes[i] + "', '" + id + "' ,'" + formid + "'," + maxlength + ")\\"><img src=\\"" + smileyloc + smileypics[i] + ".gif\\" alt=\\"" + smileycodes[i] + "\\" border='0'/></a>";
+            }
+            str += "\\n</div></td>";
+            if (i % smileycols == smileycols - 1) {
+                str += "\\n</tr>";
+            }
+            smileypos[formid] = 0;
+        }
+        str += "\\n<tr><td colspan='" + smileycols + "' class='body'>";
+        str += "\\n<table width='100%'><tr>";
+        str += "\\n<td class='body'><a class='body' href=\\"javascript:smiliespage(-1,'" + id + "' ,'" + formid + "'," + maxlength + ");\\">Prev</a></td>";
+        str += "\\n<td class='body' align='right'><a class='body' href=\\"javascript:smiliespage(1,'" + id + "' ,'" + formid + "'," + maxlength + ");\\">Next</a></td>";
+        str += "\\n</tr></table>";
+        str += "\\n</td></tr>";
+        str += "\\n</table>";
+        str += "\\n</td>\\n";
+    }
+    str += "\\n</tr>";
+    str += "\\n<tr ><td align='center' ><textarea style='height:200px; width: " + (width - 150) + "px;' class='header' rows='" + Math.ceil(height / 15) + "'  id='" + id + "' name='" + id + "' wrap='virtual' onSelect=\\"storeCaret(this);\\" onClick=\\"storeCaret(this);\\"   onKeyUp=\\"storeCaret(this);setTextAreaLength(this," + maxlength + ",'length_" + id + "')\\">" + text + "</textarea></td></tr>\\n";
+    str += "\\n</table>\\n";
+//    if (maxlength > 0) {
+  //      str += "\\n<script>document.write('<script><'+'/script>')<" + "/script>";
+//    }
+    return str;
+}
+
+
+/* ---------------------- AJAX REQUESTS ------------------------- */
+
+/*
+ * Wrapper around an XML HTTP request.
+ */
+
+HistorySingleton = function()
+{
+	var that = this;
+	that.addUrl = function(url)
+	{
+		if (DEBUG) LogConsole.print("Adding " + url);
+		dhtmlHistory.add(url.split(':')[0], "Something");
+	};
+
+	return that;
+}();
+
+TimelineSingleton = function()
+{
+	var that = this;
+
+	that.updateTimeline = function (documentElement) {
+		if (documentElement){
+			window.LogConsole.add_log(documentElement.getElementsByTagName("timeline"));
+		}
+	};
+
+	return that;
+}();
+
+HTMLResponseObject = function(target_id,track_history)
+{
+	var that = this;
+	that.success = function(o)
+	{
+		try {
+			LogConsole.print("ResponseObject::success");
+			TimelineSingleton.updateTimeline(o.responseXML.documentElement)
+			showElementInTarget(target_id,o.responseXML);
+		} catch (e) {
+			alert( "Clearly an error: " + e.message + "\\n\\n\\n" + e.description);
+		}
+		if (track_history)
+		{
+			HistorySingleton.addUrl(track_history);
+		}
+		LogConsole.print("ResponseObject::success finished");
+	};
+
+	that.failure = function(o) {
+		alert("XML load failed: " + o.status + " : " + o.statusText );
+	};
+	return that;
+};
+
+DataResponseObject = function(callback)
+{
+	var that = this;
+	that.success = function(o)
+	{
+		//try {
+			LogConsole.print("ResponseObject::success");
+			TimelineSingleton.updateTimeline(o.responseXML.documentElement)
+			callback(o.responseXML);
+		//} catch (e) {
+		//	alert( "Clearly an error: " + e.message + "\\n\\n\\n" + e.description);
+		//}
+		LogConsole.print("ResponseObject::success finished");
+	};
+
+	that.failure = function(o) {
+		alert("XML load failed: " + o.status + " : " + o.statusText );
+	};
+	return that;
+};
+
+AJAXRequest = function( url, responseObject) {
+	var that = this;
+	that.during = "<img src='{$site.static_url}/images/spinner.gif'/>";
+
+	// Access the Body of the url
+	if (url.indexOf('?') != -1){
+		var file = url.substring(0, url.indexOf('?'));
+		var args = url.substring(url.indexOf("?"), url.length);
+		that.url = file + ":Body" + args;
+	} else {
+		that.url = url + ":Body";
+	}
+
+	that.begin = function()
+	{
+		that.doRequest(responseObject);
+
+	};
+
+	that.doRequest = function(responseObject)
+	{
+	   throw "Don't use the base class for doRequest";
+	};
+
+	return that;
+};
+/*--------------
+ * AJAXGet Class
+ *
+ --------------*/
+AJAXGet = function(uriOrElement,target_id,track_history){
+	var url = "";
+	if (typeof(uriOrElement) == 'string')
+	{
+		url = uriOrElement;
+	}
+	else
+	{
+		url = uriOrElement.getAttribute("href") ;
+	}
+
+	var that = new AJAXRequest(url,new HTMLResponseObject(target_id,(track_history ? url : track_history )));
+
+	that.target_id = target_id;
+
+	that.doRequest = function(responseObject){
+		document.getElementById(this.target_id).innerHTML = this.during;
+		var transaction = YAHOO.util.Connect.asyncRequest('GET', "{$site.www_url}/fetch-page" + this.url, responseObject);
+	};
+	return that;
+
+};
+
+
+/*--------------
+ * AJAXDataGet Class
+ *
+ --------------*/
+AJAXDataGet = function(uriOrElement,callback){
+	var url = "";
+	if (typeof(uriOrElement) == 'string')
+	{
+		url = uriOrElement;
+	}
+	else
+	{
+		url = uriOrElement.getAttribute("href") ;
+	}
+
+	var that = new AJAXRequest(url,new DataResponseObject(callback));
+
+	that.doRequest = function(responseObject){
+		var transaction = YAHOO.util.Connect.asyncRequest('GET', "{$site.www_url}/fetch-page" + this.url, responseObject);
+	};
+	return that;
+
+};
+
+/*--------------
+ * AJAXPost class
+ *
+ --------------*/
+
+AJAXPost = function(formElement, target_id, uri){
+	var url = "";
+	if (typeof(uri) == 'string')
+	{
+		url = uriOrElement;
+	}
+	else
+	{
+		url = formElement.getAttribute("action");
+	}
+	var that = new AJAXRequest(url,new HTMLResponseObject(target_id,(track_history ? url : track_history )));
+	that.formElement = formElement;
+	that.target_id = target_id;
+
+	that.doRequest = function(responseObject){
+		document.getElementById(this.target_id).innerHTML = this.during;
+		window.status = that.url;
+		//current_request.request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+		YAHOO.util.Connect.setForm(this.formElement);
+		var transaction = YAHOO.util.Connect.asyncRequest('POST', "{$site.www_url}/fetch-page" + this.url , responseObject);
+	};
+	return that;
+};
+
+
+/*
+ * Create and send a get request to load a url into a document element.
+ */
+function forward_req(target_id, url){
+	if (DEBUG) LogConsole.print('Forwarding request for ' + target_id + ' to ' + url);
+	/*
+	_go_ajax(target_id,url);
+*/
+	var forward_request = new AJAXGet(url,target_id);
+	var track_history = false;
+	forward_request.begin(track_history);
+	return false;
+};
+
+/*
+ * Submit the info in a form element via a POST request.
+ * "uri" may be null, in which case the form's "action"
+ * attribute is used.
+ */
+function AJAXSubmit(element, target_id, uri){
+	var post_request = new AJAXPost(element, target_id, uri);
+	post_request.begin();
+	return false;
+};
+
+/*
+ * Load a url specified by a specific ANCHOR tag.
+ */
+function AJAXLoadLink(element, target_id){
+	var get_request = new AJAXGet(element, target_id);
+	get_request.begin();
+	return false;
+};
+
+
+// borrowed from DOJO
+DOJO_innerXML = function(/* Node */node){
+	//	summary
+	//	Implementation of MS's innerXML function.
+	if(node.innerXML){
+		return node.innerXML;	//	string
+	}else if (node.xml){
+		return node.xml;		//	string
+	}else if(typeof XMLSerializer != "undefined"){
+		return (new XMLSerializer()).serializeToString(node);	//	string
+	}
+};
+
+function showElementInTarget(target_id,response)
+{
+	var v_body = response.getElementsByTagName("body")[0];
+	var v_parent = document.getElementById(target_id);
+	while(v_child = v_parent.firstChild){
+		v_parent.removeChild(v_child);
+	}
+	if (v_body.firstChild)
+	{
+		node = v_body.firstChild;
+		if (document.contentType == "application/xhtml+xml"){
+			v_parent.appendChild(node);
+		} else{
+			v_parent.innerHTML = v_parent.innerHTML + DOJO_innerXML(node);
+		}
+	}
+	parseJavaScript(document.getElementById(target_id));
+	return false;
+}
+
+
+function parseJavaScript(element){
+	var child = element.firstChild;
+	while(child){
+		if (child.nodeName.toUpperCase() == "SCRIPT"){
+			if (child.firstChild){
+				//try {
+					window.eval(child.firstChild.nodeValue);
+				//} catch (e) {
+				// LogConsole.print("Error " + e + "\\n" + child.firstChild.nodeValue);
+				//}
+			}
+			else if (child.innerHTML){
+				window.eval(child.innerHTML);
+			}
+			if (child.getAttribute('src'))
+				include_dom(child.getAttribute('src'));
+
+		}
+		parseJavaScript(child);
+		child = child.nextSibling;
+	}
+};
+
+/* ----------------------- BACK BUTTON SUPPORT ------------------------ */
+
+window.onload = initialize;
+var onload_funcs = new Array();
+
+function initialize() {
+
+	for(var i=0; i<onload_funcs.length; i++){
+		//try {
+			onload_funcs[i]();
+		//}catch(e){
+			//ignored
+		//}
+	}
+	init_floatmenu();
+  // initialize the DHTML History
+  // framework
+  //dhtmlHistory.initialize();
+
+  // subscribe to DHTML history change
+  // events
+  //dhtmlHistory.addListener(historyChange);
+
+	 // if this is the first time we have
+  // loaded the page...
+  if (DEBUG) LogConsole.print("Calling initialize.");
+//  if (dhtmlHistory.isFirstLoad()) {
+	if (DEBUG) LogConsole.print("First load.");
+	if (page.indexOf("#") == -1){
+		//forward_req('MainObj', page);
+	}
+
+/*	 var fakeXML =
+		'<?xml version="1.0" '
+		+		 'encoding="ISO-8859-1"?>'
+		+		 '<foobar>'
+		+			 '<foo-entry/>'
+		+		 '</foobar>';
+	 historyStorage.put("fakeXML", fakeXML);
+*/
+//  }
+
+  // retrieve our values from the history
+  // storage
+//	 var savedXML = historyStorage.get("fakeXML");
+//	 savedXML = prettyPrintXml(savedXML);
+//	 var hasKey = historyStorage.hasKey("fakeXML");
+//	 var message = "historyStorage.hasKey('fakeXML')="
+//		+ hasKey + "<br>"
+//		+ "historyStorage.get('fakeXML')=<br>"
+//		+ savedXML;
+
+}
+
+/** Our callback to receive history change
+	  events. */
+function historyChange(newLocation, historyData) {
+	if (DEBUG) LogConsole.print("Changing history.");
+	if (newLocation == "") {
+		str = window.location.href;
+		site = window.location.href.substring(str.indexOf("://") + 3);
+		page = site.substring(site.indexOf("/"));
+			newLocation = page;
+	}
+
+  window.status = "A history change has occurred: newLocation="+newLocation+", historyData="+historyData;
+  document.title = newLocation;
+
+  //forward_req('MainObj', newLocation);
+}
+
+//http://www.phpied.com/javascript-include/
+function include_dom(script_filename, f) {
+	 var html_doc = document.getElementsByTagName('body').item(0);
+	 var js = document.createElement('script');
+	 js.setAttribute('language', 'javascript');
+	 js.setAttribute('type', 'text/javascript');
+	 js.setAttribute('src', script_filename);
+	 js.onload = f;
+	 js.onreadystatechange = function(){
+		if (js.readyState == "loaded")
+			f();
+	 };
+	 html_doc.appendChild(js);
+	 //setTimeout(f, 1000);
+	 return false;
+}
+
+/* ---------------------- STATIC LOADTIME STUFF ------------------- */
+
+if (window.loadedOnce)
+	LogConsole.print("You should not be loading this page in an AJAX request.");
+
+window.loadedOnce = true;
+
+var str = window.location.href;
+var site = window.location.href.substring(str.indexOf("://") + 3);
+var page = site.substring(site.indexOf("/"));
+
+if (DEBUG) LogConsole.print("Loaded a totally new page: " + str);
+
+document.title = page;
+
+/*]]>*/
+</script>
+
+</t:ajax-framework>
+

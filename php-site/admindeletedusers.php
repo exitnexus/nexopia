@@ -79,7 +79,7 @@
 			echo "<td class=body><a class=body href=/adminabuselog.php?uid=$line[userid]>Abuse</a></td>";
 			echo "<td class=body><a class=body href=/adminuserips.php?uid=$line[userid]&type=userid&k=" . makeKey($line['userid']) . ">IPs</a></td>";
 			if($mods->isAdmin($userData['userid'],"loginlog"))
-				echo "<td class=body><a class=body href=/adminloginlog.php?col=userid&val=$line[userid]>Logins</a></td>";
+				echo "<td class=body><a class=body href=/adminloginlog.php?col=userid&val=$line[userid]&k=" . makeKey($line['userid']) . ">Logins</a></td>";
 			echo "</tr>";
 		}
 	}

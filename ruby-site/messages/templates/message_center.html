@@ -1,0 +1,34 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<link rel="stylesheet" type="text/css" href="{$site.static_url}/javascript/yui/build/grids/grids.css">      </link>
+	<link rel="stylesheet" type="text/css" href="{$site.static_url}/javascript/yui-ext/resources/css/grid.css"> </link>
+	<link rel="stylesheet" type="text/css" href="{$site.static_url}/javascript/yui-ext/resources/css/layout.css"/>
+	<link rel="stylesheet" type="text/css" href="{$site.static_url}/javascript/yui-ext/resources/css/tabs.css"/>
+	<script>
+		include_dom("{$site.static_url}/javascript/yui/build/yahoo/yahoo.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/dom/dom.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/event/event.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/animation/animation.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/dragdrop/dragdrop.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/container/container.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui-ext/yui-ext.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/connection/connection.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/message_center.js?rev={Time.now.to_i.to_s}", function() {
+			MessageCenter.init();
+		});});});});});});});});});
+	</script>
+	<div class="ygrid-mso" id="message-center" style="position:relative;height:600px;text-align:left">
+		<div id="folder-list" style="">#{folders}</div>
+		<div id="message-list" style=""></div>
+		<div id="message-console" style="">
+			<div id="message-status-bar" style="height:16px;overflow:hidden;background-color:#AAAAAA">
+				<img id="message-spinner" src="{$site.static_url}/images/spinner.gif" style="visibility:hidden;float:left"/>
+				<div id="response" style="background-color:grey;width:200px;float:left;height:100%">This displays status messages.</div>
+				<div style="background-color:red;width:100px;height:100%;float:right"><a href="/my/messages/delete" onclick="MessageCenter.deleteSelected();return false;">Delete Selected</a></div>
+				<div style="background-color:green;width:100px;height:100%;float:right"><a href="/my/messages/create" onclick="MessageDialog.show();return false;">Send Message</a></div>
+			</div>
+			<div id="message-content" style="overflow:hidden;background-color:lightsteelblue">
+			</div>
+		</div>
+	</div>
+	<template-include module="messages" name="create_message"/>
+</div>

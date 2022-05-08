@@ -1,0 +1,23 @@
+<div class="video_page_container" t:docid="video_main">
+	<div id="main_video_page">
+		<t:template-include name="main_left" module="video"/>
+
+		<div id="right_panel">
+			<div id="featured_videos_panel">
+				<div class="section_header"><div>Featured Videos</div></div>
+				<div class="video_section_content">
+					<t:handler-include path="/videos/feature/partial/{videoid}" area="Public"/>
+					<div style="text-align:right"><a href="/videos{view_parameters}&view=feature">View All</a></div>
+					<div class="clearit"><!-- Comment to fix IE empty DIV problem. --></div>
+				</div>
+			</div>
+			<div id="browse_videos_panel">
+				<div class="section_header"><div>Browse Videos</div></div>
+				<div class="video_section_content">
+					<t:handler-include path="/videos/browse/{videoid}" area="Public"/>
+					<div class="clearit"><!-- Comment to fix IE empty DIV problem. --></div>
+				</div>
+			</div>	
+		</div>
+	</div>
+</div>

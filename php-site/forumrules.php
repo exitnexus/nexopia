@@ -12,9 +12,11 @@
 	if(!$perms['view'])
 		die("You don't have permission to view this forum");
 
+	$entry = $wiki->getPage("/Rules/Forums");
+
 	$forumdata = $perms['cols'];
 	$template = new template('forums/forumrules');
-	$template->set('forumRules', getStaticValue('forumrules'));
+	$template->set('forumRules', $entry['output']);
 	$template->set('specificRules', nl2br(parseHTML(smilies($forumdata['rules']))));
 	$template->display();
 

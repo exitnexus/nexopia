@@ -9,8 +9,6 @@ class textparser
 	private $msg;
 	private $nmsg; // false if unchanged and unset, true if changed and unset, a string if set.
 
-    public $parse_bbcode = true;
-
 	function __construct($msg)
 	{
         $this->msg = trim($msg);
@@ -19,19 +17,15 @@ class textparser
 
 	protected function parseMsg()
 	{
-        $this->nmsg =  trim($this->msg);
+	        $this->nmsg =  trim($this->msg);
 
-        $this->nmsg = html_sanitizer::sanitize($this->nmsg);
+		$this->nmsg = removeHTML($this->nmsg);
 
-
-        if($this->parse_bbcode)
-        {
-            $this->nmsg = parseHTML($this->nmsg);
-            $this->nmsg = smilies($this->nmsg);
-            $this->nmsg = wrap($this->nmsg);
-            $this->nmsg = nl2br($this->nmsg);
+		$this->nmsg = parseHTML($this->nmsg);
+		$this->nmsg = smilies($this->nmsg);
+		$this->nmsg = wrap($this->nmsg);
+		$this->nmsg = nl2br($this->nmsg);
         }
-	}
 
     // $items has to be in array(id => &obj) form
 	static function getParsedTextMulti($items, $cacheprefix)
@@ -80,7 +74,7 @@ class textparser
 	function getText()
 	{
 
-        return html_sanitizer::sanitize($this->msg);
+		return removeHTML($this->msg);
 
 	}
 
@@ -88,7 +82,7 @@ class textparser
 	{
 		$newmsg = trim($msg);
 
-        $newmsg = html_sanitizer::sanitize($newmsg);
+		$newmsg = removeHTML($newmsg);
 
 
 		if ($newmsg != $this->msg)
@@ -110,6 +104,7 @@ class dboError extends Exception
 }
 
 // add to this to add custom type validators.
+global $typeregexes;
 $typeregexes = array(
 	'integer' => '-?[0-9]+',
 	'idpair' => '[0-9]+:[0-9]+',
@@ -169,6 +164,8 @@ class subhandlerbase
 
 		if($this->minlevel == REQUIRE_NOTLOGGEDIN && $userData['loggedIn'])
 			return false;
+		if($this->minlevel == REQUIRE_HALFLOGGEDIN && !$userData['halfLoggedIn'])
+			return false;
 		if($this->minlevel == REQUIRE_LOGGEDIN && !$userData['loggedIn'])
 			return false;
 		if($this->minlevel == REQUIRE_LOGGEDIN_PLUS && (!isset($userData['premium']) || !$userData['premium']))
@@ -177,10 +174,13 @@ class subhandlerbase
 			return false;
 
 		// now set the actual level of the user
-		if (!$userData['loggedIn'])
-			$this->actuallevel = REQUIRE_NOTLOGGEDIN;
-		else
+		if($userData['loggedIn'])
 			$this->actuallevel = REQUIRE_LOGGEDIN;
+		elseif($userData['halfLoggedIn'])
+			$this->actuallevel = REQUIRE_HALFLOGGEDIN;
+		else
+			$this->actuallevel = REQUIRE_NOTLOGGEDIN;
+
 		if (isset($userData['premium']) && $userData['premium'])
 			$this->actuallevel = REQUIRE_LOGGEDIN_PLUS;
 		if ($isAdmin)
@@ -385,17 +385,23 @@ class urisubhandler extends subhandlerbase
 		else
 			$funcargs = array();
 
+		foreach ($funcargs as $key => &$val)
+			$val = urldecode($val);
+
 		// function should return an array of results.
 		// anything else will be considered a failure/pass.
 		return $this->callfunc($funcargs, $trace);
 	}
 }
 
+global $tracepagehandlers;
 if (!isset($tracepagehandlers))
 	$tracepagehandlers = false;
 
+global $pagehandlers;
 $pagehandlers = array(); // this really belongs in the class as a static variable,
                          // but apc3.0.8 + php5.1 goes nuts.
+global $methodhandlers;
 $methodhandlers = array(); // this does too
 
 // this base class is used to simplify the construction of a page view. It
@@ -507,13 +513,14 @@ class pagehandler
 		if (!isset($runstandalone) || !$runstandalone)
 		{
 			header("Status: 200 OK");
-			return self::executeHandler(urldecode($_SERVER['REQUEST_URI']), $_POST, $_REQUEST, $userData);
+			// Don't pass in $_POST if the request came from an untrusted source, just give it an empty array.
+			return self::executeHandler($_SERVER['REQUEST_URI'], isValidPost()? $_POST : Array(), $_REQUEST, $userData);
 		}
 	}
 	function reRunPage($req = array(), $post = array())
 	{
 		global $userData;
-		return self::executeHandler(urldecode($_SERVER['REQUEST_URI']), $post, $req, $userData);
+		return self::executeHandler($_SERVER['REQUEST_URI'], $post, $req, $userData);
 	}
 
 	public function setActualLevel($level)

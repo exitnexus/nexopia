@@ -1,0 +1,37 @@
+<form name="loginform" id="loginform" t:target="{target}" action="/post_login" method="post" xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<input type="hidden" name="referer" value="{#referer}"/>
+	<input type="hidden" name="js_clienttimezone" id="js_timezone" value=""/>
+
+	<table id="main" border="0" cellspacing="0" cellpadding="0" align="center">
+		<tr>
+			<td class="body"> User:                                                                     </td>
+			<td class="body"> <input class="body" type="text" name="username" size="10" style="width:90px"/> </td>
+		</tr>
+		<tr>
+			<td class="body"> Pass:                                                                         </td>
+			<td class="body"> <input class="body" type="password" name="password" size="10" style="width:90px"/> </td>
+		</tr>
+		<tr>
+			<td class="body" colspan="2">
+				<input type="checkbox" /> Secure Session (<a class="body" href="/faq.php?q=68"> ? </a>)
+			</td>
+		</tr>
+		<tr>
+			<td class="body" colspan="2">
+				<input type="checkbox" /> Remember Me
+			</td>
+		</tr>
+		<tr>
+			<td class="body" colspan="2">
+				<table cellspacing="0" cellpadding="0" width="100%">
+					<tr>
+						<td class="body" align="center">
+							<input class="body" type="submit" value="Login" style="width=60px" />
+							<input class="body" type="submit" value="Join" style="width=60px" />
+						</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</table>
+</form>

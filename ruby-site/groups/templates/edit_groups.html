@@ -1,0 +1,271 @@
+<div t:docid="edit_groups">
+	<table cellpadding="0" cellspacing="0" align="center" width="750">
+		<tr>
+			<td class="body" colspan="2">
+				<div style="padding-left: 86px; padding-right: 86px; padding-top: 2px">
+					<a class="body" 
+						href="/manageprofile.php?section=basics#{(PageRequest.current.impersonation? ? '&uid='+user.userid.to_s : '')}">
+						<b>Basics</b></a>&#160;|&#160;
+					<a class="body" 
+						href="/manageprofile.php?section=details#{(PageRequest.current.impersonation? ? '&uid='+user.userid.to_s : '')}">
+						<b>Details</b></a>&#160;|&#160;
+					<t:if t:id="!PageRequest.current.impersonation?">
+						<a class="body" 
+							href="/manageprofile.php?section=skins#{(PageRequest.current.impersonation? ? '&uid='+user.userid.to_s : '')}">
+							<b>Skins</b></a>&#160;|&#160;
+						<a class="body" 
+							href="/manageprofile.php?section=interests#{(PageRequest.current.impersonation? ? '&uid='+user.userid.to_s : '')}">
+							<b>Interests</b></a>&#160;|&#160;
+					</t:if>
+					<a class="body" 
+						href="/manageprofile.php?section=forums#{(PageRequest.current.impersonation? ? '&uid='+user.userid.to_s : '')}">
+						<b>Forums</b></a>&#160;|&#160;
+					<b>Social Groups</b>
+				</div>
+			</td>
+		</tr>
+		<tr>
+			<td class="body" colspan="2">
+
+		<div class="groups">
+			<script>
+				#{client_validation}
+			</script>
+	
+			<t:if t:id="!user_group_types.nil? && !user_group_types.empty?">
+				<div class="header">Groups</div>
+
+				<form id="multi_group_edit_form" name="multi_group_edit_form" action="/my/groups/update" method="POST">
+					<table border="0" class="tblContent" cellspacing="0" cellpadding="0">
+						<tr>
+							<td class="tdTitle">&nbsp;</td>
+							<td class="tdInfo" colspan="3">
+								<t:if t:id="!PageRequest.current.impersonation?">
+									Click on a group to edit it
+								</t:if>
+							</td>
+						</tr>
+						<t:loop t:id="user_group_types" t:iter="user_group_type">
+							<t:loop t:id="user_group_type" t:iter="user_group" t:index="num">
+								<tr valign="top">
+									<t:if t:id="num == 0">
+										<td class="tdTitle">{user_group.group_type_name}</td>
+									</t:if>
+									<t:if t:id="num > 0">
+										<td></td>
+									</t:if>
+									<td class="tdInfo">
+										<t:if t:id="!PageRequest.current.impersonation?">
+											<a href="/my/groups/edit/{user_group.groupid}">{user_group.group_name}</a>
+										</t:if>
+										<t:if t:id="PageRequest.current.impersonation?">
+											{user_group.group_name}
+										</t:if><br />
+										<span class="location">{user_group.group_location_name}</span>
+									</td>
+									<td class="tdPrivacy">
+										<t:if t:id="!PageRequest.current.impersonation?">
+											<t:handler-include path="/groups/visibility/{user_group.visibility!.value}" area="Public">
+												<t:var t:name="'field'" t:val="'visibility'" />
+												<t:var t:name="'id'" t:val="user_group.groupid.to_s" />
+											</t:handler-include>
+										</t:if>
+										<t:if t:id="PageRequest.current.impersonation?">
+											<select disabled="true">
+												<option>{Groups::GroupMember::VISIBILITY_OPTIONS[user_group.visibility!.value]}</option>
+											</select>
+										</t:if>
+									</td>
+									<td>
+										<div style="vertical-align: middle">
+											<t:if t:id="!PageRequest.current.impersonation?">
+												<div style="float: left">
+													<a onclick="EditGroups.remove({user_group.groupid}); return false;" href="/my/groups/remove/{user_group.groupid}">
+														<img class="delete" border="0" src="{$site.static_files_url}/groups/images/cross_red.gif" width="12" height="12" />
+													</a>
+												</div>
+											</t:if>
+											<t:if t:id="PageRequest.current.impersonation?">
+												<div style="float: left">
+													<a onclick="EditGroups.remove({user_group.groupid}, '#{PageRequest.current.user.username}'); return false;"
+													 		href="/admin/self/#{PageRequest.current.user.username}/groups/remove/{user_group.groupid}">
+														<img class="delete" border="0" src="{$site.static_files_url}/groups/images/cross_red.gif" width="12" height="12" />
+													</a>
+												</div>
+												<span style="line-height: 1.4">&#160;|&#160;
+													<a onclick="EditGroups.removeGroup({user_group.groupid}, '#{PageRequest.current.user.username}'); return false;" 
+														href="/admin/groups/remove_group/{user_group.groupid}/#{PageRequest.current.user.username}">REMOVE GROUP</a></span>
+											</t:if>
+										</div>
+									</td>
+								</tr>
+							</t:loop>
+						</t:loop>
+						<tr class="row_spacer"></tr>
+						<tr>
+							<td></td>
+							<td><input type="submit" class="submit" value="Update" /></td>
+						</tr>
+						<tr class="row_spacer"></tr>
+						<tr>
+							<td></td>
+							<td>
+								<t:if t:id="!PageRequest.current.impersonation?">
+									<a href="/my/groups/create">Create New Group</a>
+								</t:if>
+							</td>
+						</tr>
+					</table>
+				</form>
+			</t:if>
+
+			<t:if t:id="selected_group && !PageRequest.current.impersonation?">
+				<t:if t:id="selected_group.created?">
+					<div class="header">Edit Group</div>
+				</t:if>
+				<t:if t:id="!selected_group.created?">
+					<div class="header">Create New Group</div>
+				</t:if>
+	
+				<form action="/my/groups/update" method="POST">
+					<table border="0" class="tblContent" cellspacing="0" cellpadding="0">
+						<tr>
+							<td class="tdTitle">Type:</td>
+							<td class="tdInfo">
+								<t:if t:id="selected_group.created?">
+									{selected_group.group_type_name}
+								</t:if>
+								<t:if t:id="!selected_group.created?">
+									<t:handler-include path="/groups/type/{type}" area="Public">
+										<t:var t:name="'onchange_handler'" t:val="'EditGroups.onTypeChange()'" />
+									</t:handler-include>
+								</t:if>
+							</td>
+							<td colspan="2">
+								<t:if t:id="!selected_group.created?">
+									#{type_vi} #{type_vm}
+								</t:if>
+							</td>
+						</tr>
+						<tr>
+							<td class="tdTitle">Location:</td>
+							<td class="tdInfo">
+								<t:if t:id="selected_group.created?">
+									{selected_group.group_location_name}
+								</t:if>
+								<t:if t:id="!selected_group.created?">
+									<t:handler-include path="/current/selector/location/#{location || selected_group.group_location}" area="Skeleton">
+										<t:var t:name="'onchange_handler'" t:val="'EditGroups.onLocationChange()'" />
+									</t:handler-include>
+								</t:if>
+							</td>
+							<td colspan="2">
+								<t:if t:id="!selected_group.created?">
+									#{location_vi} #{location_vm}
+								</t:if>
+							</td>
+						</tr>
+						<tr>
+							<td class="tdTitle">Name:</td>
+							<td class="tdInfo">
+								<t:if t:id="selected_group.created?">
+									{selected_group.group_name}
+								</t:if>
+								<t:if t:id="!selected_group.created?">
+									<div class="yui-skin-sam">
+										<div id="autocomplete" class="yui-ac">
+											<input type="text" name="name" id="name" value="{name}" maxlength="100" onblur="EditGroups.validateName()"/>
+											<div id="name_container" style="width: 200px;"></div>
+										</div>
+									</div>
+								</t:if>
+							</td>
+							<td colspan="2">
+								<t:if t:id="!selected_group.created?">
+									#{name_vi} #{name_vm}
+								</t:if>
+							</td>
+						</tr>
+						<tr>
+							<td style="height: 5px" colspan="3"><div><!-- Empty Comment to satisfy IE --></div></td>
+						</tr>
+						<tr>
+							<td class="tdTitle">Privacy:</td>
+							<td class="tdInfo">
+								<t:handler-include path="/groups/visibility/#{visbility || selected_group.visibility!.value}" area="Public">
+									<t:var t:name="'field'" t:val="'visibility'" />
+								</t:handler-include>
+							</td>
+						</tr>
+						<tr class="row_spacer"></tr>
+						<tr>
+							<td class="tdTitle">From:</td>
+							<td>
+								<t:handler-include 
+									path="/current/date/date/#{from_month || selected_group.frommonth}/1/#{from_year || selected_group.fromyear}" area="Skeleton">
+									<t:var t:name="'month_ref'" t:val="'from_month'" />
+									<t:var t:name="'year_ref'" t:val="'from_year'" />
+									<t:var t:name="'hide_days'" t:val="true" />
+									<t:var t:name="'min_year'" t:val="Time.now.year-60" />
+									<t:var t:name="'max_year'" t:val="Time.now.year--5" />
+									<t:var t:name="'month_onchange_handler'" t:val="'EditGroups.onFromDateChange()'" />
+									<t:var t:name="'year_onchange_handler'" t:val="'EditGroups.onFromDateChange()'" />
+								</t:handler-include>
+							</td>
+							<td colspan="2">
+								#{from_vi} #{from_vm}
+							</td>
+						</tr>
+						<tr>
+							<td class="tdTitle">To:</td>
+							<td>
+								<div>
+									<div style="float: left">
+										<t:handler-include 
+											path="/current/date/date/#{to_month || selected_group.tomonth}/1/#{to_year || selected_group.toyear}" area="Skeleton">
+											<t:var t:name="'month_ref'" t:val="'to_month'" />
+											<t:var t:name="'year_ref'" t:val="'to_year'" />
+											<t:var t:name="'hide_days'" t:val="true" />
+											<t:var t:name="'min_year'" t:val="Time.now.year-60" />
+											<t:var t:name="'max_year'" t:val="Time.now.year--5" />
+											<t:var t:name="'month_onchange_handler'" t:val="'EditGroups.onToDateChange()'" />
+											<t:var t:name="'year_onchange_handler'" t:val="'EditGroups.onToDateChange()'" />
+										</t:handler-include>
+									</div>
+									<div style="float:left; margin-left: 6px; margin-right: 6px">
+										<t:if t:id="present"/>
+										<input style="vertical-align: middle" type="checkbox" class="checkbox" id="present" name="present" 
+											cond:checked="present || (!selected_group.nil? && selected_group.toyear == -1 && selected_group.tomonth == -1)" 
+											onclick="EditGroups.onPresentChange()">Present</input>
+									</div>
+								</div>
+							</td>
+							<td colspan="2">
+								#{to_vi} #{to_vm}
+							</td>
+						</tr>
+						<tr class="row_spacer"></tr>
+						<tr>
+							<td></td>
+							<td>			
+								<t:if t:id="selected_group.created?">
+									<input type="hidden" id="name" name="name" value="{selected_group.group_name}" />
+									<input type="hidden" id="type" name="type" value="{selected_group.group_type}" />
+									<input type="hidden" id="location" name="location" value="{selected_group.group_location}" />
+									<input type="hidden" id="group_id" name="group_id" value="{selected_group.groupid}" />
+									<input type="submit" class="submit" value="Update" />
+								</t:if>
+
+								<t:if t:id="!selected_group.created?">
+									<input type="submit" class="submit" value="Create" />
+								</t:if>
+							</td>
+						</tr>
+					</table>
+				</form>
+			</t:if>
+		</div>
+
+		</td></tr>
+	</table>
+</div>

@@ -1,0 +1,39 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<t:template-include name="admin_header" module="adminutils"/>
+	<table id="role_list">
+		<tr>
+			<td class="header">
+				Role Name
+			</td>
+			<td class="header">
+				Title
+			</td>
+			<td class="header">
+				Permissions
+			</td>
+			<td class="header">
+				Function
+			</td>
+		</tr>
+		<tr t:alternating="body, body2" t:id="roles" t:iter="role">
+			<td class="{class_var}">
+				{role.rolename}
+			</td>
+			<td class="{class_var}">
+				{role.title}
+			</td>
+			<td class="{class_var}">
+				{role.privileges.meta.names}
+			</td>
+			<td class="{class_var}">
+				<a href="/admin/roles/{role.id}" class="body">Edit</a>&#xA0;
+				<a href="/admin/roles/delete/{role.id}?form_key=%{form_key}" class="body">Delete</a>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="4" align="right" class="header">
+				<a href="/admin/roles/create" class="header">Create a Role</a>
+			</td>
+		</tr>
+	</table>
+</div>

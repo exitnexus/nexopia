@@ -1,0 +1,11 @@
+<div t:docid="contact_search_results" id="contact_search_results">
+	<t:handler-include t:path="/friends/find/results/member/">
+		<t:var t:name="'redirect_location'" t:val="redirect_location"></t:var>
+	</t:handler-include>
+	<div class="script">
+		<hr />
+		<t:handler-include t:path="/friends/find/results/invite/"></t:handler-include>
+		<form id="search_cleanup" name="search_cleanup" method="post" action="/friends/find/results/cleanup/">
+		</form>
+	</div>
+</div>

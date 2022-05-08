@@ -69,7 +69,7 @@ class bannercampaign {
 	public $interests;	// array( 0 => $default, $interest1 => t/f, ...)
 
 	public $sizes; // array ( size => bool );
-	
+
 //limiting
 	public $maxviews;
 	public $maxclicks;
@@ -99,15 +99,15 @@ class bannercampaign {
 		$this->userviewtimes = array();
 		$this->charge = 0;
 		$this->update($vals, $numservers);
-		
+
 	}
 
 	function update($vals, $numservers = 1){
 		global $banner;
 
-		
+
 		$this->sizes = array();
-		
+
 		$this->clientid = $vals['clientid'];
 		$results = $banner->db->prepare_query("SELECT type FROM bannerclients WHERE id = #", $vals['clientid']);
 		if ($line = $results->fetchrow()) {
@@ -124,7 +124,7 @@ class bannercampaign {
 			foreach($temp as $v)
 				$this->sex[$v] = true;
 		}
-		
+
 		if($vals['allowedtimes'] == '') {
 			$this->allowedtimes = new timetable('S-Y0-23');
 		} else {
@@ -202,7 +202,7 @@ class bannercampaign {
 		}
 		unset($result);
 
-		
+
 	}
 
 	function updateSizes() {
@@ -214,8 +214,8 @@ class bannercampaign {
 		}
 		unset($result);
 	}
-	
-	
+
+
 	function getBannerID($id) {
 		return $this->banners[$id];
 	}
@@ -237,7 +237,7 @@ class bannercampaign {
 		foreach ($this->banners as $banner) {
 			$banner->minutely($db, $time, $debug);
 		}
-		
+
 		if($this->charge) {
 			$db->prepare_query("UPDATE bannercampaigns SET credits = credits - # WHERE id = #", $this->charge, $this->id);
 	}
@@ -248,7 +248,7 @@ class bannercampaign {
 		}
 		unset($result);
 		$this->charge = 0;
-		
+
 	}
 
 	function dailyviews() {
@@ -327,7 +327,7 @@ class bannercampaign {
 				$totalpriority += $banner->priority($userid, $time);
 			}
 		}
-		
+
 		if($this->minviewsperday > $this->dailyviews()) {
 			$totalpriority *= (10 - 4*max(0,min(2,(($this->dailyviews()/$this->minviewsperday)/((userdate("G",$time)+1)/24)))));
 		}
@@ -434,7 +434,7 @@ class bannercampaign {
 		//time
 		$day = gmdate("w", $usertime);
 		$hour = gmdate("G", $usertime);
-		
+
 		if (!$this->allowedtimes->validHours[$day][$hour]) {
 			if ($debug) bannerDebug($debugLog);
 			return false;
@@ -517,7 +517,7 @@ class banner{
 	public $page;		// array( 0 => $default, $page1 => t/f, ...)
 	public $interests;	// array( 0 => $default, $interest1 => t/f, ...)
 	public $allowedtimes; // timetable object
-	
+
 //limiting - these increase specificity over campaigns, but cannot reduce it
 	public $maxviews;
 	public $maxclicks;
@@ -544,7 +544,7 @@ class banner{
 	public $hourlyclicks;
 
 	public $userviewtimes; //a two dimensional window of userid, window position => view time (used for frequency checks)
-	
+
 	public $dailyviews;
 	public $dailyclicks;
 
@@ -565,7 +565,7 @@ class banner{
 		$this->hourlyviews 	= array();
 		$this->hourlyclicks	= array();
 		$this->userviewtimes = array();
-		
+
 		for($i = 0; $i < BANNER_SLIDE_SIZE; $i++){ //use a BANNER_SLIDE_SIZE hour window to calculate eCPM for CPC ads
 			$this->hourlyviews[$i] = 0;
 			$this->hourlyclicks[$i] = 0;
@@ -574,13 +574,13 @@ class banner{
 		$this->dailyviews 	= 0;
 		$this->dailyclicks	= 0;
 
-		
+
 		$this->views 		= 0;
 		$this->potentialviews = 0;
 		$this->clicks		= 0;
 		$this->passbacks	= 0;
 		$this->charge		= 0;
-		
+
 		$this->id 			= $vals['id'];
 		$this->size 		= $vals['bannersize'];
 
@@ -597,7 +597,7 @@ class banner{
 		} else {
 			$this->allowedtimes = new timetable("S-Y0-23");
 		}
-		
+
 		if($vals['sex'] == ''){
 			$this->sex = array(SEX_UNKNOWN => true, SEX_MALE => true, SEX_FEMALE => true);
 		}else{
@@ -703,12 +703,12 @@ class banner{
 				$this->charge += $this->credits - $this->charge;
 			}
 		}
-		
+
 		$this->hourlyviews[$this->hour]++;
 		$this->dailyviews++;
 		$this->views++;
 	}
-	
+
 	function potentialHit() {
 		$this->potentialviews++;
 	}
@@ -751,7 +751,7 @@ class banner{
 			bannerDebug("minutely " . $this->id . " " . $this->views . " " . $this->clicks . " " . $this->passbacks);
 
 
-		
+
 		//only update banners that have new info.
 		if($this->views || $this->clicks || $this->passbacks || $this->charge) {
 			$db->prepare_query("UPDATE banners SET lastupdatetime = #, views = views + #, potentialviews = potentialviews + #, clicks = clicks + #, passbacks = passbacks + #, credits = credits - # WHERE id = #", $time, $this->views, $this->potentialviews, $this->clicks, $this->passbacks, $this->charge, $this->id);
@@ -762,7 +762,7 @@ class banner{
 			$this->credits = $line['credits'];
 		}
 		unset($result);
-		
+
 		$this->charge = 0;
 		$this->views = 0;
 		$this->potentialviews = 0;
@@ -882,7 +882,7 @@ class banner{
 		//if(!$this->moded) {
 		//	return false;
 		//}
-		
+
 		//date
 		if($this->startdate >= $time || ($this->enddate && $this->enddate <= $time)) {
 			if ($debug) bannerDebug($debugLog);
@@ -991,7 +991,7 @@ class banner{
 		//		return false;
 		//	}
 		//}
-		
+
 		//frequency capping
 		//this period (day/hour)
 		//bannerDebug("testing frequency capping");
@@ -1009,7 +1009,7 @@ class banner{
 		if($this->viewsperuser && isset($this->userviewtimes[$userid])) {
 			end($this->userviewtimes[$userid]);
 			$keyToCheck = key($this->userviewtimes[$userid]) - $this->viewsperuser + 1;
-			
+
 			if (isset($this->userviewtimes[$userid][$keyToCheck]) && $this->userviewtimes[$userid][$keyToCheck] >= ($time-$this->limitbyperiod)) {
 				if ($debug) bannerDebug($debugLog);
 				return false;
@@ -1034,7 +1034,7 @@ class bannerstats{
 	public $page;
 	public $interests;
 	public $hittimes; //hittimes[0-6 weekdays][0-23 hours] = hits
-	
+
 	function __construct(){
 		$this->total = 0;
 		$this->starttime = time();
@@ -1047,7 +1047,7 @@ class bannerstats{
 		$this->interests = array();
 		$this->hittimes = array();
 	}
-	
+
 	function hit($age, $sex, $loc, $interests, $page, $time){
 		$this->total++;
 
@@ -1058,7 +1058,7 @@ class bannerstats{
 		if (!isset($this->hittimes[$day][$hour]))
 			$this->hittimes[$day][$hour] = 0;
 		$this->hittimes[$day][$hour]++;
-		
+
 		if (!isset($this->agesex[$age]))
 			$this->agesex[$age] = array();
 		if (!isset($this->agesex[$age][$sex]))
@@ -1127,6 +1127,35 @@ class bannerstats{
 		}
 
 		return $factor;
+	}
+	
+	function loadXML($xmlstring){
+		$xml = simplexml_load_string($xmlstring);
+	
+		$this->total = $xml->total;
+		$this->starttime = $xml->starttime;
+
+		foreach($xml->agesex as $k => $v)
+			$this->agesex[$k] = array(SEX_UNKNOWN => $v[SEX_UNKNOWN],
+			                          SEX_MALE => $v[SEX_MALE],
+			                          SEX_FEMALE => $v[SEX_FEMALE]);
+
+		foreach($xml->loc as $k => $v)
+			if($v)
+				$this->loc[$k] = $v;
+
+		foreach($xml->interests as $k => $v)
+			if($v)
+				$this->interests[$k] = $v;
+
+		foreach($xml->hittimes as $daynum => $day)
+			foreach($day as $hour => $hits)
+				$this->hittimes[$daynum][$hour] = $hits;
+
+		foreach($xml->pages as $line)
+//			$this->page[$line->string] = $line->integer->i;
+//			$this->page[$line[0]] = $line[1][0];
+			$this->page[$line['string']] = $line['integer'][0];
 	}
 }
 
@@ -1207,7 +1236,7 @@ class bannerserver{
 		unset($res);
 		if ($campaign) {
 			if (isset($this->bannercampaigns[$id])) { //update the campaign
-				$this->bannercampaigns[$id]->update($campaign);
+				$this->bannercampaigns[$id]->update($campaign, $this->numservers);
 			} else { //add the campaign
 				$this->addCampaign($id);
 			}
@@ -1221,7 +1250,7 @@ class bannerserver{
 		$res = $this->db->prepare_query("SELECT * FROM banners WHERE id = #", $id);
 		$banner = $res->fetchrow();
 		unset($res);
-		
+
 		if($banner){
 			$newBanner = new banner($banner, $this->numservers, $this->bannercampaigns[$banner['campaignid']]);
 			$this->bannercampaigns[$banner['campaignid']]->addBanner($newBanner);
@@ -1236,7 +1265,7 @@ class bannerserver{
 		$res = $this->db->prepare_query("SELECT * FROM banners WHERE id = #", $id);
 		$banner = $res->fetchrow();
 		unset($res);
-		
+
 		if($banner){
 			if ($banner['campaignid'] == $this->campaignids[$id]) { //same campaign just update the banner in it
 				$this->bannercampaigns[$this->campaignids[$id]]->getBannerID($id)->update($banner, $this->numservers, $this->bannercampaigns[$this->campaignids[$id]]);
@@ -1294,18 +1323,21 @@ class bannerserver{
 	}
 
 	function getBanner($usertime, $size, $userid, $age, $sex, $loc, $interests, $page, $debug = 0, $id = null){
+		$banners = array();
+		$valid = array();
+		$validBanners = false;
 		$debugLog = "";
 		if ($debug) $debugLog .= "$usertime, $size, $userid, $age, $sex, $loc, $page, $debug";
 		if($id === null){
 			$valid = array();
 			foreach($this->bannercampaigns as &$campaign){
 				//check campaign size and campaign enabled
-				if ($debug) $debugLog .= "\nPre-checking campaign $campaign->id:"; 
+				if ($debug) $debugLog .= "\nPre-checking campaign $campaign->id:";
 				if(isset($campaign->sizes[$size]) && $campaign->enabled) {
 					//check valid start/end date and valid sex
-					if ($debug) $debugLog .= " 1"; 
+					if ($debug) $debugLog .= " 1";
 					if(!($campaign->startdate >= $this->time || ($campaign->enddate && $campaign->enddate <= $this->time)) && $campaign->sex[$sex]) {
-						if ($debug) $debugLog .= " 2"; 
+						if ($debug) $debugLog .= " 2";
 						//bannerDebug("Passed prescreening for $campaign->id");
 						if($validBanners = $campaign->valid($userid, $age, $sex, $loc, $interests, $page, $this->time, $size, $usertime, $debug)){
 							$valid[$campaign->id] = $campaign->priority($userid, $validBanners, $this->time);
@@ -1321,13 +1353,13 @@ class bannerserver{
 					//bannerDebug("Failed size check for campaign:$campaign->id");
 				}
 			}
-			
+
 			if(count($valid) == 0) {
-				if ($debug) bannerDebug($debugLog); 
+				if ($debug) bannerDebug($debugLog);
 				return 0;
 			}
 
-			
+
 			$campaignID = chooseWeight($valid, false);
 			$id = $this->bannercampaigns[$campaignID]->getBanner($userid, $banners[$campaignID], $this->time);
 
@@ -1339,7 +1371,7 @@ class bannerserver{
 		$this->bannercampaigns[$campaignID]->hit($id, $userid, $this->time);
 
 		if ($debug) $debugLog .= "\nChose banner $id";
-		if ($debug) bannerDebug($debugLog); 
+		if ($debug) bannerDebug($debugLog);
 
 		return $id;
 	}
@@ -1443,8 +1475,10 @@ class bannerclient{
 	public $db;
 
 	public $sock;
+	public $logsock;
 	public $hosts;
 	public $dead;
+	public $rehash;
 
 	public $persistant;
 	public $timeout;
@@ -1456,14 +1490,20 @@ class bannerclient{
 	public $userid;
 	public $age;
 	public $sex;
+	public $sexuality;
 	public $loc;
 	public $page;
 	public $server;
 	public $skin;
 	public $interests;
 
+	public $pageid;
+	public $zone;
+	
+	public $linkclass;
 
-	function __construct( & $db, $hosts, $persist = false){
+
+	function __construct( & $db, $hosts, $persist = false, $rehash = false){
 
 		$this->db = & $db;
 
@@ -1473,6 +1513,7 @@ class bannerclient{
 
 		$this->timeout = 0.05;
 		$this->persistant = $persist;
+		$this->rehash = $rehash;
 
 		$this->sizes = array(	BANNER_BANNER 		=> "468x60",
 								BANNER_LEADERBOARD 	=> "728x90",
@@ -1490,20 +1531,46 @@ class bannerclient{
 								BANNER_HTML		=> 'html',
 								BANNER_TEXT		=> 'text' );
 
+		$this->pageid = 0;
+		$this->zone = 0;
+
+		$this->linkclass = 'body';
+
 		register_shutdown_function(array(&$this, "disconnect"));
 	}
 
 	function connect(){
+		//connect to the log server to log attempts
+		if(!$this->logsock){
+			global $config;
+			list($host, $port) = explode(':', $config['bannerlogserver']); //assume in the form: ip:port
+
+			$this->logsock = null;
+
+			if($host && $port){
+				if($this->logsock = fsockopen("udp://$host", $port, $errno, $errstr, 0.05)){
+		//			stream_set_timeout($sock, 0.02);
+		//			stream_set_blocking($sock, 0); //non blocking
+				}else{
+					$this->logsock = null;
+				}
+			}
+		}
+
 		if($this->sock)
 			return true;
 
 		if($this->dead)
 			return false;
 
+		$this->pageid = rand(10000, 99999); //always be 5 digits
+
 		$numhosts = count($this->hosts);
 		$hostnum = abs($this->userid) % $numhosts;
 
-		for($i = 0; $i < $numhosts; $i++){
+		$numtries = ($this->rehash ? $numhosts : 1);
+
+		for($i = 0; $i < $numtries; $i++){
 			$host = $this->hosts[($i + $hostnum) % $numhosts];
 			$errno = 0;
 			$errstr = "";
@@ -1514,7 +1581,6 @@ class bannerclient{
 
 			if($this->sock) //else try next host
 				break;
-			
 		}
 
 		if(!$this->sock){ //if no host found, mark as dead, don't try again
@@ -1530,10 +1596,15 @@ class bannerclient{
 	function disconnect(){
 		if($this->sock)
 			fclose($this->sock);
+		if($this->logsock)
+			fclose($this->logsock);
 		$this->sock = null;
 	}
 
 	function getVariables(){
+		if($this->page)
+			return;
+	
 		global $userData, $config, $skin;
 
 		$this->page = strtolower(substr($_SERVER['PHP_SELF'], 1, -4)); //take off leading / and trailing .php
@@ -1544,6 +1615,7 @@ class bannerclient{
 			$this->userid = $userData['userid'];
 			$this->age = $userData['age'];
 			$this->sex = ($userData['sex'] == 'Male' ? SEX_MALE : SEX_FEMALE);
+			$this->sexuality = $userData['sexuality'];
 			$this->loc = $userData['loc'];
 			if($userData['interests'])
 				$this->interests = $userData['interests'];
@@ -1557,6 +1629,7 @@ class bannerclient{
 				$this->userid = getCOOKIEval('userid', 'int');
 			$this->age = 0;
 			$this->sex = SEX_UNKNOWN;
+			$this->sexuality = SEX_UNKNOWN;
 			$this->loc = 0;
 			$this->interests = '0';
 		}
@@ -1564,16 +1637,96 @@ class bannerclient{
 		$this->skin = $skin;
 	}
 
-	function simulateGetBanner($size, $usertime, $userid, $age, $sex, $loc, $interests, $page, $refresh = false, $passback = 0){
-		global $cache;
+	function getZone(){
+		if(!$this->page)
+			$this->getVariables();
 
+		switch($this->page){
+			case 'index':               return 2;
+			case 'usercomments':        return 3;
+			case 'messages':            return 4;
+			case 'friends':             return 5;
+
+			case 'articlelist':         return 6;
+			case 'article':             return 7;
+
+			case 'forums':              return 8;
+			case 'forumthreads':        return 9;
+			case 'forumviewthread':     return 10;
+			case 'managesubscriptions': return 11;
+
+			case 'manageprofile':       return 12;
+			case 'managepicture':       return 13;
+			case 'managegallery':       return 14;
+
+			case 'profileviews':        return 15;
+			case 'prefs':               return 16;
+			case 'weblog':              return 17;
+
+
+			case 'profile':
+				if(isset($_REQUEST['uid']) && $_REQUEST['uid'])
+					return 50;
+
+				if(isset($_REQUEST['requestType'])){
+					switch($_REQUEST['requestType']){
+						case 'mine':
+							return 51;
+						case 'onlineByPrefs':
+							return 52;
+						case 'query':
+							if(isset($POST['requestParams']['displayList']))
+								return 53;
+							else
+								return 54;
+						default:
+							return 55;
+					}
+				}
+				return 56;
+				//end profile
+		}
+
+		return 1; //default, unknown zone
+	}
+
+	function getpageid(){
+		if(!$this->zone)
+			$this->zone = $this->getzone();
+
+		return $this->zone . str_pad($this->pageid, 5, "0", STR_PAD_LEFT); //zone is 1 or 2 digits, pageid is 5 digits
+	}
+
+	function getBanner($size, $refresh = false, $passback = 0, $debug = 0, $pageid = false){
+		global $cache;
 
 		$this->getVariables();
 
-		if(!$this->connect())
+	//tries to connect, and opens the logsock if needed
+		$connected = $this->connect();
+
+	//tries to log the attempt, even if it failed to connectd
+		if($this->logsock)
+			fwrite($this->logsock, 'a');
+
+		if(!$connected)
 			return "";
 
-		fwrite($this->sock, "get $usertime $size $userid $age $sex $loc $interests $page $passback\n");
+	//get the pageid and zone
+		if($pageid === false){ //set from this page
+			$pageid = $this->pageid;
+		}else{ //passed in from the frame
+			$this->zone = substr($pageid, 0, -5);
+			$pageid = ltrim(substr($pageid, -5), '0'); //cut off the zone stuff
+		}
+		
+		if(!$pageid) //if no ad was shown this page (but would be for the leaderboard?)
+			$pageid = -1; //-1 is a special value to the banner server meaning no banner on the page below.
+
+
+		$time = time();
+		$usertime = $time + getusertimeoffset($time);
+		fwrite($this->sock, "get $usertime $size $this->userid $this->age $this->sex $this->loc $this->interests $this->page $passback $debug $pageid\n");
 
 //*
 		$buf = "";
@@ -1607,70 +1760,7 @@ class bannerclient{
 			$res = $this->db->prepare_query("SELECT bannertype, image, link, alt, refresh, campaignid FROM banners WHERE id = #", $id);
 			$banner = $res->fetchrow();
 			unset($res);
-			
-			if ($banner['refresh'] < 0) {
-				$res = $this->db->prepare_query("SELECT refresh FROM bannercampaigns WHERE id = #", $banner['campaignid']);
-				$campaign = $res->fetchrow();
-				unset($res);
-				$banner['refresh'] = $campaign['refresh'];
-			}
 
-			$cache->put("banner-$id", $banner, 3600);
-		}
-
-
-		if($refresh === true)
-			$refresh = $banner['refresh'];
-
-		return $this->getCode($id, $size, $banner['bannertype'], $banner['image'], $banner['link'], $banner['alt'], $refresh);
-	}
-	
-	
-	function getBanner($size, $refresh = false, $passback = 0, $debug = 0){
-		global $cache;
-
-
-		$this->getVariables();
-
-		if(!$this->connect())
-			return "";
-
-		$usertime = time() + getusertimeoffset();
-		fwrite($this->sock, "get $usertime $size $this->userid $this->age $this->sex $this->loc $this->interests $this->page $passback $debug\n");
-
-//*
-		$buf = "";
-		$id = "";
-		while($buf = fgets($this->sock, 256)){
-			$id .= $buf;
-			if(strchr($id, "\n") !== false)
-				break;
-			if(feof($this->sock)){ //timed out?
-				$this->dead = true;
-				return "";
-			}
-
-			usleep(1000); //wait a millisecond
-		}
-
-		$id = trim($id);
-/*/
-		$id = trim(fgets($this->sock));
-//*/
-	if(!$id) {
-		return "";
-	}
-
-
-//return $id;
-
-		$banner = $cache->get("banner-$id");
-
-		if(!$banner){
-			$res = $this->db->prepare_query("SELECT bannertype, image, link, alt, refresh, campaignid FROM banners WHERE id = #", $id);
-			$banner = $res->fetchrow();
-			unset($res);
-			
 			if ($banner['refresh'] < 0) {
 				$res = $this->db->prepare_query("SELECT refresh FROM bannercampaigns WHERE id = #", $banner['campaignid']);
 				$campaign = $res->fetchrow();
@@ -1702,9 +1792,10 @@ class bannerclient{
 	function click($id, $page){
 		if(!$this->connect())
 			return;
-			
-		$time = time() + getusertimeoffset();
-		
+
+		$time = time();
+		$time = $time + getusertimeoffset($time);
+
 		fwrite($this->sock, "click $id $this->age $this->sex $this->loc $this->interests $page $time\n");
 
 		$res = $this->db->prepare_query("SELECT link FROM banners WHERE id = #", $id);
@@ -1714,19 +1805,22 @@ class bannerclient{
 	}
 
 	function addBanner($id){
+		global $msgs;
 		foreach($this->hosts as $host){
 			$sock = @fsockopen($host, BANNER_PORT, $errno, $errstr, $this->timeout*4);
 
 			if($sock){
 				fwrite($sock, "add $id\n");
 				fclose($sock);
+			} else {
+				$msgs->addMsg("Failed to update banner server $host, please retry.");
 			}
 		}
 		return true;
 	}
 
 	function updateBanner($id){
-		global $cache;
+		global $cache, $msgs;
 
 		foreach($this->hosts as $host){
 			$sock = @fsockopen($host, BANNER_PORT, $errno, $errstr, $this->timeout*4);
@@ -1734,6 +1828,8 @@ class bannerclient{
 			if($sock){
 				fwrite($sock, "update $id\n");
 				fclose($sock);
+			} else {
+				$msgs->addMsg("Failed to update banner server $host, please retry.");
 			}
 		}
 
@@ -1743,7 +1839,7 @@ class bannerclient{
 	}
 
 	function deleteBanner($id){
-		global $cache;
+		global $cache, $msgs;
 
 		foreach($this->hosts as $host){
 			$sock = @fsockopen($host, BANNER_PORT, $errno, $errstr, $this->timeout*4);
@@ -1751,6 +1847,8 @@ class bannerclient{
 			if($sock){
 				fwrite($sock, "del $id\n");
 				fclose($sock);
+			} else {
+				$msgs->addMsg("Failed to update banner server $host, please retry.");
 			}
 		}
 
@@ -1760,19 +1858,23 @@ class bannerclient{
 	}
 
 	function addCampaign($id){
+		global $msgs;
+		
 		foreach($this->hosts as $host){
 			$sock = @fsockopen($host, BANNER_PORT, $errno, $errstr, $this->timeout*4);
 
 			if($sock){
 				fwrite($sock, "addcampaign $id\n");
 				fclose($sock);
+			} else {
+				$msgs->addMsg("Failed to update banner server $host, please retry.");
 			}
 		}
 		return true;
 	}
 
 	function updateCampaign($id){
-		global $cache;
+		global $cache, $msgs;
 
 		foreach($this->hosts as $host){
 			$sock = @fsockopen($host, BANNER_PORT, $errno, $errstr, $this->timeout*4);
@@ -1780,6 +1882,8 @@ class bannerclient{
 			if($sock){
 				fwrite($sock, "updatecampaign $id\n");
 				fclose($sock);
+			} else {
+				$msgs->addMsg("Failed to update banner server $host, please retry.");
 			}
 		}
 
@@ -1787,7 +1891,7 @@ class bannerclient{
 	}
 
 	function deleteCampaign($id){
-		global $cache;
+		global $cache, $msgs;
 
 		foreach($this->hosts as $host){
 			$sock = @fsockopen($host, BANNER_PORT, $errno, $errstr, $this->timeout*4);
@@ -1795,6 +1899,8 @@ class bannerclient{
 			if($sock){
 				fwrite($sock, "delcampaign $id\n");
 				fclose($sock);
+			} else {
+				$msgs->addMsg("Failed to update banner server $host, please retry.");
 			}
 		}
 
@@ -1802,25 +1908,28 @@ class bannerclient{
 	}
 
 	function getCode($id, $size, $type, $image, $link, $alt, $refresh = false){
-		global $config;
+		global $config, $wwwdomain;
 
 		$str = "";
+		if(strpos($this->sizes[$size], 'x') !== false)
+			list($width, $height) = explode('x', $this->sizes[$size]);
+		else
+			$width = $height = 0;
 
 		if($refresh)
-			$str .= "<script>parent.settime($refresh);parent.starttimer();</script>\n";
+			$str .= "<script>if(parent&&parent.settime){parent.settime($refresh);parent.starttimer();}</script>\n";
 
 		switch($type){
 			case BANNER_IMAGE:
-				list($width, $height) = explode('x', $this->sizes[$size]);
 				if(empty($image))
 					$image = $id . '.jpg';
 				if(substr($image,0,7) != "http://")
 					$image = $config['bannerloc'] . $image;
 
 				if($link=='')
-					return "$str<img src=\"$image\" width='$width' height='$height'" . ($alt == "" ? "" : " alt=\"$alt\"" ) . ">";
+					return "<div id='banner_$size'>$str<img src=\"$image\" width='$width' height='$height'" . ($alt == "" ? "" : " alt=\"$alt\"" ) . "></div>";
 				else
-					return "$str<a href=\"/bannerclick.php?id=$id\" target=_blank><img src=\"$image\" width='$width' height='$height' border=0" . ($alt == "" ? "" : " alt=\"$alt\"" ) . "></a>";
+					return "<div id='banner_$size'>$str<a href=\"/bannerclick.php?id=$id\" target=_blank><img src=\"$image\" width='$width' height='$height' border=0" . ($alt == "" ? "" : " alt=\"$alt\"" ) . "></a></div>";
 
 			case BANNER_FLASH:
 				if(substr($image,0,7) != "http://")
@@ -1828,40 +1937,86 @@ class bannerclient{
 				if(substr($alt,0,7) != "http://")
 					$alt = $config['bannerloc'] . $alt;
 
-				list($width, $height) = explode('x', $this->sizes[$size]);
-				return "$str<script src=$config[jsloc]banner.js></script><script>flashbanner('$alt', '$image', '$link', $width, $height, '#000000');</script>";
+				$alt = str_replace("%link%", "http://$wwwdomain/bannerclick.php?id=$id", $alt);
+
+				return "<div id='banner_$size'>$str<script src=$config[jsloc]banner.js></script><script>flashbanner('$alt', '$image', '$link', $width, $height, '#000000');</script></div>";
 
 			case BANNER_IFRAME:
 				if(substr($image,0,7) != "http://")
 					$image = $config['bannerloc'] . $image;
 
-				list($width, $height) = explode('x', $this->sizes[$size]);
-				return "$str<iframe src='$image' width='$width' height='$height' frameborder=no border=0 marginwidth=0 marginheight=0 scrolling=no></iframe>";
+				return "<div id='banner_$size'>$str<iframe src='$image' width='$width' height='$height' frameborder=no border=0 marginwidth=0 marginheight=0 scrolling=no></iframe></div>";
 
 			case BANNER_HTML:
 				if(strpos($alt, "%") !== false){
 					$this->getVariables();
 
 					$rand = rand();
-					$alt = str_replace("%rand%",$rand,$alt);
-					$alt = str_replace("%page%",$this->page,$alt);
+					$alt = str_replace("%rand%",$rand, $alt);
+					$alt = str_replace("%width%",$width, $alt);
+					$alt = str_replace("%height%",$height, $alt);
+					$alt = str_replace("%page%",$this->page, $alt);
 					$alt = str_replace("%age%", $this->age, $alt);
 					$alt = str_replace("%sex%", $this->sex, $alt);
 					$alt = str_replace("%skin%", $this->skin, $alt);
 					$alt = str_replace("%id%", $id, $alt);
 					$alt = str_replace("%size%", $size, $alt); //banner size (ie BANNER_BANNER, BANNER_LEADERBOARD)
 					$alt = str_replace("%server%", $this->server, $alt);
+					$alt = str_replace("%link%", "http://$wwwdomain/bannerclick.php?id=$id", $alt);
+					$alt = str_replace("%passback%", "http://$wwwdomain/bannerview.php?size=$size&pass=$id", $alt);
+					$alt = str_replace("%passbackjs%", "http://$wwwdomain/bannerview.php?size=$size&pass=$id&js=1", $alt);
+
+					if(strpos($alt, "%ampp_") !== false){
+						include_once("include/ampp_mappings.php");
+
+						$alt = str_replace("%ampp_size%", ampp_map_size($size), $alt);
+						$alt = str_replace("%ampp_age%", ampp_map_age($this->age), $alt);
+						$alt = str_replace("%ampp_sex%", ampp_map_sex($this->sex), $alt);
+						$alt = str_replace("%ampp_sexuality%", ampp_map_sexuality($this->sexuality), $alt);
+						$alt = str_replace("%ampp_interests%", ampp_map_interests($this->interests), $alt);
+						$alt = str_replace("%ampp_tile%", ampp_map_tile($size), $alt);
+						$alt = str_replace("%ampp_zone%", ampp_map_zone($this->zone), $alt);
+					}
+
+					if(strpos($alt, "%google_") !== false){
+						global $google, $userData;
+
+						if(strpos($alt, "%google_cust_age") !== false){
+							if(!$userData['loggedIn']){
+								$alt = str_replace("%google_cust_age%", 0, $alt);
+							}elseif($userData['age'] <= 17){
+								$alt = str_replace("%google_cust_age%", 1000, $alt);
+							}elseif($userData['age'] <= 24){
+								$alt = str_replace("%google_cust_age%", 1001, $alt);
+							}elseif($userData['age'] <= 34){
+								$alt = str_replace("%google_cust_age%", 1002, $alt);
+							}elseif($userData['age'] <= 44){
+								$alt = str_replace("%google_cust_age%", 1003, $alt);
+							}elseif($userData['age'] <= 54){
+								$alt = str_replace("%google_cust_age%", 1004, $alt);
+							}elseif($userData['age'] <= 64){
+								$alt = str_replace("%google_cust_age%", 1005, $alt);
+							}else{
+								$alt = str_replace("%google_cust_age%", 1006, $alt);
+							}
+						}
+						$alt = str_replace("%google_cust_gender%", $this->sex, $alt); //0 for unknown, 1 for male, 2 for female 
+
+						$alt = str_replace("%google_cust_l%", $google->encuserid($userData['userid']), $alt);
+						$alt = str_replace("%google_cust_lh%", $userData['googlehash'], $alt);
+//						$alt = str_replace("%google_ed%", $google->ed(), $alt);
+					}
 				}
 
-				return $str . $alt;
+				return "<div id='banner_$size'>" . $str . $alt . "</div>";
 
 			case BANNER_TEXT:
 				if($link == "")
-					return "$str<b>$image</b></a><br>$alt";
+					return "<div id='banner_$size'>$str<b>$image</b></a><br>$alt";
 				else
-					return "$str<a class=" . $this->linkclass . " href=\"/bannerclick.php?id=$id\" target=_blank><b>$image</b></a><br>$alt";
+					return "<div id='banner_$size'>$str<a class=" . $this->linkclass . " href=\"/bannerclick.php?id=$id\" target=_blank><b>$image</b></a><br>$alt";
 		}
-		return "$str";
+		return "<div id='banner_$size'>$str</div>";
 	}
 
 }

@@ -1,0 +1,27 @@
+<div style="background-color:white" xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<ul>
+		<li t:id="folders" t:iter="folder">
+			<a t:id="folder"></a>
+		</li>
+	</ul>
+	<table>
+		<t:loop t:id="threads" t:iter="(id, thread)">
+			<tr>
+				<td><t:if t:id="thread.mark"><img src="http://publib.boulder.ibm.com/tividd/td/ITMExp/SC32-1903-00/en_US/HTML/icon_notconfigured.gif"/></t:if></td>
+				<td>{thread.user_names_list} ({thread.length})</td>
+				<td>{thread.subject}</td>
+				<td>{thread.formatted_date}</td>
+			</tr>
+			<tr><td colspan="4">
+				<table>
+					<tr t:id="thread" t:iter="message">
+						<td><t:if t:id="message.mark"><img src="http://publib.boulder.ibm.com/tividd/td/ITMExp/SC32-1903-00/en_US/HTML/icon_notconfigured.gif"/></t:if></td>
+						<td><a t:id="message.user_from"></a></td>
+						<td><a t:id="message"></a></td>
+						<td>{message.formatted_date}</td>
+					</tr>
+				</table>
+			</td></tr>
+		</t:loop>
+	</table>
+</div>

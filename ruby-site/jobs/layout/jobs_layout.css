@@ -1,0 +1,43 @@
+#jobs_doc
+{
+	margin:auto; text-align:left;
+	width:56.185em; *width:56.169em;min-width:600px;
+	margin-top:8px;
+	margin-bottom: 8px;
+}
+
+#jobs div#bd
+{
+	padding: 10px 60px 15px 60px;
+}
+
+#jobs_intro div
+{
+	margin-top: 9px;
+	padding-bottom:6px;
+}
+
+#jobs_intro
+{
+	padding-bottom: 15px;
+}
+
+.app_input, .app_input_nosize
+{
+	padding-top: 15px;
+}
+
+.app_input input, .app_input select, .app_input textarea
+{
+	width: 280px;
+}
+
+.app_input textarea
+{
+	height: 40px;
+}
+
+.jobs_radio_text
+{
+	padding-left: 3px;
+}

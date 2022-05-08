@@ -1,0 +1,25 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<div style="background-color:white">
+		Please enter the problem and any relevant details.
+		<form name="create_message" id="create_message" action="{handler_root}/send" method="post">
+			<ul>
+				<input name="to" id="to" type="hidden" value="{to}"/>
+				<li>
+					<label>Problem:</label>
+					<input name="subject" id="subject" type="text" value="{new_subject}"/>
+				</li>
+				<li>
+					<label>Description:</label>
+					<textarea style="margin-left:5px;width:98%" name="body" id="body"></textarea>
+				</li>
+				<li>
+					<input type="submit" value="Report Abuse"/>
+				</li>
+			</ul>
+			<input id="replyid" name="replyid" type="hidden" value="{replyid}"/>
+			<input id="typeid" name="typeid" type="hidden" value="{typeid}"/>
+			<input id="primaryid" name="primaryid" type="hidden" value="{primaryid}"/>		
+			<input id="secondaryid" name="secondaryid" type="hidden" value="{secondaryid}"/>
+		</form>
+	</div>
+</div>

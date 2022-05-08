@@ -1,0 +1,33 @@
+<div>
+	<p>
+		The following are currently running banner potential checks.  You can check their progress.
+		If one does not move for a long time, there may be a problem.
+	</p>
+	<table>
+	<tr>
+		<td class="heading">
+			Banner
+		</td>
+		<td class="heading">
+			% Complete
+		</td>
+		<td class="heading">
+			Current Estimate
+		</td>
+	</tr>
+	<tr t:id="checks" t:iter="check">
+		<td>
+			{check.bannerid}
+		</td>
+		<td>
+			{check.percentcomplete}
+		</td>
+		<td>
+			{check.potentialviews}
+		</td>
+		<td>
+			<a href="/adblaster/potential_check/remove/{check.bannerid}">[delete]</a>
+		</td>
+	</tr>
+	</table>
+</div>

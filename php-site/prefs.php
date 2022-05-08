@@ -1,9 +1,9 @@
 <?
 
-	$login=1;
+	$login=0.5;
 
 	require_once("include/general.lib.php");
-    $template = new Template("prefs/prefs");
+	$template = new Template("prefs/prefs");
 	$isAdmin = $mods->isAdmin($userData['userid'],'editpreferences');
 
 	$uid = ($isAdmin ? getREQval('uid', 'int', $userData['userid']) : $userData['userid']);
@@ -74,14 +74,18 @@ function changepass($data){
 			$usersdb->prepare_query("DELETE FROM sessions WHERE userid = % && sessionid != ?", $uid, $userData['sessionkey']);
 
 			$msgs->addMsg("Password Changed");
+
+			$auth->loginlog($uid, 'changepass');
 		}
 	}else{
 		$msgs->addMsg("Wrong password entered. Password not changed.");
+		
+		$auth->loginlog($uid, 'changepassfail');
 	}
 }
 
 function changeemail($data){
-	global $userData, $msgs, $config, $uid, $usersdb, $masterdb, $mods, $useraccounts, $auth;
+	global $userData, $msgs, $config, $uid, $usersdb, $masterdb, $mods, $useraccounts, $auth, $cache;
 
 	if($userData['userid'] != $uid && !$mods->isAdmin($userData['userid'],'editemail'))
 		return false;
@@ -101,8 +105,9 @@ function changeemail($data){
 
 	$passmatch = (($userData['userid'] != $uid) || $auth->checkpassword($uid, $data['oldpass']));
 
-	if($userData['userid']==$uid && !$passmatch){
+	if(!$passmatch){
 		$msgs->addMsg("Password doesn't match");
+		$auth->loginlog($uid, 'changeemailfail');
 		return false;
 	}
 
@@ -113,6 +118,7 @@ function changeemail($data){
 	if($data['email1'] != $line['email']){
 		if(isValidEmail($data['email1'])){
 			if($useraccounts->changeEmail($uid, $data['email1'])){
+				$auth->loginlog($uid, 'changeemail');
 				incHeader();
 				echo "For this change to take effect, you'll have to click the link sent to your new email address.";
 				incFooter();
@@ -127,7 +133,7 @@ function changeemail($data){
 function update($data){
 	global $userData, $msgs, $config, $uid, $usersdb, $configdb, $cache;
 
-    $locations = new category( $configdb, "locs");
+	$locations = new category( $configdb, "locs");
 	$res = $usersdb->prepare_query("SELECT premiumexpiry FROM users WHERE userid = %", $uid);
 	$line = $res->fetchrow();
 
@@ -135,9 +141,6 @@ function update($data){
 
 	$commands[]= "fwmsgs = " . (isset($data['fwmsgs'])? "'y'" : "'n'");
 	$commands[]= "enablecomments = " . (isset($data['enablecomments'])? "'y'" : "'n'");
-
-	//$commands[]= "parse_bbcode = " . (isset($data['parse_bbcode'])? "'y'" : "'n'");
-	//$commands[]= "bbcode_editor = " . (isset($data['bbcode_editor'])? "'y'" : "'n'");
 
 	if(isset($data['onlyfriendsmsgs']) && isset($data['onlyfriendscomments']))
 		$commands[]= "onlyfriends = 'both'";
@@ -181,7 +184,7 @@ function update($data){
 	if(isset($data['defaultsex']) && in_array($data['defaultsex'], array("Male","Female")))
 		$commands[] = $usersdb->prepare("defaultsex = ?", $data['defaultsex']);
 
-    if(isset($data['defaultloc']) )
+	if(isset($data['defaultloc']) )
 		$commands[] = $usersdb->prepare("defaultloc = #", $data['defaultloc']);
 
 	if(!isset($data['defaultminage']) || $data['defaultminage'] < $config['minAge'])
@@ -197,6 +200,9 @@ function update($data){
 
 	$commands[] = $usersdb->prepare("defaultminage = #", $data['defaultminage']);
 	$commands[] = $usersdb->prepare("defaultmaxage = #", $data['defaultmaxage']);
+	$commands[]= "hideprofile = " . (isset($data['hideprofile'])? "'y'" : "'n'");
+	$commands[]= "searchemail = " . (isset($data['searchemail'])? "'y'" : "'n'");
+	$commands[] = "friendsauthorization = " . (isset($data['friendsauthorization'])? "'y'" : "'n'");
 
 	if(isset($data['forumsort']) && ($data['forumsort'] == 'thread' || $data['forumsort'] == 'post'))
 		$commands[] = $usersdb->prepare("forumsort = ?", $data['forumsort']);
@@ -206,11 +212,10 @@ function update($data){
 
 		if (isset($data['anonymousviews']) && in_array($data['anonymousviews'], array_keys($anonymousviews_options)))
 			$commands[] = $usersdb->prepare("anonymousviews = ?", $anonymousviews_options[ $data['anonymousviews'] ]);
-		$commands[] = "friendsauthorization = " . (isset($data['friendsauthorization'])? "'y'" : "'n'");
 		$commands[] = "limitads = " . (isset($data['limitads']) ? "'y'" : "'n'");
 		$userData['limitads'] = isset($data['limitads']);
 		$commands[] = "spotlight = " . (isset($data['spotlight']) ? "'y'" : "'n'");
-		$commands[]= "hideprofile = " . (isset($data['hideprofile'])? "'y'" : "'n'");
+		$commands[] = "hidehits = " . (isset($data['hidehits']) ? "'y'" : "'n'");
 	}
 
 	if(isset($data['timezone']) && gettimezones($data['timezone']) !== false){
@@ -251,7 +256,7 @@ function update($data){
 	return true;
 }
 
-    $locations = new category( $configdb, "locs");
+	$locations = new category( $configdb, "locs");
 
 	$res = $usersdb->prepare_query("SELECT * FROM users WHERE userid = %", $uid);
 	$line = $res->fetchrow();
@@ -263,35 +268,30 @@ function update($data){
 		$line[$k] = $v;
 
 	$plus = $line['premiumexpiry'] > time();
-    $template->set("uid", $uid);
+	$template->set("uid", $uid);
 
-    $template->set("select_list_gender", make_select_list(array("Male","Female"), $line['defaultsex']) );
-    $template->set("select_list_locations", '<option value="0">Anywhere</option>' . makeCatSelect($locations->makeBranch(), $line['defaultloc']));
+	$template->set("select_list_gender", make_select_list(array("Male","Female"), $line['defaultsex']) );
+	$template->set("select_list_locations", '<option value="0">Anywhere</option>' . makeCatSelect($locations->makeBranch(), $line['defaultloc']));
 	$template->set("prefs", $line);
 	$template->set("has_plus", $plus);
 	if($plus){
-	   $anonymousviews_options = array('Anyone' => 'n', 'Friends Only' => 'f', 'Nobody' => 'y');
-	   $template->set("select_list_anon_options", make_select_list(array_keys($anonymousviews_options), array_search($line['anonymousviews'], $anonymousviews_options)));
+		$anonymousviews_options = array('Anyone' => 'n', 'Friends Only' => 'f', 'Nobody' => 'y');
+		$template->set("select_list_anon_options", make_select_list(array_keys($anonymousviews_options), array_search($line['anonymousviews'], $anonymousviews_options)));
 	}
 
-    $template->set("allowed_email_thread_notification", $config['allowThreadUpdateEmails']);
-    $template->set("select_list_forum_posts_per_page", make_select_list(array(10,25,50,100),$line['forumpostsperpage']));
-    $template->set("select_forum_sort", make_select_list_key(array('post' => "Most Recently Active", 'thread' => "Most Recently Created"),$line['forumsort']));
+	$template->set("allowed_email_thread_notification", $config['allowThreadUpdateEmails']);
+	$template->set("select_list_forum_posts_per_page", make_select_list(array(10,25,50,100),$line['forumpostsperpage']));
+	$template->set("select_forum_sort", make_select_list_key(array('post' => "Most Recently Active", 'thread' => "Most Recently Created"),$line['forumsort']));
 
-	$template->set("autodetect_timezone", jsdate("F j, Y, g:i a"));
 	$timezones = gettimezones();
 	$template->set("timezones", $timezones);
-    $template->set("prefdate", prefdate("F j, Y, g:i a"));
-    $template->set("checkbox_parsebbcode", makeCheckBox('data[parse_bbcode]', '', $line['parse_bbcode'] == 'y' ? true : false ));
+	$template->set("prefdate", prefdate("F j, Y, g:i a"));
 
-    //$template->set("checkbox_bbcodeeditor", makeCheckBox('data[bbcode_editor]', '', $line['bbcode_editor'] == 'y' ? true : false ));
-
-    $template->set("select_skins",make_select_list_col_key($skins,'name',$skin) );
-    $template->set("expiry_days", ($line['premiumexpiry'] - time())/86400);
-    $template->set("is_current_user", !($userData['userid'] != $uid));
-    $template->set("can_edit_email", ($userData['userid'] == $uid || $mods->isAdmin($userData['userid'],'editemail')));
-    $template->set("email", $useraccounts->getEmail($userData['userid']));
-    $template->set("can_edit_password",($userData['userid'] == $uid || $mods->isAdmin($userData['userid'],'editpassword')));
+	$template->set("expiry_days", ($line['premiumexpiry'] - time())/86400);
+	$template->set("is_current_user", !($userData['userid'] != $uid));
+	$template->set("can_edit_email", ($userData['userid'] == $uid || $mods->isAdmin($userData['userid'],'editemail')));
+	$template->set("email", $useraccounts->getEmail($uid));
+	$template->set("can_edit_password",($userData['userid'] == $uid || $mods->isAdmin($userData['userid'],'editpassword')));
 
 
-    $template->display();
+	$template->display();

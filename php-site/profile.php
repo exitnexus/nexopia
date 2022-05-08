@@ -43,7 +43,21 @@
 	$stringValues = Array('sex', 'nameScope', 'userName');
 	foreach ($stringValues as $paramKey) {
 		if (isset($requestParams[$paramKey]) === true && $requestParams[$paramKey] != "") {
-			$sanatizedRequestParams[$paramKey] = $requestParams[$paramKey];
+			if($paramKey == 'userName'){
+				if(isValidEmail($requestParams[$paramKey])){
+					$sanatizedRequestParams['userEmail'] = $requestParams[$paramKey];
+					$sanatizedRequestParams[$paramKey] = false;
+					$requestType = "userEmail";
+				}
+				else{
+					$msgs->clearMsgs();
+					$sanatizedRequestParams['userEmail'] = false;
+					$sanatizedRequestParams[$paramKey] = $requestParams[$paramKey];
+				}
+			}
+			else{
+				$sanatizedRequestParams[$paramKey] = $requestParams[$paramKey];
+			}
 		} else {
 			$sanatizedRequestParams[$paramKey] = false;
 		}
@@ -52,7 +66,7 @@
 	// setup array of the user account flags
 	$accountFlags = array();
 	$accountFlags['plus'] = $userData['premium'];
-	$accountFlags['loggedIn'] = $userData['loggedIn'];
+	$accountFlags['loggedIn'] = $userData['halfLoggedIn'];
 	$accountFlags['debug'] = $userData['debug'];
 
 	function checkDoS()
@@ -75,18 +89,9 @@
 
 	// terminate script execution here
 	exit;
-/* END MODULE MAIN() */
 
 
-/* FUNCTION: processRequest */
-
-/* SYNOPSIS
- * This function simply contains a switch to call the correct function for the request type
- * END SYNOPSIS */
-
-/* HISTORY
- * Created Jun 20, 2006 by pdrapeau
- * END HISTORY */
+// This function simply contains a switch to call the correct function for the request type
 function processRequest (
 	$requestType,	// I: type of user request (from POST/GET requestType value)
 	$requestParams,	// I: parameters for user request (from POST/GET requestParams array)
@@ -117,8 +122,12 @@ function processRequest (
 			checkDoS();
 			userSearchFullUname($requestType, $requestParams);
 			break;
+		case "userEmail":
+			checkDoS();
+			userSearchEmail($requestType, $requestParams);
+			break;
 		case "mine":
-			if ($userData['loggedIn'])
+			if ($userData['halfLoggedIn'])
 			{
 				displayProfileByUid($userData['userid']);
 				break;
@@ -126,7 +135,7 @@ function processRequest (
 			// deliberate fallthrough, if not logged in just do a random search.
 		case "randomByPrefs": // deliberate fallthrough
 		default:
-			if ($uid = getREQval('uid', 'string', false))
+			if ($uid = trim(getREQval('uid', 'string', false)))
 			{
 				if (!is_numeric($uid))
 					$uid = getUserID($uid);
@@ -144,33 +153,16 @@ function processRequest (
 /* END FUNCTION processRequest */
 
 
-/* FUNCTION: invalidRequest */
-
-/* SYNOPSIS
- * This is a function to handle any cases where the request type or parameters are invalid
- * presently it will simply re-direct to the 404 handler runpage.php
- * END SYNOPSIS */
-
-/* HISTORY
- * Created Jun 20, 2006 by pdrapeau
- * END HISTORY */
+// This is a function to handle any cases where the request type or parameters are invalid
+// presently it will simply re-direct to the 404 handler runpage.php
 function invalidRequest () {
 	header("Location: /runpage.php");
 	return true;
 }
-/* END FUNCTION invalidRequest */
 
 
-/* FUNCTION: noSearchResults */
-
-/* SYNOPSIS
- * This function is called when theres no search results from a users search and displays the corresponding template
- * to handle no search results
- * END SYNOPSIS */
-
-/* HISTORY
- * Created Jun 20, 2006 by pdrapeau
- * END HISTORY */
+// This function is called when theres no search results from a users search and displays the corresponding template
+// to handle no search results
 function noSearchResults (
 	$requestType,		// I: request which returned no results
 	$requestParams		// I: request params used to form search
@@ -204,19 +196,12 @@ function noSearchResults (
 	$template->display();
 	return true;
 }
-/* END FUNCTION noSearchResults */
 
 
-/* FUNCTION: displayAdvSearch */
-
-/* SYNOPSIS
+/*
  * This simply displays the advanced search query page if the user happens to have plus, and sets the default query values
  * on that pages template before displaying
- * END SYNOPSIS */
-
-/* HISTORY
- * Created Jun 20, 2006 by pdrapeau
- * END HISTORY */
+ */
 function displayAdvSearch (
 	$accountFlags	// I: user account flags passed from processRequest
 ) {
@@ -254,18 +239,10 @@ function displayAdvSearch (
 	$template->display();
 	return true;
 }
-/* END FUNCTION displayAdvSearch */
 
 
-/* FUNCTION: userSearchQuery */
 
-/* SYNOPSIS
- * This function handles the search queries of various types using the user search class
- * END SYNOPSIS */
-
-/* HISTORY
- * Created Jun 20, 2006 by pdrapeau
- * END HISTORY */
+// This function handles the search queries of various types using the user search class
 function userSearchQuery (
 	$searchType,	// I: search type
 	$requestType,	// I: request type
@@ -298,7 +275,7 @@ function userSearchQuery (
 		$requestParams['userName'] = false;
 	}
 
-	if (strtolower($requestParams['sex']) == "both") 
+	if (strtolower($requestParams['sex']) == "both")
 		// if sex is set to both, we can also remove that parameter (since this means its not a factor in the search)
 		$requestParams['sex'] = false;
 	elseif (strtolower($requestParams['sex']) == "male")
@@ -307,7 +284,7 @@ function userSearchQuery (
 		$requestParams['sex'] = "Female";
 	else
 		$requestParams['sex'] = false;
-		
+
 	// set the result type based on if display list is checked or not, as well as setting how the search method is called
 	if ($requestParams['displayList'] === true) {
 		$resultType = "LIST";
@@ -358,18 +335,9 @@ function userSearchQuery (
 
 	return true;
 }
-/* END FUNCTION userSearchQuery */
 
 
-/* FUNCTION: displayList */
-
-/* SYNOPSIS
- * This function handles displaying the list type search results
- * END SYNOPSIS */
-
-/* HISTORY
- * Created Jun 20, 2006 by pdrapeau
- * END HISTORY */
+// This function handles displaying the list type search results
 function displayList (
 	$searchResults,	// I: returned search results object
 	$requestType,	// I: type of request the search results were returned from
@@ -415,6 +383,7 @@ function displayList (
 	$template->set('displayAgeSelect', $displayAgeSelect);
 	$template->set('thumbWidth', $config['thumbWidth']);
 	$template->set('searchResults', $searchResults);
+	$template->set('col1size', ceil(count($searchResults->results)/2));
 	$template->set('pageList', $pageList);
 
 	// send init and template output to browser
@@ -422,18 +391,8 @@ function displayList (
 	$template->display();
 	return true;
 }
-/* END FUNCTION displayList */
 
-
-/* FUNCTION: displayRandom */
-
-/* SYNOPSIS
- * This function handles displaying single random search results (re-direct streight to users profile)
- * END SYNOPSIS */
-
-/* HISTORY
- * Created Jun 20, 2006 by pdrapeau
- * END HISTORY */
+// This function handles displaying single random search results (re-direct streight to users profile)
 function displayRandom (
 	$searchResults,	// I: returned search results object
 	$requestType,	// I: type of request the search results were returned from
@@ -448,18 +407,9 @@ function displayRandom (
 
 	return true;
 }
-/* END FUNCTION displayRandom */
 
 
-/* FUNCTION: userSearchFullUname */
-
-/* SYNOPSIS
- * This function handles displaying single random search results (re-direct streight to users profile)
- * END SYNOPSIS */
-
-/* HISTORY
- * Created Jun 20, 2006 by pdrapeau
- * END HISTORY */
+// This function handles displaying single random search results (re-direct streight to users profile)
 function userSearchFullUname (
 	$requestType,	// I: type of request the search results were returned from
 	$requestParams	// I: request params used to form search
@@ -477,18 +427,30 @@ function userSearchFullUname (
 
 	return true;
 }
-/* END FUNCTION userSearchFullUname */
+
+function userSearchEmail($requestType, $requestParams)
+{
+	if($requestParams['userEmail'] === false){
+		noSearchResults($requestType, $requestParams);
+		return true;
+	}
+	
+	$userId = getUserIDByEmail($requestParams['userEmail']);
+	
+	if($userId !== false){
+		$userInfo = getUserInfo($userId);
+	}
+	
+	if($userId !== false && $userInfo['searchemail'] == 'y')
+		displayProfileByUid($userId);
+	else
+		noSearchResults($requestType, $requestParams);
+		
+	return true;
+}
 
 
-/* FUNCTION: displayProfileByUid */
-
-/* SYNOPSIS
- * This function handles displaying a users profile by UID, presently it redirects to profile.php passing UID
- * END SYNOPSIS */
-
-/* HISTORY
- * Created Jun 21, 2006 by pdrapeau
- * END HISTORY */
+// This function handles displaying a users profile by UID, presently it redirects to profile.php passing UID
 function displayProfileByUid (
 	$uid,	// I: UID of profile to display
 	$picid = 0
@@ -496,20 +458,11 @@ function displayProfileByUid (
 	displayUser($uid, $picid);
 	return true;
 }
-/* END FUNCTION displayProfileByUid */
 
 
-/* FUNCTION: randomByPrefs */
-
-/* SYNOPSIS
- * This function handles displaying random users when a user clicks on Users on the top bar
- * it will check to see if their logged in, and if so than it will use their preferences to form
- * part of the search, otherwise it will just simply select a random user
- * END SYNOPSIS */
-
-/* HISTORY
- * Created Jun 21, 2006 by pdrapeau
- * END HISTORY */
+// This function handles displaying random users when a user clicks on Users on the top bar
+// it will check to see if their logged in, and if so than it will use their preferences to form
+// part of the search, otherwise it will just simply select a random user
 function randomByPrefs (
 	$requestType,	// I: type of request thats being processed
 	$requestParams,	// I: request params used to form search
@@ -537,18 +490,9 @@ function randomByPrefs (
 
 	return true;
 }
-/* END FUNCTION randomByPrefs */
 
 
-/* FUNCTION: randomUserNoParams */
-
-/* SYNOPSIS
- * This function simply returns a random user from the database using no search parameters
- * END SYNOPSIS */
-
-/* HISTORY
- * Created Jun 21, 2006 by pdrapeau
- * END HISTORY */
+// This function simply returns a random user from the database using no search parameters
 function randomUserNoParams (
 	$requestType,	// I: type of request thats being processed
 	$requestParams,	// I: request parameters
@@ -565,18 +509,9 @@ function randomUserNoParams (
 	displayRandom($searchResults, $requestType, $requestParams);
 	return true;
 }
-/* END FUNCTION randomByPrefs */
 
 
-/* FUNCTION: onlineByPrefs */
-
-/* SYNOPSIS
- * This function handles users who are online, filtering by preferences if the user is actually infact logged on
- * END SYNOPSIS */
-
-/* HISTORY
- * Created Jun 21, 2006 by pdrapeau
- * END HISTORY */
+// This function handles users who are online, filtering by preferences if the user is actually infact logged on
 function onlineByPrefs (
 	$requestType,	// I: type of request thats being processed
 	$requestParams,	// I: request params used to form search
@@ -608,20 +543,11 @@ function onlineByPrefs (
 
 	return true;
 }
-/* END FUNCTION onlineByPrefs */
 
 
-/* FUNCTION: formatDebugOutput */
-
-/* SYNOPSIS
- * This function takes the debug output, and formats in into an array which can be added as an item
- * to the inline debug object
- * it proceeds to pass
- * END SYNOPSIS */
-
-/* HISTORY
- * Created Jun 21, 2006 by pdrapeau
- * END HISTORY */
+// This function takes the debug output, and formats in into an array which can be added as an item
+// to the inline debug object
+// it proceeds to pass ... [sic]
 function formatDebugOutput (
 	$debugOutput,		// I: debug output as returned in the result object
 	$searchType,		// I: type of search that was executed in the module
@@ -649,21 +575,21 @@ function formatDebugOutput (
 }
 /* END FUNCTION formatDebugOutput */
 
-function displayUser($uid,$picid=0){ // either userid and picnum, or userid or picid
+function displayUser($uid, $picid = 0){ // either userid and picnum, or userid or picid
 	global $config, $sort, $userData, $db, $usersdb, $usersdb, $cache, $mods, $locations, $weblog, $useraccounts;
 
-	if($uid==0)
+	if($uid == 0)
 		return false;
+
+	$picnum = 0;
+
 	if($picid != 0){ //gives picid
 		$result = $usersdb->prepare_query("SELECT priority FROM pics WHERE userid = % AND id = #", $uid, $picid);
 		$pic = $result->fetchrow();
 
-		if($pic){
-			$picnum = $pic['priority'];
-		}else
-			$picnum = 1;
-	} else
-		$picnum = 1;
+		if($pic)
+			$picnum = $pic['priority']-1; //$picnum is 0 based
+	}
 
 //$uid,$picnum are set now;
 
@@ -674,18 +600,18 @@ function displayUser($uid,$picid=0){ // either userid and picnum, or userid or p
 	$user = getUserInfo($uid);
 
 	if(!$user || ($user['state'] == 'frozen' && !($userData['loggedIn'] && $mods->isAdmin($userData['userid'],'listusers')))){
-		incHeader(true,array('incTextAdBlock','incSortBlock'));
+		incHeader(true,array('incSortBlock'));
 		echo "No results Found";
 		incFooter();
 		exit;
 	}
 
 //ignored user
-	if($user['plus'] && $user['hideprofile'] =='y' && (!$userData['loggedIn'] || isIgnored($uid, $userData['userid'], false, 0, true))){
-		incHeader();
+	if($user['hideprofile'] =='y' && (!$userData['loggedIn'] || isIgnored($uid, $userData['userid'], false, 0, true))){
+		incHeader(true,array('incSortBlock'));
 
 		if($userData['loggedIn'])
-			echo "This user is ignoring you.";
+			echo "This user is ignoring you. If this user is harassing you, or otherwise breaking site rules, <a class=body href=/reportabuse.php?type=" . MOD_USERABUSE . "&id=$uid>Report Abuse</a>.";
 		else
 			echo "You must <a class=body href=/login.php?referer=profile.php?uid=$uid>login</a> to see this user's profile.";
 
@@ -693,36 +619,49 @@ function displayUser($uid,$picid=0){ // either userid and picnum, or userid or p
 		exit;
 	}
 
+	$friends = getFriendsList($uid);
+
+	$viewskey = "";
+
 //update profile views
 	if($userData['loggedIn']){
 		if($userData['userid'] != $uid){
 // check to see if the views are to be registered as anonymous
-			$currentUserInfo = getUserInfo($userData['userid']);
 			$anonymousValue = 0;
 
 // if the user has anonymousviews set to y, the view will be anonymous in all cases
-			if ($currentUserInfo['anonymousviews'] == "y" && $currentUserInfo['plus']) {
-				$anonymousValue = 1;
-			}
-
 // if its set to f, the views will be anonymous in all cases except for the user being on their friends list
-			if ($currentUserInfo['anonymousviews'] == "f") {
-				$result = $usersdb->prepare_query("SELECT count(*) FROM friends WHERE friendid = # AND userid = %", $uid, $userData['userid']);
-				$resultRow = $result->fetchrow();
-				if ($resultRow['count(*)'] == 0) {
-					$anonymousValue = 1;
+			if($userData['premium'] && ($userData['anonymousviews'] == "y" || ($userData['anonymousviews'] == "f" && !isset($friends[$userData['userid']]))))
+				$anonymousValue = 1;
+
+
+		//frequency cap page view counting within the first view. Beyond that, only update on a second request with a key
+			$limit = $cache->get("profileviewslimit-$uid");
+
+			if(!$limit){
+
+				// finally update the database along with the data in cache
+				$usersdb->prepare_query("INSERT IGNORE INTO profileviews SET hits = 1, time = #, userid = %, viewuserid = #, anonymous = #", time(), $uid, $userData['userid'], $anonymousValue);
+				if($usersdb->affectedrows()){
+					$usersdb->prepare_query("UPDATE profile SET views = views + 1 WHERE userid = %", $uid);
+					$user['views'] = $cache->incr("profileviews-$uid");
+				}else{
+					$usersdb->prepare_query("UPDATE profileviews SET hits = hits + 1, time = #, anonymous = # WHERE userid = % && viewuserid = #", time(), $anonymousValue, $uid, $userData['userid']);
+					$user['views'] = $cache->get("profileviews-$uid");
 				}
+
+			}else{
+			//if you hit the frequency cap, have a second page request update your stats
+				$user['views'] = $cache->get("profileviews-$uid");
+
+			//don't bother updating the profile update time if you've been there recently
+				$userlimit = $cache->get("profileviewsuserlimit-$uid-$userData[userid]");
+				if(!$userlimit)
+					$viewskey = "<script src=/spacer.php?uid=$uid&anon=$anonymousValue&k=" . makeKey("$uid:secret:$anonymousValue:$time") . "&t=$time></script>";
 			}
 
-// finally update the database along with the data in cache
-			$usersdb->prepare_query("INSERT IGNORE INTO profileviews SET hits = 1, time = #, userid = %, viewuserid = #, anonymous = #", time(), $uid, $userData['userid'], $anonymousValue);
-			if($usersdb->affectedrows()){
-				$usersdb->prepare_query("UPDATE profile SET views = views + 1 WHERE userid = %", $uid);
-				$user['views'] = $cache->incr("profileviews-$uid");
-			}else{
-				$usersdb->prepare_query("UPDATE profileviews SET hits = hits + 1, time = #, anonymous = # WHERE userid = % && viewuserid = #", time(), $anonymousValue, $uid, $userData['userid']);
-				$user['views'] = $cache->get("profileviews-$uid");
-			}
+			$cache->put("profileviewslimit-$uid", 1, 120);
+			$cache->put("profileviewsuserlimit-$uid-$userData[userid]", 1, 120);
 
 		}else{
 			$user['views'] = $cache->get("profileviews-$uid");
@@ -743,7 +682,7 @@ function displayUser($uid,$picid=0){ // either userid and picnum, or userid or p
 
 	if(!$user2 || !$user['views']){
 		if(!$user2){
-			$res = $usersdb->prepare_query("SELECT msn, icq, yahoo, aim, skin, showbday, showjointime, showactivetime, showprofileupdatetime, showpremium, profile, profileupdatetime, views, showlastblogentry FROM profile WHERE userid = %", $uid);
+			$res = $usersdb->prepare_query("SELECT msn, icq, yahoo, aim, skin, showbday, showjointime, showactivetime, showprofileupdatetime, showpremium, profile, profileupdatetime, views, showlastblogentry, firstnamevisibility, lastnamevisibility FROM profile WHERE userid = %", $uid);
 			$user2 = $res->fetchrow();
 
 //			$sthBlocks = $usersdb->prepare_query("SELECT blocktitle, blockcontent, blockorder, permission FROM profileblocks WHERE userid = %", $uid);
@@ -754,7 +693,7 @@ function displayUser($uid,$picid=0){ // either userid and picnum, or userid or p
 
 			foreach ($profBlocks as $index => $profBlock) {
 				$profBlocks[$index]['nBlocktitle'] = removeHTML(trim($profBlock['blocktitle']));
-				$profBlocks[$index]['nBlockcontent'] = nl2br(wrap(parseHTML(smilies($profBlock['blockcontent']))));
+				$profBlocks[$index]['nBlockcontent'] = nl2br(wrap(parseHTML(smilies(removeHTML($profBlock['blockcontent'])))));
 				unset($profBlocks[$index]['blockcontent']);
 				unset($profBlocks[$index]['blocktitle']);
 			}
@@ -764,10 +703,10 @@ function displayUser($uid,$picid=0){ // either userid and picnum, or userid or p
 //			$user2['nabout'] = nl2br(wrap(parseHTML(smilies($user2['about']))));
 //			$user2['nlikes'] = nl2br(wrap(parseHTML(smilies($user2['likes']))));
 //			$user2['ndislikes'] = nl2br(wrap(parseHTML(smilies($user2['dislikes']))));
+			$user['views'] = $user2['views'];
 
-			$user['views'] = $users2['views'];
 			unset($user2['about'], $user2['likes'], $user2['dislikes'], $user2['views']);
-			
+
 			$cache->put("profile-$uid", $user2, 86400*7);
 			$cache->put("profileviews-$uid", $user['views'], 86400*7);
 		}else{
@@ -782,53 +721,27 @@ function displayUser($uid,$picid=0){ // either userid and picnum, or userid or p
 	$user = $user2 + $user;
 	unset($user2);
 
-	$friends = getFriendsList($uid);
 
 	if($userData['loggedIn'] && $userData['premium'] && $userData['userid'] != $uid && count($friends))
-		$myfriends = getFriendsList($userData['userid']);
+		$myfriends = getFriendsListIDs($userData['userid']);
 
 	$isFriend = $userData['loggedIn'] && (isset($friends[$userData['userid']]) || $userData['userid']==$user['userid']);
 
 //start output
 	incHeader(600,array('incSortBlock','incSkyAdBlock','incNewestMembersBlock','incRecentUpdateProfileBlock'));
 
-	injectSkin($user, 'profile');
+	echo injectSkin($user, 'profile');
 
 echo "<script src=$config[jsloc]profile.js></script>";
 
+//the profileview freq cap thing
+echo $viewskey;
+
 echo "<table border=0 width=100% align=center cellspacing=0 cellpadding=0>\n";
 
-	$cols=2;
-	if($user['enablecomments']=='y')
-		$cols++;
-	$userblog = new userblog($weblog, $uid);
-	if ($userblog->isVisible($userData['loggedIn'], $isFriend))
-		$cols++;
-	if(($user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend)))
-		$cols++;
-
-	$width = 100.0/$cols;
-
-/*    if($sort['mode'] == "Search")
-    {
-        echo "<tr><td colspan=2>";
-        echo "<a href='".$_SERVER['PHP_SELF']."?".$_SERVER['QUERY_STRING']."'><center><b>Next Profile >></b></center></a>";
-        echo "</td></tr>";
-    }
-*/
 	echo "<tr>";
 	echo "<td class=body colspan=2>";
-	echo "<table width=100%>";
-	echo "<td class=header align=center width=$width%><a class=header href=\"/profile.php?uid=$user[userid]\"><b>Profile</b></a></td>";
-	if($user['enablecomments']=='y')
-		echo "<td class=header align=center width=$width%><a class=header href=\"/usercomments.php?id=$user[userid]\"><b>Comments</b></a></td>";
-	if(($user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend)))
-		echo "<td class=header align=center width=$width%><a class=header href=\"/gallery.php?uid=$user[userid]\"><b>Gallery</b></a></td>";
-	$userblog = new userblog($weblog, $uid);
-	if ($userblog->isVisible($userData['loggedIn'], $isFriend))
-		echo "<td class=header align=center width=$width%><a class=header href=/weblog.php?uid=$user[userid]><b>Blog</a></td>";
-	echo "<td class=header align=center width=$width%><a class=header href=\"/friends.php?uid=$user[userid]\"><b>Friends</b></a></td></tr>";
-	echo "</table>";
+	echo incProfileHead($user);
 	echo "</td></tr>";
 
 
@@ -856,8 +769,8 @@ echo "<table border=0 width=100% align=center cellspacing=0 cellpadding=0>\n";
 	$width = floor(100.0 / $cols);
 
 	echo "<table border=0 width=100%>";
-
-	echo "<tr><td class=header align=center width=$width%><a class=header href=\"/friends.php?action=add&id=$user[userid]" . ($userData['loggedIn'] ? "&k=" . makekey($user['userid']) : '' ) . "\"><b>Add as Friend</b></a></td>";
+	$form_key = secure_form_encrypt($userData['userid'], time());
+	echo "<tr><td class=header align=center width=$width%><a class=header href=\"/users/".getUserName($userData['userid'])."/friends/add/$user[userid]?form_key=$form_key\"><b>Add as Friend</b></a></td>";
 
 	if (! $ignored)
 		echo "<td class=header align=center width=$width%><a class=header href=\"/messages.php?action=write&to=$user[userid]\"><b>Send Message</b></a></td>";
@@ -887,7 +800,9 @@ echo 			"<table border=0 width=100% height=100%>\n";
 //Status
 	echo "<tr><td align=center class=" . ($user['online']=='y' ? "online>Online" : "offline>Offline") . "<br></td></tr>";
 
-	echo "<tr><td class=body align=center><b>" . number_format($user['views']) . " Hits</b><br>";
+	echo "<tr><td class=body align=center>";
+	if(!$user['plus'] || !isset($user['hidehits']) || $user['hidehits'] == 'n' || $mods->isAdmin($userData['userid'])) // !isset there so no need to flush the cache
+		echo "<b>" . number_format($user['views']) . " Hits</b><br>";
 	if($user['plus'] && ($user['showpremium'] == 'y' || $mods->isAdmin($userData['userid'])))
 		echo "<a class=body href=/plus.php>Plus Member</a><br>";
 	if($user['signpic'] == 'y')
@@ -895,9 +810,7 @@ echo 			"<table border=0 width=100% height=100%>\n";
 
 	$tag = $mods->getAdminTag($uid);
 	if($tag)
-		echo "$tag<br>";
-//	if($mods->isAdmin($uid, 'visible'))
-//		echo "Administrator<br>";
+		echo implode("<br>", $tag) . "<br>";
 
 	if(!$tag && $mods->isAdmin($userData['userid']) && $mods->isMod($uid, MOD_PICS))
 		echo "Pic Mod<br>";
@@ -913,13 +826,9 @@ echo 			"<table border=0 width=100% height=100%>\n";
 		if($user['state'] == 'frozen')
 			echo "<b>Account Frozen!</b><br><br>";
 
-		global $abuselog;
-
-//		$res = $abuselog->db->prepare_query("SELECT count(*) FROM abuselog WHERE userid = #", $uid);
-//		$abuseentries = $res->fetchfield();
-
 		echo "<a class=body href=/adminuser.php?type=userid&search=$uid&k=" . makeKey($uid) . ">User Search</a><br>";
-		echo "<a class=body href=/adminuserips.php?uid=$uid&type=userid&k=" . makeKey($uid) . ">IP Search</a><br>";
+		if($mods->isAdmin($userData['userid'],"showip"))
+			echo "<a class=body href=/adminuserips.php?uid=$uid&type=userid&k=" . makeKey($uid) . ">IP Search</a><br>";
 		if($mods->isAdmin($userData['userid'],"loginlog"))
 			echo "<a class=body href=/adminloginlog.php?col=userid&val=$uid&k=" . makeKey($uid) . ">Logins</a><br>";
 		echo "<a class=body href=/adminabuselog.php?uid=" . urlencode($user['username']) . ">Abuse: $user[abuses]</a><br>";
@@ -927,9 +836,14 @@ echo 			"<table border=0 width=100% height=100%>\n";
 			echo "<a class=body href=/manageprofile.php?uid=$uid>Profile</a><br>";
 		if($mods->isAdmin($userData['userid'],"editpictures"))
 			echo "<a class=body href=/managepicture.php?uid=$uid>Pictures</a><br>";
+		if($mods->isAdmin($userData['userid'])){
+			echo "<a class=body href=/moderate.php?mode=1&uid=$uid>Mod Pics</a><br>";
+			echo "<a class=body href=/moderate.php?mode=4&uid=$uid>Mod Ques</a><br>";
+		}
 		if($mods->isAdmin($userData['userid'],"editpreferences"))
 			echo "<a class=body href=/prefs.php?uid=$uid>Prefs</a><br>";
-		echo "<a class=body href=/admindeletedusers.php?type=username&uid=" . urlencode($user['username']) . ">Deleted</a><br>";
+		if($mods->isAdmin($userData['userid'],"listdeletedusers"))
+			echo "<a class=body href=/admindeletedusers.php?type=username&uid=" . urlencode($user['username']) . ">Deleted</a><br>";
 
 		echo "<br></td></tr>";
 	}
@@ -963,19 +877,14 @@ echo 			"<table border=0 cellspacing=0 width=100%>\n";
 echo 				"<tr>";
 echo 					"<td class=body align=center>";
 
-//Name, Age, Sex,vote
+//Name, Age, Sex
 
 
-	echo "<font size=3><b>$user[username] ($user[age] year old $user[sex])</b></font>";
+	echo "<font size=3><b>$user[username] ($user[age] year old $user[sex])</b></font><br>";
 
 
 
-//End Name, Age, Sex,vote
-
-echo 					"</td>";
-echo 				"</tr>\n";
-echo 				"<tr>";
-echo 					"<td align=center class=body>\n";
+//End Name, Age, Sex
 
 //Pic
 
@@ -985,28 +894,36 @@ echo 					"<td align=center class=body>\n";
 		$pics = getUserPics($uid);
 
 		if(count($pics)){
+			$pics = array_values($pics); //reset to 0 based indexes
 
-			if($user['firstpic'] != $pics[1]['id']){
+			if($user['firstpic'] != $pics[0]['id']){
 				//correct firstpic
 				//invalidate userinfo
 			}
 
-			echo "<table width=100% height=100% border=0><tr><td class=body align=center valign=center>";
+			echo "<div id=userpicdiv name=userpicdiv style=\"align: center\">";
+			echo "<span id=hidediv style=\"position: absolute; width: 0px; height: 0px;\"><img src='$config[imageloc]empty.png' width=100% height=100%></span>";
+			echo "<img name=userpic id=userpic src='" . $config['picloc'] . floor($user['userid']/1000) . "/" . weirdmap($user['userid']) . "/" . $pics[$picnum]['id'] . ".jpg'>";
+			echo "</div>";
 
-			echo "<div id=votediv name=votediv></div>";
-			echo "<img name=userpic id=userpic>";
-			echo "<div id=picdesc name=picdesc></div>";
-			echo "</td></tr><tr><td class=body align=center valign=bottom>";
-			echo "<div id=piclinks name=piclinks></div>";
+			echo "<div id=picdesc name=picdesc>" . ($pics[$picnum]['description'] ? "<br>" . $pics[$picnum]['description'] : '' ) . "</div>";
 
-			echo "</td></tr></table>";
+			echo "<div id=piclinks name=piclinks>";
+			for($i = 1; $i <= count($pics); $i++){
+				if($i == $picnum+1)
+					echo "Pic $i ";
+				else
+					echo "<a class=body href=/profile.php?uid=$uid&picid=" . $pics[$i-1]['id'] . " onClick=\"changepic(" . ($i-1) . "); return false;\">Pic $i</a> ";
+			}
+			echo "</div>";
 
 			echo "<script>";
 
 			foreach($pics as $line)
-				echo "addPic('$line[id]', '" . $config['picloc'] . floor($user['userid']/1000) . "/" . weirdmap($user['userid']) . "/$line[id].jpg','" . addslashes($line['description']) . "',0);";
+				echo "addPic('$line[id]', '" . $config['picloc'] . floor($user['userid']/1000) . "/" . weirdmap($user['userid']) . "/$line[id].jpg','" . addslashes($line['description']) . "');";
+			
+//			echo "document.images.userpic.onload = hidepics;";
 
-			echo "changepic(" . ($picnum-1) . ");";
 			echo "</script>";
 		}else{
 
@@ -1035,9 +952,44 @@ echo 					"<td class=body valign=top>\n";
 
 	echo "<table border=0 width=100%>\n";
 
+
+//////////////////////////////////////////////
+///////////// HACK!!!!!!!!!!! ////////////////
+//////////////////////////////////////////////
+	if($uid == 2225696){
+		global $wiki;
+
+		$musicstuff = $wiki->getPage("/SiteText/music/$user[username]");
+
+		if($musicstuff['output']){
+			echo "<tr><td class=body colspan=2>\n";
+			echo $musicstuff['output'];
+			echo "\n</td></tr>\n";
+		}
+	}
+//////////////////////////////////////////////
+///////////// /HACK!!!!!!!!!!! ///////////////
+//////////////////////////////////////////////
+
 	echo "<tr><td colspan=2 class=header align=center><b>Basics</b></td></tr>\n";
 
 	echo "<tr><td class=" . $classes[$i = !$i] . " width=30%><b>Username:</b></td><td class=" . $classes[$i] . " width=70%>$user[username]</td></tr>\n";
+	
+	$firstNameVisible = isVisibleTo($user['userid'], $userData['userid'], $user['firstnamevisibility']);
+	$lastNameVisible = isVisibleTo($user['userid'], $userData['userid'], $user['lastnamevisibility']);
+	// Real names
+	$realName = array();
+	if ($firstNameVisible)
+		$realName[] = $user['firstname'];
+	if ($lastNameVisible)
+		$realName[] = $user['lastname'];
+		
+	if ($firstNameVisible || $lastNameVisible)
+	{
+		echo "<tr><td class=" . $classes[$i = !$i] . " width=30%><b>Real Name:</b></td><td class=" . $classes[$i] . 
+			" width=70%>".implode(" ", $realName)."</td></tr>\n";
+	}
+	
 	echo "<tr><td class=" . $classes[$i = !$i] . "><b>Age:</b></td><td class=" . $classes[$i] . ">$user[age]</td></tr>\n";
 	if($user['showbday']=='y' || ($userData['loggedIn'] && $mods->isAdmin($userData['userid'],'listusers')))
 		echo "<tr><td class=" . $classes[$i = !$i] . "><b>Date of Birth:</b></td><td class=" . $classes[$i] . ">" . gmdate("F j, Y",$user['dob']) ."</td></tr>\n";
@@ -1087,7 +1039,7 @@ echo 					"<td class=body valign=top>\n";
 	}
 
 	if($userData['loggedIn']){
-		if($mods->isAdmin($userData['userid'],'listusers')){
+		if($mods->isAdmin($userData['userid'],'listusers') && $mods->isAdmin($userData['userid'],'showemail')){
 			echo "<tr><td colspan=2 class=header align=center><b>Admin</b></td></tr>\n";
 
 			echo "<tr><td class=" . $classes[$i = !$i] . "><b>Email:</b></td><td class=" . $classes[$i] . ">" . $useraccounts->getEmail($user['userid']) . "</td></tr>\n";
@@ -1095,6 +1047,22 @@ echo 					"<td class=body valign=top>\n";
 			if($user['plus']){
 				echo "<tr><td class=" . $classes[$i = !$i] . "><b>Plus Time remaining:</b></td><td class=" . $classes[$i] . ">" . number_format(($user['premiumexpiry'] - time())/86400,2) . " Days</td></tr>\n";
 				echo "<tr><td class=" . $classes[$i = !$i] . "><b>Plus Expiry Date:</b></td><td class=" . $classes[$i] . ">" . userDate("F j, Y, g:i a", $user['premiumexpiry']) . "</td></tr>\n";
+			}
+		}
+
+		if($isFriend || $mods->isAdmin($userData['userid'],'listusers')){
+			$statuses = $usersdb->prepare_query("SELECT * FROM status WHERE userid = % AND expiry > #", $user['userid'], time())->fetchrowset();
+			if(count($statuses)){
+				sortCols($statuses, SORT_DESC, SORT_NUMERIC, 'creation');
+				$used = array();
+				$names = getStatusNames();
+
+				echo "<tr><td colspan=2 class=header align=center><b>Status</b></td></tr>\n";
+				foreach($statuses as $status){
+					if(!isset($used[$status['type']]))
+						echo "<tr><td class=" . $classes[$i = !$i] . "><b>" . $names[$status['type']] . "</b></td><td class=" . $classes[$i] . ">$status[message]</td></tr>\n";
+					$used[$status['type']] = true;
+				}
 			}
 		}
 
@@ -1124,14 +1092,52 @@ echo 					"<td class=body valign=top>\n";
 		}
 	}
 
+	// Social Groups
+	global $groupmembers;
+	
+	$visibleUserGroups = array();
+	$userGroups = $groupmembers->orderByGroupType($groupmembers->getGroupMembersForUser($user['userid']));
+	foreach ($userGroups as $userGroup)
+	{
+		if ($userGroup->isVisibleTo($userData['userid']))
+		{
+			$visibleUserGroups[] = $userGroup;
+		}
+	}
+	
+	if (!empty($visibleUserGroups))
+	{
+		echo "<tr><td colspan=2 class=header align=center><b>Groups</b></td></tr>\n";
+		
+		$groupType = -1;
+		$displayGroupType = "";
+		foreach ($visibleUserGroups as $userGroup)
+		{
+			if ($userGroup->groupType() != $groupType)
+			{
+				$groupType = $userGroup->groupType();
+				$displayGroupType = $userGroup->groupTypeName();
+			}
+	
+			$groupLocation = $locations->makeroot($userGroup->groupLocation());
 
+			$groupLocNames = array();
+			foreach($groupLocation as $loc)
+				$groupLocNames[] = $loc['name'];
+			array_shift($groupLocNames); //get rid of Home
+	
+			echo "<tr valign='top'><td class=" . $classes[$i = !$i] . "><b>".$displayGroupType."</b></td><td class=" . $classes[$i] . ">".$userGroup->groupName()."<br />".
+				implode(", ", array_reverse($groupLocNames))."&#160;&#160;&#160;<i>".$userGroup->fromDate()." - ".$userGroup->toDate()."</i></td></tr>\n";
+			$displayGroupType = "";
+		}
+	}
 
-	global $profile;
+	$profilequestions = getProfileQuestions();
 
 	$prof = decodeProfile($user['profile']);
 
 	$first = true;
-	foreach($profile as $qnum => $val){
+	foreach($profilequestions as $qnum => $val){
 		if($prof[$qnum] != '0'){
 			if($first){
 				$first = false;
@@ -1162,6 +1168,7 @@ echo 					"<td class=body valign=top>\n";
 
 	if($userinterests){
 		$userinterests = explode(',', $userinterests);
+		$userinterests = array_combine($userinterests, $userinterests);
 
 		echo "<tr><td colspan=2 class=header align=center><b>Interests</b></td></tr>\n";
 
@@ -1173,7 +1180,7 @@ echo 					"<td class=body valign=top>\n";
 		$first = true;
 		$subcats = array();
 		foreach($cats as $item){
-			if(!in_array($item['id'], $userinterests))
+			if(!isset($userinterests[$item['id']]))
 				continue;
 
 			if($item['depth'] == 1){
@@ -1189,23 +1196,6 @@ echo 					"<td class=body valign=top>\n";
 			}
 		}
 		echo implode(", ", $subcats) . "</td></tr>";
-
-/*
-		$first = true;
-		$cats = $interests->makebranch(0,1); //only main categories
-
-		foreach($cats as $item){
-			echo "<tr><td class=" . $classes[$i = !$i] . " colspan=2><b>$item[name]:</b> ";
-
-			$subcats = $interests->makebranch($item['id'],1); //only main categories
-
-			for($i = 0; $i < $total; $i++)
-				if(in_array($i,
-				echo $subcats[$i]['name'];
-
-			echo "</td></tr>\n";
-		}
-*/
 	}
 
 /*	if($user['nabout']!=""){
@@ -1303,23 +1293,131 @@ echo 		"<td colspan=3 class=body>\n";
 			$res = $usercomments->db->prepare_query("SELECT authorid, time, nmsg FROM usercomments WHERE userid = % ORDER BY time DESC LIMIT 5", $uid);
 
 			$comments = array();
-			$authorids = array();
-
 			while($line = $res->fetchrow()){
 				$comments[] = $line;
-				$authorids[$line['authorid']] = $line['authorid'];
 			}
-
-			$names = getUserName($authorids);
-
-			foreach($comments as $k => $v)
-				$comments[$k]['author'] = $names[$v['authorid']];
 
 			$cache->put("comments5-$uid", $comments, 86400*7);
 		}
 
+		$authorids = array();
+		foreach ($comments as $line){
+			$authorids[$line['authorid']] = $line['authorid'];
+		}
+
+		// get the userinfo objects of the users who have left comments.
+		$info = getUserInfo($authorids);
+
+		$missing_usernames = array();
+		foreach($comments as $k => $v)
+		{
+			if (isset($info[$v['authorid']])){
+				$comments[$k]['authorinfo'] = $info[$v['authorid']];
+				$comments[$k]['author'] = $comments[$k]['authorinfo']['username'];
+			} else {
+				$missing_usernames[] = $v['authorid'];
+			}
+		}
+
+		// if any of them didn't have userinfo (thus were deleted), get their username
+		if ($missing_usernames)
+		{
+			$names = getUserName($missing_usernames);
+			foreach ($comments as $k => $v)
+			{
+				if (!isset($comments[$k]['authorinfo']))
+				{
+					$comments[$k]['authorid'] = false;
+
+					if ($names[$v['authorid']])
+						$comments[$k]['author'] = $names[$v['authorid']];
+					else {
+						// make it obvious this didn't work.
+						$comments[$k]['author'] = "unknown";
+					}
+				}
+			}
+		}
+
 		if(count($comments)){
 			foreach($comments as $line){
+
+				echo "<tr>";
+				echo "<td class=header>";
+					if ($line['authorid'])
+						echo "<a class=header href=/profile.php?uid=$line[authorid]>$line[author]</a>";
+					else
+						echo "$line[author]";
+				echo "</td>";
+				echo "<td class=header>";
+
+				echo "<table width=100% class=header cellspacing=0 cellpadding=0><tr>";
+				echo "<td class=header>";
+					echo userdate("M j, Y g:i:s a", $line['time']);
+
+				echo "</td><td class=header align=right>";
+					if($line['authorid'])
+						echo "<a class=header href=/userconversation.php?uid1=$user[userid]&uid2=$line[authorid]>Conversation</a>";
+				echo "</td>";
+				echo "</tr></table>";
+
+				echo "</td>";
+				echo "</tr>";
+
+				$thumbwidth = $config['thumbWidth']; // /2;
+				echo "<tr>";
+				echo "<td class=body width=$thumbwidth valign=top>";
+					if($line['authorid'] && isset($line['authorinfo']) && $line['authorinfo']['firstpic']){
+						$imgloc = $config['thumbloc'] . floor($line['authorid']/1000) . "/" . weirdmap($line['authorid']) . "/{$line['authorinfo']['firstpic']}.jpg";
+//						$imgloc = "http://images.nexopia.com/userpicsthumb/1809/1809018/71.jpg";
+						echo "<a href=/profile.php?uid=$line[authorid]><img " . ($thumbwidth != $config['thumbWidth'] ? "width=$thumbwidth " : '') . "border=0 src=$imgloc /></a>";
+					}else{
+						echo "&nbsp;";
+					}
+				echo "</td>";
+				echo "<td valign=top class=body>";
+					echo $line['nmsg'] . "&nbsp;";
+				echo "</td>";
+				echo "</tr>";
+
+
+/*
+//similar to usercomments.php
+				$thumbwidth = $config['thumbWidth']; // /2
+				echo "<tr>";
+				echo "<td class=body width=$thumbwidth valign=top>";
+
+				if($line['authorid']){
+					echo "<a class=body href=/profile.php?uid=$line[authorid]>$line[author]</a><br />";
+					if($line['authorinfo'] && $line['authorinfo']['firstpic']){
+						$imgloc = $config['thumbloc'] . floor($line['authorid']/1000) . "/" . weirdmap($line['authorid']) . "/{$line['authorinfo']['firstpic']}.jpg";
+						$imgloc = "http://images.nexopia.com/userpicsthumb/1809/1809018/71.jpg";
+						echo "<a href=/profile.php?uid=$line[authorid]><img width=$thumbwidth border=0 src=$imgloc /></a><br />";
+					}
+				}else{
+					echo "$line[author]";
+				}
+				echo "</td>";
+				echo "<td class=body valign=top>";
+					echo $line['nmsg'] . "&nbsp;";
+				echo "</td>";
+				echo "</tr>";
+
+				echo "<tr><td class=body2 colspan=2>";
+				echo "<table width=100% class=body2 cellspacing=0 cellpadding=0><tr>";
+				echo "<td align=left class=body2>";
+					echo userdate("M j, Y g:i:s a",$line['time']);
+				echo "</td><td align=right class=body2>";
+					if($line['authorid'])
+						echo "<a class=body href=/userconversation.php?uid1=$user[userid]&uid2=$line[authorid]><b>conversation</b></a>";
+				echo "</td>";
+				echo "</tr></table>";
+				echo "</td>";
+				echo "</tr>";
+*/
+
+/*
+//original
 				echo "<tr><td class=header>By: ";
 
 				if($line['authorid'])	echo "<a class=header href=/profile.php?uid=$line[authorid]>$line[author]</a>";
@@ -1334,7 +1432,7 @@ echo 		"<td colspan=3 class=body>\n";
 				echo $line['nmsg'] . "&nbsp;";
 
 				echo "</td></tr>\n";
-		//		echo "<tr><td colspan=2 class=header2>&nbsp;</td></tr>";
+		//		echo "<tr><td colspan=2 class=header2>&nbsp;</td></tr>";*/
 			}
 		}else{
 			echo "<tr><td class=body colspan=2 align=center>No Comments</td>\n";

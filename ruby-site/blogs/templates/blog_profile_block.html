@@ -1,0 +1,23 @@
+<div id="blog_profile_block">
+	<div class="read_more_button"><a href="/weblog.php?uid=#{blog.userid}">Read more...</a></div>
+	<h2>LATEST BLOG ENTRY</h2>
+	<div class="blog_text">
+		<h3>
+			#{blog.title}
+		</h3>
+		<div>	
+			#{UserTime.new(Time.at(blog.time)).strftime("%I:%M%p" )} | 
+			#{UserTime.new(Time.at(blog.time)).strftime("%b %d, '%y" )} |&nbsp; 
+			<t:if t:id="comments.length > 0">
+				<a href="/weblog.php?uid=#{blog.userid}">
+					Comments(#{comments.length})
+				</a>
+			</t:if>
+			<t:if t:id="comments.length == 0">
+				No Comments
+			</t:if>
+		</div>
+		<br/>
+		#{blog.msg.parsed}
+	</div>
+</div>

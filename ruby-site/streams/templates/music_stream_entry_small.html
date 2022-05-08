@@ -1,0 +1,31 @@
+<!--
+<div class="stream_entry_small">
+	<t:if t:id="entry.stream_icon">
+		<img src="{entry.stream_icon.thumbnail}"></img>
+	</t:if>
+	<a t:id="entry"></a><br/>
+	<span></span>
+</div>
+-->
+<div class="stream_entry_small">
+	<table>
+		<tbody>
+			<tr>
+				<td class="micro_icon_col">
+					<t:if t:id="entry.stream_icon">
+						<img src="{entry.stream_icon.thumbnail_location}"></img>
+					</t:if>
+					<t:if t:id="!entry.stream_icon">
+						<img src="{$site.static_url}/music/images/music_placeholder.jpg"></img>
+					</t:if>
+				</td>
+				<td>
+					<a t:id="entry"></a>
+				</td>
+				<td style="text-align:right">
+					<!--{entry.compact_date_string}-->
+				</td>
+			</tr>
+		</tbody>
+	</table>
+</div>

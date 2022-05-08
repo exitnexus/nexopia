@@ -1,0 +1,61 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<form name="delete" id="delete" method="post" action="/admin/typeroles/delete">
+		<h1>Existing Type Roles</h1>
+		<ul>
+			<li t:id="roles" t:iter="role">
+				<input type="checkbox" name="roles[{role.roleid}]"/>
+				<label>{role.name}</label>({role.typename})
+				<ul>
+					<h2>Existing Privileges</h2>
+					<li t:id="role.privileges" t:iter="privilege">
+						{privilege.module_name} - {privilege.privilege_name}
+					</li>
+				</ul>
+				<form method="post" action="/admin/privileges/typeroles/add">
+					<input type="hidden" name="role_id" value="{role.roleid}"/>
+					<ul>
+						<h2>Add a Privilege</h2>
+						<li>
+							<label>Module</label>
+							<select id="select_module" name="select_module">
+								<t:loop t:id="modules" t:iter="mod">
+									<option value="{mod.typeid}">{mod.typename}</option>
+								</t:loop>
+							</select>
+						</li>
+						<li>
+							<label>Privilege</label>
+							<select id="select_privilege" name="select_privilege">
+								<t:loop t:id="privileges" t:iter="privilege">
+									<option value="{privilege.privilegeid}">{privilege.name}</option>
+								</t:loop>
+							</select>
+						</li>
+						<li>
+							<input type="submit" value="Add Privilege"/>
+						</li>
+					</ul>
+				</form>
+			</li>
+			<li>
+				<input type="submit" value="Delete Roles"/>
+			</li>
+		</ul>
+	</form>
+	<form name="add" id="add" method="post" action="/admin/typeroles/add">
+		<h1>Add a Type Role</h1>
+		<ul>
+			<li>
+				<label>Role Name</label>
+				<input type="text" name="role_name" id="role_name"/>
+			</li>
+			<li>
+				<label>Account Type</label>
+				<input type="text" name="account_type_name" id="account_type_name"/>
+			</li>
+			<li>
+				<input type="submit" value="Add Role"/>
+			</li>
+		</ul>
+	</form>
+</div>

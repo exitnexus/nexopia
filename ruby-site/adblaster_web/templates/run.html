@@ -1,0 +1,14 @@
+<div class="body">
+	<p class="body2">
+		You can run a banner potential check.
+		<form id="checker_form" action="/adblaster/send_check" method="post">
+			<select name="dir">
+				<t:loop t:id="days" t:iter="day">
+					<option value="{day[1]}">{day[0]}</option>
+				</t:loop>
+			</select>
+			Banner ID:<input name="bid" type="text"/>
+			<input class="body" type="submit" value="Check" style="width=60px" />
+		</form>
+	</p>
+</div>

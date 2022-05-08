@@ -1,17 +1,19 @@
 <?
 // Copyright Timo Ewalds 2004 all rights reserved.
 
+
 ini_set("precision","20");
 
 error_reporting (E_ALL);
 
 define("REQUIRE_ANY", 0);
+define("REQUIRE_HALFLOGGEDIN", 0.5);
 define("REQUIRE_LOGGEDIN", 1);
 define("REQUIRE_NOTLOGGEDIN", -1);
 define("REQUIRE_LOGGEDIN_PLUS", 2);
 define("REQUIRE_LOGGEDIN_ADMIN", 3);
 
-$revstr = '$Revision$';
+$revstr = '$Revision: 4965 $';
 preg_match('/Revision: ([0-9]+)/', $revstr, $matches);
 $reporev = $matches[1];
 
@@ -25,6 +27,7 @@ $acceptips = array(
 'newservers2' => '66.51.127.1',
 'office' => '142.179.205.97',
 'office2' => '142.179.204.201',
+'officeshaw' => '68.149.19.75',
 );
 
 function isPriviligedIP(){
@@ -43,6 +46,7 @@ if(!isPriviligedIP()){
 //*/
 
 
+
 $times = array('start' => gettime());
 $memory = array(get_memory_usage());
 
@@ -58,6 +62,17 @@ $memory = array(get_memory_usage());
 		$THIS_IMG_SERVER = $_SERVER['HTTP_HOST'];
 
 
+//most pages only serve html, so don't try to serve try to serve html if the browser expects an image
+//to have a page accept anything (javascript, css, images), set $accepttype = false; before including general.lib.php
+	if(!isset($accepttype))
+		$accepttype = 'html';
+
+	if($accepttype && isset($_SERVER['HTTP_ACCEPT']) && !checkAcceptType($accepttype))
+		die("Bad Request Type");
+
+
+	$cwd = getcwd();
+
 $siteStats = array();
 $userData = array(	'loggedIn' => false,
 					'username' => '',
@@ -66,24 +81,234 @@ $userData = array(	'loggedIn' => false,
 					'limitads' => false,
 					'debug' => false);
 
+$cachekey = getREQval('cachekey');
 
-	// call with include_once inherit_config_profile('name');
-	function inherit_config_profile($profilename)
-	{
-		return "include/config.$profilename.inc.php";
+// Simple page/auth is an attempt to lower the overhead of simple pages
+//   Simple auth is true/false, default false. When true, use the cached version of prefs if possible
+//   Simple page has several levels, and includes more libraries at lower simplicity levels:
+//     0 - Not simple, include everything - default
+//     1 - Only include enough to display the skin
+//     2 - Only include the absolute basics
+
+	if(!isset($simplepage))
+		$simplepage = 0; // ($cachekey ? 1 : 0);
+	if(!isset($simpleauth))
+		$simpleauth = ($cachekey ? true : false);
+
+
+	include("$cwd/include/config.inc.php");
+
+	if(isset($devutil) && $devutil && (!isset($config['devutil']) || !$config['devutil'])) //is devutil, and isn't a dev site
+		exit;
+
+
+	includecompiled('init', array(
+		"include/defines.php",
+		"include/mirrors.php",
+		"include/memcached-client.php",
+		"include/memcache2.php",
+		"include/sql.php",
+		"include/sqlmirror.php",
+		"include/sqlpair.php",
+		"include/sqlmulti.php",
+		"include/mysql.php",
+		) );
+
+	$memcache = new memcached($memcacheoptions);
+	$pagememcache = new memcached($pagecacheoptions);
+
+	$cache 		= new cache($memcache, "$sitebasedir/cache");
+	$pagecache	= new cache($pagememcache, "$sitebasedir/cache");
+
+timeline('cache', true);
+
+
+	if($config['cachedbs'] && (!isset($cachedbs) || !$cachedbs))
+		$dbs = $cache->hdget("dbs", 3600, 'getdbs');
+	else
+		$dbs = getdbs();
+
+	extract($dbs);
+	$cache->db = $db;
+
+timeline('dbs', true);
+
+
+includecompiled('basic', array(
+	"include/auth4.php",
+	"include/banner6.php",
+	"include/msgs.php",
+	"include/date.php",
+	"include/google.php",
+	) );
+	
+if($simplepage <= 1)
+	includecompiled('simple', array(
+		"include/stats.php",
+		"include/menu.php",
+		"include/moderator.php",
+		"include/blocks.php",
+		"include/categories.php",
+		"include/archive.php",
+		"include/abuselog.php",
+		"include/forums.php",
+		"include/messaging.php",
+		"include/weblog.php",
+		"include/template.php",
+		"include/usercomments.php",
+		"include/textmanip.php",
+		"include/wiki2.php",
+		"include/sitenotifications.php",
+		"include/secure_form.php"
+	));
+
+if($simplepage == 0)
+	includecompiled('mainset', array(
+		"include/general.class.php",
+		"include/databaseobject.php",
+		"include/survey.php",
+		"include/polls.php",
+		"include/shoppingcart.php",
+		"include/payg.php",
+		"include/usernotify.php",
+		"include/priorities.php",
+		"include/profileskins.php",
+		"include/plus.php",
+		"include/smtp.php",
+		"include/timer.php",
+		"include/filesystem.php",
+		"include/HTTPClient.php",
+		"include/MogileFS.php",
+		"include/mogfs.php",
+		"include/terms.php",
+		"include/quizzes.php",
+		"include/gallery.php",
+		"include/pics.php",
+		"include/comment.php",
+		"include/sourcepictures.php",
+		"include/userSearch.php",
+		"include/profileblocks.php",
+		"include/profilehead.php",
+		"include/inlineDebug.php",
+//		"include/uploads.php",
+		"include/typeid.php",
+		"include/groups.php"
+	) );
+
+
+timeline('parse', true);
+
+//declared after includes to allow to use all defines
+	$accounts = 	new accounts( $masterdb, $usersdb, $db );
+	$useraccounts = new useraccounts( $masterdb, $usersdb );
+	$auth = 		new authentication( $masterdb, $usersdb );
+
+	$msgs = 		new messages();
+	$banner = 		new bannerclient( $bannerdb, $bannerservers );
+	$google = 		new googleintegration( $usersdb );
+
+	if($simplepage <= 1){
+		$mods = 		new moderator( $moddb );
+		$abuselog = 	new abuselog( $moddb );
+		$archive =      new archive( $usersdb );
+		$forums = 		new forums ( $forumdb );
+		$messaging = 	new messaging( $usersdb );
+		$usercomments = new usercomments( $usersdb );
+		$weblog = 		new weblog( $usersdb );
+		$wiki =		 	new wiki( $wikidb );
+	}
+	if($simplepage == 0){
+		$polls = 		new polls( $polldb );
+		$shoppingcart = new shoppingcart( $shopdb );
+		$payg = 		new paygcards( $shopdb );
+		$usernotify =   new usernotify( $db );
+		$filesystem = 	new filesystem($filesdb, $THIS_IMG_SERVER);
+		$mogfs =		new mogfs($mogfs_domain, $mogfs_hosts);
+		$quizzes =		new quizzes( $contestdb );
+		$galleries = 	new galleries( $usersdb );
+		$sourcepictures=new sourcepictures( $usersdb );
+		$inlineDebug =	new inlineDebug();
+		$typeid =		new typeid( $db );
+		$groupmembers =	new groupmembers( $groupsdb, $usersdb );
 	}
 
-include_once("include/defines.php");
-include_once("include/config.inc.php");
-include_once("include/mirrors.php");
+//	if($enableCompression)
+//		ini_set('zlib.output_compression', 'On');
+//		ob_start("ob_gzhandler");
 
-timeline('config', true);
+	if(!isset($config['timezone']))
+		$config['timezone'] = 6;
 
-if(isset($tidyoutput) && $tidyoutput && extension_loaded('tidy'))
-	ob_start('ob_tidyhandler');
+	date_default_timezone_set("UTC");
 
-	function inherit_database_profile($name)
-	{
+	@header("Vary: Cookie"); //helps fix caching
+	@header("Content-Type: text/html; charset=ISO-8859-1"); //set the content type
+
+
+	timeline('init', true);
+
+	if(isset($login)){
+		requireLogin($login);
+	}
+
+	if($cachekey && checkKey('cache-' . substr($_SERVER['REQUEST_URI'], 0, strpos($_SERVER['REQUEST_URI'], "cachekey") - 1), $cachekey)){
+		$page = $pagecache->get("page-cache-$cachekey");
+		if($page){
+			echo $page;
+			if($userData['loggedIn'] && in_array($userData['userid'],$debuginfousers)) debugOutput();
+			exit;
+		}
+	}
+
+	if(!isset($forceserver))
+		$forceserver = getCOOKIEval('forceserver', 'bool');
+
+	if(count($_POST) == 0 && !$forceserver && $wwwdomain != $_SERVER['HTTP_HOST']){
+		header("location: " . (isset($_SERVER['HTTPS']) ? 'https' : 'http') . "://" . $wwwdomain . $_SERVER['REQUEST_URI']);
+		exit;
+	}
+
+if($simplepage <= 1)
+	include("$cwd/include/skin.php");
+
+
+timeline('auth done');
+
+$action = getREQval('action');
+
+//end of general stuff
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////
+////// Database Init Functions //////////////////////
+/////////////////////////////////////////////////////
+
+	function getdbs(){
+		global $databaseprofile, $databases, $cwd;
+
+
+		include("$cwd/include/dbconf.$databaseprofile.php");
+		recursive_inherit_config($databases, $databases);
+
+		$dbs = array();
+		foreach ($databases as $dbname => $dbinfo){
+			if (isset($dbinfo['instance'])){
+				$dbo = init_dbo($dbinfo, $dbs);
+				if($dbo)
+					$dbs[$dbname] = $dbo;
+			}
+		}
+
+		return $dbs;
+	}
+
+	function inherit_database_profile($name){
 		return "include/dbconf.$name.php";
 	}
 
@@ -117,52 +342,37 @@ if(isset($tidyoutput) && $tidyoutput && extension_loaded('tidy'))
 
 	// this produces a really nasty crowded config array, but the important thing
 	// is that everything is where it's supposed to be when the db object is initialized
-	function recursive_inherit_config(&$configtree, &$subtree, $sets = array())
-	{
+	function recursive_inherit_config(&$configtree, &$subtree, $sets = array()){
 		foreach ($sets as $key => $value)
-		{
 			if (!isset($subtree[$key]))
 				$subtree[$key] = $value;
-		}
 
-		if (isset($subtree['inherit']) && isset($configtree[ $subtree['inherit'] ]))
-		{
+		if (isset($subtree['inherit']) && isset($configtree[ $subtree['inherit'] ])){
 			$sourcename = $subtree['inherit'];
 			recursive_merge_config($subtree, $configtree[$sourcename]);
 		}
+
 		foreach ($subtree as $key => &$value)
-		{
 			if (!is_array($value) && $key != 'inherit')
 				$sets[$key] = $value;
-		}
+
 		foreach ($subtree as &$subsubtree)
-		{
 			if (is_array($subsubtree))
 				recursive_inherit_config($configtree, $subsubtree, $sets);
-		}
 	}
-
-	require_once "include/dbconf.$databaseprofile.php";
-	recursive_inherit_config($databases, $databases);
-
-	include_once("include/sql.php");
-	include_once("include/multisql.php");
-
-	if (!isset($databaselib) || !preg_match('/^(mysql|mysql4|pdo)$/', $databaselib))
-		$databaselib = 'mysql';
-
-	include_once("include/$databaselib.php");
 
 	function init_dbo($dbinfo, &$dbs) // already constructed dbs passed to $dbs
 	{
 		global $pluswwwdomain;
 
-		if ($dbinfo['type'] == 'single')
-		{
+		if ($dbinfo['type'] == 'single'){
 			return new sql_db($dbinfo);
 
 		} else if ($dbinfo['type'] == 'multi') {
 			return new multiple_sql_db($dbinfo, $_SERVER['HTTP_HOST'] == $pluswwwdomain);
+
+		} else if ($dbinfo['type'] == 'pair') {
+			return new pair_sql_db($dbinfo);
 
 		} else if ($dbinfo['type'] == 'split') {
 			$subdbos = array();
@@ -179,188 +389,82 @@ if(isset($tidyoutput) && $tidyoutput && extension_loaded('tidy'))
 	}
 
 
-	$dbs = array();
-	foreach ($databases as $dbname => $dbinfo)
-	{
-		if (isset($dbinfo['instance']))
-		{
-			$dbo = init_dbo($dbinfo, $dbs);
-			if ($dbo)
-				$dbs[$dbname] = $dbo;
-		}
-	}
-	extract($dbs);
-timeline('dbs', true);
-
-
-include_once("include/memcached-client.php");
-//include_once("include/mcachewrapper.php");
-//include_once("include/peclmemcachewrapper.php");
-//include_once("include/peclmemcached-client.php");
-
-	$memcache = new memcached($memcacheoptions);
-	$pagememcache = new memcached($pagecacheoptions);
-
-
-include_once("include/memcache2.php");
-	$cache 		= new cache($memcache, "$sitebasedir/cache");
-	$pagecache	= new cache($pagememcache, "$sitebasedir/cache");
-
-timeline('cache', true);
-
-include_once("include/general.class.php");
-include_once("include/databaseobject.php");
-include_once("include/msgs.php");
-include_once("include/menu.php");
-include_once("include/auth4.php");
-include_once("include/blocks.php");
-include_once("include/banner6.php");
-include_once("include/forums.php");
-include_once("include/moderator.php");
-include_once("include/abuselog.php");
-include_once("include/survey.php");
-include_once("include/stats.php");
-include_once("include/categories.php");
-include_once("include/polls.php");
-include_once("include/shoppingcart.php");
-include_once("include/payg.php");
-include_once("include/messaging.php");
-include_once("include/usernotify.php");
-include_once("include/usercomments.php");
-include_once("include/date.php");
-include_once("include/priorities.php");
-include_once("include/profileskins.php");
-include_once("include/plus.php");
-include_once("include/textmanip.php");
-include_once("include/smtp.php");
-include_once("include/timer.php");
-include_once("include/filesystem.php");
-include_once("include/terms.php");
-include_once("include/contests.php");
-include_once("include/weblog.php");
-include_once("include/gallery.php");
-include_once("include/pics.php");
-include_once("include/comment.php");
-include_once("include/wiki2.php");
-include_once("include/sourcepictures.php");
-include_once("include/template.php");
-include_once("include/fckeditor.php") ;
-include_once("include/html_sanitizer.php");
-include_once("include/userSearch.php");
-include_once('include/profileblocks.php');
-include_once("include/inlineDebug.php");
-
-timeline('parse', true);
-
-//declared after includes to allow to use all defines
-	$accounts = 	new accounts( $masterdb, $usersdb, $db );
-	$useraccounts = new useraccounts( $masterdb, $usersdb );
-	$auth = 		new authentication( $masterdb, $usersdb );
-
-	$msgs = 		new messages();
-	$banner = 		new bannerclient( $bannerdb, $bannerservers );
-	$forums = 		new forums ( $forumdb );
-	$mods = 		new moderator( $moddb );
-	$abuselog = 	new abuselog( $moddb );
-	$polls = 		new polls( $polldb );
-	$shoppingcart = new shoppingcart( $shopdb );
-	$payg = 		new paygcards( $shopdb );
-	$messaging = 	new messaging( $usersdb );
-	$usernotify =   new usernotify( $db );
-	$usercomments = new usercomments( $usersdb );
-	$filesystem = 	new filesystem($filesdb, $THIS_IMG_SERVER);
-	$contests =		new contests( $contestdb );
-	$weblog = 		new weblog( $usersdb );
-	$galleries = 	new galleries( $usersdb );
-	$wiki =		 	new wiki( $wikidb );
-	$sourcepictures=new sourcepictures( $usersdb );
-	$inlineDebug =	new inlineDebug();
-
-
-//	if($enableCompression)
-//		ini_set('zlib.output_compression', 'On');
-//		ob_start("ob_gzhandler");
-
-	if(!isset($config['timezone']))
-		$config['timezone'] = 6;
-//	putenv("TZ=MST");
-
-	header("Vary: Cookie"); //helps fix caching
-
-
-	timeline('init', true);
-
-	$cachekey = getREQval('cachekey');
-
-	if(isset($login)){
-		requireLogin($login);
-	}
-
-	if($cachekey){
-		if(checkKey('cache-' . substr($_SERVER['REQUEST_URI'], 0, strpos($_SERVER['REQUEST_URI'], "cachekey") - 1), $cachekey)){
-			$page = $pagecache->get("page-cache-$cachekey");
-			if($page){
-				echo $page;
-				if($userData['loggedIn'] && in_array($userData['userid'],$debuginfousers)) debugOutput();
-				exit;
-			}
-		}
-	}
-
-	if(!isset($forceserver))
-		$forceserver = getREQval('forceserver', 'bool');
-
-	if(count($_POST) == 0 && !$forceserver){
-		$webserver = ( ($userData['loggedIn'] && ($mods->isMod($userData['userid']) || $userData['premium'])) ? $pluswwwdomain : $wwwdomain );
-
-		if($webserver != $_SERVER['HTTP_HOST']){
-			header("location: " . (isset($_SERVER['HTTPS']) ? 'https' : 'http') . "://" . $webserver . $_SERVER['REQUEST_URI']);
-			exit;
-		}
-	}
-
-include_once("include/skin.php");
-
-timeline('auth done');
-
-
-$action = getREQval('action');
-
-//end of general stuff
-
-
 /////////////////////////////////////////////////////
 ////// Site Specific Functions //////////////////////
 /////////////////////////////////////////////////////
 
+function checkAcceptType($allowed){
+	$accept = explode(",", $_SERVER['HTTP_ACCEPT']);
+
+	foreach($accept as $type){
+		$type = trim($type);
+
+		if(strpos($type, ';') === false && ($type == '*/*' || strpos($type, $allowed) !== false))
+			return true;
+	}
+
+	return false;
+}
+
+function includecompiled($name, $includes){
+	global $config, $sitebasedir, $cwd;
+
+	if($config['cacheincludes']){
+		if(!file_exists("$sitebasedir/cache/compiled-$name.php")){
+			$str = "<?\n\n";
+			foreach($includes as $file)
+				$str .= "/****************************\n * $file\n ****************************/\n//" . substr(file_get_contents("$cwd/$file"), 2) . "\n\n\n\n";
+
+			file_put_contents("$sitebasedir/cache/compiled-$name.php", $str);
+		}
+		include("$sitebasedir/cache/compiled-$name.php");
+	}else{
+		foreach($includes as $file)
+			include("$cwd/$file");
+	}
+}
+
 function requireLogin($login = REQUIRE_LOGGEDIN, $adminpriv = "", $userid = false, $key = false) // called by default when $login is set pre-start
 {
-	global $simplepage, $userData, $mods, $auth;
-
-	if(!isset($simplepage))
-		$simplepage = !empty($cachekey); //equiv to (bool)$cachekey
+	global $simpleauth, $userData, $mods, $auth;
 
 	if (!$userid)
 		$userid = getCOOKIEval('userid', 'int');
 	if (!$key)
 		$key = getCOOKIEval('key');
 
-	$userData = $auth->auth($userid, $key, ($login >= REQUIRE_LOGGEDIN), $simplepage);
+	$userData = $auth->auth($userid, $key, ($login >= REQUIRE_HALFLOGGEDIN), $simpleauth);
+
+	$msg = "";
 
 	if($login == REQUIRE_NOTLOGGEDIN && $userData['loggedIn'])
-		die("This is only viewable by people who haven't logged in");
+		$msg = "This is only viewable by people who haven't logged in";
+	if($login == REQUIRE_LOGGEDIN && !$userData['loggedIn'])
+		$msg = "This page will only be usable when you've activated. Please check your email.";
 	if($login == REQUIRE_LOGGEDIN_PLUS && !($userData['premium'] || $mods->isAdmin($userData['userid'],$adminpriv)))
-		die("You must be a plus member to view this page");
+		$msg = "You must be a plus member to view this page";
 	if($login == REQUIRE_LOGGEDIN_ADMIN && !$mods->isAdmin($userData['userid'],$adminpriv))
-		die("You do not have permission to see this page");
+		$msg = "You do not have permission to see this page";
+
+	if($msg){
+		global $skins, $cwd;
+
+		if(!isset($skins))
+			include("$cwd/include/skin.php");
+
+		incHeader();
+		echo $msg;
+		incFooter();
+		exit;
+	}
 
 	return true;
 }
 
-function debugOutput(){
+function debugOutput($force = false){
 	global $userData, $debuginfousers, $times, $memory, $dbs, $cache, $config, $revstr, $inlineDebug;
-	if($userData['loggedIn'] && in_array($userData['userid'],$debuginfousers)){
-		timeline('end');
+	if($force || ($userData['loggedIn'] && in_array($userData['userid'],$debuginfousers))){
+		timeline('end', true);
 		$total = ($times['end'] - $times['start'])/10;
 		$parse = ($times['parse'] - $times['start'])/10;
 		$mysql = 0;
@@ -376,10 +480,17 @@ function debugOutput(){
 
 		// first give output from inline debug, thus module specific debug messages will come before
 		// global site debug messages
-		echo $inlineDebug->outputItems();
+		//echo $inlineDebug->outputItems();
+
+	//debug out wrapper table, that has the element to unhide the rest
+		echo "<table>";
+		echo "<tr><td class=header2><a class=header2 href=# onClick=\"el=document.getElementById('debugout').style; el.display=(el.display=='none'?'':'none'); return false;\">Show/Hide Debug Output</a></td></tr>";
+		echo "<tr><td class=header2 id=debugout style=\"display: none\">";
+
 
 		echo "<table><tr><td valign=top>";
 
+	//summary
 		echo "<table>";
 		echo "<tr><td class=header nowrap>Total time:</td><td class=header align=right nowrap>" . number_format($total, 2) . " ms</td></tr>";
 		echo "<tr><td class=body nowrap>Parse time:</td><td class=body align=right nowrap>" . number_format($parse, 2) . " ms</td></tr>";
@@ -396,6 +507,7 @@ function debugOutput(){
 
 		echo "</td><td valign=top>";
 
+	//timeline
 		echo "<table>";
 
 		$start = $times['start'];
@@ -437,8 +549,6 @@ function debugOutput(){
 			if($i % $cols == $cols - 1)
 				echo "</tr>\n";
 		}
-		if($i > 0)
-			echo "</tr>\n";
 
 		echo "</table>";
 
@@ -446,6 +556,7 @@ function debugOutput(){
 
 		$headers = headers_list();
 
+	//http headers
 		echo "<table>";
 		echo "<tr><td class=header colspan=2>HTTP Headers sent:</td></tr>";
 		foreach($headers as $line){
@@ -454,7 +565,10 @@ function debugOutput(){
 		}
 		echo "</table>";
 
+	//database and memcache queries
 		outputQueries();
+
+		echo "</td></tr></table>";
 	}else{
 		$endTime = gettime();
 		$total = ($endTime - $times['start'])/10;
@@ -492,7 +606,7 @@ function makeKey($id, $myuserid = 0){
 		}
 	}
 
-	$result = strtoupper(substr(base_convert(md5("$myuserid:blah:$id"), 16, 36), 0, 10));
+	$result = strtoupper(substr(md5("$myuserid:blah:$id"), 0, 10));
 	return $result;
 }
 
@@ -581,54 +695,34 @@ function getBlocks(){
 function blocks($side){
 	global $cache;
 
-	$blocks = $cache->hdget("blocks", 0, "getBlocks");
+//	$blocks = $cache->hdget("blocks", 0, "getBlocks");
+
+	$blocks = array( 'r' => array( 'incMsgBlock', 'incFriendsBlock', 'incModBlock', 'incSubscribedThreadsBlock') );
 
 	if(count($blocks[$side]))
 		foreach($blocks[$side] as $funcname)
 			$funcname($side);
 }
-//*
-function editBox($text = "", $id = 'msg', $formid = 'editbox', $height = 200, $width = 600, $maxlength=0, $parse_bbcode = true ){
-	echo editBoxStr($text, $id, $formid, $height, $width, $maxlength, $parse_bbcode);
-	return;
+
+function editBox($text = "", $id = 'msg', $formid = 'editbox', $height = 200, $width = 600, $maxlength = 0){
+	echo editBoxStr($text, $id, $formid, $height, $width, $maxlength);
 }
 
-function editBoxStr($text = "", $id = 'msg', $formid = 'editbox', $height = 250, $width = 700, $maxlength=0, $parse_bbcode = true ){
-	global $config, $cache, $userData;
+function editBoxStr($text = "", $id = 'msg', $formid = 'editbox', $height = 200, $width = 600, $maxlength = 0){
+	global $config;
 
-	$userData['bbcode_editor'] = true; //here to disable for all, including anonymous viewers
+	$smilyusage = getSmilies();
 
-	$sBasePath = 'include/' ;
+	$mangledtext = htmlentities(str_replace("\r","",str_replace("\n","\\n",str_replace('\\', '\\\\', $text))));
 
-	$output = '';
+	$output = "<script>" .
+		"var smileypics = new Array('" . implode("','", $smilyusage) . "');" .
+		"var smileycodes = new Array('" . implode("','", array_keys($smilyusage)) . "');" .
+		"var smileyloc = '$config[smilyloc]';";
 
-	$oFCKeditor = new FCKeditor($id) ;
-	if($oFCKeditor->IsCompatible() && !$userData['bbcode_editor'] )
-	{
-		$oFCKeditor->BasePath	= $sBasePath ;
-		$oFCKeditor->Value		= $text ;
-		$oFCKeditor->Width		= $width;
-		$oFCKeditor->Height		= $height;
-		$oFCKeditor->MaxLength	= $maxlength;
-		$output = $oFCKeditor->Create();
-	}
-	else
-	{
-		$smilyusage = getSmilies();
-//		if($maxlength > 0)
-//			$maxlength = $maxlength + 200;
+	$output .= "document.write(editBox(\"$mangledtext\", true ,'$id','$formid', $maxlength, $height, $width)); </script>";
 
-		$mangledtext = htmlentities(str_replace("\r","",str_replace("\n","\\n",str_replace('\\', '\\\\', $text))));
-
-		$output = "<script>" .
-			"var smileypics = new Array('" . implode("','", $smilyusage) . "');" .
-			"var smileycodes = new Array('" . implode("','", array_keys($smilyusage)) . "');" .
-			"var smileyloc = '$config[smilyloc]';";
-
-		$output .= "document.write(editBox(\"$mangledtext\", true ,'$id','$formid', $maxlength, $height, $width)); </script>";
-
-		$output .= "<noscript><textarea cols=70 rows=10 name='$id'></textarea></noscript>";
-	}
+	$output .= "<noscript><textarea cols=70 rows=10 name='$id'></textarea></noscript>";
 
 	return $output;
 }
@@ -665,188 +759,6 @@ function weirdunmap($input){
 
 	return $input;
 }
-
-/*/
-function editBox($text = ""){
-	global $config, $cache;
-
-	$smilyusage = getSmilies();
-
-	echo "<table cellspacing=0 align=center>";
-	echo "<tr><td align=center>";
-		echo "<input class=body type=button class=button accesskey=b name=addbbcode0 value=' B ' style='font-weight:bold; width: 30px' onClick='bbstyle(0)'>";
-		echo "<input class=body type=button class=button accesskey=i name=addbbcode2 value=' i ' style='font-style:italic; width: 30px' onClick='bbstyle(2)'>";
-		echo "<input class=body type=button class=button accesskey=u name=addbbcode4 value=' u ' style='text-decoration: underline; width: 30px' onClick='bbstyle(4)'>";
-		echo "<input class=body type=button class=button accesskey=q name=addbbcode6 value='Quote' style='width: 50px' onClick='bbstyle(6)'>";
-		echo "<input class=body type=button class=button accesskey=p name=addbbcode8 value='Img' style='width: 40px'  onClick='bbstyle(8)'>";
-		echo "<input class=body type=button class=button accesskey=w name=addbbcode10 value='URL' style='text-decoration: underline; width: 40px' onClick='bbstyle(10)'>";
-		echo "<select style='width: 60px' class=body onChange=\"if(this.selectedIndex!=0) bbfontstyle('[font=' + this.options[this.selectedIndex].value + ']', '[/font]');this.selectedIndex=0\">";
-			echo "<option value='0'>Font</option>";
-			echo "<option value='Arial' style='font-family:Arial'>Arial</option>";
-			echo "<option value='Times' style='font-family:Times'>Times</option>";
-			echo "<option value='Courier' style='font-family:Courier'>Courier</option>";
-			echo "<option value='Impact' style='font-family:Impact'>Impact</option>";
-			echo "<option value='Geneva' style='font-family:Geneva'>Geneva</option>";
-			echo "<option value='Optima' style='font-family:Optima'>Optima</option>";
-		echo "</select>";
-		echo "<select style='width: 60px' class=body onChange=\"if(this.selectedIndex!=0) bbfontstyle('[color=' + this.options[this.selectedIndex].value + ']', '[/color]');this.selectedIndex=0\">";
-			echo "<option style='color:black; background-color: #FFFFFF' value='0'>Color</option>";
-			echo "<option style='color:darkred; background-color: #DEE3E7' value='darkred'>Dark Red</option>";
-			echo "<option style='color:red; background-color: #DEE3E7' value='red'>Red</option>";
-			echo "<option style='color:orange; background-color: #DEE3E7' value='orange'>Orange</option>";
-			echo "<option style='color:brown; background-color: #DEE3E7' value='brown'>Brown</option>";
-			echo "<option style='color:yellow; background-color: #DEE3E7' value='yellow'>Yellow</option>";
-			echo "<option style='color:green; background-color: #DEE3E7' value='green'>Green</option>";
-			echo "<option style='color:olive; background-color: #DEE3E7' value='olive'>Olive</option>";
-			echo "<option style='color:cyan; background-color: #DEE3E7' value='cyan'>Cyan</option>";
-			echo "<option style='color:blue; background-color: #DEE3E7' value='blue'>Blue</option>";
-			echo "<option style='color:darkblue; background-color: #DEE3E7' value='darkblue'>Dark Blue</option>";
-			echo "<option style='color:indigo; background-color: #DEE3E7' value='indigo'>Indigo</option>";
-			echo "<option style='color:violet; background-color: #DEE3E7' value='violet'>Violet</option>";
-			echo "<option style='color:white; background-color: #DEE3E7' value='white'>White</option>";
-			echo "<option style='color:black; background-color: #DEE3E7' value='black'>Black</option>";
-		echo "</select>";
-		echo "<select style='width: 60px' class=body onChange=\"if(this.selectedIndex!=0) bbfontstyle('[size=' + this.options[this.selectedIndex].value + ']', '[/size]');this.selectedIndex=0\">";
-			echo "<option value=0>Size</option>";
-			echo "<option value=1>Tiny</option>";
-			echo "<option value=2>Small</option>";
-			echo "<option value=3>Normal</option>";
-			echo "<option value=4>Large</option>";
-			echo "<option value=5>Huge</option>";
-		echo "</select>";
-	echo "</td>\n";
-
-	$cols = 4;
-	$rows = 6;
-
-	echo "<td rowspan=2>";
-	echo "<table cellspacing=0 cellpadding=3 border=1 style=\"border-collapse: collapse\">";
-	$num = min($cols * $rows, ceil(count($smilyusage)/$cols)*$cols);
-	for($i=0; $i < $num; $i++){
-		list($code, $val) = each($smilyusage);
-		if($i % $cols == 0)
-			echo "<tr>";
-
-		echo"<td class=body><div name=smiley$i id=smiley$i>";
-		if($i < count($smilyusage))
-			echo"<a href=\"javascript:emoticon('$code')\"><img src=\"$config[smilyloc]$val.gif\" alt=\"$val\" border=0></a>";
-		echo "</div></td>";
-
-		if($i % $cols == $cols - 1)
-			echo "</tr>";
-	}
-	echo "<tr><td colspan=$cols class=body>";
-
-	echo "<table width=100%><tr>";
-	echo "<td class=body><a class=body href=\"javascript:smiliespage(-1);\">Prev</a></td>";
-	echo "<td class=body align=right><a class=body href=\"javascript:smiliespage(1);\">Next</a></td>";
-	echo "</tr></table>";
-
-	echo "</td></tr>";
-	echo "</table>";
-	echo "</td>\n";
-
-	echo "</tr>";
-	echo "<tr><td align=center><textarea style='width: 400px' class=header cols=70 rows=10 name=msg wrap=virtual onSelect=\"storeCaret(this);\" onClick=\"storeCaret(this);\" onKeyUp=\"storeCaret(this);\">$text</textarea></td></tr>\n";
-	echo "</table>\n";
-
-	echo "<script>";
-	echo "var smileypics = new Array('" . implode("','", $smilyusage) . "');";
-	echo "var smileycodes = new Array('" . implode("','", array_keys($smilyusage)) . "');";
-	echo "var smileyloc = '$config[smilyloc]';";
-//	echo "putinnerHTML('editdiv', editBox(\"" . htmlentities(str_replace("\r","",str_replace("\n","\\n",$text))) . "\",true));";
-	echo "</script>";
-//	echo "<noscript><textarea cols=70 rows=10 name=msg></textarea></noscript>";
-	return;
-}
-//*/
-
-function addComment($id,$msg,$preview="changed",$params=array(),  $parse_bbcode, $usedb='article'){
-	global $userData, $articlesdb, $polldb;
-	if(!$userData['loggedIn'])
-		return;
-
-	if(trim($msg)=="")
-		return;
-
-	$nmsg = html_sanitizer::sanitize($msg);
-	if($parse_bbcode)
-	{
-		$nmsg2 = parseHTML($nmsg);
-		$nmsg3 = smilies($nmsg2);
-		$nmsg3 = wrap($nmsg3);
-		$nmsg3 = nl2br($nmsg3);
-	}
-	else
-		$nmsg3 = $nmsg;
-
-	if($preview=="Preview" || ($nmsg != $nmsg2 && $preview=="changed")){
-		incHeader();
-
-		echo "Some changes have been made (be it smilies, html removal, or code to html conversions). Here is a preview of what the post will look like:<hr><blockquote>\n";
-
-		echo $nmsg3;
-
-		echo "</blockquote><hr>\n";
-
-		echo "<form action=$_SERVER[PHP_SELF] method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
-		echo "<table width=100% cellspacing=0>";
-
-		echo "<input type=hidden name='id' value='" . htmlentities($id) . "'>\n";
-		echo "<input type=hidden name='action' value='comment'>\n";
-		echo "<input type=hidden name='db' value='" . htmlentities($usedb) . "'>\n";
-
-		foreach($params as $k => $v)
-			echo "<input type=hidden name='$k' value='" . htmlentities($v) . "'>\n";
-
-		echo "<tr><td colspan=2><table width=100%><tr>\n";
-		echo "<td class=body width=25%><input type=hidden name=parse_bbcode value=y /></td>\n";
-
-		echo "</tr></table></td></tr>\n";
-
-		echo "<tr><td class=header>";
-
-		editBox($nmsg);
-
-		echo "</td></tr>\n";
-		echo "<tr><td class=header align=center><input type=submit name=postaction value=Preview> <input type=submit name=postaction value='Post' accesskey='s' onClick='checksubmit()'></td></tr>\n";
-
-		echo "</table>";
-		echo "</form>";
-
-		incFooter();
-		exit(0);
-	}
-
-	$parse_bbcode 	= $parse_bbcode ? 'y' : 'n';
-
-
-	$old_user_abort = ignore_user_abort(true);
-	if($usedb == 'polls'){
-		$result=$polldb->prepare_query("SELECT id FROM pollcomments WHERE itemid = # && time > # && authorid = #", $id, time() - 15, $userData['userid']);
-		if($result->fetchrow()) //double post
-			return false;
-
-		$polldb->prepare_query("INSERT INTO pollcomments SET itemid = #, authorid = #, time = #", $id, $userData['userid'], time());
-		$insertid = $polldb->insertid();
-
-		$polldb->prepare_query("INSERT INTO pollcommentstext SET id = #, msg = ?, nmsg = ?,  parse_bbcode = ?", $insertid, $msg, $nmsg3, $parse_bbcode);
-		$polldb->prepare_query("UPDATE polls SET comments = comments+1 WHERE id = #", $id);
-	}else{
-		$result = $articlesdb->prepare_query("SELECT id FROM comments WHERE itemid = # && time > # && authorid = #", $id, time() - 15, $userData['userid']);
-		if($result->fetchrow()) //double post
-			return false;
-
-		$articlesdb->prepare_query("INSERT INTO comments SET itemid = #, authorid = #, time = #", $id, $userData['userid'], time());
-		$insertid = $articlesdb->insertid();
-
-		$articlesdb->prepare_query("INSERT INTO commentstext SET id = #, msg = ?, nmsg = ?,  parse_bbcode = ?", $insertid, $msg, $nmsg3, $parse_bbcode);
-
-		$articlesdb->prepare_query("UPDATE articles SET comments = comments+1 WHERE id = #", $id);
-	}
-	ignore_user_abort($old_user_abort);
-}
-
 
 
 function pageList($link,$page,$numpages,$class='body'){
@@ -941,29 +853,37 @@ function isRoutableIP($ip){
 	$parts = explode(".", $ip);
 	return !(	$parts[0] == 0 || 											// 0.0.0.0/8
 				$parts[0] == 10 || 											// 10.0.0.0/8
+				$parts[0] == 127 || 										// 127.0.0.0/8
 			(	$parts[0] == 172 && $parts[1] >= 16 && $parts[1] <= 31) ||	// 172.16.0.0/12
 			(	$parts[0] == 192 && $parts[1] == 168) );					// 192.168.0.0/16
 }
 
 function getAge($birthday,$decimals=0) {
 	if(!$decimals){
-		$age = userdate("Y") - userdate("Y",$birthday);
-		if(userdate("m",$birthday) > userdate("m"))
-			$age--;
-		elseif(userdate("m",$birthday) == userdate("m") && userdate("j",$birthday) > userdate("j"))
+		static $year = null;
+		static $month = null;
+		static $day = null;
+
+		if($year === null)
+			list($year, $month, $day) = explode(" ", gmdate("Y m j"));
+
+
+		list($byear, $bmonth, $bday) = explode(" ", gmdate("Y m j", $birthday));
+
+		$age = $year - $byear;
+		if($bmonth > $month || ($bmonth == $month && $bday > $day))
 			$age--;
 
 		return $age;
 	}else{
-		$age = userdate("Y") - userdate("Y",$birthday) + ((userdate("z") - userdate("z",$birthday))/365);
+		$age = gmdate("Y") - gmdate("Y",$birthday) + ((gmdate("z") - gmdate("z",$birthday))/365);
 
 		return number_format($age,$decimals);
 	}
 }
 
 function gettime(){
-	list($usec, $sec) = explode(" ",microtime());
-	return (10000*((float)$usec + (float)$sec));
+	return microtime(true)*10000;
 }
 
 function countCodeLines ($directory,$recur=true,$output=false){
@@ -1059,28 +979,87 @@ function chooseWeight($items, $int = true){ //array($id => $weight);
 	return false;
 }
 
-function getREQval($name, $type = 'string', $default = null){
-	$val = (isset($_REQUEST[$name]) ? $_REQUEST[$name] : $default);
+function getREQval($name, $type = 'string', $default = null, $allowremote = null){
+	if(isset($_POST[$name]))
+		return getInputType($_POST, $name, $type, $default, ($allowremote === null ? false : $allowremote));
+	else
+		return getInputType($_GET, $name, $type, $default, ($allowremote === null ? true : $allowremote));
+}
+
+function getGETval($name, $type = 'string', $default = null, $allowremote = true){
+	return getInputType($_GET, $name, $type, $default, $allowremote);
+}
+
+function getPOSTval($name, $type = 'string', $default = null, $allowremote = false){
+	return getInputType($_POST, $name, $type, $default, $allowremote);
+}
+
+function getREQarray($vals, $prefix = '', $allowremote = null){
+	if($prefix){
+		if(isset($_POST[$prefix][$name]))
+			return getInputArray($_POST[$prefix], $vals, ($allowremote === null ? false : $allowremote));
+		else
+			return getInputArray($_GET[$prefix], $vals, ($allowremote === null ? true : $allowremote));
+	}else{
+		if(isset($_POST[$name]))
+			return getInputArray($_POST, $vals, ($allowremote === null ? false : $allowremote));
+		else
+			return getInputArray($_GET, $vals, ($allowremote === null ? true : $allowremote));
+	}
+}
+
+function getGETarray($vals, $prefix = '', $allowremote = true){
+	if($prefix)
+		return getInputArray($_GET[$prefix], $vals, $allowremote);
+	else
+		return getInputArray($_GET, $vals, $allowremote);
+}
+
+function getPOSTarray($vals, $prefix = '', $allowremote = true){
+	if($prefix)
+		return getInputArray($_POST[$prefix], $vals, $allowremote);
+	else
+		return getInputArray($_POST, $vals, $allowremote);
+}
+
+function isValidPost(){
+	if(isset($_SERVER['HTTP_REFERER']) && $_SERVER['HTTP_REFERER']){
+		$host = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'];
+
+		if(strncmp($_SERVER['HTTP_REFERER'], $host, strlen($host)) != 0)
+			return false;
+	}
+	return true;
+}
+
+function getInputType(& $INPUT, $name, $type, $default, $allowremote){
+	if(!$allowremote && !isValidPost())
+		unset($INPUT[$name]);
+
+	$val = (isset($INPUT[$name]) ? $INPUT[$name] : $default);
 	settype($val, $type);
 	return $val;
 }
 
-function getGETval($name, $type = 'string', $default = null){
-	$val = (isset($_GET[$name]) ? $_GET[$name] : $default);
-	settype($val, $type);
-	return $val;
-}
+function getInputArray(& $INPUT, $vals, $allowremote){
+	if(!$allowremote && !isValidPost())
+		return $vals;
 
-function getPOSTval($name, $type = 'string', $default = null){
-	$val = (isset($_POST[$name]) ? $_POST[$name] : $default);
-	settype($val, $type);
-	return $val;
+	$ret = array();
+	foreach($vals as $k => $v){
+		if(isset($INPUT[$k])){
+			$ret[$k] = $INPUT[$k];
+			settype($ret[$k], gettype($v));
+		}else{
+			$ret[$k] = $v;
+		}
+	}
+
+	return $ret;
 }
 
 function getCOOKIEval($name, $type = 'string', $default = null){
-	$val = (isset($_COOKIE[$name]) ? $_COOKIE[$name] : $default);
-	settype($val, $type);
-	return $val;
+	return getInputType($_COOKIE, $name, $type, $default, true);
 }
 
 function getFILEval($name){
@@ -1175,6 +1154,18 @@ function getStaticValue($id, $restricted = true, $full = false){ //default retur
 ////// PHP rewrite or general funcs /////////////////
 /////////////////////////////////////////////////////
 
+function gzdecode($string){
+	return gzinflate(substr($string, 10));
+}
+
+//use a setCookie wrapper, so on php 5.2+ the http only flag works, but doesn't fail on earlier versions.
+function set_cookie($name, $value = '', $expire = 0, $path = '', $domain = '', $secure = false, $HTTPOnly = false) {
+	if(PHP_VERSION > 5.2)
+		setCookie($name, $value, $expire, $path, $domain, $secure, $HTTPOnly);
+	else
+		setCookie($name, $value, $expire, $path, $domain, $secure);
+}
+
 function swap(&$var1, &$var2){
 	$temp = $var1;
 	$var1 = $var2;
@@ -1206,6 +1197,13 @@ function array_search($needle,$stack,$strict=false){
 				return $key;
 	}
 	return false;
+}
+}
+
+if(!function_exists('date_default_timezone_set')){
+function date_default_timezone_set($tz){
+	if(getenv("TZ") != $tz)
+		putenv("TZ=$tz");
 }
 }
 
@@ -1257,6 +1255,17 @@ function array_search_offset($needle, $haystack, $offset = 0, $strict = false){
 	}
 
 	return false;
+}
+
+function array_add_max( & $array, $val, $max){
+	$array[] = $val;
+
+	$count = count($array);
+	if($count > $max){
+		end($array);
+		unset($array[key($array) - floor($max/2)]);
+		reset($array);
+	}
 }
 
 function explode_keep($sep, $str){ //explodes only on single chars (can be an array of chars), and keeps the char at the beginning of the items
@@ -1427,9 +1436,9 @@ function make_select_list( $list, $sel = "" ){
 	$str = "";
 	foreach($list as $k => $v){
 		if( $sel == $v )
-			$str .= "<option value=\"$v\" selected> $v</option>";
+			$str .= "<option value=\"" . htmlentities($v) . "\" selected> " . htmlentities($v) . "</option>";
 		else
-			$str .= "<option value=\"$v\"> $v</option>";
+			$str .= "<option value=\"" . htmlentities($v) . "\"> " . htmlentities($v) . "</option>";
 	}
 
 	return $str;
@@ -1439,9 +1448,9 @@ function make_select_list_multiple( $list, $sel = array() ){
 	$str = "";
 	foreach($list as $k => $v){
 		if(in_array($v, $sel))
-			$str .= "<option value=\"$v\" selected> $v</option>";
+			$str .= "<option value=\"" . htmlentities($v) . "\" selected> " . htmlentities($v) . "</option>";
 		else
-			$str .= "<option value=\"$v\"> $v</option>";
+			$str .= "<option value=\"" . htmlentities($v) . "\"> " . htmlentities($v) . "</option>";
 	}
 
 	return $str;
@@ -1451,9 +1460,9 @@ function make_select_list_key( $list, $sel = null ){
 	$str = "";
 	foreach($list as $k => $v){
 		if( $sel == $k )
-			$str .= "<option value=\"$k\" selected> $v</option>";
+			$str .= "<option value=\"" . htmlentities($k) . "\" selected> " . htmlentities($v) . "</option>";
 		else
-			$str .= "<option value=\"$k\"> $v</option>";
+			$str .= "<option value=\"" . htmlentities($k) . "\"> " . htmlentities($v) . "</option>";
 	}
 
 	return $str;
@@ -1463,9 +1472,9 @@ function make_select_list_multiple_key( $list, $sel = array() ){
 	$str = "";
 	foreach($list as $k => $v){
 		if(in_array($k, $sel))
-			$str .= "<option value=\"$k\" selected> $v</option>";
+			$str .= "<option value=\"" . htmlentities($k) . "\" selected> " . htmlentities($v) . "</option>";
 		else
-			$str .= "<option value=\"$k\"> $v</option>";
+			$str .= "<option value=\"" . htmlentities($k) . "\"> " . htmlentities($v) . "</option>";
 	}
 
 	return $str;
@@ -1475,9 +1484,9 @@ function make_select_list_key_key( $list, $sel = "" ){
 	$str = "";
 	foreach($list as $k => $v){
 		if( $sel == $v )
-			$str .= "<option value=\"$k\" selected> $k</option>";
+			$str .= "<option value=\"" . htmlentities($k) . "\" selected> " . htmlentities($k) . "</option>";
 		else
-			$str .= "<option value=\"$k\"> $k</option>";
+			$str .= "<option value=\"" . htmlentities($k) . "\"> " . htmlentities($k) . "</option>";
 	}
 
 	return $str;
@@ -1487,9 +1496,9 @@ function make_select_list_col_key( $list, $col, $sel = "" ){
 	$str = "";
 	foreach($list as $k => $v){
 		if( $sel == $k )
-			$str .= "<option value=\"$k\" selected> $v[$col]</option>";
+			$str .= "<option value=\"" . htmlentities($k) . "\" selected> " . htmlentities($v[$col]) . "</option>";
 		else
-			$str .= "<option value=\"$k\"> $v[$col]</option>";
+			$str .= "<option value=\"" . htmlentities($k) . "\"> " . htmlentities($v[$col]) . "</option>";
 	}
 
 	return $str;
@@ -1498,10 +1507,10 @@ function make_select_list_col_key( $list, $col, $sel = "" ){
 function make_radio($name, $list, $sel = "", $class = 'body'){
 	$str = "";
 	foreach($list as $k => $v){
-		$str .= "<input type=radio name=\"$name\" value=\"$v\" id=\"$name/$k\"";
+		$str .= "<input type=radio name=\"$name\" value=\"" . htmlentities($v) . "\" id=\"$name/" . htmlentities($k) . "\"";
 		if( $sel == $v )
 			$str .= " checked";
-		$str .= "><label for=\"$name/$k\" class=$class> $v</label> ";
+		$str .= "><label for=\"$name/" . htmlentities($k) . "\" class=$class> " . htmlentities($v) . "</label> ";
 	}
 
 	return $str;
@@ -1510,10 +1519,10 @@ function make_radio($name, $list, $sel = "", $class = 'body'){
 function make_radio_key($name, $list, $sel = "", $class = 'body' ){
 	$str = "";
 	foreach($list as $k => $v){
-		$str .= "<input type=radio name=\"$name\" value=\"$k\" id=\"$name/$k\"";
+		$str .= "<input type=radio name=\"$name\" value=\"" . htmlentities($k) . "\" id=\"$name/" . htmlentities($k) . "\"";
 		if( $sel == $k )
 			$str .= " checked";
-		$str .= "><label for=\"$name/$k\" class=$class> $v</label> ";
+		$str .= "><label for=\"$name/" . htmlentities($k) . "\" class=$class> " . htmlentities($v) . "</label> ";
 	}
 
 	return $str;
@@ -1522,11 +1531,16 @@ function make_radio_key($name, $list, $sel = "", $class = 'body' ){
 function makeCatSelect($branch, $category = null){
 	$str="";
 
+	$prefix = array();
+
 	foreach($branch as $cat){
+		if(!isset($prefix[$cat['depth']]))
+			$prefix[$cat['depth']] = str_repeat("- ", $cat['depth']);
+
 		$str .= "<option value='$cat[id]'";
 		if($cat['id'] == $category)
 			$str .= " selected";
-		$str .= ">" . str_repeat("- ", $cat['depth']) . $cat['name'] . "</option>";
+		$str .= ">" . $prefix[$cat['depth']] . $cat['name'] . "</option>";
 	}
 
 	return $str;
@@ -1591,7 +1605,9 @@ function getFriendsList($uid, $mode = USER_FRIENDS){
 	$friends = array();
 
 	if(count($friendids)){
-		$users = getUserInfo($friendids);
+//*
+	//Good version
+		$users = getUserInfo($friendids, false);
 
 		foreach($users as $user)
 			if($user['state'] == 'new' || $user['state'] == 'active')
@@ -1599,6 +1615,12 @@ function getFriendsList($uid, $mode = USER_FRIENDS){
 
 		uksort($friends,'strcasecmp');
 		$friends = array_flip($friends);
+/*/
+	//shows frozen users, but faster
+		$friends = getUserName($friendids);
+		uasort($friends, 'strcasecmp');
+//*/
+
 	}
 	return $friends;
 }
@@ -1636,12 +1658,18 @@ function getUserInfo($uids, $getactive = true){
 	foreach ($uids as & $uid)
 		settype($uid, 'integer');
 
-	$users = $cache->get_multi($uids, "userinfo-");
+	if($getactive){
+		$temp = $cache->get_multi_multi($uids, array("userinfo-", "useractive-"));
+
+		$users = isset($temp['userinfo-']) ? $temp['userinfo-'] : array();
+		$activetimes = isset($temp['useractive-']) ? $temp['useractive-'] : array();
+	}else{
+		$users = $cache->get_multi($uids, "userinfo-");
+	}
 
 	$missingids = array_diff($uids, array_keys($users));
 
 	if(count($missingids)){
-
 		$names = getUserName($missingids);
 
 		$res = $usersdb->prepare_query("SELECT * FROM users WHERE userid IN (%)", $missingids);
@@ -1658,18 +1686,17 @@ function getUserInfo($uids, $getactive = true){
 			return ($array ? array() : false);
 	}
 
+//don't need to set, as it is never removed, and should never be older than the above cached version
 	if($getactive){
-		$activetimes = $cache->get_multi($uids, "useractive-"); //don't need to set, as it is never removed, and should never be older than the above cached version
-
 		foreach($activetimes as $uid => $activetime)
-			$users[$uid]['activetime'] = $activetime;
+			if(isset($users[$uid]))
+				$users[$uid]['activetime'] = $activetime;
 	}
 
-	foreach($uids as $uid){
-		if($getactive)
-			$users[$uid]['online'] = ($users[$uid]['activetime'] > $time - $config['friendAwayTime'] ? 'y' : 'n');
-		$users[$uid]['plus'] = ($users[$uid]['premiumexpiry'] > $time);
-		$users[$uid]['age'] = getAge($users[$uid]['dob']);
+	foreach($users as & $user){
+		$user['online'] = (($user['activetime'] > $time - $config['friendAwayTime']) ? 'y' : 'n');
+		$user['plus'] = ($user['premiumexpiry'] > $time);
+		$user['age'] = getAge($user['dob']);
 	}
 
 	return ($array ? $users : array_pop($users));
@@ -1804,8 +1831,26 @@ function getUserID($uids){ // $uids = (optionally an array of) usernames
 		return false;
 }
 
+function getUserIDByEmail($emailAddress)
+{
+	global $masterdb, $usersdb, $cache;
+	
+	$res = $masterdb->prepare_query("SELECT userid FROM useremails WHERE active = 'y' && email = ?", $emailAddress);
+	
+	$uid = false;
+	
+	while($line = $res->fetchrow()){
+		$uid = $line['userid'];
+	}
+	
+	if(is_numeric($uid))
+		return $uid;
+	else
+		return false;
+}
+
 function getSpotlight(){
-	global $usersdb, $db, $cache, $messaging;
+	global $usersdb, $db, $cache, $messaging, $config;
 
 	$spotlightmax = $cache->get("spotlightmax");
 
@@ -1853,10 +1898,9 @@ function getSpotlight(){
 	}
 
 	if($i){
-
 		$db->prepare_query("INSERT INTO spotlighthist SET userid = #, pic = #, time = #", $ret['userid'], $ret['pic'], time());
 
-		$messaging->deliverMsg($ret['userid'], "Spotlight", "You've been spotlighted!", 0, "Nexopia", 0);
+		$messaging->deliverMsg($ret['userid'], "Spotlight", "You've been spotlighted with this picture:\n[img=$config[thumbloc]" . floor($ret['userid']/1000) . "/$ret[userid]/$ret[pic].jpg]", 0, "Nexopia", 0);
 
 		return $ret;
 	}else{
@@ -1864,79 +1908,43 @@ function getSpotlight(){
 	}
 }
 
-function userNameLegal($word){
-	global $msgs, $db, $config;
+function getSpotlightHist($limit = 10){
+	global $db;
 
-	$orig = $word;
+	$res = $db->prepare_query("SELECT * FROM spotlighthist ORDER BY time DESC LIMIT 1, #", $limit); //skip the first since it is likely still live
 
-	$word = trim($word);
+	$users = array();
 
-//filtered, illegal chars
-	$chars = array(' ','<','>','&','%','"',"'",'`','+','=','@',chr(127),chr(152),chr(158),chr(160),'/','\\');
-	for($i=0;$i<40;$i++)
-		$chars[] = chr($i);
-	for($i=166;$i<=223;$i++)
-		$chars[] = chr($i);
-	for($i=240;$i<=255;$i++)
-		$chars[] = chr($i);
-	$word = str_replace($chars,'',$word);
+	while($line = $res->fetchrow())
+		$users[$line['userid']] = $line;
 
-	if($word !== $orig){
-		$msgs->addMsg("Illegal characters have been removed. Changed to '$word'.");
-		return false;
+	$userinfo = getUserInfo(array_keys($users));
+
+	foreach($users as $userid => & $user){
+		$user['username'] = $userinfo[$userid]['username'];
+		$user['age'] = $userinfo[$userid]['age'];
+		$user['sex'] = $userinfo[$userid]['sex'];
 	}
 
-	if(strlen($word) < $config['minusernamelength']){
-		$msgs->addMsg("Username must be at least $config[minusernamelength] characters long.");
-		return false;
-	}
-	if(strlen($word) > $config['maxusernamelength']){
-		$msgs->addMsg("Username cannot be more than $config[maxusernamelength] characters long");
-		return false;
-	}
-
-	if(is_numeric($word)){
-		$msgs->addMsg("Names must have at least one non-numeric character");
-		return false;
-	}
-
-	if(getUserID($word) !== false){
-		$msgs->addMsg("That username is already in use");
-		return false;
-	}
-
-	$res = $db->query("SELECT word,type FROM bannedwords");
-
-	while($line = $res->fetchrow()){
-		if($line['type']=='word' || $line['type']=='name'){
-			if(strtolower($word) == strtolower($line['word'])){
-				$msgs->addMsg("'$line[word]' isn't allowed in the username");
-				return false;
-			}
-		}elseif($line['type']=='part'){
-			if(stristr($word,$line['word'])!==false){
-				$msgs->addMsg("'$line[word]' isn't allowed in the username");
-				return false;
-			}
-		}
-	}
-	return true;
+	return $users;
 }
 
-function isIgnored($to, $from, $scope, $age = 0, $ignorelistonly = false){ //$from usually = $userData['userid'];
+
+//returns 0 if you're not ignored, 1 if it's friends only, 2 if it's by age or explicit
+function isIgnored($to, $from, $scope, $age = 0, $ignorelistonly = false){ // usually $from = $userData['userid'];
 	global $cache, $usersdb, $mods;
 
 	if($mods->isAdmin($from))
-		return false;
+		return 0;
 
 	if($scope && !$ignorelistonly){
 		$line = getUserInfo($to, false);
 
 		if(($line['onlyfriends'] == 'both' || $line['onlyfriends'] == $scope) && !isFriend($from,$to))
-			return true;
+			return 1;
 
 		if(($line['ignorebyage'] == 'both' || $line['ignorebyage'] == $scope) && $age && ($age < $line['defaultminage'] || $age > $line['defaultmaxage']) && !isFriend($from, $to))
-			return true;
+			return 2;
 	}
 
 	$ignorelist = $cache->get("ignorelist-$to");
@@ -1951,16 +1959,16 @@ function isIgnored($to, $from, $scope, $age = 0, $ignorelistonly = false){ //$fr
 		$cache->put("ignorelist-$to", $ignorelist, 86400*3); //3 days
 	}
 
-	return isset($ignorelist[$from]);
+	return (isset($ignorelist[$from]) ? 2 : 0);
 }
 
-function isFriend($friendid, $userid=0){
+function isFriend($friendid, $userid=0, $selfAutomaticallyCounts=true){
 	global $userData, $db;
 
 	if($userid==0)
 		$userid=$userData['userid'];
 
-	if($friendid == $userid)
+	if($friendid == $userid && $selfAutomaticallyCounts)
 		return true;
 
 	$friends = getFriendsListIDs($userid);
@@ -1968,17 +1976,69 @@ function isFriend($friendid, $userid=0){
 	return isset($friends[$friendid]);
 }
 
+function isFriendOfFriend($friendOfFriendID, $userid=0, $selfAutomaticallyCounts=true)
+{
+	global $userData, $db;
+	
+	if ($userid==0)
+		$userid=$userData['userid'];
+	
+	if ($friendOfFriendID == $userid && $selfAutomaticallyCounts)
+		return true;
+	
+	if ($friendOfFriendID == null)
+		return false;
+	
+	$userFriends = getFriendsListIDs($userid);
+	if (sizeof($userFriends) > 0)
+	{
+		foreach($userFriends as $userFriend)
+		{
+			if (isFriend($friendOfFriendID, $userFriend, $selfAutomaticallyCounts))
+			{
+				return true;
+			}
+		}
+	}
+	
+	return false;
+}
+
+
+function isVisibleTo($userid, $viewerid, $visibility)
+{
+	global $userData;
+	
+	if (!$userData['loggedIn'])
+	{
+		return false;
+	}
+	
+	if (($visibility != VISIBILITY_NONE && $viewerid == $userid) ||
+		($visibility == VISIBILITY_FRIENDS && isFriend($viewerid, $userid, false)) ||
+		($visibility == VISIBILITY_FRIENDS_OF_FRIENDS && isFriendOfFriend($viewerid, $userid, false)) ||
+		$visibility == VISIBILITY_ALL)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+
 function isValidEmail($email){
 	global $msgs;
 	if(!eregi("^[a-z0-9]+([a-z0-9_.&-]+)*@([a-z0-9.-]+)+$", $email, $regs) ){
-		$msgs->addMsg("Error: '$email' isn't a valid mail address");
+		$msgs->addMsg("Error: '" . htmlentities($email) . "' isn't a valid mail address");
 		return false;
 	}
-/*	elseif(!checkdnsrr($regs[2],"MX")){
+	elseif(!checkdnsrr($regs[2],"MX") && !checkdnsrr($regs[2], "A")){
 		$msgs->addMsg("Error: Can't find the host '$regs[2]'");
 		return false;
 	}
-*/
+	
 	return true;
 }
 
@@ -2056,6 +2116,9 @@ function makeSortTableHeader($name, $type, $varlist=array(), $href="", $align='l
 }
 
 function sortCols(&$rows){
+	if(count($rows) <= 1)
+		return;
+
 	$numargs = func_num_args();
 	$arg_list = func_get_args();
 
@@ -2083,101 +2146,78 @@ function sortCols(&$rows){
 		}
 	}
 
-	$first = true;
+	$sorts = array_reverse($sorts);
+
+	$func = "";
 	foreach($sorts as $sort){
 		list($key, $dir, $type) = $sort;
 		if($dir == SORT_ASC){
 			switch($type){
-				case SORT_REGULAR:		$func = 'if ($a["'.$key.'"] == $b["'.$key.'"]) {return 0;}else {return ($a["'.$key.'"] < $b["'.$key.'"]) ? -1 : 1;}'; 	break;
-				case SORT_NUMERIC:		$func = 'if ($a["'.$key.'"] == $b["'.$key.'"]) {return 0;}else {return ((float)$a["'.$key.'"] < (float)$b["'.$key.'"]) ? -1 : 1;}'; 	break;
-				case SORT_STRING:		$func = 'return strcmp($a["'.$key.'"],$b["'.$key.'"]);'; 		break;
-				case SORT_CASESTR:		$func = 'return strcasecmp($a["'.$key.'"],$b["'.$key.'"]);'; 	break;
-				case SORT_NATSTR:		$func = 'return strnatcmp($a["'.$key.'"],$b["'.$key.'"]);'; 	break;
-				case SORT_NATCASESTR:	$func = 'return strnatcasecmp($a["'.$key.'"],$b["'.$key.'"]);'; 	break;
+				case SORT_REGULAR:		$func .= 'if ($a["' . $key.'"] != $b["' . $key.'"]) {return ($a["' . $key . '"] < $b["' . $key . '"]) ? -1 : 1;}'; break;
+				case SORT_NUMERIC:		$func .= 'if ($a["' . $key.'"] != $b["' . $key.'"]) {return ((float)$a["' . $key . '"] < (float)$b["' . $key . '"]) ? -1 : 1;}'; break;
+				case SORT_STRING:		$func .= '$tmp = strcmp($a["'.$key.'"],$b["'.$key.'"]);        if($tmp != 0) return $tmp;'; break;
+				case SORT_CASESTR:		$func .= '$tmp = strcasecmp($a["'.$key.'"],$b["'.$key.'"]);    if($tmp != 0) return $tmp;'; break;
+				case SORT_NATSTR:		$func .= '$tmp = strnatcmp($a["'.$key.'"],$b["'.$key.'"]);     if($tmp != 0) return $tmp;'; break;
+				case SORT_NATCASESTR:	$func .= '$tmp = strnatcasecmp($a["'.$key.'"],$b["'.$key.'"]); if($tmp != 0) return $tmp;'; break;
 			}
 		}else{
 			switch($type){
-				case SORT_REGULAR:		$func = 'if ($a["'.$key.'"] == $b["'.$key.'"]) {return 0;}else {return ($a["'.$key.'"] < $b["'.$key.'"]) ? 1 : -1;}'; 	break;
-				case SORT_NUMERIC:		$func = 'if ($a["'.$key.'"] == $b["'.$key.'"]) {return 0;}else {return ((float)$a["'.$key.'"] < (float)$b["'.$key.'"]) ? 1 : -1;}'; 	break;
-				case SORT_STRING:		$func = 'return 0 - strcmp($a["'.$key.'"],$b["'.$key.'"]);'; 		break;
-				case SORT_CASESTR:		$func = 'return 0 - strcasecmp($a["'.$key.'"],$b["'.$key.'"]);'; 	break;
-				case SORT_NATSTR:		$func = 'return 0 - strnatcmp($a["'.$key.'"],$b["'.$key.'"]);'; 	break;
-				case SORT_NATCASESTR:	$func = 'return 0 - strnatcasecmp($a["'.$key.'"],$b["'.$key.'"]);'; 	break;
+				case SORT_REGULAR:		$func .= 'if ($a["' . $key.'"] != $b["' . $key.'"]) {return ($a["' . $key . '"] < $b["' . $key . '"]) ? 1 : -1;}'; break;
+				case SORT_NUMERIC:		$func .= 'if ($a["' . $key.'"] != $b["' . $key.'"]) {return ((float)$a["' . $key . '"] < (float)$b["' . $key . '"]) ? 1 : -1;}'; break;
+				case SORT_STRING:		$func .= '$tmp = strcmp($a["'.$key.'"],$b["'.$key.'"]);        if($tmp != 0) return 0 - $tmp;'; break;
+				case SORT_CASESTR:		$func .= '$tmp = strcasecmp($a["'.$key.'"],$b["'.$key.'"]);    if($tmp != 0) return 0 - $tmp;'; break;
+				case SORT_NATSTR:		$func .= '$tmp = strnatcmp($a["'.$key.'"],$b["'.$key.'"]);     if($tmp != 0) return 0 - $tmp;'; break;
+				case SORT_NATCASESTR:	$func .= '$tmp = strnatcasecmp($a["'.$key.'"],$b["'.$key.'"]); if($tmp != 0) return 0 - $tmp;'; break;
 			}
 		}
-		$compare = create_function('$a,$b',$func);
-
-		if($first){ //use the first time only as the built in php sorts are not stable (ie if they have equal value, they may randomly change order)
-			uasort($rows, $compare);
-			$first = false;
-		}else{
-			mergesort($rows, $compare);
-		}
 	}
+	$func .= 'return 0;';
+
+	$compare = create_function('$a,$b',$func);
+	uasort($rows, $compare);
 }
 
-function my_array_slice($array, $offset, $length = false, $preservekey = false){
-	if($offset < 0)
-		$offset = count($array) - $offset;
+// Use like this: post_process_queue("Video::Video", "embed", []);
+// $className - the ruby class name of the object you are reporting
+// $func - the name of the ruby-side function you want to call
+// $params - the params to the function defined on the ruby side
+function post_process_queue($className, $func, $params){
+	global $db, $processqueuedb, $typeid, $config;
 
-	if($length < 0)
-		$length = count($array) - $offset - $length;
-	elseif($length === false)
-		$length = count($array) - $offset;
+	$class_typeid = $typeid->getTypeID($className);
 
-	$stopoffset = $offset + $length;
+	$cluster = $config['queue_cluster'];
+	$serialized_data = serialize($params);
+	$time = time();
 
-	$new = array();
-	$i=0;
-
-	foreach($array as $key => $val){
-		if($i >= $offset){
-			if($preservekey)
-				$new[$key] = $val;
-			else
-				$new[] = $val;
-		}
-		$i++;
-		if($i >= $stopoffset)
-			break;
-	}
-	return $new;
+	$unique = MD5($func . $serialized_data . $time);
+	$processqueuedb->prepare_query("INSERT IGNORE INTO `postprocessqueue` ( `id` , `time` , `module` , `func` , `params` , `unique` , `expiry` , `lock` , `owner` , `cluster` , `status` )
+						VALUES ('', #, #, ?, ?, ?, #, 0, '', ?, 'queued')",
+						$time, $class_typeid, $func, "php$serialized_data", $unique, ($time + 86400), $cluster);
 }
 
-function mergesort(&$array, $cmp_function = 'strcmp') {
+// Use like this: enqueue("Observable::Status", "create", $uid, []);
+// $className - the ruby class name of the object you are reporting
+// $event_type - the type of event you are reporting on the object.
+//                The defaults are 0=create, 1=edit
+// $uid - the user for whom this event is being reported (the event owner)
+// $params - an array containing the primary key for the column in which
+//        the object is stored.  The object must exist already, ruby will
+//        attempt to retrieve it.
+function enqueue($className, $event_type, $uid, $params){
+	global $db, $processqueuedb, $typeid, $config;
 
-   // Arrays of size < 2 require no action.
-   if (count($array) < 2) return;
-   // Split the array in half
-   $halfway = count($array) / 2;
-   $array1 = my_array_slice($array, 0, $halfway, true);
-   $array2 = my_array_slice($array, $halfway, false, true);
+	$observable_typeid = $typeid->getTypeID("ObservationsModule");
+	$class_typeid = $typeid->getTypeID($className);
 
-   // Recurse to sort the two halves
-   mergesort($array1, $cmp_function);
-   mergesort($array2, $cmp_function);
+	$time = time();
 
-   $keys1 = array_keys($array1);
-   $keys2 = array_keys($array2);
+	$func = 'create_event';
+	$cluster = $config['queue_cluster'];
+	$serialized_data = serialize(array($class_typeid, $event_type, $uid, $time, $params));
 
-   // If all of $array1 is <= all of $array2, just append them.
-   if (call_user_func($cmp_function, end($array1), $array2[$keys2[0]]) < 1) {
-       $array = $array1 + $array2; //array_merge($array1, $array2);
-       return;
-   }
-
-   // Merge the two sorted arrays into a single sorted array
-   $array = array();
-   $ptr1 = $ptr2 = 0;
-   while ($ptr1 < count($array1) && $ptr2 < count($array2)) {
-       if (call_user_func($cmp_function, $array1[$keys1[$ptr1]], $array2[$keys2[$ptr2]]) < 1)
-           $array[$keys1[$ptr1]] = $array1[$keys1[$ptr1++]];
-       else
-           $array[$keys2[$ptr2]] = $array2[$keys2[$ptr2++]];
-   }
-   // Merge the remainder
-   while ($ptr1 < count($array1)) $array[$keys1[$ptr1]] = $array1[$keys1[$ptr1++]];
-   while ($ptr2 < count($array2)) $array[$keys2[$ptr2]] = $array2[$keys2[$ptr2++]];
-   return;
+	$unique = MD5($func . $serialized_data . $time);
+	$processqueuedb->prepare_query("INSERT IGNORE INTO `postprocessqueue` ( `id` , `time` , `module` , `func` , `params` , `unique` , `expiry` , `lock` , `owner` , `cluster` , `status` )
+						VALUES ('', #, #, ?, ?, ?, #, 0, '', ?, 'queued')",
+						$time, $observable_typeid, $func, "php$serialized_data", $unique, ($time + 86400), $cluster);
 }
-

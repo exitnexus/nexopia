@@ -1,0 +1,80 @@
+<div>
+	<t:if t:id="job">
+		<t:if t:id="!dep">
+			<t:varsub t:new="self.dep" t:old="job.department"></t:varsub>
+		</t:if>
+		<h1>
+			{job.title} Applicants
+		</h1>
+		<table>
+			<tbody>
+				<t:if t:id="job">
+					<tr>
+						<th colspan="3">
+							Applications recieved for {job.title}
+						</th>
+					</tr>
+					<tr>
+						<th>
+							Name
+						</th>
+						<th>
+							Application Date
+						</th>
+						<th>
+							Selected for Interview
+						</th>
+					</tr>
+					<t:iter t:id="organized_applicant_list.job_list" t:iter="app" t:alternating="primary, secondary">
+						<tr class="{class_var}">
+							<td>
+								<a href="/jobs/administration/applicant/{app.appid}/job/{job.jobid}/">{app.name}</a>
+							</td>
+							<td>
+								{app.job_application_date(job.jobid)}
+							</td>
+							<td>
+								<t:if t:id="app.job_interview?(job.jobid)">
+									Yes.
+								</t:if>
+							</td>
+						</tr>
+					</t:iter>
+				</t:if>
+				<t:if t:id="dep">
+					<tr>
+						<th colspan="3">
+							Applications recieved for {dep.name}
+						</th>
+					</tr>
+					<tr>
+						<th>
+							Name
+						</th>
+						<th>
+							Application Date
+						</th>
+						<th>
+							Selected for Interview
+						</th>
+					</tr>
+					<t:iter t:id="organized_applicant_list.dep_list" t:iter="app" t:alternating="primary, secondary">
+						<tr class="{class_var}">
+							<td>
+								<a href="/jobs/administration/applicant/{app.appid}/job/{job.jobid}/">{app.name}</a>
+							</td>
+							<td>
+								{app.dep_application_date(dep.depid)}
+							</td>
+							<td>
+								<t:if t:id="app.dep_interview?(dep.depid)">
+									Yes.
+								</t:if>
+							</td>
+						</tr>
+					</t:iter>
+				</t:if>
+			</tbody>
+		</table>
+	</t:if>
+</div>

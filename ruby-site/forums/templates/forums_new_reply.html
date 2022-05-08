@@ -1,0 +1,30 @@
+<div id="backdiv">
+	<form name="new_reply" method="post" action="/forums/forum/{forum_id}/thread/{thread_id}/reply/submit/">
+		<span id="newthreadtitle">Post a reply</span>
+
+		<div id="post_preview">
+			<t:if t:id="post_render_show">
+				#{post_render}
+			</t:if>
+		</div>
+
+		<template-include module="forums" name="forums_post_editor" />
+
+		<template-include module="forums" name="forums_thread_options" />
+
+		<input type="submit" name="Post"></input>
+		<input type="button" style="display:none" name="Preview" id="js_preview" value="Preview" onclick="FORUMS.previewPost('http://www.{$site.config.base_domain}/forums/forum/{forum_id}/preview/', 'new_reply', 'post_preview')" ></input>
+		<input type="submit" name="Preview" id="sub_preview" value="Preview" ></input>
+		<input type="hidden" name="forum_id" id="forum_id" value="{forum_id}" />
+		<input type="hidden" name="thread_id" id="thread_id" value="{thread_id}" />
+	</form>
+	<script>
+		include_dom("{$site.static_url}/javascript/yui/build/yahoo/yahoo.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/dom/dom.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/event/event.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/connection/connection.js?rev={Time.now.to_i.to_s}", function() {
+		});});});});
+		include_dom("/script/forums.js?rev={Time.now.to_i.to_s}", function() {
+		});
+	</script>
+</div>

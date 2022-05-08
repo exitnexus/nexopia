@@ -1,0 +1,36 @@
+#actions {
+	float: left;
+	z-index: 1;
+}
+
+#stats {
+	float: right;
+	text-align: left;
+	z-index: 1;
+}
+
+#show_video_bottom {
+	position: relative;
+	top: 3px;
+	text-align:left;
+}
+
+#video_title {
+	position:relative;
+	margin-top: 18px;
+	margin-bottom: 2px;
+	text-align:left;
+	font-size: 14px;
+	font-weight: 700;
+	font-family: $header_font_family;	
+}
+
+#video_block {
+	text-align: center;
+	overflow: hidden; 
+	width: 382px;
+}
+
+#welcome_msg {
+	font-weight: 700;
+}

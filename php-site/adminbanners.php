@@ -111,29 +111,22 @@
 			listClients();	//exit
 
 		case "addclient":
-			addClient();	//exit
+			editClient(0);	//exit
 
 		case "Add Client":
 		case "insertclient":
-			$clientusername = getREQval('clientusername');
-			$clientname = getREQval('clientname');
-			$clienttype = getREQval('clienttype');
-			$clientnotes = getREQval('clientnotes');
-			insertClient(getUserID($clientusername), $clientname, $clienttype, $clientnotes);
+			updateClient(0);
 			listClients();	//exit
 
 		case "editclient":
 			if($id = getREQval('id', 'int'))
 				editClient($id); //exit
+			break;
 
 		case "updateclient":
 		case "Update Client":
 			$id = getREQval('id', 'int');
-			$clientusername = getREQval('clientusername');
-			$clientname = getREQval('clientname');
-			$clienttype = getREQval('clienttype');
-			$clientnotes = getREQval('clientnotes');
-			updateClient($id, getUserID($clientusername), $clientname, $clienttype, $clientnotes);
+			updateClient($id);
 			listClients();	//exit
 
 		case "deleteclient":
@@ -187,7 +180,7 @@
 
 
 function listBanners($size = false, $type = false, $clientid = false, $all = false, $campaignid = false){
-	global $banner, $scope, $filterData;
+	global $banner, $scope, $filterData, $config;
 
 	$params = array();
 	$where = array("1");
@@ -206,6 +199,8 @@ function listBanners($size = false, $type = false, $clientid = false, $all = fal
 		case 0:
 		default:
 			$where[] = "enabled = 'y'";
+			$where[] = "(enddate >= # || enddate = 0)";
+			$params[] = time();
 	}
 
 	//collect information from the clients table
@@ -216,11 +211,15 @@ function listBanners($size = false, $type = false, $clientid = false, $all = fal
 	uasort($clients, 'strcasecmp');
 
 	//collect information from the bannercampaigns table
-	$res = $banner->db->query("SELECT id, clientid, title FROM bannercampaigns");
+	$res = $banner->db->query("SELECT id, clientid, title, enabled, enddate FROM bannercampaigns");
 	$clientids = array();
+	$campaignnames = array();
+	$campaignenabled = array();
 	while($line = $res->fetchrow()) {
 		$clientids[$line['id']] = $line['clientid'];
 		$campaignnames[$line['id']] = $line['title'];
+		$campaignenabled[$line['id']] = ($line['enabled'] == 'y' && 
+										($line['enddate'] == 0 || $line['enddate'] >= time()) );
 	}
 	uasort($campaignnames, 'strcasecmp');
 
@@ -252,6 +251,11 @@ function listBanners($size = false, $type = false, $clientid = false, $all = fal
 	while($line = $res->fetchrow()){
 		if ($clientid) {
 			if ($clientid != $clientids[$line['campaignid']]) {
+				continue;
+			}
+		}
+		if (!($all >= 1)) { #hide banners disabled by the campaigns status
+			if (!$campaignenabled[$line['campaignid']]) {
 				continue;
 			}
 		}
@@ -331,6 +335,10 @@ function listBanners($size = false, $type = false, $clientid = false, $all = fal
 	$cols = 27;
 
 	$template = new template('admin/adminbanners/listBanners');
+	$template->set('jsloc', "$config[jsloc]sorttable.js");
+	$menu_template = new template('admin/adminbanners/menu');
+	$menu_template->setMultiple($filterData);
+	$template->set('menu', $menu_template->toString());
 	$template->set('cols', $cols);
 	$template->setMultiple($filterData);
 	$template->set('selectCampaign', make_select_list_key($campaignnames, $campaignid));
@@ -353,9 +361,10 @@ function listBanners($size = false, $type = false, $clientid = false, $all = fal
 	$template->display();
 	exit;
 }
+#list clients list campaigns banners campaign stats banner stats type stats
 
 function listCampaigns(){
-	global $banner, $scope, $filterData;
+	global $banner, $scope, $filterData, $config;
 
 	$params = array();
 	$where = array("1");
@@ -370,6 +379,8 @@ function listCampaigns(){
 		case 0:
 		default:
 			$where[] = "enabled = 'y'";
+			$where[] = "(enddate >= # || enddate = 0)";
+			$params[] = time();
 	}
 
 	//collect information about what clients we have
@@ -386,6 +397,7 @@ function listCampaigns(){
 		$line['clientname'] = $clients[$line['clientid']];
 		$campaigns[] = $line;
 		$bannercount[$line['id']] = 0;
+		$totalbannercount[$line['id']] = 0;
 	}
 	sortCols($campaigns, SORT_ASC, SORT_CASESTR, 'title', SORT_ASC, SORT_CASESTR, 'clientname');
 
@@ -399,17 +411,27 @@ function listCampaigns(){
 		$stats[$line['bannerid']]['end'] = $line;
 	}
 	//How many banners per campaign?
-	$banner->db->prepare_query("SELECT * FROM banners WHERE enabled = 'y'");
+	$banner->db->prepare_query("SELECT * FROM banners");
+	
+	$bannercount = array();
+	$totalbannercount = array();
 	while ($line = $banner->db->fetchrow()) {
-		$bannerslist[$line['campaignid']][$line['id']] = $line;
 		if ($line['enabled'] == 'y') {
+			$bannerslist[$line['campaignid']][$line['id']] = $line;
 			if (!isset($bannercount[$line['campaignid']])) $bannercount[$line['campaignid']] = 0;
 			$bannercount[$line['campaignid']]++;
 		}
+		if (!isset($totalbannercount[$line['campaignid']])) $totalbannercount[$line['campaignid']] = 0;
+		$totalbannercount[$line['campaignid']]++;
 	}
 
 	$template = new template('admin/adminbanners/listCampaigns');
+	$template->set('jsloc', "$config[jsloc]sorttable.js");
+	$menu_template = new template('admin/adminbanners/menu');
+	$menu_template->setMultiple($filterData);
+	$template->set('menu', $menu_template->toString());
 	$template->set('bannercount', $bannercount);
+	$template->set('totalbannercount', $totalbannercount);
 	$cols = 24;
 	$template->set('cols', $cols);
 
@@ -434,6 +456,7 @@ function listCampaigns(){
 	$clickthru = array();
 	$passbacks = array();
 	$yestviews = array();
+	$yestclicks = array();
 	$yestpassbacks = array();
 	$enabled = array();
 	$paytype = array();
@@ -585,6 +608,7 @@ function addCampaign($id = 0, $data = array()) {
 
 
 	$clientid		= 0;
+	$minviewsperday = 0;
 	$viewsperday	= 0;
 	$clicksperday	= 0;
 	$payrate		= 0;
@@ -614,7 +638,8 @@ function addCampaign($id = 0, $data = array()) {
 	$refresh		= 30;
 	$edit = false;
 	$cols = 2;
-
+	$targeting_exists = false;
+	
 	if($id){
 		//This means we'll be displaying a list of banners in the campaign
 		$edit = true;
@@ -641,6 +666,8 @@ function addCampaign($id = 0, $data = array()) {
 			$line['size'] = $banner->sizes[$line['bannersize']];
 
 			$line['viewsperday'] = ($line['enabled'] == 'y' ? ($line['viewsperday'] ? number_format($line['viewsperday']) : "unlim" ) : 'disabled');
+			$line['minviewsperday'] = ($line['enabled'] == 'y' ? number_format($line['minviewsperday'])  : 'disabled');
+			
 			if ($line['viewsperuser']) {
 				if ($line['limitbyperiod']%86400 == 0) {
 					$freqtype = 'd'; //days
@@ -684,12 +711,14 @@ function addCampaign($id = 0, $data = array()) {
 			if($sex == ''){
 				$sex = array();
 			}else{
+				$targeting_exists = true;
 				$sex = explode(',', $sex);
 			}
 
 			if($age == ''){
 				$age = array();
 			}else{
+				$targeting_exists = true;
 				$age = explode(',', $age);
 				$agedefault = (isset($age[0]) && $age[0] == '0' ? ALL_EXCEPT : ONLY);
 			}
@@ -697,11 +726,13 @@ function addCampaign($id = 0, $data = array()) {
 			if($loc == ''){
 				$loc = array();
 			}else{
+				$targeting_exists = true;
 				$loc = explode(',', $loc);
 				$locdefault = (isset($loc[0]) && $loc[0] == '0' ? ALL_EXCEPT : ONLY);
 			}
 
 			if($page != ''){
+				$targeting_exists = true;
 				$page = explode(',', $page);
 				if(isset($page[0]) && $page[0] == '0'){
 					$pagedefault = ALL_EXCEPT;
@@ -715,6 +746,7 @@ function addCampaign($id = 0, $data = array()) {
 			if($interests == ''){
 				$interests = array();
 			}else{
+				$targeting_exists = true;
 				$interests = explode(',', $interests);
 			}
 			if ($limitbyperiod%86400 == 0) {
@@ -732,6 +764,7 @@ function addCampaign($id = 0, $data = array()) {
 			}
 			
 			if($allowedtimes != '') {
+				$targeting_exists = true;
 				$timetable = new timetable($allowedtimes);
 				$allowedTimesTable = $timetable->getTimeTable();
 			}
@@ -740,7 +773,7 @@ function addCampaign($id = 0, $data = array()) {
 		if(count($data))
 			extract($data);
 	}
-
+		
 	//We need client names in order to make a select box with them
 	$res = $banner->db->query("SELECT id, clientname FROM bannerclients");
 	while($line = $res->fetchrow())
@@ -748,7 +781,7 @@ function addCampaign($id = 0, $data = array()) {
 	uasort($clients, 'strcasecmp');
 
 	for($i=1;$i<=12;$i++)
-		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+		$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
 
 	$template = new template('admin/adminbanners/addCampaign');
 	if (!isset($allowedTimesTable)) $allowedTimesTable = '';
@@ -759,11 +792,14 @@ function addCampaign($id = 0, $data = array()) {
 	$template->set('edit', $edit);
 	$template->set('cols', $cols);
 	$template->set('id', $id);
-
+	$template->set('display_targeting', ($targeting_exists || !$edit));
+	
 	if (!$id) $selectClient = make_select_list_key($clients, $filterData['clientid']);
 	else $selectClient = make_select_list_key($clients, $clientid);
 	$template->set('selectClient', $selectClient);
 	$template->set('checkEnabled', makeCheckBox('data[enabled]','Enabled', $enabled == 'y'));
+	if (!isset($pagedominance)) $pagedominance = 'n';
+	$template->set('checkPageDominance', makeCheckBox('data[pagedominance]','Enabled', $pagedominance == 'y'));
 	$template->set('enabled', $enabled == 'y');
 	$template->set('title', $title);
 
@@ -871,10 +907,11 @@ function insertCampaign($data){
 	$set[] = "interests = ?"; 		$params[] = $interests;
 	$set[] = "allowedtimes = ?";	$params[] = $data['allowedtimes'];
 	$set[] = "enabled = ?"; 		$params[] = (isset($data['enabled']) ? 'y' : 'n');
+	$set[] = "pagedominance = ?"; 	$params[] = (isset($data['pagedominance']) ? 'y' : 'n');
 	$set[] = "refresh = #"; 		$params[] = $data['refresh'];
 	
 	$banner->db->prepare_array_query("INSERT INTO bannercampaigns SET " . implode(", ", $set), $params);
-
+	
 	$id = $banner->db->insertid();
 
 	$banner->addCampaign($id);
@@ -950,6 +987,7 @@ function updateCampaign($id, $data){
 	$set[] = "interests = ?"; 		$params[] = $interests;
 	$set[] = "allowedtimes = ?";	$params[] = $data['allowedtimes'];
 	$set[] = "enabled = ?"; 		$params[] = (isset($data['enabled']) ? 'y' : 'n');
+	$set[] = "pagedominance = ?"; 	$params[] = (isset($data['pagedominance']) ? 'y' : 'n');
 	$set[] = "refresh = #"; 		$params[] = $data['refresh'];
 
 	$params[] = $id;
@@ -1004,6 +1042,8 @@ function addBanner($bannertype, $id = 0, $data = array()){
 	
 	$enabled		= 'y';
 
+	$targeting_exists = false;
+	
 	$refresh = -1;
 
 	$cols = 2;
@@ -1029,12 +1069,14 @@ function addBanner($bannertype, $id = 0, $data = array()){
 			if($sex == ''){
 				$sex = array();
 			}else{
+				$targeting_exists = true;
 				$sex = explode(',', $sex);
 			}
 
 			if($age == ''){
 				$age = array();
 			}else{
+				$targeting_exists = true;
 				$age = explode(',', $age);
 				$agedefault = (isset($age[0]) && $age[0] == '0' ? ALL_EXCEPT : ONLY);
 			}
@@ -1042,11 +1084,13 @@ function addBanner($bannertype, $id = 0, $data = array()){
 			if($loc == ''){
 				$loc = array();
 			}else{
+				$targeting_exists = true;
 				$loc = explode(',', $loc);
 				$locdefault = (isset($loc[0]) && $loc[0] == '0' ? ALL_EXCEPT : ONLY);
 			}
 
 			if($page != ''){
+				$targeting_exists = true;
 				$page = explode(',', $page);
 				if(isset($page[0]) && $page[0] == '0'){
 					$pagedefault = ALL_EXCEPT;
@@ -1060,6 +1104,7 @@ function addBanner($bannertype, $id = 0, $data = array()){
 			if($interests == ''){
 				$interests = array();
 			}else{
+				$targeting_exists = true;
 				$interests = explode(',', $interests);
 			}
 
@@ -1078,6 +1123,7 @@ function addBanner($bannertype, $id = 0, $data = array()){
 			}
 			
 			if($allowedtimes != '') {
+				$targeting_exists = true;
 				$timetable = new timetable($allowedtimes);
 				$allowedTimesTable = $timetable->getTimeTable();
 			}
@@ -1095,7 +1141,7 @@ function addBanner($bannertype, $id = 0, $data = array()){
 	uasort($campaigns, 'strcasecmp');
 
 	for($i=1;$i<=12;$i++)
-		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+		$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
 
 	$template = new template('admin/adminbanners/addBanner');
 
@@ -1103,6 +1149,8 @@ function addBanner($bannertype, $id = 0, $data = array()){
 		$template->set('displayBanner', $banner->getBannerID($id));
 	}
 	//$template->setMultiple($filterData);
+	
+	$template->set('display_targeting', ($targeting_exists || !$id));
 	$template->set('cols', $cols);
 	$template->set('id', $id);
 	$template->set('bannertype', $bannertype);
@@ -1146,7 +1194,7 @@ function addBanner($bannertype, $id = 0, $data = array()){
 
 	$template->set('maxviews', $maxviews);
 	$template->set('maxclicks', $maxclicks);
-	$template->set('minviewsperday', $viewsperday);
+	$template->set('minviewsperday', $minviewsperday);
 	$template->set('viewsperday', $viewsperday);
 	$template->set('clicksperday', $clicksperday);
 
@@ -1167,7 +1215,7 @@ function addBanner($bannertype, $id = 0, $data = array()){
 }
 
 function insertBanner($data){
-	global $banner, $msgs, $docRoot, $config, $previousaction;
+	global $banner, $msgs, $previousaction;
 
 	if(empty($data['campaignid'])){
 		$msgs->addMsg("Bad Campaign");
@@ -1176,7 +1224,7 @@ function insertBanner($data){
 
 	$timetable = new timetable($data['allowedtimes']);
 	$data['allowedtimes']=$timetable->allowedtimes; //construction automatically cleans input
-	
+
 	if (isset($timetable->invalidRanges) && is_array($timetable->invalidRanges)) {
 		foreach ($timetable->invalidRanges as $range) {
 			$msgs->addMsg("$range is an invalid day/time range.");
@@ -1237,19 +1285,13 @@ function insertBanner($data){
 	$set[] = "enabled = ?"; 		$params[] = (isset($data['enabled']) ? 'y' : 'n');
 	$set[] = "refresh = #"; 		$params[] = $data['refresh'];
 	$set[] = "campaignid = #"; 		$params[] = $data['campaignid'];
-	
+
 	$banner->db->prepare_array_query("INSERT INTO banners SET " . implode(", ", $set), $params);
 
 	$id = $banner->db->insertid();
-	$uploadedBanner = getFILEval('uploadbanner');
-	$target_path = $docRoot . $config['bannerdir'] . $id . '.jpg';
-	if (!empty($uploadedBanner['tmp_name'])) {
-		if(!move_uploaded_file($uploadedBanner['tmp_name'], $target_path)) {
-			$msgs->addMsg("Banner upload failed, please try again or specify a banner link.");
-		} else {
-			$msgs->addMsg('Upload successful.');
-		}
-	}
+
+	uploadBanner($id, getFILEval('uploadbanner'), 'image');
+	uploadBanner($id, getFILEval('uploadflashbanner'), 'alt');
 
 	$banner->addBanner($id);
 
@@ -1257,10 +1299,8 @@ function insertBanner($data){
 
 }
 
-
-
 function updateBanner($id, $data){
-	global $banner, $msgs, $config, $docRoot, $previousaction;
+	global $banner, $msgs, $previousaction;
 
 	if(empty($data['campaignid'])){
 		$msgs->addMsg("Bad Campaign");
@@ -1338,19 +1378,57 @@ function updateBanner($id, $data){
 
 	$banner->db->prepare_array_query("UPDATE banners SET " . implode(", ", $set) . " WHERE id = #", $params);
 
+	uploadBanner($id, getFILEval('uploadbanner'), 'image');
+	uploadBanner($id, getFILEval('uploadflashbanner'), 'alt');
+
 	$banner->updateBanner($id);
 
-	$uploadedBanner = getFILEval('uploadbanner');
-	$target_path = $docRoot . $config['bannerdir'] . $id . '.jpg';
-	if (!empty($uploadedBanner['tmp_name'])) {
-		if(!move_uploaded_file($uploadedBanner['tmp_name'], $target_path)) {
-			$msgs->addMsg("Banner upload failed, please try again or specify a banner link.");
-		} else {
-			$msgs->addMsg('Upload successful.');
+	$msgs->addMsg("Banner Updated");
+}
+
+function uploadBanner($id, $file, $col, $softlimit = 50, $hardlimit = 100){
+	global $staticRoot, $config, $banner, $msgs;
+
+	if(empty($file) || empty($file['tmp_name']))
+		return true;
+
+	if($softlimit && $softlimit*1024 < $file['size']){
+		$msgs->addMsg("Uploaded file is bigger than the soft size limit of $softlimit KB.");
+	}
+
+	if($hardlimit && $hardlimit*1024 < $file['size']){
+		$msgs->addMsg("Uploaded file is bigger than the hard size limit of $hardlimit KB. Upload failed.");
+		return false;
+	}
+
+	$res = $banner->db->prepare_query("SELECT $col FROM banners WHERE id = #", $id);
+	$curimage = $res->fetchfield();
+
+	$ver = 0;
+	$tail = "";
+	if($curimage){
+		if(preg_match("/(\d+)-(\d+).([a-zA-Z]+)(\?.*)/", $curimage, $matches)){ //auto-generated names
+			$ver = $matches[2];
+			$tail = $matches[4];
+		}elseif(preg_match("/([-.a-zA-Z]+)(\?.*)/", $curimage, $matches)){
+			$tail = $matches[2];
 		}
 	}
 
-	$msgs->addMsg("Banner Updated");
+	$fileending = substr($file['name'], strrpos($file['name'], '.') + 1);
+
+	do{
+		$ver++;
+		$newfilename = "$id-$ver.$fileending";
+		$target_path = $staticRoot . $config['bannerdir'] . $newfilename;
+	}while(file_exists($target_path));
+
+	$banner->db->prepare_query("UPDATE banners SET $col = ? WHERE id = #", $newfilename . $tail, $id);
+
+	if(move_uploaded_file($file['tmp_name'], $target_path))
+		$msgs->addMsg('Upload successful.');
+	else
+		$msgs->addMsg("Banner upload failed, please try again or specify a banner link.");
 }
 
 function deleteBanner($id){
@@ -1401,7 +1479,7 @@ function bannerStats($id, $start){
 
 
 	for($i=1;$i<=12;$i++)
-		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+		$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
 
 	incHeader();
 
@@ -1512,7 +1590,7 @@ function bannerTypeStats($size, $date = false){
 
 
 	for($i=1;$i<=12;$i++)
-		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+		$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
 
 	incHeader();
 
@@ -1741,7 +1819,7 @@ function bannerTypeStats($size, $date = false){
 
 
 function listClients(){
-	global $banner, $filterData;
+	global $banner, $filterData, $config;
 
 	//collect information about what clients we have
 	$res = $banner->db->query("SELECT id, clientname FROM bannerclients");
@@ -1784,8 +1862,12 @@ function listClients(){
 
 	getUserName($userids); //get all at once, cache them
 
+	
 	$template = new template('admin/adminbanners/listClients');
-
+	$template->set('jsloc', "$config[jsloc]sorttable.js");
+	$menu_template = new template('admin/adminbanners/menu');
+	$menu_template->setMultiple($filterData);
+	$template->set('menu', $menu_template->toString());
 	foreach($clients as &$line){
 		$line['username'] = getUserName($line['userid']);
 		$line['credits'] = number_format($line['credits']);
@@ -1810,6 +1892,7 @@ function listClients(){
 		}
 	}
 
+	$template->set("classes", array("body", "body2"));
 	$template->set("clients", $clients);
 	$template->setMultiple($filterData);
 	$template->display();
@@ -1839,40 +1922,76 @@ function addClient(){
 function editClient($id){
 	global $banner;
 
-	$res = $banner->db->prepare_query("SELECT userid, clientname, type, dateadded, notes FROM bannerclients WHERE id = #", $id);
+	if($id){
+		$res = $banner->db->prepare_query("SELECT * FROM bannerclients WHERE id = #", $id);
+		$line = $res->fetchrow();
+		$line['username'] = getUserName($line['userid']);
+	}else{
+		$line = array(
+			'id' => 0,
+			'userid' => 0,
+			'username' => '',
+			'clientname' => '',
+			'contacttitle' => '',
+			'contactname' => '',
+			'phonenumber' => '',
+			'altphonenumber' => '',
+			'faxnumber' => '',
+			'email' => '',
+			'address' => '',
+			'active' => 'y',
+			'type' => '',
+			'dateadded' => '',
+			'loginurl' => '',
+			'loginid' => '',
+			'loginpassword' => '',
+			'primarycontact' => '',
+			'notes' => '',
+		);
+	}
 
-	$line = $res->fetchrow();
+	$template = new template('admin/adminbanners/addClient');
+	$template->setMultiple($line);
+	$template->display();
 
-	incHeader();
-
-	echo "<table align=center><form action=$_SERVER[PHP_SELF] method=post>";
-	preserveFilterData();
-	echo "<tr><td class=header colspan=2 align=center>Edit Client</td></tr>";
-	echo "<input type=hidden name=id value=$id>";
-
-	echo "<tr><td class=body>Client Name:</td><td class=body><input class=body type=text name=clientname value='$line[clientname]'></td></tr>";
-	echo "<tr><td class=body>Username:</td><td class=body><input class=body type=text name=clientusername value='" . getUserName($line['userid']) . "'></td></tr>";
-	echo "<tr><td class=body>Type:</td><td class=body><select class=body name=clienttype>" . make_select_list($banner->clienttypes, $line['type']) . "</select></td></tr>";
-	echo "<tr><td class=body>Notes:</td><td class=body><textarea class=body name=clientnotes cols=50 rows=6>$line[notes]</textarea></td></tr>";
-	echo "<tr><td class=body></td><td class=body><input class=body type=submit name=action value='Update Client'></td></tr>";
-	echo "</form></table>";
-
-	incFooter();
 	exit;
 }
 
-function insertClient($userid, $name, $type, $notes){
+function updateClient($id){
 	global $banner;
 
-	$banner->db->prepare_query("INSERT INTO bannerclients SET userid = #, clientname = ?, type = ?, dateadded = #, notes = ?", $userid, $name, $type, time(), $notes);
+	$params = array();
+	
+	$username = getPOSTval('username', 'int');
+	if($username){
+		$userid = getUserId($username);
+		if($userid)
+			$params[] = $banner->db->prepare("userid = #", $userid);
+	}
+	$params[] = $banner->db->prepare("dateadded = #",       time());
+
+	$params[] = $banner->db->prepare("clientname = ?",      getPOSTval('clientname'));
+	$params[] = $banner->db->prepare("contacttitle = ?",    getPOSTval('contacttitle'));
+	$params[] = $banner->db->prepare("contactname = ?",     getPOSTval('contactname'));
+	$params[] = $banner->db->prepare("phonenumber = ?",     getPOSTval('phonenumber'));
+	$params[] = $banner->db->prepare("altphonenumber = ?",  getPOSTval('altphonenumber'));
+	$params[] = $banner->db->prepare("faxnumber = ?",       getPOSTval('faxnumber'));
+	$params[] = $banner->db->prepare("email = ?",           getPOSTval('email'));
+	$params[] = $banner->db->prepare("address = ?",         getPOSTval('address'));
+	$params[] = $banner->db->prepare("active = ?",          (getPOSTval('active', 'bool') ? 'y' : 'n'));
+	$params[] = $banner->db->prepare("type = ?",            getPOSTval('type'));
+	$params[] = $banner->db->prepare("loginurl = ?",        getPOSTval('loginurl'));
+	$params[] = $banner->db->prepare("loginid = ?",         getPOSTval('loginid'));
+	$params[] = $banner->db->prepare("loginpassword = ?",   getPOSTval('loginpassword'));
+	$params[] = $banner->db->prepare("primarycontact = ?",  getPOSTval('primarycontact'));
+	$params[] = $banner->db->prepare("notes = ?",           getPOSTval('notes'));
+
+	if($id){
+		$banner->db->query("UPDATE bannerclients SET " . implode(", ", $params) . $banner->db->prepare(" WHERE id = #", $id));
+	}else{
+		$banner->db->query("INSERT INTO bannerclients SET " . implode(", ", $params));
+	}
 }
-
-function updateClient($id, $userid, $name, $type, $notes){
-	global $banner;
-
-	$banner->db->prepare_query("UPDATE bannerclients SET userid = #, clientname = ?, type = ?, notes = ? WHERE id = #", $userid, $name, $type, $notes, $id);
-}
-
 
 function updateCredits($id, $credits) {
 	global $banner, $msgs;

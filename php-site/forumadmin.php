@@ -11,13 +11,12 @@
 	$id = getREQval('id', 'integer', 0);
 	$key = getREQval('k', 'string', '');
 
-	$data = getPOSTval('data', 'array');
 
 	switch($action){
-		case "addrealm":			addRealm();					break;
-		case "Create Realm":		insertRealm($data);			break;
-		case "editrealm":			editRealm($id);				break;
-		case "Update Realm":		updateRealm($data,$id);		break;
+		case "addrealm":			addRealm();			break;
+		case "Create Realm":		insertRealm();		break;
+		case "editrealm":			editRealm($id);		break;
+		case "Update Realm":		updateRealm($id);	break;
 
 		case "deleterealm":
 			if (!checkKey($id, $key))
@@ -50,16 +49,19 @@
 
 	listForums();	//exit
 
-function insertRealm($data){
+function insertRealm(){
 	global $msgs, $forums, $mods;
 
-	$name="";
+	$defaults = array(
+		'name' => '',
+		'special' => false,
+		);
 
-	$data = getREQval('data', 'array');
-	extract($data);
+	$data = getPOSTval('data', 'array');
+
+	extract(setDefaults($data, $defaults));
 
 	$parent=0;
-
 
 	$error=false;
 	if($name==""){
@@ -74,7 +76,7 @@ function insertRealm($data){
 
 	$priority = getMaxPriority($forums->db, "forumcats");
 
-	$forums->createCategory($name, (isset($special)?'y':'n'), 0, $priority);
+	$forums->createCategory($name, ($special ? 'y' : 'n'), 0, $priority);
 
 	$msgs->addMsg("Realm Created.");
 }
@@ -97,29 +99,36 @@ function editRealm($id){
 	exit;
 }
 
-function addRealm($data = array()){
-	$name="";
+function addRealm(){
+	$defaults = array(
+		'name' => '',
+		'special' => false,
+		);
 
-	$data = getREQval('data', 'array');
-	extract($data);
+	$data = getPOSTval('data', 'array');
+
+	extract(setDefaults($data, $defaults));
 	
 	$template = new template('forums/forumadmin/addRealm');
 	
-	$template->set('specialChecked', ($official=='y'? 'checked' : ''));
-	$template->set('id', $id);
+	$template->set('specialChecked', ($special ? 'checked' : ''));
 	$template->set('name', $name);
 	$template->display();
 	
 	exit;
 }
 
-function updateRealm($data,$id){
+function updateRealm($id){
 	global $msgs, $forums, $mods;
 
-	$name="";
+	$defaults = array(
+		'name' => '',
+		'special' => false,
+		);
 
-	$data = getREQval('data', 'array');
-	extract($data);
+	$data = getPOSTval('data', 'array');
+
+	extract(setDefaults($data, $defaults));
 
 	$parent=0;
 
@@ -144,7 +153,7 @@ function updateRealm($data,$id){
 
 	$mods->adminlog('update forum realm',"Create Forum Realm: $name");
 
-	$forums->modifyCategory($id, array('name' => $name, 'official' => (isset($special)?'y':'n')));
+	$forums->modifyCategory($id, array('name' => $name, 'official' => ($special ? 'y' : 'n')));
 
 	$msgs->addMsg("Realm Updated.");
 }
@@ -197,7 +206,7 @@ function listForums(){
 			$forumlines[$i][$fid] = $forumobjs[$fid];
 		}
 
-  		$forums->sortForums($forumlines[$i], true);
+		$forums->sortForums($forumlines[$i], true);
 	}
 
 	

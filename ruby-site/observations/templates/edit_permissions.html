@@ -1,0 +1,16 @@
+<div class="updates" id="observable_prefs" align="center">
+	<t:template-include name="settings_menu" module="observations"/>
+	<h2>My Update Preferences</h2>
+	<form class="basic_form" method="post" action="/my/updates/permissions/set">
+		Select the types of updates you would like your friends to be able to see:
+		<ul>
+			<li t:id="observables" t:iter="observable">
+				<input type="checkbox" name="observable[{observable.typeid}]" cond:checked="permissions[observable]"/>
+				<label>{observable.observable_name}</label>
+			</li>
+			<li>
+				<input type="submit" value="Update"/>
+			</li>
+		</ul>
+	</form>
+</div>

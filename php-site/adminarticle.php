@@ -15,6 +15,10 @@
 						'category' => ''
 						);
 
+	$sortt = getREQval('sortt');
+	$sortd = getREQval('sortd');
+	$page = getREQval('page','int');
+
 	isValidSortt($sortlist,$sortt);
 	isValidSortd($sortd,'DESC');
 
@@ -23,21 +27,28 @@
 
 	$branch = $categories->makebranch();
 
-	if(!isset($action))
-		$action="";
-
 	switch($action){
 		case "delete":
-			$articlesdb->prepare_query("DELETE FROM articles WHERE id = ?", $id);
-			$articlesdb->prepare_query("DELETE FROM comments WHERE itemid = ?", $id);
-			$mods->deleteItem('articles',$id);
-			$cache->remove("article-$id");
+			if($id = getREQval('id', 'int')){
+				$articlesdb->prepare_query("DELETE FROM articles WHERE id = #", $id);
+				$articlesdb->prepare_query("DELETE FROM comments WHERE itemid = #", $id);
+				$mods->deleteItem('articles',$id);
+				$cache->remove("article-$id");
+			}
 			break;
+
 		case "edit":
-			edit($id);
+			if($id = getREQval('id', 'int'))
+				edit($id);
 			break;
+
 		case "Update":
 		case "Preview":
+			$id = getPOSTval('id', 'int');
+			$category = getPOSTval('category');
+			$title = getPOSTval('title');
+			$msg = getPOSTval('msg');
+
 			update($id,$category,$title,$msg,$action);
 			$cache->remove("article-$id");
 			break;
@@ -46,8 +57,8 @@
 
 
 
-	if(!isset($cat))
-		$cat=0;
+	$cat = getREQval('cat', 'int');
+	$search =getREQval('search');
 
 	$where = array();
 
@@ -62,11 +73,10 @@
 		$where[] = $articlesdb->prepare("category IN (?)", $cats);
 	}
 
-	if(isset($search) && $search!=""){
+	if($search){
 //		$where[] = "(title LIKE '% " . str_replace('*','%',$search) . " %' || 	text LIKE '% " . str_replace('*','%',$search) . " %')";
 		$where[] = "(title REGEXP '(^|^.* )" . $articlesdb->escape($search) . "(\$| .*\$)' || text LIKE '(^|^.* )" . $articlesdb->escape($search) . "(\$| .*\$)')";
-	}else
-		$search ='';
+	}
 
 
 	$query = "SELECT count(*) FROM articles WHERE " . implode(" && ",$where);

@@ -1,0 +1,3 @@
+Nexopia = {
+	JSONData: {}
+};

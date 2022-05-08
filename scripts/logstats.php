@@ -1,9 +1,8 @@
 #!/usr/local/php/bin/php
 <?
 
-
 //               reqtype  status   bytes    timetaken hostname         filename               uri               querystring remoteip  useragent userid       age          sex             loc          usertype
-//accesslog.format = "%m %>s %B %T \"%{Host}i\" \"%f\" \"%U\" \"%q\" \"%a\" \"%{User-agent}i\" \"%{X-LIGHTTPD-userid}o\" \"%{X-LIGHTTPD-age}o\" \"%{X-LIGHTTPD-sex}o\" \"%{X-LIGHTTPD-loc}o\" \"%{X-LIGHTTPD-usertype}o\""
+//accesslog.format = "%m %>s %B %T \"%{Host}i\" \"%f\" \"%U\" \"%q\" \"%a\" \"%{User-agent}i\" \"%{X-LIGHTTPD-userid}i\" \"%{X-LIGHTTPD-age}i\" \"%{X-LIGHTTPD-sex}i\" \"%{X-LIGHTTPD-loc}i\" \"%{X-LIGHTTPD-usertype}i\""
 //accesslog.filename = "|/home/nexopia/logstats.php"
 
 	$statsfile = "/home/nexopia/public_html/stats/" . trim(`hostname`) . ".";
@@ -26,7 +25,7 @@
 //run the processing loop
 	while($line = trim(fgets(STDIN))){
 		$time = time();
-		
+
 		if($time != $lasttime){
 			foreach($statsobj as & $obj)
 				$obj->dump($time);
@@ -262,7 +261,7 @@ class logstats {
 
 
 	//hostname
-		arsort($this->hosts);
+		ksort($this->hosts);
 
 		$output .= "<table cellspacing=1>";
 		$output .= "<tr><td class=header colspan=2 align=center><b>Active Hostnames</b></td></tr>";
@@ -302,17 +301,8 @@ class logstats {
 
 		$output .= "<table cellspacing=1>";
 		$output .= "<tr><td class=header colspan=2 align=center><b>Response Time</b></td></tr>";
-		$i = 0;
-		$over = 0;
-		foreach($this->timetaken as $timetaken => $hits){
-			if(++$i <= 60)
-				$output .= "<tr><td class=" . $cssclasses[$c = !$c] . ">$timetaken sec</td><td class=" . $cssclasses[$c] . " align=right>" . number_format($hits) . "</td></tr>";
-			else
-				$over += $hits;
-		}
-		if($over)
-			$output .= "<tr><td class=header>Over 60</td><td class=header>$over</td></tr>";
-
+		foreach($this->timetaken as $timetaken => $hits)
+			$output .= "<tr><td class=" . $cssclasses[$c = !$c] . ">$timetaken sec</td><td class=" . $cssclasses[$c] . " align=right>" . number_format($hits) . "</td></tr>";
 		$output .= "</table>";
 		$output .= "<br><br>";
 		

@@ -1,0 +1,10 @@
+<t:docroot>
+	<t:statement>
+		lib_require :json, "exported"
+	</t:statement>
+	#{(60.chr + "script>")}
+		jsonPageOwner = #{PageRequest.current.user.to_json}; 
+		jsonGalleryPics = #{gallery.pics.to_json};
+	#{(60.chr + "/script>")}
+	
+</t:docroot>	

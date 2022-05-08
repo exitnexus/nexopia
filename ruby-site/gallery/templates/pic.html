@@ -1,0 +1,9 @@
+<div>
+	<img t:id="pic"/>
+	<form action="/my/gallery/edit_pic/{pic.id}" method="POST">
+		<input type="hidden" name="pictureid" value="{pic.id}"/>
+		Description: <textarea cols="40" rows="5" maxlength="1024" name="description" class="body">{pic.description}</textarea><br/>
+		<input type="submit"/>
+		<input type="reset"/>
+	</form>
+</div>

@@ -1,0 +1,16 @@
+<div>
+	<br/>
+	<ul class="status_list">
+		<li t:iter="status" t:id="statuses">
+			<a t:id="status.user" t:linktype="empty">
+				<img t:id="status.user" style="float:left" class="singular"/>
+			</a>
+			#{status.display_prefix}{status.message}
+			<ul>
+				<li>Updated {status.since_creation} ago.</li>
+			</ul>
+			<hr/>
+		</li>
+		<li t:id="statuses.empty?">No results to display.<hr/></li>
+	</ul>
+</div>

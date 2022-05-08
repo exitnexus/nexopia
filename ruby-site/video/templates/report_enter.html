@@ -1,0 +1,17 @@
+<div id="report_enter">
+	<a href="{back_link}">Back to Videos</a><br/><br/>
+	
+	<h2>{video.title}</h2>
+	#{video.nex_embed(350)}<br/><br/>
+	
+	<form action="{handler_root}/report/send" method="post">
+		Please enter the reason that you are reporting this video:<br/><br/>
+		
+		<textarea id="reason" name="reason" style="width: 100%; height: 50px"></textarea><br/>
+		
+		<input type="hidden" name="repuserid" id="repuserid" value="{repuserid}"/>
+		<input type="hidden" name="videoid" id="videoid" value="{video.id}"/>
+		<input type="hidden" name="back_link" id="back_link" value="{back_link}"/>
+		<input type="submit" value="Send"/>
+	</form><br/><br/>
+</div>

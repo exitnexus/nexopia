@@ -1,0 +1,75 @@
+<span xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<table class="forum">
+		<tr class="forum_bg_dark">
+			<td class="forum_header_structure">
+				<a class="forum_header_name forum_text_dark" href="/forums">FORUMS</a>
+			</td>
+		</tr>
+		<tr class="forum_bg_dark">
+			<td class="forum_header_menu forum_header_structure">
+			</td>
+		</tr>
+		<tr><td class="forum_big_horizontal_space"></td></tr>
+	</table>
+
+	<table class="forum">
+		<tr>
+			<td colspan="2" class="forum_threads_title forum_bg_dark forum_text_light forum_header_menu forum_header_structure">
+			</td>
+			<td colspan="2" class="forum_threads_info forum_bg_dark forum_text_light">
+				Author
+			</td>
+			<td colspan="2" class="forum_threads_info forum_bg_dark forum_text_light">
+				Replies
+			</td>
+			<td colspan="2" class="forum_threads_info forum_bg_dark forum_text_light">
+				Views
+			</td>
+			<td colspan="2" class="forum_last_post_date forum_bg_dark forum_text_light">
+				Last Post
+			</td>
+		</tr>
+
+		<t:if t:id="threads" t:iter="thread">
+			<tr>
+				<td class="padding forum_text_light forum_bg_light">				
+					<t:if t:id="(thread.read_level == :new_thread)">
+						<a style="color:blue;" href="/forums/forum/{thread.forumid}/thread/{thread.id}"> 
+							{thread.title}
+						</a>
+					</t:if>
+					<t:if t:id="(thread.read_level == :some_unread)">
+						<a style="color:green;" href="/forums/forum/{thread.forumid}/thread/{thread.id}"> 
+							{thread.title}
+						</a>
+					</t:if>
+					<t:if t:id="(thread.read_level == :no_unread)">
+						<a style="color:red;" href="/forums/forum/{thread.forumid}/thread/{thread.id}"> 
+							{thread.title}
+						</a>
+					</t:if>
+				</td>
+				<td class="forum_vertical_space"></td>
+				<td class="padding forum_align_info forum_text_light forum_bg_light">
+					{thread.author_name}
+				</td>
+				<td class="forum_vertical_space"></td>
+				<td class="padding forum_align_info forum_text_light forum_bg_light">
+					{thread.posts}
+				</td>
+				<td class="forum_vertical_space"></td>
+				<td class="padding forum_align_info forum_text_light forum_bg_light">
+					{thread.reads}
+				</td>
+				<td class="forum_vertical_space"></td>
+				<td class="padding forum_align_info forum_text_light forum_bg_light">
+					{thread.last_author_name}
+				</td>
+				<td class="padding forum_align_info forum_text_light forum_bg_light">
+					{thread.time_readable}
+				</td>
+			</tr>
+			<tr><td colspan="9" class="forum_small_horizontal_space"></td></tr>
+		</t:if>
+	</table>
+</span>

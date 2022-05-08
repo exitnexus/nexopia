@@ -1,0 +1,96 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<div style="background-color:white">
+
+		<h1>Details</h1>
+		
+		<form action="{handler_root}/update" method="post">
+
+			<table>
+				
+				<tr valign="top">
+					<td width="150px">Description:</td>
+					<td><textarea id="description" name="description" style="width: 100%; height: 50px">{defect.description}</textarea></td>
+				</tr>
+				
+				<tr valign="top">
+					<td width="150px">Workaround:</td>
+					<td><textarea id="workaround" name="workaround" style="width: 100%; height: 50px">{defect.workaround}</textarea></td>
+				</tr>
+				
+				<tr valign="top">
+					<td width="150px">Defect Status:</td>
+					<td><select name="status">
+							<option value="open" cond:selected="defect.status == :open">Open</option>
+							<option value="closed" cond:selected="defect.status == :closed">Closed</option>
+							<option value="fixed" cond:selected="defect.status == :fixed">Fixed</option>
+							<option value="inprogress" cond:selected="defect.status == :inprogress">In Progress</option>
+							<option value="deferred" cond:selected="defect.status == :deferred">Deferred</option>
+						</select></td>
+				</tr>
+				
+				<tr valign="top">
+					<td width="150px">Defect Type:</td>
+					<td><select name="type">
+							<option value="bug" cond:selected="defect.type == :bug">Bug</option>
+							<option value="suggestion" cond:selected="defect.type == :suggestion">Suggestion</option>						
+							<option value="cosmetic" cond:selected="defect.type == :cosmetic">Cosmetic</option>
+						</select></td>
+				</tr>
+				
+				<tr valign="top">
+					<td width="150px">Priority:</td>
+					<td><select name="priority">
+							<option value="low" cond:selected="defect.priority == :low">Low</option>
+							<option value="medium" cond:selected="defect.priority == :medium">Medium</option>						
+							<option value="high" cond:selected="defect.priority == :high">High</option>
+						</select></td>
+				</tr>	
+					
+				<tr valign="top">
+					<td width="150px">Reported by:</td>
+					<td>{defect.repusername}</td>
+				</tr>
+				
+				<tr valign="top">
+					<td width="150px">Assigned to:</td>
+					<td><input type="text" id="ownusername" name="ownusername" value="{defect.ownusername}"/></td>
+				</tr>
+	
+				<tr valign="top">
+					<td width="150px">Tags:</td>
+					<td><input type="text" id="tags" name="tags" value="{defect.tags}" style="width: 100%"/></td>
+				</tr>
+
+				<tr valign="top">
+					<td width="150px">Test Class:</td>
+					<td><input type="text" id="testclass" name="testclass" value="{defect.testclass}"/></td>
+				</tr>
+					
+				<tr valign="top">
+					<td width="150px">Test Name:</td> 
+					<td><input type="text" id="test" name="test" value="{defect.test}"/></td>
+				</tr>
+	
+				<tr valign="top">
+					<td width="150px" >Update Comment:</td>
+					<td><textarea id="comment" name="comment" style="width: 100%; height: 50px"></textarea></td>
+				</tr>
+				
+			</table>
+		
+			<input type="submit" value="Update"/>
+			
+			<input type="hidden" id="id" name="id" value="{defect.id}"/>
+
+		</form>
+		
+		<h1>History</h1>
+		<t:template-include name="show_defect_history" module="devutils"/>
+		
+		<h1>Tests</h1>
+		<t:template-include name="defect_test_status" module="devutils"/>
+
+		<a href="/defects/list">Back to defect list</a>
+		
+	</div>
+</div>

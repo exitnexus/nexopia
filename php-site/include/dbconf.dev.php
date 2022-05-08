@@ -6,6 +6,10 @@
 ///              indicates handlers for select and insert (and backup?). Those subitems
 ///              by default use any configuration item at the top level, and then
 ///              they can overload items selectively.
+/// - pair: a multi-master replication server setup. 'roles' subitem
+///              indicates handlers for host1 and host2, along with which is master and the
+///              memcache key to use while swapping. Those subitems by default use any
+///              configuration item at the top level, and then they can overload items selectively.
 /// - split: multiple servers load balanced based on a split function identified by the
 ///         'splitfunc' key. 'sources' top level item is a list of configurations that are as if
 ///         they were top level server configs.
@@ -19,9 +23,9 @@
 
 $databases = array(
 	'dbserv' => array(
-		'host' => '192.168.0.50',
+		'host' => 'mysql',
 		'login' => 'root',
-		'passwd' => 'Hawaii',
+		'passwd' => 'root',
 		'debuglevel' => 2,
 	),
 	'devdb' => array(
@@ -41,6 +45,20 @@ $databases = array(
 		)
 	),
 
+	'rubydbserv' => array(
+		'host' => 'mysql',
+		'login' => 'root',
+		'passwd' => 'root',
+		'debuglevel' => 2,
+		'type' => 'single',
+	),
+
+	'processqueuedb' => array(
+		'instance' => true,
+		'db' => 'processqueue',
+		'inherit' => 'rubydbserv',
+	),
+
 	/* new dbs */
 
 	'masterdb' => array(
@@ -53,22 +71,33 @@ $databases = array(
 		'instance' => true,
 		'type' => 'split',
 		'splitfunc' => 'split_db_user',
+		'seqtable' => 'usercounter',
 		'sources' => array(
 			array( // anonymous server
 				'db' => 'newusersanon',
 				'inherit' => 'devdbmulti',
-				'seqtable' => 'usercounter',
 			),
+
+/*
 			array(
 				'db' => 'newusers',
 				'inherit' => 'devdbmulti',
-				'seqtable' => 'usercounter',
-//				'needkey' => DB_KEY_REQUIRED,
 			),
+*/
+			array(
+				'db' => 'newusers',
+				'type' => 'pair',
+				'hosts' => array(
+					'host1' => array( 'host' => '192.168.10.50', 'inherit' => 'devdb', ),
+					'host2' => array( 'host' => '192.168.10.51', 'inherit' => 'devdb', ),
+				),
+				'master' => 'host1',
+				'memcache' => 'newusers',
+			),
+
 			array(
 				'db' => 'newusers1',
 				'inherit' => 'devdbmulti',
-				'seqtable' => 'usercounter',
 			),
 		),
 	),
@@ -110,6 +139,7 @@ $databases = array(
 	),
 	'bannerdb' => array(
 		'instance' => true,
+//		'db' => 'testbanner',
 		'db' => 'newbanners',
 		'inherit' => 'devdb',
 		/*/
@@ -144,12 +174,22 @@ $databases = array(
 	),
 	'picmodexamdb' => array(
 		'instance' => true,
-		'db' => 'nexopiapicmodexam',
+		'db' => 'newpicmodexam',
 		'inherit' => 'devdb',
 	),
 	'scrumdb' => array(
 		'instance' => true,
 		'db' => 'scrum',
 		'inherit' => 'devdb',
+	),
+	'videodb' => array(
+		'instance' => true,
+		'db' => 'newvideo',
+		'inherit' => 'devdb',
+	),
+	'groupsdb' => array(
+		'instance' => true,
+		'db' => 'newgroups',
+		'inherit' => 'devdb'
 	),
 );

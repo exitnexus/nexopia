@@ -1,6 +1,6 @@
 <?
 
-	$login=1;
+	$login = 1;
 
 	require_once("include/general.lib.php");
 
@@ -10,10 +10,10 @@
 	$col = getREQval('col');
 	$page = getREQval('page', 'int');
 
-	$val = getPOSTval('val');
+	$val = trim(getPOSTval('val'));
 
 	if(!$val){
-		$val = getREQval('val');
+		$val = trim(getREQval('val'));
 
 		if($val && !checkKey($val, getREQval('k')))
 			$val = "";
@@ -22,6 +22,7 @@
 	$rows = array();
 	$uids = array();
 	$numpages = 0;
+	$linesPerPage = 100;
 
 	if($col && $val){
 		$query = "SELECT userid, time, ip, result FROM loginlog ";
@@ -48,9 +49,12 @@
 			$uids[$line['userid']] = $line['userid'];
 		}
 
-		sortCols($rows, SORT_DESC, SORT_NUMERIC, 'time');
-
 		$uids = getUserName($uids);
+
+		sortCols($rows, SORT_DESC, SORT_NUMERIC, 'time');
+		$numpages = ceil(count($rows)/$linesPerPage);
+
+		$rows = array_slice($rows, ($page*$linesPerPage), $linesPerPage);
 	}
 
 	incHeader();
@@ -59,7 +63,7 @@
 	echo "<form action=$_SERVER[PHP_SELF] method=post>";
 	echo "<tr><td class=body colspan=5 align=center>";
 	echo "<select class=body name=col>" . make_select_list(array('username', 'userid', 'ip'), $col) . "</select>";
-	echo "<input class=body type=text size=10 name=val value='$val'>";
+	echo "<input class=body type=text size=10 name=val value='" . htmlentities($val) . "'>";
 	echo "<input class=body type=submit value=Go>";
 	echo "</td></tr>";
 
@@ -74,7 +78,7 @@
 	$hosts = array();
 
 	foreach($rows as $row){
-		$class = ($row['result'] == 'success' ? 'body' : 'body2');
+		$class = (in_array($row['result'], array('success','changepass','changeemail')) ? 'body' : 'body2');
 
 		echo "<tr>";
 		echo "<td class=$class><a class=body href=/profile.php?uid=$row[userid]>" . $uids[$row['userid']] . "</a></td>";
@@ -87,7 +91,8 @@
 		echo "<td class=$class>$row[result]</td>";
 		echo "</tr>";
 	}
+
+	echo "<tr><td class=header align=right colspan=5>Page: " . pageList("$_SERVER[PHP_SELF]?col=$col&val=$val&k=" . makeKey($val), $page, $numpages, 'header') . "</td></tr>";
 	echo "</table>";
 
 	incFooter();
-

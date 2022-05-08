@@ -1,0 +1,46 @@
+<div>
+	<script type="text/javascript">
+		<![CDATA[ 
+			function toggleDisplay(element) {
+				if (element.style.display == "none") {
+					element.style.display = "";
+				} else {
+					element.style.display = "none";
+				}
+			}
+		]]>
+	</script>
+	
+	Click on a row for detailed status information.
+	<table>
+		<tr>
+			<th>Class</th>
+			<th>Test</th>
+			<th>Exception</th>
+			<th>Type</th>
+			<th>Broken in</th>
+			<th>Broken by</th>
+			<th>Fixed in</th>
+			<th>Fixed by</th>
+		</tr>
+		<t:loop t:id="test_results" t:iter="test_status, index">
+			<tr onclick="toggleDisplay(document.getElementById('test_status[{index}]'))">
+				<td>{test_status.testclass}</td>
+				<td>{test_status.test}</td>
+				<td>{test_status.testerror}</td>
+				<td>{test_status.type}</td>
+				<td>{test_status.revision_broken}</td>
+				<td>{test_status.author_broken}</td>
+				<td>{test_status.revision_fixed}</td>
+				<td>{test_status.author_fixed}</td>
+			</tr>
+			<tr id="test_status[{index}]" style="display:none">
+				<td colspan="8">
+					<pre style="font-size:1em;background-color:LightGoldenRodYellow;border-style:solid;border-width:1px">
+						{test_status.content}
+					</pre>
+				</td>
+			</tr>
+		</t:loop>
+	</table>
+</div>

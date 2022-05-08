@@ -1,0 +1,36 @@
+<div class="update_list">
+	<t:statement>lib_require :core, "user_time"</t:statement>
+	<ul class="update_list">
+		<t:loop t:id="days" t:iter="day">
+			<li class="day_display">
+				<div class="right_aligned">
+					<b>{day.day}</b>
+				</div>
+				<div class="clearit"></div>
+			</li>
+			<t:loop t:id="day.entries" t:iter="entry">
+				<li>
+		<!--		<td>
+					<form action="/my/friends_updates/delete" method="post">
+							<input type="hidden" name="user" value="{entry.userid}"/>
+							<input type="hidden" name="originator" value="{entry.originatorid}"/>
+							<input type="hidden" name="eventid" value="{entry.eventid}"/>
+							<input class="delete" type="submit" value="[x]"/>
+						</form>
+					</td>
+		-->
+					<div class="img_display">
+						<img class="profile_pic" t:id="entry.image"/>&nbsp;
+					</div>
+					<div class="msg_display">
+						<t:display t:id="entry"/>
+					</div>
+					<div class="right_aligned">
+						{UserTime.new(Time.at(entry.time)).strftime("%I:%M%p" )}
+					</div>
+					<div class="clearit"></div>
+				</li>
+			</t:loop>
+		</t:loop>
+	</ul>
+</div>

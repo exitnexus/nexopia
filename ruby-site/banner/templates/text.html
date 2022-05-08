@@ -1,0 +1,13 @@
+<div id='banner_{banner.size}'>
+	<t:template-include name="refresh" module="banner"/>
+	<t:if t:id="!banner.link">
+		<b>{banner.image}</b>
+	</t:if>
+	<t:if t:id="banner.link">
+		<a class="body" href="/bannerclick.php?id={banner.id}" target="_blank">
+			<b>{banner.image}</b>
+		</a>
+	</t:if>
+	<br/>
+	{banner.alt}
+</div>

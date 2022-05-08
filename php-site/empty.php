@@ -8,8 +8,5 @@
 
 	echo "Hello World! (test again and again and again and again)";
 
-	$template = new Template('moderate/forumBans');
-	$template->dump();
-
 	incFooter();//array('incSideAdBlock','incPollBlock','incActiveForumBlock'));
 

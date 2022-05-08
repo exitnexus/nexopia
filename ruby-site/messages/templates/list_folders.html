@@ -1,0 +1,7 @@
+<div>
+	<span t:id="folders" t:iter="folder" >
+		<a href="/my/messages/folders/{folder.id}" onclick="MessageCenter.loadHeaders({folder.id});return false;">
+			<span>{folder.name}</span><br/>
+		</a>
+	</span>
+</div>

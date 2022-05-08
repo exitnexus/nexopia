@@ -1,0 +1,66 @@
+.freeform_text_edit
+{
+	padding: 8px;
+	text-align: left;
+	
+	& .title 
+	{
+		font-weight: bold;
+		text-align: left;
+		font-family: $header_font_family;
+		font-size: 14px;
+		letter-spacing: 0px;
+	}
+	
+
+	& .field_name
+	{
+		font-weight: bold;
+		font-size: 11px;
+	}	
+	
+	
+	& .edit_form
+	{
+		margin-top: 20px;
+		
+		& textarea
+		{
+			height: 200px;
+			width: 100%;
+		}
+	}
+	
+	
+	& .text
+	{
+		font-size: 11px;
+		width: 300px;
+		margin-top: 4px;
+	}
+	
+	
+	& textarea
+	{
+		font-size: 11px;
+		margin-top: 4px;
+	}
+}
+
+.freeform_text
+{
+	& .title
+	{
+		font-weight: bold;
+		text-align: left;
+		font-family: $header_font_family;
+		font-size: 14px;
+		letter-spacing: 0px;		
+	}
+	
+	
+	& .content
+	{
+		
+	}
+}

@@ -1,0 +1,29 @@
+<div class="summary_panel_container">
+	<script type="text/javascript" src="http://yui.yahooapis.com/2.3.1/build/container/container-min.js"></script>
+	<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.3.1/build/container/assets/container.css"/>	
+
+	<div class="summary_panel_table_div_container">
+		<div class="summary_panel_table_div" id="#{record_type.to_s.gsub(/.*::(.*)/,'\1').downcase}_summary">
+			<t:loop t:id="records" t:iter="summary_record" t:index="row">
+				<div class="summary_row" onclick="ProjectManager.select('#{summary_record.get_primary_key.to_a * %q(-)}', '{summary_record.type}')">
+					<t:if t:id="(!record.nil? && summary_record.id == record.id)">
+						<div id="record_#{summary_record.get_primary_key.to_a * %q(-)}" class="row_selected">
+							<div class="row">{summary_record.name}</div>
+						</div>
+					</t:if>
+					<t:if t:id="(record.nil? || summary_record.id != record.id)">
+						<div id="record_#{summary_record.get_primary_key.to_a * %q(-)}" class="row_#{((row % 2 == 0) ? 'even' : 'odd')}">
+							<div class="row">{summary_record.name}</div>
+						</div>
+					</t:if>
+				</div>
+			</t:loop>
+			<div class="clearit"/>
+		</div>
+	</div>
+	<t:if t:id="!summary_add_disable">
+		<div style="width: 14px; font-size: 12px; margin-top: 2px" class="button" onclick="ProjectManager.add('#{(parent_record.nil? ? 0:parent_record.get_primary_key.to_a * %q(-))}', '#{parent_record.type}', '{record_type}', true)">+</div>
+	</t:if>
+	<div class="refresh_uri" style="display: none">#{PageRequest.current.uri}?programmer=#{PageRequest.current.session.user.userid}</div>
+	<div id="main_record_class" style="display: none">{record_type}</div>
+</div>

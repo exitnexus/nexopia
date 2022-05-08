@@ -3,6 +3,7 @@
 	$forceserver = true;
 	$enableCompression = true;
 	$login=1;
+	$devutil = true;
 //	$errorLogging = false;
 	require_once("include/general.lib.php");
 
@@ -34,6 +35,1288 @@ exit;
 ///////////////////////////////////////////
 ///////////// Old Stuff //////////////////
 /////////////////////////////////////////
+
+
+
+
+
+// clear out the questionable queue by re-voting for things that made it there that shouldn't have.
+// really, only works if the person running this has level 6+
+
+	$piccount = 100;
+	$iter = 0;
+	while(1){
+		echo ++$iter . " ";
+
+		$ids = $mods->getModItems(MOD_QUESTIONABLEPICS, $piccount, 3, 120, true);
+
+		if(!$ids || $iter >= 100)
+			break;
+
+		$key = array('userid' => '#', 'picid' => '#');
+		$res = $moddb->query("SELECT * FROM modvoteslog WHERE " . $moddb->prepare_multikey($key, $ids));
+
+		$data = array();
+		while($line = $res->fetchrow()){
+			$id = "$line[userid]:$line[picid]";
+
+			if(!isset($data[$id]))
+				$data[$id] = array('total' => 0, 'accept' => 0, 'deny' => 0);
+
+			if($line['vote'] == 'y'){
+				$data[$id]['total'] += $line['points'];
+				$data[$id]['accept']++;
+			}else{
+				$data[$id]['total'] -= $line['points'];
+				$data[$id]['deny']++;
+			}
+		}
+
+		$votes = array();
+
+		foreach($data as $id => $val){
+			if($val['total'] >= 6 && $val['deny'] == 0)
+				$votes[$id] = 'y';
+			elseif($val['total'] <= -6 && $val['accept'] == 0)
+				$votes[$id] = 'n';
+		}
+
+		if($votes)
+			$mods->vote($votes, MOD_QUESTIONABLEPICS);
+		
+		echo ": " . count($votes) . "<br>\n";
+	}
+
+
+
+
+
+
+
+
+// add deleted accounts entries, update stats in serverbalance
+
+	$res = $masterdb->query("SELECT * FROM serverbalance WHERE weight > 0 && type = 6");
+	$servers = $res->fetchrowset();
+	$numservers = count($servers);
+
+
+//set all to active (to be changed below)
+	$masterdb->prepare_query("UPDATE accounts SET state = # WHERE state != #", ACCOUNT_STATE_ACTIVE, ACCOUNT_STATE_ACTIVE);
+
+
+	$res = $db->query("SELECT userid FROM deletedusers ORDER BY userid");
+
+	while($line = $res->fetchrow()){
+		$id = $line['userid'];
+
+	//insert if it doesn't exist yet
+		$res2 = $masterdb->prepare_query("INSERT IGNORE INTO accounts SET id = #, type = 6, serverid = #, state = #", 
+								$id, $servers[$id % $numservers]['serverid'], ACCOUNT_STATE_DELETED);
+
+	//update if it already exists
+		if($res2->affectedrows() == 0)
+			$masterdb->prepare_query("UPDATE accounts SET state = # WHERE id = #", ACCOUNT_STATE_DELETED, $id);
+	}
+
+
+//update the counts in serverbalance
+	$counts = array();
+
+	$res = $masterdb->query("SELECT serverid, count(*) as count FROM accounts WHERE type = 6 GROUP BY serverid");
+	while($line = $res->fetchrow())
+		$counts[$line['serverid']]['totalaccounts'] = $line['count'];
+
+	$res = $masterdb->prepare_query("SELECT serverid, count(*) as count FROM accounts WHERE type = 6 && state != # GROUP BY serverid", ACCOUNT_STATE_DELETED);
+	while($line = $res->fetchrow())
+		$counts[$line['serverid']]['realaccounts'] = $line['count'];
+
+	foreach($counts as $serverid => $vals)
+		$masterdb->prepare_query("UPDATE serverbalance SET totalaccounts = #, realaccounts = # WHERE serverid = #", $vals['totalaccounts'], $vals['realaccounts'], $serverid);
+
+
+//update account status to include frozen and new
+	$split = $usersdb->getSplitDBs();
+
+	$new = array();
+	$frozen = array();
+
+	foreach($split as $mydb){
+		$res = $mydb->unbuffered_query("SELECT userid, state FROM users WHERE state in ('new','frozen')");
+
+		while($line = $res->fetchrow()){
+			if($line['state'] == 'new'){
+				$new[] = $line['userid'];
+
+				if(count($new) >= 100){
+					$masterdb->prepare_query("UPDATE accounts SET state = # WHERE id IN (#)", ACCOUNT_STATE_NEW, $new);
+					$new = array();
+				}
+			}else{
+				$frozen[] = $line['userid'];
+
+				if(count($frozen) >= 100){
+					$masterdb->prepare_query("UPDATE accounts SET state = # WHERE id IN (#)", ACCOUNT_STATE_FROZEN, $frozen);
+					$frozen = array();
+				}
+			}
+		}
+	}
+
+	if(count($new))
+		$masterdb->prepare_query("UPDATE accounts SET state = # WHERE id IN (#)", ACCOUNT_STATE_NEW, $new);
+	if(count($frozen))
+		$masterdb->prepare_query("UPDATE accounts SET state = # WHERE id IN (#)", ACCOUNT_STATE_FROZEN, $frozen);
+
+
+
+
+//make sure dbs are mapped correctly
+	$dbs = $usersdb->getSplitDBs();
+
+
+	foreach($dbs as $dbnum => $db){
+		$res = $masterdb->prepare_query("SELECT id FROM accounts WHERE type = 6 && serverid = # LIMIT 100", $dbnum);
+		
+		while($line = $res->fetchrow())
+			$ids[] = $line['id'];
+
+		if($ids){
+			$res = $db->prepare_query("SELECT count(*) FROM users WHERE userid IN (#)", $ids);
+			$count = $res->fetchfield();
+			
+			if($count == 0)
+				echo "None found on $dbnum<br>\n";
+		}
+	}
+	
+	echo "Done<br>\n";
+
+
+//find other replicas of stray data
+
+	$tables = array(
+		'blog' => 'userid',
+		'blogcomments' => 'bloguserid',
+		'blogcommentsunread' => 'userid',
+		'bloglastreadfriends' => 'userid',
+		'friends' => 'userid',
+		'friendscomments' => 'userid',
+		'gallery' => 'ownerid',
+		'gallerypending' => 'userid',
+		'gallerypics' => 'userid',
+		'ignore' => 'userid',
+		'loginlog' => 'userid',
+		'msgfolder' => 'userid',
+		'msgs' => 'userid',
+		'msgtext' => 'userid',
+		'picbans' => 'userid',
+		'pics' => 'userid',
+		'picspending' => 'userid',
+		'profile' => 'userid',
+		'profileblocks' => 'userid',
+		'profileviews' => 'userid',
+		'sessions' => 'userid',
+		'sourcepics' => 'userid',
+		'useractivetime' => 'userid',
+		'usercomments' => 'userid',
+		'usercounter' => 'id',
+		'userfiles' => 'userid',
+		'userfileslayout' => 'userid',
+		'userhitlog' => 'userid',
+		'userinterests' => 'userid',
+		'usernames' => 'userid',
+		'userpasswords' => 'userid',
+		'users' => 'userid',
+		'usersearch' => 'userid',
+		);
+
+
+	$dbs = $usersdb->getSplitDBs();
+	
+	for($i = 29; $i <= 34; $i++){
+		
+		foreach($tables as $table => $pkey){
+			$data = array();
+		
+			$res = $dbs[$i]->query("SELECT * FROM `$table`");
+			while($line = $res->fetchrow())
+				$data[$line[$pkey]][] = $line;
+
+
+			if($data){
+				$res = $usersdb->prepare_query("SELECT * FROM `$table` WHERE $pkey IN (%)", array_keys($data));
+				while($line = $res->fetchrow()){
+					$k = array_search($line, $data[$line[$pkey]]);
+						
+					if($k !== false)
+						unset($data[$line[$pkey]][$k]);
+				}
+	
+				foreach($data[$line[$pkey]] as $line)
+					echo "Row in newusers$i:$table not found:<br>\n" . print_r($line) . "<br><br>\n";
+			}
+		}
+	}
+
+//script to move leftover portion of userfileslayout data after an incomplete move
+
+	$dbobjs = $usersdb->getSplitDBs();
+
+	foreach($dbobjs as &$dbobj){
+		$res = $dbobj->query("SELECT userfileslayout.* FROM userfileslayout LEFT JOIN usernames USING (userid) WHERE usernames.userid IS NULL");
+	
+		while($line = $res->fetchrow()){
+			$usersdb->prepare_query("INSERT IGNORE INTO userfileslayout SET userid = %, path = ?, type = ?, size = #", $line['userid'], $line['path'], $line['type'], $line['size']);
+//			$dbobj->prepare_query("DELETE FROM userfileslayout WHERE userid = % && path = ?", $line['userid'], $line['path']);
+		}
+	}
+
+
+//start of code to parse the new bannertypestats format
+
+
+	$res = $bannerdb->prepare_query("SELECT * FROM bannertypestats LIMIT 10,1");
+	
+//	$data = array();
+	while($line = $res->fetchrow()){
+		$line['viewsdump'] = gzdecode($line['viewsdump']);
+		$line['clicksdump'] = gzdecode($line['clicksdump']);
+	
+		$entry = new bannerstats();
+		loadXML($entry, $line['viewsdump']);
+	
+		echo "<pre>";
+		
+//		print_r(simplexml_load_string($line['viewsdump']));
+		print_r($entry);
+		echo "</pre>";
+		echo "<br><br><br><hr><br><br><br>";
+	}
+
+
+function loadXML($bannerstats, $xmlstring){
+	$xml = simplexml_load_string($xmlstring);
+
+	$bannerstats->total = (int)$xml->total[0];
+	$bannerstats->starttime = (int)$xml->starttime[0];
+
+	foreach($xml->agesex as $k => $v)
+		if(is_int($k))
+			$bannerstats->agesex[$k] = array(SEX_UNKNOWN => $v[SEX_UNKNOWN], 
+			                                 SEX_MALE    => $v[SEX_MALE], 
+			                                 SEX_FEMALE  => $v[SEX_FEMALE]);
+
+	$locs = (array)$xml->loc;
+	foreach($locs['int'] as $k => $v)
+		if($v)
+			$bannerstats->loc[$k] = $v;
+
+	$interests = (array)$xml->interests;
+	foreach($interests['int'] as $k => $v)
+		if($v)
+			$bannerstats->interests[$k] = $v;
+
+	$hittimes = (array)$xml->hittimes;
+	foreach($hittimes['int-array'] as $daynum => $day){
+		$temp = (array)$day;
+
+		foreach($temp['int'] as $hour => $hits)
+			$bannerstats->hittimes[$daynum][$hour] = $hits;
+	}
+
+	$pages = (array)$xml->pages;
+	foreach($pages['entry'] as $line){
+		$temp = (array)$line;
+		$temp2 = (array)$temp['integer'];
+		$bannerstats->page[$temp['string']] = $temp2['i'];
+	}
+}
+
+function XMLToArray($xml)
+{
+  if ($xml instanceof SimpleXMLElement) {
+   $children = $xml->children();
+   $return = null;
+  }
+
+  foreach ($children as $element => $value) {
+   if ($value instanceof SimpleXMLElement) {
+     $values = (array)$value->children();
+    
+     if (count($values) > 0) {
+       $return[$element] = XMLToArray($value);
+     } else {
+       if (!isset($return[$element])) {
+         $return[$element] = (string)$value;
+       } else {
+         if (!is_array($return[$element])) {
+           $return[$element] = array($return[$element], (string)$value);
+         } else {
+           $return[$element][] = (string)$value;
+         }
+       }
+     }
+   }
+  }
+ 
+  if (is_array($return)) {
+   return $return;
+  } else {
+   return $false;
+  }
+}
+
+
+
+//start of a function to detect when users DOS the site
+function detectDos($type, $id){ //either an ip or a userid
+	global $cache, $db;
+
+	$num = $cache->incr("dos-$type-$id");
+	
+	if(!$num){
+		$cache->put("dos-$type-$id", 1, 60);
+		return;
+	}
+
+	if($num % 30 == 0){ //update the db every 30th hit
+		$res = $db->prepare_query("UPDATE detectdos SET hits = hits + 1, time = # WHERE type = ? && id = #", time(), $type, $id);
+		if($res->affectedrows() == 0)
+			$db->prepare_query("INSERT IGNORE detectdos SET hits = 1, time = #, type = ?, id = #", time(), $type, $id);
+	}
+
+	return $cache->get("blacklist-$type-$id");
+}
+
+
+//dump the usersearch tables to a file (useful to load for a search daemon)
+	$fp = fopen("/home/nexopia/search.txt", 'w');
+	
+	$res = $usersdb->query("SELECT * FROM usersearch");
+	
+	$str = "";
+	
+	$line = $res->fetchrow();
+	$str .= implode(",", array_keys($line)) . "\n";
+	$str .= implode(",", $line) . "\n";
+	
+	$i = 0;
+	
+	while($line = $res->fetchrow()){
+		$str .= implode(",", $line) . "\n";
+		
+		if(++$i >= 10000){
+			fwrite($fp, $str);
+			$str = "";
+			$i = 0;
+		}
+	}
+	fwrite($fp, $str);
+	fclose($fp);
+	
+	
+
+//memcache benchmark
+	$key = "asdf";
+	$val = str_repeat("blah", 1);
+	$limit = 50000;
+	
+	$direct = new memcached(array ('servers' => array( array('localhost:11211', 1) ), 'debug' => false ) );
+	$proxy  = new memcached(array ('servers' => array( array('localhost:11212', 1) ), 'debug' => false ) );
+
+
+	$direct->set($key, $val, 100);
+
+	$time1 = gettime();
+
+	for($i = 0; $i < $limit; $i++)
+		$direct->get($key);
+	
+	$time2 = gettime();
+
+	for($i = 0; $i < $limit; $i++)
+		$proxy->get($key);
+
+	$time3 = gettime();
+
+	
+	echo "direct: " . number_format(($time2 - $time1)/10, 3) . " ms, " . number_format($limit*10000/($time2-$time1), 3) . " gets/s<br>";
+	echo "proxy:  " . number_format(($time3 - $time2)/10, 3) . " ms, " . number_format($limit*10000/($time3-$time2), 3) . " gets/s<br>";
+
+exit;
+
+
+//a test to see which was the fastest way to access data
+
+class test {
+	public $attr;
+	function __construct(){
+		$this->attr = 1;
+	}
+}
+
+$class = new test();
+$array = array('attr' => 1);
+$var = 1;
+
+	$limit = 1000000;
+
+	$time1 = gettime();
+
+	for($i = 0; $i < $limit; $i++)
+		$class->attr;
+	
+	$time2 = gettime();
+
+	for($i = 0; $i < $limit; $i++)
+		$array['attr'];
+
+	$time3 = gettime();
+
+	for($i = 0; $i < $limit; $i++)
+		$var;
+
+	$time4 = gettime();
+
+	for($i = 0; $i < $limit; $i++)
+		;
+
+	$time5 = gettime();	
+
+	echo "class: " . number_format(($time2 - $time1)/10, 3) . " ms, " . number_format($limit*10000/($time2-$time1), 3) . " gets/s<br>";
+	echo "array: " . number_format(($time3 - $time2)/10, 3) . " ms, " . number_format($limit*10000/($time3-$time2), 3) . " gets/s<br>";
+	echo "var:   " . number_format(($time4 - $time3)/10, 3) . " ms, " . number_format($limit*10000/($time4-$time3), 3) . " gets/s<br>";
+	echo "loop:  " . number_format(($time5 - $time4)/10, 3) . " ms, " . number_format($limit*10000/($time5-$time4), 3) . " gets/s<br>";
+
+
+
+exit;
+
+
+//a css parser
+	$alldata = array();
+
+	foreach($skins as $skin => $skinname){
+		$data = array();
+
+		$file = file_get_contents($staticRoot . $config['skindir'] . "$skin/default.css");
+
+		$rulenames = array();
+		$ruledata = array();
+
+		preg_match_all("/([-a-zA-Z0-9:.,> \t\n]*)\s*{([^\}]*)}/", $file, $matches, PREG_SET_ORDER);
+		
+		foreach($matches as $match){
+			$rulenames = explode(',', $match[1]);
+			$ruledata = explode(';', $match[2]);
+			
+			foreach($rulenames as $name){
+				foreach($ruledata as $rule){
+					if(trim($rule)){
+						list($k, $v) = explode(':', $rule, 2);
+						$data[strtolower(trim($name))][trim($k)] = trim($v);
+					}
+				}
+			}
+		}
+
+//		if(!isset($data['a.forumlst:active']))	die($skin);
+
+		$alldata[$skin] = $data;
+/*
+		echo "<pre>";
+		print_r($data);
+//		print_r($matches);
+		echo "</pre>";
+*/
+	}
+
+	echo "<pre>";
+//	print_r($alldata);
+
+	$rulecount = array();
+	foreach($alldata as $skin => $data){
+		foreach($data as $rulename => $ruledata){
+			if(!isset($rulecount[$rulename]))
+				$rulecount[$rulename] = 0;
+			$rulecount[$rulename]++;
+		}
+	}
+	
+	ksort($rulecount);
+	print_r($rulecount);	
+	
+	echo "</pre>";
+
+
+
+//create a test table with lots of data
+	$usersdb->query("CREATE TABLE IF NOT EXISTS testtable ( id int(10) unsigned NOT NULL default '0',  val char(32) NOT NULL default '') TYPE=MyISAM");
+  	$usersdb->query("TRUNCATE TABLE testtable");
+  
+  
+	for($i = 1; $i < 100000; $i++){
+		if($i % 1000 == 0){
+			echo "$i<br>";
+			zipflush();
+		}
+
+		$query = $usersdb->prepare("INSERT INTO testtable SET id = #, val = ?", $i, md5($i));
+
+		$usersdb->squery(5, $query);
+		$usersdb->squery(207, $query);
+	}
+
+	exit;
+
+//find all the global variables in the includes directory
+
+	$directory = "/include/";
+
+	$dir = opendir($docRoot . $directory);
+
+	$files = array();
+	while($item = readdir($dir))
+		if(!is_dir($docRoot . $directory . $item) && strrchr($item, ".") == ".php")
+			$files[] = $item;
+	
+	sort($files);
+		
+	foreach($files as $item){
+
+		$file = file_get_contents($docRoot . $directory . $item);
+		
+		echo "<b>$directory$item</b><br>\n";
+		
+		$quote = false;
+		$escape = false;
+		$comment = false;
+		$block = 0;
+		$funchead = false;
+		$line = 1;
+
+		for($i = 0; $i < strlen($file); $i++){
+			$chr = $file[$i];
+			
+			if($chr == "\n")
+				$line++;
+			
+			if($comment){
+				if($comment == 1 && $chr == "\n"){
+					$comment = false;
+				}elseif($chr == '*' && $file[$i+1] == '/'){
+					$comment = false;
+					$i++;
+				}
+			}elseif($quote){
+				if(!$escape && $chr == '\\'){
+					$escape = true;
+				}else{
+					if(!$escape && $chr == $quote) {
+						$quote = false;
+					}
+					$escape = false;
+				}
+			}elseif($chr == '"' || $chr == "'"){
+				$quote = $chr;
+			}elseif($chr == '#'){ //ie # style comments
+				$comment = 1;
+			}elseif($chr == '/'){
+				if($file[$i+1] == '/'){ //ie // style comments
+					$comment = 1;
+					$i++;
+				}elseif($file[$i+1] == '*'){ //ie /* style comments
+					$comment = 2;
+					$i++;
+				}
+			}elseif($chr == '{'){
+				$funchead = false;
+				$block++;
+			}elseif($chr == '}'){
+				$block--;
+			}elseif($chr == '$'){
+				if($block == 0 && !$funchead)
+					echo "$directory$item: $line<br>\n";
+			}elseif($chr == 'f' && substr($file, $i, 8) == 'function'){
+				$funchead = true;
+			}
+		}
+	}
+
+
+
+
+
+//compare ajax vs non-ajax requests
+
+echo "<pre>\n";
+foreach($_SERVER as $k => $v)
+	if(strncmp($k, "HTTP", 4) == 0)
+		echo "$k => $v\n";
+
+//print_r($_SERVER);
+echo "</pre>\n";
+
+
+if(getREQval('ajax')){
+	exit;
+}
+
+
+
+?>
+<hr>
+<div id=ajax>empty</div>
+
+
+<script>
+
+function putinnerHTML(div,str){
+	if(document.all){
+		document.all[div].innerHTML = str;
+	}else{
+		eval("document.getElementById('" + div + "').innerHTML = str;");
+	}
+}
+
+function getHTTPObject() {
+	var xmlhttp;
+	/*@cc_on
+	@if (@_jscript_version >= 5)
+	try {
+		xmlhttp = new ActiveXObject("Msxml2.XMLHTTP");
+	} catch (e) {
+	try {
+		xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+		} catch (E) {
+			xmlhttp = false;
+		}
+	}
+	@else
+	xmlhttp = false;
+	@end @*/
+	if (!xmlhttp && typeof XMLHttpRequest != 'undefined') {
+		try {
+			xmlhttp = new XMLHttpRequest();
+		} catch (e) {
+			xmlhttp = false;
+		}
+	}
+	return xmlhttp;
+}
+
+var http = getHTTPObject();
+if(http){
+	http.open("GET", "http://plus.www.timo.dev.nexopia.com/update.php?ajax=true", false);
+	http.send(null);
+	
+	putinnerHTML('ajax', http.responseText);
+}else{
+	putinnerHTML('ajax', 'failed');
+}
+
+</script>
+<?
+
+
+
+
+
+
+//benchmark different output methods
+	$b = "b";
+	$count = 1000;
+
+echo "<pre>";
+
+	$time1 = gettime();
+		
+	for($i = 0; $i < $count; $i++)
+		echo "a $b c\n";
+	
+	$time2 = gettime();
+	
+	for($i = 0; $i < $count; $i++)
+		echo 'a ' . $b . ' c' . "\n";
+	
+	$time3 = gettime();
+	
+	for($i = 0; $i < $count; $i++){
+		?>a <?= $b ?> c
+<?	}
+	$time4 = gettime();
+
+	for($i = 0; $i < $count; $i++)
+		echo 'a ' . $b . " c\n";
+
+	$time5 = gettime();
+
+	echo str_repeat('a ' . $b . " c\n", $count);
+
+	$time6 = gettime();
+
+	$str = "";
+	for($i = 0; $i < $count; $i++)
+		$str .= 'a ' . $b . " c\n";
+	echo $str;
+
+	$time7 = gettime();
+
+	for($i = 0; $i < $count; $i++)
+		print('a ' . $b . " c\n");
+
+	$time8 = gettime();	
+	
+echo "</pre>";
+
+	echo "\n\n<hr>";
+	echo number_format(($time2-$time1)/10,3) . " ms<br>";
+	echo number_format(($time3-$time2)/10,3) . " ms<br>";
+	echo number_format(($time4-$time3)/10,3) . " ms<br>";
+	echo number_format(($time5-$time4)/10,3) . " ms<br>";
+	echo number_format(($time6-$time5)/10,3) . " ms<br>";
+	echo number_format(($time7-$time6)/10,3) . " ms<br>";
+	echo number_format(($time8-$time7)/10,3) . " ms<br>";
+	
+
+
+
+//update users skin choices
+
+	$usersdb->query("ALTER TABLE `users` ADD `skintype` ENUM( 'frames', 'normal' ) NOT NULL AFTER `skin`");
+
+	$pairs = array(	"refreshfr",	"refresh",
+					"azureframes",	'azure',
+					"orangeframes",	"orange",
+					"solarframes",	"solar",
+					"auroraframes",	"aurora",
+					"carbonframes",	"carbon",
+					"pinkframes",	"pink",
+					"megaleetfr",	"megaleet",
+					"rushhourfr",	"rushhour",
+					"greenxframes",	"greenx",
+					"flowerframes",	"flowers",
+					"crushframes",	"crush",
+					"halloweenfr",	"halloween",
+					"winterfr",		"winter",
+					"newyearsfr",	"newyears",
+					);
+
+	for($i = 0; $i < 40; $i += 2){
+		$name = $pairs[$i+1];
+		$frames = $pairs[$i];
+
+		$usersdb->prepare_query("UPDATE users SET skin = ?, skintype = 'frames' WHERE skin = ?", $name, $frames);
+		$usersdb->prepare_query("UPDATE users SET           skintype = 'normal' WHERE skin = ?", $name);
+	}
+
+
+////////////////////////////////////////////////
+
+//read old skin configs and rewrite the frames/normal in one config, commented, and with all variables.
+
+	$data = array();
+	
+	foreach($skins as $name => $stuff){
+		$file = file_get_contents("skins/$name/skin.php");
+		
+		$file = substr($file, 2, strpos($file, 'include_once')-2 ) . "\n";
+	
+		$file = str_replace('$skindata', '$data[\'' . $name . '\']', $file);
+		
+		eval($file);
+	}
+
+
+	for($i = 0; $i < 40; $i += 2){
+		$name = $pairs[$i+1];
+		$fr = $data[$pairs[$i]];
+		$no = $data[$pairs[$i+1]];
+	
+		$no['incCenter'] = ($no['incCenter'] ? 'true' : 'false');
+		$no['menuends'] = (isset($no['menuends']) ? $no['menuends'] : '');
+	
+		$no['valignsideheader'] = (isset($no['valignsideheader']) ? $no['valignsideheader'] : 'bottom');
+	
+		$fr['menugutter'] = (isset($fr['menugutter']) ? $fr['menugutter'] : '#000000');
+		$fr['menuguttersize'] = (isset($fr['menuguttersize']) ? $fr['menuguttersize'] : 0);
+	
+		$newfile = "<?";
+$newfile .= <<<END
+
+
+	\$skindata = array();
+
+//general
+	\$skindata['name']        = '$name'; //name of the skin, used for ruby layer translation
+	\$skindata['skinWidth']   = "$no[skinWidth]"; //width of the skin, 100% for full width, otherwise in pixels
+	\$skindata['cellspacing'] = $no[cellspacing];      //spacing between the center and blocks,
+	\$skindata['incCenter']   = $no[incCenter];   //have a border around the center
+	\$skindata['backgroundpic'] = "$no[backgroundpic]";   //background for the whole page, only useful if borders are specified below
+
+//borders for the full page, width and colours
+	\$skindata['topBorderSize']    = 0;
+	\$skindata['topBorder']        = "";
+	\$skindata['leftBorderSize']   = 0;
+	\$skindata['leftBorder']       = "";
+	\$skindata['rightBorderSize']  = 0;
+	\$skindata['rightBorder']      = "";
+	\$skindata['bottomBorderSize'] = 0;
+	\$skindata['bottomBorder']     = "";
+
+//floating logo for non-frames - floats right
+	\$skindata['floatinglogo'] = "$no[floatinglogo]";             //image to float
+	\$skindata['floatinglogovalign'] = "$no[floatinglogovalign]"; //valign top or bottom
+
+//non-frames header
+	\$skindata['headerpic'] = "$no[headerpic]"; //name of the header background (1600xVAR, assume only 750 width visible)
+	\$skindata['headerheight'] = $no[headerheight];           //height of the header
+
+//frames header
+	\$skindata['headersmall'] = "$fr[headersmall]"; //header for 800x600  users (1600x60, assume only 300x60 visible)
+	\$skindata['headerbig']   = "$fr[headerbig]";   //header for 1024x768 users (1600x90, assume only 300x90 visible)
+	\$skindata['headerplus']  = "$fr[headerplus]"; //header for plus     users (1600x60, assume only 750x60 visible)
+
+//menu
+	\$skindata['menupic'] = "$no[menupic]"; //background for the menus, either a image or a colour (starting with #)
+	\$skindata['menuheight'] = $no[menuheight];        //height of the menu (generally the pic from above)
+	\$skindata['menudivider'] = "$no[menudivider]";    //separater between menu items
+	\$skindata['menuspacer'] = "$no[menuspacer]"; //separater between menus, either a image or a colour (starting with #)
+	\$skindata['menuspacersize'] = $no[menuspacersize];     //size of the spacer
+	\$skindata['menugutter'] = "$fr[menugutter]"; //gutter below the top menu, either a image or a colour (starting with #)
+	\$skindata['menuguttersize'] = $fr[menuguttersize];     //size of the gutter
+	\$skindata['menuends'] = "$no[menuends]";          //menu ends, two images, prefixed with 'left' and 'right', with this suffix
+
+//body
+	\$skindata['mainbg'] = "$no[mainbg]"; //background image for the main body, if empty or a colour, use the one from the css
+
+//blocks
+	\$skindata['sideWidth'] = $no[sideWidth];                //width of the side blocks, in pixels
+	\$skindata['blockBorder'] = $no[blockBorder];                //border size of the side blocks, colour in the css
+	\$skindata['blockheadpic'] = "$no[blockheadpic]"; //block head, two images, prefixed with 'left' and 'right', with this suffix
+	\$skindata['blockheadpicsize'] = $no[blockheadpicsize];          //size of the image
+	\$skindata['valignsideheader'] = "$no[valignsideheader]";    //valign of the text in the block (bottom or center in general)
+
+
+END;
+	
+		$fp = fopen("include/skins/$name.php", "w");
+		fwrite($fp, $newfile);
+		fclose($fp);
+	}
+	
+////////////////////////////////////////////////
+
+
+//database migration script
+
+/*
+5 - 1-225000
+6 - 450001-675000
+7 - 900001-1125000
+8 - 1350001-1575000
+*/
+
+	$serverids = array( 5 => array(1, 225000),
+						6 => array(450001, 675000),
+						7 => array(900001, 1125000),
+						8 => array(1350001, 1575000));
+
+	$masterdb->query("INSERT IGNORE INTO serverbalance (serverid, weight, count) VALUES (5,1,0),(6,1,0),(7,1,0),(8,1,0)");
+
+	foreach($serverids as $serverid => $uidrange){
+		$res = $masterdb->prepare_query("UPDATE accounts SET serverid = # WHERE userid BETWEEN # AND #", $serverid, $uidrange[0], $uidrange[1]);
+
+		$count = $res->affected_rows();
+		$masterdb->prepare_query("UPDATE serverbalance SET count = # WHERE serverid = #", $count, $serverid);
+		$masterdb->prepare_query("UPDATE serverbalance SET count = count - # WHERE serverid = #", $count, $serverid-4);
+	}
+
+/*
+	$res = $masterdb->prepare_query("SELECT serverid, count(*) as count FROM accounts GROUP BY serverid");
+
+	while($line = $res->fetchrow())
+		$masterdb->query("UPDATE serverbalance SET count = # WHERE serverid = #", $line['count'], $line['serverid']);
+*/
+
+
+	$res = $masterdb->unbuffered_query("SELECT id, serverid FROM accounts");
+	
+	while($line = $res->fetchrow())
+		$cache->put("serverid-user-$line[id]", $line['serverid'], 7*24*60*60);
+
+/*
+	foreach($serverids as $serverid => $uidrange){
+		for($i = $uidrange[0]; $i <= $uidrange[1]; $i++){
+			$cache->put("serverid-user-$i", $serverid, 7*24*60*60);
+		}
+	}
+*/
+
+	$cleantables = array(
+		'friends'         => 'userid',
+		'profileviews'    => 'userid',
+		'sessions'        => 'userid',
+		'useractivetime'  => 'userid',
+		'usercounter'     => 'id',
+		'userinterests'   => 'userid',
+		'usernames'       => 'userid',
+		'users'           => 'userid',
+	);
+/*
+	$dirty = array(
+		'blog' => 'userid',
+		'blogcomments' => 'bloguserid',
+		'blogcommentsunread' => 'userid',
+		'bloglastreadfriends' => 'userid',
+		'friendscomments' => 'userid',
+		'gallery' => 'ownerid',
+		'gallerypending' => 'userid',
+		'gallerypics' => 'userid',
+		'ignore' => 'userid',
+		'loginlog' => 'userid',
+		'picbans' => 'userid',
+		'pics' => 'userid',
+		'picspending' => 'userid',
+		'sourcepics' => 'userid',
+
+		'msgarchive' => 'userid',
+		'msgfolder' => 'userid',
+		'msgs' => 'userid',
+		'msgtext' => 'userid',
+		'profile' => 'userid',
+		'profileblocks' => 'userid',
+		'usercomments' => 'userid',
+		'usercommentsarchive' => 'userid',
+
+		'userhitlog' => 'userid',
+		'userpasswords' => 'userid',
+//		'usersearch' => 'userid', //truncated
+		);
+*/
+
+	$dblist = $usersdb->getSplitDBs();
+
+	foreach($cleantables as $table => $col){
+		foreach($serverids as $serverid => $uidrange){
+			$dblist[$serverid - 4]->query("DELETE FROM $table WHERE $col <= $uidrange[1]");
+			$dblist[$serverid    ]->query("DELETE FROM $table WHERE $col >  $uidrange[1]");
+		}
+	}
+
+	for($i = 5; $i <= 8; $i++)
+		$dblist[$i]->prepare_query("UPDATE stats SET hitsFemale = 0, hitsMale = 0, hitsuser = 0, hitsplus = 0, hitstotal = 0, userstotal = 0");
+
+	rebuildStats();
+	updateSpotlightList();
+	updateUserIndexes();
+
+
+
+
+//big analysis of plus stats
+		$stats = array( 
+			'userscounted' => 0, //total number of people to analyze
+			'oddcases' => 0, //people who got random amounts given in some way, transfered, etc. These aren't analyzed further
+	
+			'curone' => 0,    //people who bought 1 month last time
+			'curtwo' => 0,    //people who bought 2 months last time
+			'curthree' => 0,  //people who bought 3 months last time
+			'cursix' => 0,    //people who bought 6 months last time
+			'curyear' => 0,   //people who bought a year last time
+			'curnone' => 0,   //people who have run out
+	
+			'curhaveinactive' => 0, //people who have it, but are inactive
+			'curnoneinactive' => 0, //people who had it, but don't anymore and are inactive
+	
+			'startone' => 0,  //people who bought 1 month first time
+			'starttwo' => 0,  //people who bought 2 months first time
+			'startthree' => 0,//people who bought 3 months first time
+			'startsix' => 0,  //people who bought 6 months first time
+			'startyear' => 0, //people who bought a year first time
+	
+			'totalone' => 0,  //number of single months bought
+			'totaltwo' => 0,  //number of two months bought
+			'totalthree' => 0,//number of three months bought
+			'totalsix' => 0,  //number of six months bought
+			'totalyear' => 0, //number of years bought
+	
+			'buyonce' => 0,   //people who have bought once and still have it
+			'tryonce' => 0,   //people who bought, let it expire, and still don't have it
+			'repeat' => 0,    //people who bought more than once
+			'repeatexp' => 0, //people who bought, let it expire, and bought again.
+			'repeatexpweek' => 0, //people who bought, let it expire for more than a week, and bought again.
+			'repeatexpmonth' => 0, //people who bought, let it expire for more than a month, and bought again.
+	
+			'manyonce' => 0,  //buy one month at a time, more than once
+			'trymore' => 0,   //buy one month, maybe more than once, then buy more than a month at once
+			);
+	
+		$curtime = time();
+	
+		$res = $db->prepare_query("SELECT userid, time, duration FROM pluslog ORDER BY userid, time");
+	
+		$users = array();
+		$user = array();
+		$curuserid = 0;
+		
+		while($line = $res->fetchrow()){
+			if($curuserid && $curuserid != $line['userid']){
+				$users[$curuserid] = $user;
+			
+				if(count($users) == 1000){
+					analyzegroup($users);
+					$users = array();
+				}
+	
+				$user = array();
+			}
+			
+			$curuserid = $line['userid'];
+			$user[] = $line;
+		}
+		$users[$curuserid] = $user;
+		analyzegroup($users);
+	
+		echo "<pre>" . print_r($stats, true) . "</pre>";
+	
+	function analyzegroup($users){
+		global $usersdb;
+	
+		$res = $usersdb->prepare_query("SELECT userid, activetime FROM useractivetime WHERE userid IN (%)", array_keys($users));
+		
+		$activetimes = array();
+		while($line = $res->fetchrow())
+			$activetimes[$line['userid']] = $line['activetime'];
+	
+		foreach($users as $user)
+			analyze($user, (isset($activetimes[$user[0]['userid']]) ? $activetimes[$user[0]['userid']] : 0));
+	}
+		
+	function analyze($log, $lastactive){
+		global $stats, $curtime;
+	
+		$stats['userscounted']++;
+	
+		$weird = false;
+	
+		$expiry = 0;
+		$lapsed = false;
+		$lapsedweek = false;
+		$lapsedmonth = false;
+	
+		foreach($log as $line){
+			if($expiry && $expiry < $line['time'])
+				$lapsed = true;
+			if($expiry && $expiry+86400*7 < $line['time'])
+				$lapsedweek = true;
+			if($expiry && $expiry+86400*31 < $line['time'])
+				$lapsedmonth = true;
+			if($expiry < $line['time'])
+				$expiry = $line['time'];
+			$expiry += $line['duration'];
+	
+			switch($line['duration']){
+				case 86400*31:    //one month
+				case 86400*31*2:  //two months
+				case 86400*31*3:  //three months
+				case 86400*31*6:  //six months
+				case 86400*31*12: //year
+					break;
+				default: //weird
+					$weird = true; 
+					break;
+			}
+		}
+	
+	//only process logs that are simple
+		if($weird){
+			$stats['oddcases']++;
+			return;
+		}
+	
+	//count number of buys
+		foreach($log as $line){
+			switch($line['duration']){
+				case 86400*31:    $stats['totalone']++;   break; //one month
+				case 86400*31*2:  $stats['totaltwo']++;   break; //two months
+				case 86400*31*3:  $stats['totalthree']++; break; //three months
+				case 86400*31*6:  $stats['totalsix']++;   break; //six months
+				case 86400*31*12: $stats['totalyear']++;  break; //year
+			}
+		}
+	
+	
+	//check first
+		$first = reset($log);
+		switch($first['duration']){
+			case 86400*31:    $stats['startone']++;   break; //one month
+			case 86400*31*2:  $stats['starttwo']++;   break; //two months
+			case 86400*31*3:  $stats['startthree']++; break; //three months
+			case 86400*31*6:  $stats['startsix']++;   break; //six months
+			case 86400*31*12: $stats['startyear']++;  break; //year
+		}
+	
+	//did a trial period?
+		if($first['duration'] == 86400*31 && count($log) > 1){
+			$more = false;
+			foreach($log as $line)
+				if($line['duration'] > 86400*31)
+					$more = true;
+	
+			if($more)
+				$stats['trymore']++;
+			else
+				$stats['manyonce']++;
+		}
+	
+	//check current plus
+		$last = end($log);
+		if($expiry > $curtime){ //hasn't expired
+			switch($last['duration']){
+				case 86400*31:    $stats['curone']++;   break; //one month
+				case 86400*31*2:  $stats['curtwo']++;   break; //two months
+				case 86400*31*3:  $stats['curthree']++; break; //three months
+				case 86400*31*6:  $stats['cursix']++;   break; //six months
+				case 86400*31*12: $stats['curyear']++;  break; //year
+			}
+			if(!$lastactive || $lastactive < $curtime - 86400*7)
+				$stats['curhaveinactive']++;
+		}else{
+			$stats['curnone']++;
+			if(!$lastactive || $lastactive < $curtime - 86400*7)
+				$stats['curnoneinactive']++;
+		}
+	
+	//bought multiple?
+		if(count($log) == 1){ //bought once
+			if($expiry > $curtime) //hasn't expired yet
+				$stats['buyonce']++;
+			else // let it expire
+				$stats['tryonce']++;
+		}else{ //bought multiple times
+			$stats['repeat']++;
+			if($lapsed)
+				$stats['repeatexp']++;
+			if($lapsedweek)
+				$stats['repeatexpweek']++;
+			if($lapsedmonth)
+				$stats['repeatexpmonth']++;
+		}
+	}
+//end plus stats
+
+//remove pending pics that have been modded, re-add moditems for the remaining pending items
+	$usersdb->query("DELETE picspending FROM picspending, pics WHERE picspending.userid = pics.userid AND picspending.id = pics.id");
+
+	$res = $usersdb->unbuffered_query($usersdb->prepare("SELECT * FROM picspending"));
+	while ($res)
+	{
+		$ids = array();
+		for ($i = 0; $i < 100; $i++)
+		{
+			$row = $res->fetchrow();
+			if (!$row)
+			{
+				$res = false;
+				break;
+			}
+			if (!isset($ids[ $row['userid'] ]))
+				$ids[ $row['userid'] ] = array();
+			$ids[ $row['userid'] ][] = $row['id'];
+		}
+		if ($ids)
+			$mods->newSplitItem(MOD_PICS, $ids, true);
+	}
+
+
+//dump config table into a php array, with comments
+	$res = $db->query("SELECT * FROM config ORDER BY name");
+
+	$str = "\$config = array(\n";
+
+	while($line = $res->fetchrow()){
+		$str .= "\t'$line[name]' => '" . addslashes($line['value']) . "',";
+		if($line['comments'])
+			$str .= " //$line[comments]";
+		$str .= "\n";
+	}
+	$str .= "\t);";
+
+	echo "<pre>";
+	echo $str;
+	echo "</pre>";
+
+
+
+//delete orphaned forumposts
+	DELETE forumposts FROM forumposts LEFT JOIN forumthreads ON forumthreads.id = forumposts.threadid WHERE forumposts.threadid IS NULL
+
+
+//dump userid,id of all pics
+	$fh = fopen("/home/nexopia/pics.txt", "w+");
+
+	$res = $usersdb->prepare_query("SELECT userid, id FROM pics");
+	
+	$buffer = "";
+	
+	$i = 0;
+	
+	while($line = $res->fetchrow()){
+		$buffer .= implode(',', $line) . "\n";
+		
+		if(++$i % 1000 == 0){
+			fwrite($fh, $buffer);
+			$buffer = "";
+			
+			echo "$i ";
+			zipflush();
+		}
+	}
+
+	fwrite($fh, $buffer);
+	fclose($fh);
+
+
+//delete all comments from a set of users
+	$idiots = array();
+	//1647403, 1920846, 1025426, 1921044, 1920807, 1920368);
+
+	$masterdb->debuglevel = 0;
+	$usersdb->debuglevel = 0;
+	$cache->debug = false;
+
+	$i = 0;
+
+	$buffer = array();
+	$uid = 0;
+
+	$userdbs = $usersdb->getSplitDBs();
+
+	foreach($userdbs as $serverid => & $deldb){
+		$res = $deldb->prepare_query("DELETE usercomments FROM usercommentsarchive, usercomments WHERE usercommentsarchive.authorid IN (#) && (usercommentsarchive.userid = usercomments.userid && usercommentsarchive.id = usercomments.id)", $idiots);
+		echo "<br>Deleted: " . $res->affectedrows() . " Rows from database $serverid<br>";
+
+
+		$res = $deldb->prepare_query("SELECT userid, id FROM usercommentsarchive WHERE authorid IN (#) ORDER BY userid", $idiots);
+
+		echo "<br>Deleting: " . $res->numrows() . " Rows from cache<br>";
+
+		while($line = $res->fetchrow()){
+			if(++$i % 100 == 0){
+				if($i % 1000 == 0)
+					echo "<br>";
+				echo "$i ";
+				zipflush();
+			}
+
+			$memcache->delete("comments5-$line[userid]");
+		}
+	}
+
+	echo "<br>Done: $i";
+	zipflush();
 
 //generate a whole bunch of batches for printing, output them all in csv format
 	$batches = array(

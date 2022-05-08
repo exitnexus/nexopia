@@ -1,0 +1,18 @@
+<t:template>
+	<span class="nav_title">FEATURES</span>
+	<t:iter t:id="sidebar_features" t:iter="spec_feature" t:index="index">
+		<div class="sidebar_feature">
+			<t:if t:id="spec_feature.is_image?()">
+				<a href="{spec_feature.link}">
+					<img src="{spec_feature.content_uri()}"></img>
+				</a>
+			</t:if>
+			<t:if t:id="spec_feature.is_flash?()">
+				<object width="{spec_feature.width}" height="{spec_feature.height}">
+					<param name="sidebar_feature_{index}" value="{spec_feature.content_uri()}"></param>
+					<embed src="{spec_feature.content_uri()}" width="{spec_feature.width}" height="{spec_feature.height}"></embed>
+				</object>
+			</t:if>
+		</div>
+	</t:iter>	
+</t:template>

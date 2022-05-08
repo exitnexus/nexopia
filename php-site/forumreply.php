@@ -40,10 +40,9 @@
 			if(!($msg = getPOSTval('msg')))
 				reply('', true);
 
-			$parse_bbcode = getPOSTval('parse_bbcode');
 			$subscribe = getPOSTval('subscribe');
 
-			postReply($msg, ($subscribe == 'y' ? 'y' : 'n'), $parse_bbcode);
+			postReply($msg, ($subscribe == 'y' ? 'y' : 'n'));
 			break;
 		case "quote":
 			$pid = getREQval('pid', 'int');
@@ -54,8 +53,7 @@
 		case "Preview":
 			$msg = getPOSTval('msg');
 
-			$parse_bbcode = getPOSTval('parse_bbcode');
-			reply($msg, ($action == "Preview"), $parse_bbcode);
+			reply($msg, ($action == "Preview"));
 			break;
 	}
 	die("reply failed");
@@ -70,15 +68,12 @@ function quote($pid){
 	if(!$line)
 		reply('', false);
 
-	if(fckeditor::IsCompatible() && !$userData['bbcode_editor'])
-		$msg = "<br /><blockquote><hr /><em>Originally posted by: <strong>" . getUserName($line['authorid']) . "</strong></em><br />" . $line['msg'] . "<hr /></blockquote><br/>\n";
-	else
-		$msg = "[quote][i]Originally posted by: [b]" . getUserName($line['authorid']) . "[/b][/i]\n" . $line['msg'] . "[/quote]\n";
+	$msg = "[quote][i]Originally posted by: [b]" . getUserName($line['authorid']) . "[/b][/i]\n" . $line['msg'] . "[/quote]\n";
 
 	reply($msg, false);
 }
 
-function reply($msg, $preview, $parse_bbcode = true){
+function reply($msg, $preview){
 	global $tid, $userData, $forums, $thread, $perms;
 	$template = new template('forums/forumreply');
 
@@ -104,41 +99,23 @@ function reply($msg, $preview, $parse_bbcode = true){
 	if($preview){
 		$msg = trim($msg);
 
-		$nmsg = html_sanitizer::sanitize($msg);
+		$nmsg = removeHTML($msg);
 
-		if($parse_bbcode)
-			$nmsg3 = $forums->parsePost($nmsg);
-		else
-			$nmsg3 = $nmsg;
+		$nmsg3 = $forums->parsePost($nmsg);
 
 		$template->set('nmsg3', $nmsg3);
 
 	}
 
-/*	if(!isset($parse_bbcode))
-        $template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $userData['parse_bbcode']));
-    else
-        $template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $parse_bbcode));*/
-	$template->set("checkbox_parsebbcode", '<input type="hidden" name="parse_bbcode" value="y"/>');
-
-
-
-
 	$template->set('tid', $tid);
-
-
-	ob_start();
-	editBox($msg);
-	$template->set('editbox', ob_get_contents());
-	ob_end_clean();
-
+	$template->set('editbox', editBoxStr($msg));
 	$template->set('subscribeSelected', ($subscribe=='y' || $userData['autosubscribe'] == 'y'));
 	$template->display();
 	exit;
 }
 
 function postReply($msg,$subscribe){
-	global $userData, $tid, $thread, $config, $emaildomain, $wwwdomain, $forums, $usersdb, $cache;
+	global $userData, $tid, $thread, $config, $emaildomain, $wwwdomain, $forums, $usersdb, $cache, $msgs;
 
 
 	$msg = trim($msg);
@@ -148,7 +125,7 @@ function postReply($msg,$subscribe){
 	if(!$spam)
 		reply($msg,true);
 
-	$nmsg = html_sanitizer::sanitize($msg);
+	$nmsg = removeHTML($msg);
 
 	$time = time();
 
@@ -168,6 +145,15 @@ function postReply($msg,$subscribe){
 		exit;
 	}
 
+//spamming across multiple forums
+	$limit = $cache->get("forumsratelimit-$userData[userid]");
+
+	if($limit){
+		$cache->put("forumsratelimit-$userData[userid]", 1, 15); //block for another 15 seconds
+		$msgs->addMsg("You can only post one reply per second");
+		reply($msg,true);
+	}
+
 
 	$res = $forums->db->prepare_query("SELECT threadid FROM forumposts WHERE threadid = # && time >= # && authorid = # && msg = ?", $tid, $time-30, $userData['userid'], $nmsg);
 
@@ -175,7 +161,7 @@ function postReply($msg,$subscribe){
 //		$forums->db->query("UNLOCK TABLES");
 		$forums->db->rollback();
 
-		$cache->put("forumpostdupe-$tid-$userData[userid]", 1, 3); //block for another 3 seconds
+		$cache->put("forumpostdupe-$tid-$userData[userid]", 1, 5); //block for another 3 seconds
 
 		ignore_user_abort($old_user_abort);
 
@@ -199,6 +185,8 @@ function postReply($msg,$subscribe){
 
 	$forums->db->commit();
 
+	scan_string_for_notables($nmsg);
+
 	$usersdb->prepare_query("UPDATE users SET posts = posts+1 WHERE userid = %", $userData['userid']);
 	$cache->incr("forumuserposts-$userData[userid]");
 
@@ -217,6 +205,7 @@ function postReply($msg,$subscribe){
 	$cache->put("forumthread-$tid", $cachethread, 10800);
 
 	$cache->put("forumpostdupe-$tid-$userData[userid]", 1, 3); //block dupes for 3 seconds
+	$cache->put("forumsratelimit-$userData[userid]", 1, 3); //block spam
 
 	ignore_user_abort($old_user_abort);
 

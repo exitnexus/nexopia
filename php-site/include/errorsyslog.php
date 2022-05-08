@@ -1,6 +1,6 @@
 <?
 
-//use debug_backtrace()
+global $errorLogging;
 
 if($errorLogging){
 
@@ -10,8 +10,9 @@ if($errorLogging){
 	function userErrorHandler($errno, $errmsg, $filename, $linenum, $vars) {
 		global $sitebasedir, $userData, $debuginfousers;
 
-//		if($errno == 2048)
-//			return;
+		if(error_reporting() == 0) //likely disabled with the @ operator
+			return;
+
 
 //		$time = gmdate("M d Y H:i:s"); //time added by the syslog server 
 

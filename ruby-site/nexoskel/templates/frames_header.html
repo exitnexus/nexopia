@@ -1,0 +1,234 @@
+<t:docroot>
+	<head>
+		<title>#{$site.config.site_name}</title>
+		<script src="#{$site.static_files_url}/Legacy/javascript/general.js?rev=#{reporev}"></script>
+		<script src="#{$site.static_files_url}/Legacy/javascript/yui.js?rev=#{reporev}"></script>
+		<script src="#{$site.static_files_url}/Gallery/javascript/SWFUpload.js"></script>
+		<link rel="stylesheet" href="#{$site.static_files_url}/Legacy/skins/#{PageRequest.current.session.user.skin}/default.css?rev=#{reporev}"/>
+		<t:loop t:id="PageHandler.modules" t:iter="smodule">
+			<script type="text/javascript" src="#{$site.script_url}/#{smodule}.js"></script>
+		</t:loop>
+		<link rel="stylesheet" href="#{$site.style_url}/#{cmodule}/#{PageRequest.current.session.user.skin}.css"/>
+	</head>
+	<t:handler-include t:path="/header" t:area="Internal"/>
+	<script>
+		<![CDATA[	
+		var timeout=-1,running=false,inactive=0,pageid=273315;
+		function settime(n){timeout=n;}
+		function starttimer(){
+			timeout--;inactive++;running=false;
+			if(timeout > 0 && inactive <= 150){
+				running = true;setTimeout('starttimer()', 1000);
+			}else if(timeout == 0){
+				timeout = -1;
+				top.head.banner.location.replace('/bannerview.php?size=2&pageid=' + pageid);
+			}
+		}
+		function updateStats(friends,users,guests,msgs,replies,comments,npageid){
+			if(friends>=0)
+				putinnerHTML('friends',friends);
+			if(users>=0)
+				putinnerHTML('users',users);
+			if(guests>=0)
+				putinnerHTML('guests',guests);
+			if(msgs>=0)
+				putinnerHTML('msgs',msgs);
+			if(replies!=-1)
+				putinnerHTML('replies',replies);
+			if(comments>=0)
+				putinnerHTML('comments',comments);
+			pageid=npageid;inactive = 0;
+			if(!running)
+				starttimer();
+		}
+		]]>
+	</script>
+	
+	
+	////////////////////
+	
+	function createHeader($size, $bodyname, $pageid){
+		global $skinloc, $skindata, $config, $siteStats, $userData, $banner, $menus, $cache, $weblog, $reporev;
+	
+		$bodyname = preg_replace("/[^_0-9a-zA-Z]+/", "", $bodyname);
+	
+		$menus = $cache->hdget("menus", 0, 'makeMenus');
+	
+		updateStats();
+	
+		closeAllDBs();
+	
+		echo "<html><head><title>$config[title]</title><script src=$config[jsloc]general.js?rev=$reporev></script>";
+		echo "<link rel=stylesheet href='$skinloc" . "default.css?rev=$reporev'>";
+	
+		echo "</head>\n";
+		echo "<body" . ($skindata['backgroundpic'] ? " background='$skinloc$skindata[backgroundpic]' " : "" ) . ">\n";
+	
+		echo "<table id=sitebody cellspacing=0 cellpadding=0 width=$skindata[skinWidth]" . ($skindata['skinWidth'] == '100%' ? "" : " align=center") . ">";
+	
+	
+		echo "<tr>";
+	
+	
+			if($size == 90)
+				$header = $skindata['headerbig'];
+			else
+				$header = ($userData['limitads'] ? $skindata['headerplus'] : $skindata['headersmall']);
+	
+	
+	
+			echo "<td bgcolor=#000000 background='$skinloc$header' align=right height=$size valign=top>";
+	
+				if(!$userData['limitads']){
+					echo "<iframe src='/bannerview.php?size=" . ($size == 90 ? BANNER_LEADERBOARD : BANNER_BANNER) . "&pageid=$pageid' marginHeight=0 marginWidth=0 frameborder=0 name=banner scrolling=no ";
+					echo ($size == 90 ? "width=728 height=90" : "width=468 height=60");
+					echo " allowtransparency=true background-color=\"transparent\"></iframe>";
+				}
+	
+			echo "</td>";
+	
+	
+		echo "</tr>\n";
+	
+		echo "<tr>";
+			if(substr($skindata['menupic'],0,1)=="#")
+				echo "<td height=$skindata[menuheight] bgcolor=$skindata[menupic]>";
+			else
+				echo "<td height=$skindata[menuheight] background='$skinloc$skindata[menupic]'>";
+	
+	
+	//start menu
+				echo "<table cellspacing=0 cellpadding=0 width=100%><tr>";
+				if(!empty($skindata['menuends']))
+					echo "<td class=menu align=left width=1><img src='$skinloc" . "left$skindata[menuends]'></td>";
+	
+				echo "<td class=menu align=left>&nbsp;&nbsp;&nbsp;&nbsp;";
+	
+	
+				$menu = array();
+				foreach($menus['main']->getMenu() as $item)
+					$menu[] = "<a href='$item[addr]'" . ($item['target']=='' ? " target='$bodyname'" : " target='$item[target]'" ) . ">$item[name]</a>";
+				echo implode($skindata['menudivider'],$menu);
+	
+				echo "</td><td class=menu align=right>";
+				$username = getUserName($userData['userid']);
+				echo "Online: ";
+				if($userData['halfLoggedIn'])
+					echo "<a href='/users/$username/friends' target='$bodyname'>Friends <span id=friends>$userData[friendsonline]</span></a>" . $skindata['menudivider'];
+				echo "<a href='/profile.php?requestType=onlineByPrefs' target='$bodyname'>Users <span id=users>$siteStats[onlineusers]</span></a>" . $skindata['menudivider'] . "Guests <span id=guests>$siteStats[onlineguests]</span> &nbsp;";
+	
+				echo "</td>";
+				if(!empty($skindata['menuends']))
+					echo "<td class=menu align=right width=1><img src='$skinloc" . "right$skindata[menuends]'></td>";
+				echo "</tr></table>";
+	//end menu
+			echo "</td>";
+		echo "</tr>\n";
+	
+	//personal menu
+		if($userData['halfLoggedIn']){
+			if($skindata['menuspacersize'] > 0){
+				if(substr($skindata['menuspacer'],0,1)=="#")
+					echo "<tr><td height=$skindata[menuspacersize] bgcolor=$skindata[menuspacer]></td></tr>";
+				else
+					echo "<tr><td height=$skindata[menuspacersize] background='$skinloc$skindata[menuspacer]'></td></tr>";
+			}
+	
+			echo "<tr>";
+				if(substr($skindata['menupic'],0,1)=="#")
+					echo "<td height=$skindata[menuheight] bgcolor=$skindata[menupic]>";
+				else
+					echo "<td height=$skindata[menuheight] background='$skinloc$skindata[menupic]'>";
+	
+	
+		//start menu
+					echo "<table cellspacing=0 cellpadding=0 width=100%><tr>";
+					if(!empty($skindata['menuends']))
+						echo "<td class=menu align=left width=1><img src='$skinloc" . "left$skindata[menuends]'></td>";
+					echo "<td class=menu align=left>&nbsp;&nbsp;&nbsp;&nbsp;";
+	
+					$menu = array();
+					foreach($menus['personal']->getMenu() as $item)
+						$menu[] = "<a href='$item[addr]'" . ($item['target']=='' ? " target='$bodyname'" : " target='$item[target]'" ) . ">$item[name]</a>";
+					echo implode($skindata['menudivider'],$menu);
+	
+					echo "</td><td class=menu align=right>";
+	
+					if ($userData['loggedIn'])
+						echo "<a href='/messages.php' target='$bodyname'>Messages</a><a href=/messages.php?action=viewnew target='$bodyname'> <span id=msgs>$userData[newmsgs]</span> New</a>" . $skindata['menudivider']; //&k=" . makekey('newmsgs') . "
+	
+					$userblog = new userblog($weblog, $userData['userid']);
+					$newreplies = $userblog->getNewReplyCountTotal();
+					$ending = ($newreplies==1? 'y' : 'ies');
+					echo "<a href='/weblog.php?uid=$userData[userid]' target='$bodyname'>Blog</a> <a href='/weblog.php?uid=$userData[userid]&newreplies=1' target='$bodyname'>";
+					$replies = ($newreplies ? "$newreplies Repl$ending" : '');
+					echo "<span id=replies>$replies</span></a>";
+	
+					if($userData['loggedIn'] && $userData['enablecomments'] == 'y')
+						echo $skindata['menudivider'] . "<a href='/usercomments.php' target='$bodyname'>Comments <span id=comments>$userData[newcomments]</span></a>";
+					echo " &nbsp;";
+	
+					echo "</td>";
+					if(!empty($skindata['menuends']))
+						echo "<td class=menu align=right width=1><img src='$skinloc" . "right$skindata[menuends]'></td>";
+					echo "</tr></table>";
+		//end menu
+				echo "</td>";
+			echo "</tr>\n";
+		}
+	
+		if($skindata['menuguttersize'] > 0){
+			if(substr($skindata['menugutter'],0,1)=="#")
+				echo "<tr><td height=$skindata[menuguttersize] bgcolor=$skindata[menugutter]></td></tr>";
+			else
+				echo "<tr><td height=$skindata[menuguttersize] background='$skinloc$skindata[menugutter]'></td></tr>";
+		}
+	
+		echo "</table>";
+	
+		echo "<script>";
+		echo "var timeout=-1,";
+		echo "running=false,";
+		echo "inactive=0,";
+		echo "pageid=" . $pageid . ";";
+		echo "function settime(n){timeout=n;}";
+		echo "function starttimer(){";
+			echo "timeout--;";
+			echo "inactive++;";
+			echo "running=false;";
+	
+			echo "if(timeout > 0 && inactive <= 150){";
+				echo "running = true;";
+				echo "setTimeout('starttimer()', 1000);";
+			echo "}else if(timeout == 0){";
+				echo "timeout = -1;";
+				echo "top.head.banner.location.replace('/bannerview.php?size=" . ($size == 90 ? BANNER_LEADERBOARD : BANNER_BANNER) . "&pageid=' + pageid);";
+	//			echo "top.head.banner.location.href='/bannerview.php?size=" . ($size == 90 ? BANNER_LEADERBOARD : BANNER_BANNER) . "&pageid=' + pageid;";
+			echo "}";
+		echo "}";
+	
+		echo "function updateStats(friends,users,guests,msgs,replies,comments,npageid){";
+			echo "if(friends>=0)putinnerHTML('friends',friends);";
+			echo "if(users>=0)putinnerHTML('users',users);";
+			echo "if(guests>=0)putinnerHTML('guests',guests);";
+			echo "if(msgs>=0)putinnerHTML('msgs',msgs);";
+			echo "if(replies!=-1)putinnerHTML('replies',replies);";
+			echo "if(comments>=0)putinnerHTML('comments',comments);";
+	
+			echo "pageid=npageid;";
+	
+			echo "inactive = 0;";
+			echo "if(!running)";
+				echo "starttimer();";
+		echo "}";
+	
+		echo "</script>";
+	
+		echo "</body>";
+		echo "</html>";
+	//end personal menu
+	}
+	
+	
+	
+</t:docroot>

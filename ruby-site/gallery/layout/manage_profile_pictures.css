@@ -1,0 +1,34 @@
+#manage_profile_pictures {
+	& ul {
+		padding: 0px;
+		margin: 0px 0px 0px 1px;
+		list-style: none;
+		& li {
+			float: left;
+			margin: 2px;
+		}
+		& .profile_pic_frame {
+			background-color: $primary_background_color;
+			height: 113px;
+			width: 106px;
+			border: 2px solid $primary_background_color;
+			overflow: hidden;
+			& .description {
+				height: 20px;
+				margin: 2px;
+				text-align: left;
+			}
+			& .profile_pic {
+				background-repeat: no-repeat;
+				background-position: center center;
+				cursor: move;
+				&.empty_image {
+					cursor: default;
+				}
+				width:100px;
+				margin: 3px;
+				height:83px;
+			}
+		}
+	}
+}

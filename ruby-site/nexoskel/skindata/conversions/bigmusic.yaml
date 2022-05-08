@@ -1,0 +1,182 @@
+a_hover_color: '#598241'
+
+a_link_color: '#d1d3d4'
+
+a_link_text_decoration: 'none'
+
+a_link_font_family: 'arial'
+
+a_link_font_size: '8pt'
+
+a_body_hover_color: '#ffffff'
+
+a_body_link_color: '#ff6666'
+
+a_header_hover_color: '#ffffff'
+
+a_header_link_color: '#ff6666'
+
+a_header_link_text_decoration: 'none'
+
+a_msg_hover_color: '#000'
+
+a_msg_link_color: '#fff'
+
+a_msg_link_text_decoration: 'none'
+
+a_msg_link_font_family: 'arial'
+
+a_msg_link_font_size: '8pt'
+
+body_background: '#f7f2dc'
+
+body_font_family: 'arial'
+
+body_font_size: '8pt'
+
+body_margin: '0'
+
+select_font_family: 'arial'
+
+select_font_size: '8pt'
+
+select_background: '#ffcccc'
+
+select_color: '#cc6666'
+
+select_border: '1pxsolid#cc6666'
+
+select_margin: '1000'
+
+select_font_family: 'arial'
+
+select_font_size: '8pt'
+
+select_background: '#ffcccc'
+
+select_color: '#cc6666'
+
+select_border: '1pxsolid#cc6666'
+
+td_body_background_color: '#ffcccc'
+
+td_body_color: '#cc6666'
+
+td_body_font_family: 'arial'
+
+td_body_font_size: '8pt'
+
+td_body2_background_color: '#edbdbd'
+
+td_body2_color: '#cc6666'
+
+td_body2_font_family: 'arial'
+
+td_body2_font_size: '8pt'
+
+td_footer_color: '#d4d6d7'
+
+td_footer_text_decoration: 'none'
+
+td_footer_font: '6ptarial'
+
+td_header_background_color: '#f5ebbc'
+
+td_header_color: '#cc6666'
+
+td_header_font_family: 'arial'
+
+td_header_font_size: '8pt'
+
+td_headerfront_color: '#336666'
+
+td_headerfront_background: '#fffurl(httpstatic.nexopia.comskinsbigmusicfronthead.png)'
+
+td_headerfront_height: '30px'
+
+td_headerfront_padding_bottom: '8px'
+
+td_menu_color: '#cc6666'
+
+td_menu_font_family: 'arial'
+
+td_menu_font_size: '9pt'
+
+td_menu_a_hover_color: '#ffffff'
+
+td_menu_a_link_color: '#cc6666'
+
+td_menu_a_link_text_decoration: 'none'
+
+td_menu_a_link_font_family: 'arial'
+
+td_menu_a_link_font_size: '9pt'
+
+td_msg_background_color: '#ff6666'
+
+td_msg_color: '#fff'
+
+td_msg_font_family: 'arial'
+
+td_msg_font_size: '8pt'
+
+td_offline_color: '#000'
+
+td_offline_font_family: 'arial'
+
+td_offline_font_size: '16pt'
+
+td_offline_font_weight: 'bold'
+
+td_online_color: '#fff'
+
+td_online_font_family: 'arial'
+
+td_online_font_size: '16pt'
+
+td_online_font_weight: 'bold'
+
+td_side_background_color: '#ffcccc'
+
+td_side_color: '#cc6666'
+
+td_side_font_family: 'arial'
+
+td_side_font_size: '8pt'
+
+td_side_a_hover_color: '#ffffff'
+
+td_side_a_link_color: '#ff6666'
+
+td_side_a_link_text_decoration: 'none'
+
+td_sideheader_color: '#336666'
+
+td_sideheader_font_family: 'arial'
+
+td_sideheader_font_size: '8pt'
+
+td_sideheader_padding_bottom: '3px'
+
+textarea_font_family: 'arial'
+
+textarea_font_size: '8pt'
+
+textarea_background: '#ffcccc'
+
+textarea_color: '#cc6666'
+
+textarea_border: '1pxsolid#cc6666'
+
+textarea_margin: '1000'
+
+textarea_font_family: 'arial'
+
+textarea_font_size: '8pt'
+
+textarea_background: '#ffcccc'
+
+textarea_color: '#cc6666'
+
+textarea_border: '1pxsolid#cc6666'
+

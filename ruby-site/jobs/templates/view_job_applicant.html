@@ -1,0 +1,161 @@
+<div id="doc2" class="yui-t7 job_admin" t:docid="view_applicant">
+	<div id="hd">
+		Applicant Profile
+	</div>
+	<div id="bd">
+		<div class="yui-g">
+			{app.name}
+		</div>
+		<t:template-include t:module="jobs" t:name="applicant_details"></t:template-include>
+		<t:template-include t:module="jobs" t:name="applicant_assets_view"></t:template-include>
+<!--	
+	<div class="yui-g">
+			<div class="yui-u first">
+				Notes <a href="#" id="app_add_note_link">Add Note</a>
+				<t:if t:id="!app.notes_list().empty?()">
+					<ul id="app_note_list">
+						<t:iter t:id="app.notes_list()" t:iter="app_note" t:index="note_index">
+							<li id="app_note_{note_index}">
+								{app_note.note}
+								<span class="note_info">
+									<span class="note_author">
+										{app_note.author}
+									</span>
+									<span class="note_date">
+										{app_note.date}
+									</span>
+								</span>
+							</li>
+						</t:iter>
+					</ul>
+				</t:if>
+				<div id="add_note">
+					<form name="new_app_note" id="new_app_note" method="post" action="/jobs/administration/applicant/{app.appid}/note/add/">
+						<div>
+							Add Note
+						</div>
+						<textarea rows="2" cols="15" name="applicant_note"></textarea>
+						<div>
+							<input type="button" name="applicant_note_submit" id="app_note_save" value="Save"></input>
+							<input type="button" name="applicant_note_cancel" id="app_note_cancel" value="Cancel"></input>
+						</div>
+					</form>
+				</div>
+			</div>
+			<div class="yui-u">
+				Interviews <a href="#" id="app_add_interview">Schedule an Interview</a>
+				<ul>
+					<t:iter t:id="app.interview_list" t:iter="interview">
+						<li>
+							<a t:id="interview"></a>
+						</li>
+					</t:iter>
+				</ul>
+				<t:varsub t:old="app.interview_target_list(job_id)" t:new="interview_targets"></t:varsub>
+				<t:varsub t:old="interview_targets.dep_list" t:new="interview_dep_target_list"></t:varsub>
+				<t:varsub t:old="interview_targets.job_list" t:new="interview_job_target_list"></t:varsub>
+				<div id="app_interview_container">
+					<form name="applicant_interview" method="post" action="/jobs/administration/{app.appid}/interview/new/">
+						<t:if t:id="job_id">
+							<input type="hidden" name="job_id" value="{job_id}"></input>
+						</t:if>
+						<t:if t:id="dep_id">
+							<input type="hidden" name="dep_id" value="{dep_id}"></input>
+						</t:if>
+						<t:if t:id="dep_id.nil?() && job_id.nil?()">
+							<select name="interview_target" id="interview_target">
+								<t:iter t:id="interview_job_target_list" t:iter="target">
+									<option value="{target.jobid}">{target.title}</option>
+								</t:iter>
+								<t:iter t:id="interview_dep_target_list" t:iter="target">
+									<option value="{target.depid}">{target.name}</option>
+								</t:iter>
+							</select>
+						</t:if>
+						<input type="text" name="interview_date" id="interview_date"></input>
+						<input type="text" name="interview_time" id="interview_time"></input>
+						<input type="button" name="submit_interview" id="app_schedule_interview" value="Schedule"></input>
+						<input type="button" name="cancel_interview" id="app_cancel_new_interview" value="Cancel"></input>
+					</form>
+				</div>
+			</div>
+		</div>
+-->
+<!--
+		<div class="yui-g">
+			<div id="applicant_status">
+				Applicant Status <a href="#" id="show_app_update_status">Update Status</a>
+				<div>
+					{app.availability_status.name} <br/>
+					<t:if t:id="app.availabilitynote">
+						<span>{app.availabilitynote}</span>
+					</t:if>
+				</div>
+			</div>
+			<div id="update_applicant_status">
+				Update Applicant Status
+				<form name="applicant_status" id="applicant_status" method="post" action="/jobs/administration/{app.appid}/status/update">
+					<select name="app_status" id="app_status">
+						
+						<t:iter t:id="status_list" t:iter="status">
+							<option value="{status.availid}" cond:selected="{status.selected?(app.availability)}">{status.name}</option>
+						</t:iter>
+						
+					</select>
+					<input type="text" name="status_details" id="status_details"></input>
+					<div>
+						<input type="button" name="save_status" value="Save" onclick="Jobs.save_app_status()"></input>
+						<input type="button" name="cancel_status" id="app_cancel_status" value="Cancel"></input>
+					</div>
+				</form>
+			</div>
+		</div>
+-->
+<!--
+		<t:if t:id="job_id">
+			<t:varsub t:new="old_job_applications" t:old="app.previous_applications(job_id)"></t:varsub>
+			<t:if t:id="!old_job_applications.empty?()">
+				<div class="yui-g">
+					Other Applications
+					<table>
+						<thead>
+							<tr>
+								<th>
+									Job Title
+								</th>
+								<th>
+									Date
+								</th>
+								<th>
+									Interviewed
+								</th>
+								<th>
+									Interview Notes
+								</th>
+							</tr>
+						</thead>
+						<tbody>
+							<t:iter t:id="old_job_applications" t:iter="old_app">
+								<tr>
+									<td>
+										{old_app.job.name}
+									</td>
+									<td>
+										{old_app.application_date()}
+									</td>
+									<td>
+										{old_app.interview?()}
+									</td>
+									<td>
+										{old_app.interview_notes}
+									</td>
+								</tr>
+							</t:iter>
+						</tbody>
+					</table>
+				</div>
+			</t:if>
+		</t:if>
+-->
+	</div>
+</div>

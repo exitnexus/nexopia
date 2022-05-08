@@ -3,12 +3,11 @@
 	$forceserver = true;
 
 	require_once("include/general.lib.php");
-
+	updateStats();
 
 	$numposts = $forums->db->nextAuto("forumposts");
 
-	$res = $usersdb->query("SELECT count(*) FROM users");
-	$numusers = $res->fetchfield();
+	$numusers = $siteStats['userstotal'];
 
 	echo "Users: $numusers<br>\nPosts: $numposts";
 

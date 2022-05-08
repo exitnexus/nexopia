@@ -1,0 +1,17 @@
+<div>
+	<span class="nav_title">Registered Artists</span>
+	<div id="band_register">
+		<t:if t:id="user_band">
+			<a t:id="user_band" t:linktype="user_edit"></a>
+		</t:if>
+		<t:if t:id="user_band == nil">
+			<a href="/music/bandentry/new/">Register</a>
+		</t:if>
+	</div>
+	<t:iter t:id="recent_artists" t:iter="artist">
+		<t:template-include module="streams" name="music_band_entry_micro"></t:template-include>
+	</t:iter>
+	<div>
+		<a href="/music/bandentries/">View All</a>
+	</div>
+</div>

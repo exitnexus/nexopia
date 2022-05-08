@@ -1,0 +1,31 @@
+<div class="browser">
+	<div class="sort_bar" t:id="!hide_sort">
+		View:&#160;
+		<t:var t:name="'onchange_handler'" t:val="'StartValidation.validateLocation()'" />
+		
+		<t:if t:id="selected_sort != 'recent'"><a href="/videos{sort_parameters}&sort=recent">Recent</a></t:if>
+		<t:if t:id="selected_sort == 'recent'">Recent</t:if>&#160;|&#160;
+		<t:if t:id="selected_sort != 'random'"><a href="/videos{sort_parameters}&sort=random">Random</a></t:if>
+		<t:if t:id="selected_sort == 'random'">Random</t:if>&#160;|&#160;	
+		<t:if t:id="selected_sort != 'popular'"><a href="/videos{sort_parameters}&sort=popular">Popular</a></t:if>
+		<t:if t:id="selected_sort == 'popular'">Popular</t:if>&#160;|&#160;
+		<t:if t:id="selected_sort != 'best'"><a href="/videos{sort_parameters}&sort=best">Best</a></t:if>
+		<t:if t:id="selected_sort == 'best'">Best</t:if>&#160;|&#160;
+		<t:if t:id="selected_sort != 'worst'"><a href="/videos{sort_parameters}&sort=worst">Worst</a></t:if>
+		<t:if t:id="selected_sort == 'worst'">Worst</t:if>
+		<br/><br/>
+	</div>
+	
+	<div t:id="hide_sort" class="clearit"></div>
+	
+	<div class="thumbnail_grid">
+		<call:page t:url="'/videos' + page_parameters" t:id="videos" t:iter="video">
+			<call:yield>
+				<t:template-include name="browser_thumbnail" module="video"/>
+			</call:yield>
+		</call:page>
+	</div>
+	
+	<div class="clearit"><!-- Comment to fix IE empty DIV problem. --></div>
+	<form><input type="hidden" name="parameters" value="{page_parameters}"/></form>
+</div>

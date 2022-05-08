@@ -1,0 +1,8 @@
+<div id="gallery_block_edit">
+	Select which gallery to display in this profile block:&#160;
+	<select name="gallery_id">	
+		<t:loop t:id="PageRequest.current.user.galleries" t:iter="gallery">
+			<option value="#{gallery.id}" cond:selected="gallery.id == selected_gallery_id">#{gallery.name}</option>
+		</t:loop>
+	</select>
+</div>

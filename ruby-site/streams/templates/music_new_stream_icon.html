@@ -1,0 +1,45 @@
+<div id="music_doc">
+	<div>
+		<form name="new_stream_icon" id="new_stream_icon" method="post" action="/music/administration/streamicon/{submit_location}/submit/">
+			<table>
+				<tr>
+					<td>
+						Thumbnail location
+					</td>
+					<td>
+						<input type="text" name="stream_icon_thumb" id="stream_icon_thumb" value="{stream_icon.thumbnail}"></input>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						Image location
+					</td>
+					<td>
+						<input type="text" name="stream_icon_image" id="stream_icon_image" value="{stream_icon.image}"></input>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						Associate with types
+					</td>
+					<td>
+						<table>
+							<t:iter t:id="types_list" t:iter="type_obj">
+								<tr>
+									<td>
+										<input type="checkbox" name="icon_type_{type_obj.type_id}" id="icon_type_{type_obj.type_id}" cond:checked="type_obj.associated">{type_obj.type_name}</input>
+									</td>
+								</tr>
+							</t:iter>
+						</table>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="2">
+						<input type="submit" name="stream_icon_submit" id="stream_icon_submit" value="Save"></input>
+					</td>
+				</tr>
+			</table>
+		</form>
+	</div>
+</div>

@@ -18,16 +18,14 @@
 		$reason2 = parseHTML($reason2);
 		$reason2 = nl2br($reason2);
 
-		$db->prepare_query("INSERT INTO abuse SET itemid = #, reason = ?, userid = #, type = ?, time = #", $id, $reason2, $userData['userid'], $type, time());
-
-		$mods->newSplitItem($type, array($uid => $id));
 
 		switch($type){
 			case MOD_USERABUSE:
-				$abuselog->addAbuse($id, ABUSE_ACTION_USER_REPORT, $reasonid, "User Reported", $reason);
+				$abuselogid = $abuselog->addAbuse($id, ABUSE_ACTION_USER_REPORT, $reasonid, "User Reported", $reason);
 				break;
 
 			case MOD_FORUMPOST:
+				$abuselogid = 0;
 
 			//don't flag if it's a sig or something, but currently no distinction, so disable for now.
 
@@ -36,7 +34,16 @@
 
 				$forums->flagThread($tid);
 */				break;
+
+			default:
+				$abuselogid = 0;
+				break;
+
 		}
+
+		$db->prepare_query("INSERT INTO abuse SET itemid = #, reason = ?, userid = #, type = ?, time = #, abuselogid = #", $id, $reason2, $userData['userid'], $type, time(), $abuselogid);
+
+		$mods->newSplitItem($type, array($uid => $id));
 
 		incHeader();
 		echo "Thanks for the report.";
@@ -60,6 +67,11 @@
 		case MOD_FORUMPOST:
 			$reportReason = 0;
 			$typeText = 'forumpost';
+			break;
+
+		case MOD_VIDEO:
+			$reportReason = 0;
+			$typeText = 'video';
 			break;
 
 		case MOD_USERABUSE:

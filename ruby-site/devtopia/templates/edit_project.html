@@ -1,0 +1,18 @@
+<div id="project_edit_div">
+	<form id="project_edit_form" class="edit_form">
+			<b>Name:</b>&#160;
+			<input type="text" name="project-name" id="project-name" value="{record.name}"/><br/><br/>
+			
+			<b>Description:</b><br/>
+			<textarea name="project-description" id="project-description">{record.description}</textarea><br/><br/>
+		
+			<b>Sprints:</b><br/>
+			<t:handler-include path="/projectmanager/related_object_editor" area="Self">
+				<t:var t:name="'records'" t:val="record.sprints" />
+				<t:var t:name="'parent_record'" t:val="record" />
+				<t:var t:name="'record_type'" t:val="'Devtopia::Sprint'" />
+			</t:handler-include>
+		
+			<t:template-include name="buttons" module="devtopia" />
+	</form>
+</div>

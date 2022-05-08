@@ -1,0 +1,35 @@
+<div id="index-page" xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+
+<t:define t:name="trans_div" t:inner="inner" t:attrs="class1,style1">
+		<div class="{class1} test_main" style="{style1}">
+			<div class="" style="height:100%; visibility: visible;">
+				<div class="test_bd" style="background: transparent !important;">
+					inner
+				</div>
+				<div class="{class1} test_ft" style="{style1}">
+				</div>
+			</div>
+		</div>
+</t:define>
+
+<script> function jump(i){ location.href='#pic' + i;} </script>
+<t:trans_div class1="" style1="background-color: #77AA33; padding: 1em;"> 
+	Number of items to moderate: {items.length}<br/>
+	<form name="moderatequeue" action="{action}" method="POST">
+		<div t:id="items" t:iter="(id,item)" t:index="index" style="margin: 1em; background-color: #77AA33; width: 95%">
+			<a name="pic{index}"></a>
+			<div style="float: left; width:90%">
+						#{item.to_html}
+			</div>
+			<div style="float: right;">
+				<input type="radio" name="{id}" value="Yes" onFocus="this.checked=true;setTimeout('jump({(index+1)})',50);"/> Yes<br/>
+				<input type="radio" name="{id}" value="No" onFocus="this.checked=true;setTimeout('jump({(index+1)})',50);"/> No<br/>
+			</div>
+		<br style="clear: both;"/>
+		</div>
+		<input class="body" type="checkbox" id="stopModding" name="stopModding" value="y" /> <label for="stopModding">Do not show more after voting</label><br /><br />
+		<input class="body" type="submit" style="width:200px" name="vote" value="Vote"/>
+	</form>
+</t:trans_div>
+
+</div>

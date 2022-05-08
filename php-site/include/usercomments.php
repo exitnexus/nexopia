@@ -33,8 +33,8 @@ tables
 
 	}
 
-	function postUserComment($uid, $msg, $fromid, $parse_bbcode){
-		global $usersdb, $config, $cache, $msgs, $userData;
+	function postUserComment($uid, $msg, $fromid){
+		global $usersdb, $config, $cache, $msgs, $userData, $archive;
 
 		$msg = trim($msg);
 
@@ -43,28 +43,15 @@ tables
 		if(!$spam)
 			return false;
 	
-		$nmsg = html_sanitizer::sanitize($msg);
+		$nmsg = removeHTML($msg);
 		
-		if($parse_bbcode)
-		{
-			$nmsg2 = parseHTML($nmsg);
-			$nmsg3 = smilies($nmsg2);
-			$nmsg3 = wrap($nmsg3);
-			$nmsg3 = nl2br($nmsg3);
-		}
-		else
-			$nmsg3 = $nmsg;
+		$nmsg2 = parseHTML($nmsg);
+		$nmsg3 = smilies($nmsg2);
+		$nmsg3 = wrap($nmsg3);
+		$nmsg3 = nl2br($nmsg3);
 
 
 		$time = time();
-
-
-		$dupe = $cache->get("usercommentdupe-$uid-$userData[userid]"); //should block fast dupes, like bots, use a short time since it blocks ALL posts by that user.
-
-		if($dupe){
-			$msgs->addMsg("Double post prevention");
-			return false;
-		}
 
 
 		$this->db->begin();
@@ -80,19 +67,22 @@ tables
 
 		$id = $this->db->getSeqID($uid, DB_AREA_USER_COMMENT);
 
-		$this->db->prepare_query("INSERT INTO usercomments SET userid = %, id = #, authorid = #, time = #,  parse_bbcode = ?, nmsg = ?", $uid, $id, $fromid, $time, $parse_bbcode, $nmsg3);	
+		$this->db->prepare_query("INSERT INTO usercomments SET userid = %, id = #, authorid = #, time = #, nmsg = ?", $uid, $id, $fromid, $time, $nmsg3);	
 		
 		$this->db->prepare_query("UPDATE users SET newcomments = newcomments + 1 WHERE userid = %", $uid);
 
-		$this->db->prepare_query("INSERT INTO usercommentsarchive SET userid = %, id = #, authorid = #, time = #, msg = ?",
-										$uid, $id, $fromid, $time, $nmsg);
+//		$this->db->prepare_query("INSERT INTO usercommentsarchive SET userid = %, id = #, authorid = #, time = #, msg = ?",
+//										$uid, $id, $fromid, $time, $nmsg);
+
+		$archive->save($fromid, $id, ARCHIVE_COMMENT, ARCHIVE_VISIBILITY_USER, $uid, 0, '', $nmsg);
+
 
 		$this->db->commit();
 
+		enqueue("Comment", "create", $fromid, array($uid, $id));	
+
 		$cache->remove("comments5-$uid");
 		$cache->incr("newcomments-$uid");
-
-		$cache->put("usercommentdupe-$uid-$userData[userid]", 1, 3); //block dupes for 3 seconds
 
 /*
 		$cache->put("comment-$insertid", array(	'id' => $insertid,

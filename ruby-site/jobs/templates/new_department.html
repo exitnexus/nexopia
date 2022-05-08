@@ -1,0 +1,27 @@
+<form name="new_department" method="post" action="/jobs/administration/department/{submit_location}/submit/">
+	<table>
+		<tbody>
+			<tr>
+				<td>
+					Department Name
+				</td>
+				<td>
+					<input type="text" name="dep_name" id="dep_name" value="{dep.name}"></input>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Department Description
+				</td>
+				<td>
+					<textarea rows="30" cols="50" name="dep_desc" id="dep_desc">{dep.description}</textarea>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2">
+					<input type="submit" name="dep_submit" id="dep_submit"></input>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+</form>

@@ -1,0 +1,21 @@
+#sort_block_advanced {
+	& select {
+		width: 116px;
+	}
+
+	& #agemin, #agemax {
+		width: 35px;
+		padding-left: 3px;
+		margin-left: 5px;
+		margin-right: 5px;
+	}
+}
+
+#sort_block_simple {
+	& #value {
+		width: 80px;
+	}
+	& #submit {
+		width: 35px;
+	}
+}

@@ -1,0 +1,35 @@
+.control_bar {
+	& .paging_buttons {
+		float: right;
+		& a {
+			color: $link_color;
+			&:hover {
+				color: $link_accent_color;
+			}
+			& img {
+				border: 0px;
+			}
+			margin: 5px;
+		}
+	}
+	& .page_list {
+		text-align: center;
+		margin:auto;
+		& img {
+			display: inline;
+			margin: 2px;
+		}
+	}
+}
+
+.strike_zone {
+	background-position: center center;
+	background-repeat: no-repeat;
+	background-color: $secondary_background_color;
+	&.left {
+		background-image: url("/static/1200077378/files/Core/images/arrow_left.gif");
+	}
+	&.right {
+		background-image: url("/static/1200077378/files/Core/images/arrow_right.gif");
+	}
+}

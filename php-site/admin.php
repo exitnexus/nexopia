@@ -1,5 +1,4 @@
 <?
-	$enableCompression = false;
 
 	$login=1;
 
@@ -11,10 +10,7 @@
 	}
 
 	switch($action){
-/*		case "Set Top 10":
-			setTopLists();
-			$mods->adminlog('settoplists',"Set Top lists");
-			break;
+/*
 		case "Fix users gallery":
 			fixUserGallery(getUserId($uid));
 			$mods->adminlog('fix gallery',"Fix gallery for $uid");
@@ -23,8 +19,8 @@
 
 		case "Transfer Mod":
 			if($mods->isAdmin($userData['userid'],'editmods')){
-				$from = getUserID($_POST['from']);
-				$to = getUserID($_POST['to']);
+				$from = getUserID(getPOSTval('from'));
+				$to = getUserID(getPOSTval('to'));
 				if(empty($from) || empty($to))
 					break;
 				$mods->moveMod($from, $to);
@@ -34,7 +30,7 @@
 
 		case "Remove Friends":
 			if($mods->isAdmin($userData['userid'],'listusers')){
-				$uid = getUserId($_POST['uid']);
+				$uid = getUserId(getPOSTval('uid'));
 
 				if(!$uid)
 					break;

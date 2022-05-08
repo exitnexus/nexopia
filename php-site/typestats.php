@@ -1,5 +1,6 @@
 <?
 $login = 1;
+$accepttype = false;
 require_once('include/general.lib.php');
 require_once('include/chartClasses.php');
 	
@@ -125,6 +126,10 @@ foreach ($sizes as $size=>$sizename) {
 	$pageclicks[$size] = array();
 }
 
+	$locationNames = new category( $configdb, "locs");
+	$interestNames = new category( $configdb, "interests");
+
+
 $res = $banner->db->prepare_query("SELECT * FROM bannertypestats WHERE  time >= # && time <= #", $unixstartdate, $unixenddate);
 while($line = $res->fetchrow()){
 	$viewstat = unserialize(gzuncompress($line['viewsdump']));
@@ -146,7 +151,6 @@ while($line = $res->fetchrow()){
 		continue;
 	}
 	//generate location summary data
-	$locationNames = new category( $configdb, "locs");
 	foreach ($viewstat->loc as $location => $count) {
 		if (!isset($validlocations[$location])) {
 			if (!($data['locdefault']=="ALL_EXCEPT")) {
@@ -228,7 +232,6 @@ while($line = $res->fetchrow()){
 	}
 	
 	//generate interests summary data
-	$interestNames = new category( $configdb, "interests");
 	foreach ($viewstat->interests as $interest => $count) {
 		if ($interest && !isset($validinterests[$interest])) {
 			continue;
@@ -537,6 +540,11 @@ switch ($action) {
 	default:
 	extract($data);
 	$template = new template('admin/adminbanners/typestats');
+	
+	$template->set('jsloc', "$config[jsloc]calendar.js");
+	$template->set('cssloc', "$config[jsloc]calendar.css");
+	$template->set('calimgloc', "$config[imageloc]calendar/");
+	
 	$template->set('sexes', $sexes);
 	$template->set('startdate', $startdate);
 	$template->set('enddate', $enddate);
@@ -601,6 +609,13 @@ switch ($action) {
 	$template->set('all', $all);
 	$template->set('campaignid', $campaignid);
 	$template->setMultiple($data);
+	$menu_template = new template('admin/adminbanners/menu');
+	$menu_template->set('size', $sizeSelect);
+	$menu_template->set('type', $type);
+	$menu_template->set('clientid', $clientid);
+	$menu_template->set('all', $all);
+	$menu_template->set('campaignid', $campaignid);
+	$template->set('menu', $menu_template->toString());
 	$template->display();
 }
 

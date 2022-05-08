@@ -1,0 +1,88 @@
+table {text-align: left;}
+tr {vertical-align: top;}
+
+BODY 		{	SCROLLBAR-FACE-COLOR: black; FONT-SIZE: 8pt; MARGIN: 0px; SCROLLBAR-HIGHLIGHT-COLOR: #cccccc; SCROLLBAR-SHADOW-COLOR: #cccccc; SCROLLBAR-3DLIGHT-COLOR: #cccccc; SCROLLBAR-ARROW-COLOR: #cccccc; SCROLLBAR-TRACK-COLOR: #cccccc; FONT-FAMILY: arial, sans-serif; SCROLLBAR-DARKSHADOW-COLOR: #cccccc; BACKGROUND-COLOR: #6E86B4;}
+
+INPUT 		{	FONT: 10pt arial, sans-serif; COLOR: #000000}
+SELECT 		{	FONT: 10pt arial, sans-serif; COLOR: #000000}
+TEXTAREA 	{	FONT: 10pt arial, sans-serif; COLOR: #000000}
+
+a:active, a:link, a:visited 	{	FONT-SIZE: 8pt; COLOR: #000000; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}
+A:hover 	{	FONT-SIZE: 8pt; COLOR: #9E9E9E; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}
+
+TD.footer 		{	FONT: 8pt arial, sans-serif; COLOR: #ffffff; TEXT-DECORATION: none}
+
+td.side 			{	FONT-SIZE: 8pt; FONT-FAMILY: arial, sans-serif; COLOR:#FFFFFF; background-color: #6E86B4;}
+td.side a:active,
+td.side a:link,
+td.side a:visited 	{	FONT-SIZE: 8pt; COLOR: #D6E7FA; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}
+td.side a:hover		{	FONT-SIZE: 8pt;	COLOR: #F6DEEE;	FONT-FAMILY: arial, sans-serif;	TEXT-DECORATION: none}
+td.side LABEL 		{	FONT-SIZE: 8pt; FONT-FAMILY: arial, sans-serif;}
+td.side INPUT 		{	FONT-SIZE: 8pt; FONT-FAMILY: arial, sans-serif;}
+td.side SELECT 		{	FONT-SIZE: 8pt; FONT-FAMILY: arial, sans-serif;}
+
+TD.border {	BORDER:0px;}
+
+td.sideheader		{ color:#707070; font-family: arial, sans-serif; font-size: 8pt; padding-bottom:8px; padding-left: 10px; padding-right: 10px; }
+
+a.sidelink:active, a.sidelink:link, a.sidelink:visited		{ COLOR: #D6E7FA; text-decoration:underline; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+a.sidelink:hover		{ color: #F6DEEE; text-decoration:underline; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+
+
+a.header:active, a.header:link, a.header:visited 	{	FONT-SIZE: 8pt; COLOR: #707070; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}
+A.header:hover 		{	FONT-SIZE: 8pt;	COLOR: #9E9E9E;	FONT-FAMILY: arial, sans-serif;	TEXT-DECORATION: none}
+TD.header 			{	FONT-SIZE: 8pt; COLOR: #707070; FONT-FAMILY: arial, sans-serif; BACKGROUND-COLOR:#D6E7FA;}
+a.header2:active, a.header2:link, a.header2:visited 	{	FONT-SIZE: 8pt; COLOR: #FFFFFF; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}
+A.header2:hover 	{	FONT-SIZE: 8pt;	COLOR: #9E9E9E;	FONT-FAMILY: arial, sans-serif;	TEXT-DECORATION: none}
+TD.header2 			{	FONT-SIZE: 8pt;	COLOR: White; background-color: #6E86B4;	FONT-FAMILY: arial, sans-serif}
+
+a.body:active, a.body:link, a.body:visited 	{	FONT-SIZE: 8pt;	COLOR: #D6E7FA;	FONT-FAMILY: arial, sans-serif;	TEXT-DECORATION: none}
+A.body:hover 	{	FONT-SIZE: 8pt; COLOR: #F6DEEE; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}
+TD.body 		{	FONT-SIZE: 8pt; COLOR: #FFFFFF; FONT-FAMILY: arial, sans-serif; BACKGROUND-COLOR:#5E739B;}
+
+INPUT.body 		{	FONT: 8pt arial, sans-serif; COLOR: #000000}
+SELECT.body 	{	FONT: 8pt arial, sans-serif; COLOR: #000000}
+TEXTAREA.body 	{	FONT: 8pt arial, sans-serif; COLOR: #000000}
+
+td.body2		{ background-color: #667DA8; color: #FFFFFF; font-family: arial, sans-serif; font-size: 8pt}
+
+TD.leftcap	{WIDTH:14px; PADDING:0px; SPACING:0px; }
+TD.rightcap	{WIDTH:14px; PADDING:0px; SPACING:0px; }
+IMG.cap	{BORDER:0px; PADDING:0px; MARGIN:0px;}
+
+td.menu 				{	FONT-SIZE: 9pt; COLOR: #707070; FONT-FAMILY: arial, sans-serif;  BACKGROUND-COLOR:#D6E7FA;}
+td.menu a:active,
+td.menu a:link,
+td.menu a:visited 	{	FONT-SIZE: 9pt; COLOR: #707070; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}
+td.menu a:hover 	{	FONT-SIZE: 9pt;	COLOR: #9E9E9E;	FONT-FAMILY: arial, sans-serif;	TEXT-DECORATION: none}
+
+TD.forumlst 		{	FONT: 8pt arial, sans-serif; COLOR: #000000; BACKGROUND-COLOR: #dfded9; TEXT-DECORATION: none}
+a.forumlst:link, a.forumlst:visited, a.forumlst:active 	{	FONT: 8pt arial, sans-serif; COLOR: #222222; TEXT-DECORATION: none}
+A.forumlst:hover 	{	FONT: 8pt arial, sans-serif; COLOR: #fff; TEXT-DECORATION: none}
+
+TD.forumlst0 		{	FONT: 8pt arial, sans-serif; COLOR: #000000; BACKGROUND-COLOR: #dfded9; TEXT-DECORATION: none}
+a.forumlst0:link, a.forumlst0:visited, a.forumlst0:active 	{	FONT: 8pt arial, sans-serif; COLOR: #D6E7FA; TEXT-DECORATION: none}
+A.forumlst0:hover 	{	FONT: 8pt arial, sans-serif; COLOR: #F8DDEE; TEXT-DECORATION: none}
+
+TD.forumlst1 		{	FONT: 8pt arial, sans-serif; COLOR: #000000; BACKGROUND-COLOR: #f0f0f0; TEXT-DECORATION: none}
+a.forumlst1:link, a.forumlst1:visited, a.forumlst1:active 	{	FONT: 8pt arial, sans-serif; COLOR: #F8DDEE; TEXT-DECORATION: none}
+A.forumlst1:hover 	{	FONT: 8pt arial, sans-serif; COLOR: #D6E7FA; TEXT-DECORATION: none}
+
+a.forumlst2:link, a.forumlst2:visited, a.forumlst2:active 	{	FONT: 8pt arial, sans-serif; COLOR: #D6E7FA; TEXT-DECORATION: none}
+A.forumlst2:hover 	{	FONT: 8pt arial, sans-serif; COLOR: #F8DDEE; TEXT-DECORATION: none}
+
+a.small:active, a.small:visited, a.small:link 	{	FONT-SIZE: 8pt; COLOR: #666666; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none; font-weight: bolder}
+A.small:hover 	{	FONT-SIZE: 8pt; COLOR: #666666; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none; font-weight: bolder}
+TD.small 		{	FONT-SIZE: 8pt; FONT-FAMILY: arial, sans-serif; color: #000000; BACKGROUND-COLOR: #cccccc}
+
+a.msg:active, a.msg:link, a.msg:visited 	{	FONT-SIZE: 8pt; COLOR: #598241; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}
+A.msg:hover 	{	FONT-SIZE: 8pt; COLOR: #FFFFFF; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}
+TD.msg 			{	FONT-SIZE: 8pt; FONT-FAMILY: arial, sans-serif; BACKGROUND-COLOR: #cccccc}
+
+a.vote:active, a.vote:link, a.vote:visited	{ color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bolder }
+a.vote:hover	{ color: #000000; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bolder }
+
+td.online		{ color: #00AA00; font-family: arial, sans-serif; font-size: 16pt; font-weight: bolder}
+td.offline		{ color: #BF0E00; font-family: arial, sans-serif; font-size: 16pt; font-weight: bolder}
+
+

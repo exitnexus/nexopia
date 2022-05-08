@@ -1,0 +1,93 @@
+div.video_page_container {
+	text-align: center;
+	width: 100%;
+}
+
+div.video_section_content {
+	padding: 6px;
+	color: $primary_text_color;
+	background-color: $primary_background_color;
+}
+
+div.video_section_container {
+	position: relative;
+	margin: 0px;
+}
+
+div.comment_section_content {
+	margin: 0px;
+	position: relative;
+}
+
+#main_video_page {
+	width: 750px;
+	margin-left:auto;
+	margin-right:auto;
+	text-align: left;
+	font-size: $page_font_size;
+	font-family: $page_font_family;
+	overflow: hidden;
+}
+
+#main_video_page a {
+	color: $link_color;
+	text-decoration: $link_text_decoration;
+}
+
+#main_video_page a:hover {
+	color: $link_accent_color;
+	text-decoration: $link_accent_text_decoration;
+}
+
+#main_video_page h2, .section_header
+{
+	background-color: $section_header_background_color;
+	background-image: $section_header_background_image;
+	background-repeat: repeat-x;
+	color: $section_header_text_color;
+	font-weight: bold;
+	height: 30px;
+	font-size: $header_font_size;
+	font-family: $header_font_family;
+}
+
+#main_video_page .section_header div
+{
+	padding: 6px;
+}
+
+#right_panel {
+	float: left;
+	position: relative;
+	margin-left: 4px;
+	width: 344px;
+}
+
+#left_panel {
+	float: left;
+	width: 394px;
+	margin-right: 4px;
+}
+
+div.non_ie_left_panel_stretch {
+	width: 394px;
+	position:relative;
+}
+
+#featured_videos_panel {
+	margin-bottom: 8px;
+	position: relative;
+	clear: left;
+}
+
+#browse_videos_panel {
+	clear: left;
+	position: relative;
+}
+
+#viewer_panel {
+	margin-bottom: 8px;
+}
+
+#comments_panel {
+}

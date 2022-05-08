@@ -1,0 +1,50 @@
+<div>
+	<div class="block_title_4margin" id="h2_2">
+		BASICS
+	</div>
+	<form method="post" action="/my/profile_blocks/Profile/basics/5/save">
+		<table border="0" cellspacing="0" cellpadding="0" class="stat_table">
+			<tr>
+				<td class="vitals_name">
+					Height:
+				</td>
+				<td>
+					<t:handler-include path="/current/selector/height/{user.profile.height}" area="Skeleton"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="vitals_name">
+					Weight:
+				</td>
+				<td>
+					<t:handler-include path="/current/selector/weight/{user.profile.weight}" area="Skeleton"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="vitals_name">
+					Sexual Orientation:
+				</td>
+				<td>
+					<t:handler-include path="/current/selector/orientation/{user.profile.orientation}" area="Skeleton"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="vitals_name">
+					Dating:
+				</td>
+				<td>
+					<t:handler-include path="/current/selector/dating/{user.profile.dating}" area="Skeleton"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="vitals_name">
+					Living Situation
+				</td>
+				<td>
+					<t:handler-include path="/current/selector/living/{user.profile.living}" area="Skeleton"/>
+				</td>
+			</tr>
+		</table>
+		<input type="submit"/>
+	</form>
+</div>

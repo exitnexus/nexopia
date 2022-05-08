@@ -1,0 +1,11 @@
+<div id="banner_{banner.size}">
+	<t:template-include name="refresh" module="banner"/>
+	<t:if t:id="banner.link">
+		<a href="/bannerclick.php?id={banner.id}" target="_blank">
+			<img src="#{banner.image}" width="{banner.width}" height="{banner.height}" border="0" alt="{banner.alt}"/>
+		</a>
+	</t:if>
+	<t:if t:id="!banner.link">
+		<img src="#{banner.image}" width="{banner.width}" height="{banner.height}" border="0" alt="{banner.alt}"/>
+	</t:if>
+</div>

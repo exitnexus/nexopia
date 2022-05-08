@@ -1,0 +1,30 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<div id="message-form">
+	<link rel="stylesheet" type="text/css" href="{$site.static_url}/javascript/yui/build/container/assets/container.css" />
+	<script>
+		include_dom("{$site.static_url}/javascript/yui/build/yahoo/yahoo.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/dom/dom.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/event/event.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/connection/connection.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/animation/animation.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/dragdrop/dragdrop.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/yui/build/container/container.js?rev={Time.now.to_i.to_s}", function() {
+		include_dom("{$site.static_url}/javascript/message_dialog.js?rev={Time.now.to_i.to_s}", function() {
+						MessageDialog.init();
+		});});});});});});});});
+	</script>
+		<div class="hd">
+			Create a Message
+		</div>
+		<div class="bd">
+			<form t:ignore="true" method="post" action="/my/messages/send:Body">
+				<div id="message-previous"></div>
+				<table width="500px">
+					<tr><td>To:</td><td style="width:80%;"><input id="message-to" type="text" name="to" style="width:98%;"/></td></tr>
+					<tr><td>Subject:</td><td style="width:80%;"><input id="message-subject" type="text" name="subject" style="width:98%;"/></td></tr>
+					<tr><td>Text:</td><td style="width:80%;"><textarea id="message-text" name="text" style="width:98%;"></textarea></td></tr>
+				</table>
+			</form>
+		</div>
+	</div>
+</div>

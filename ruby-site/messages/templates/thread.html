@@ -1,0 +1,17 @@
+<div style="background-color:white" xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<table>
+		<t:loop t:id="thread" t:iter="message">
+			<tr>
+				<td><t:if t:id="message.mark"><img src="http://publib.boulder.ibm.com/tividd/td/ITMExp/SC32-1903-00/en_US/HTML/icon_notconfigured.gif"/></t:if></td>
+				<td><a t:id="message.user_from"></a></td>
+				<td><a t:id="message"></a></td>
+				<td>{message.formatted_date}</td>
+			</tr>
+			<tr>
+				<td colspan="4">
+					{message.msgtext.msg}
+				</td>
+			</tr>
+		</t:loop>
+	</table>
+</div>

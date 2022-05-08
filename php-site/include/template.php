@@ -1,5 +1,4 @@
 <?
-global $sitebasedir;
 
 define("ERROR_MISSING_OPEN_TAG",  'End tag {$1} has no matching start tag', false);
 define("ERROR_MISSING_CLOSE_TAG", 'Start tag {$1} has no matching end tag', false);
@@ -59,16 +58,16 @@ class Template
 	                                'alternate'         =>  '$1 = !$1',
 	                                'assign'            =>  '$1 = $2',
 	                                'truncate'          =>  'truncate($1, $2)',
+	                                'wrap'              =>  'wrap($1, $2)',
 	                                'number_format'     =>  'number_format($1,$2)',
 	                                'count'             =>  'count($1)',
 	                                'switch'            =>  'tmpl_switch($1, array($2, $3))',
 	                                );
-	public $display_header = false;
 
 	//constructor
-	function Template($filepath, $newskin=false){
-		global $config, $skindata;
-		$this->display_header=$newskin;
+	function Template($filepath){
+		global $config;
+
 		$this->usecached = $config['templateusecached'];
 		$this->parseddir = $config['templateparsedir'];
 		$this->tmpldir = $config['templatefilesdir'];
@@ -118,12 +117,9 @@ class Template
 			$this->parsed_str = $parsed_str;
 		}
 	}
-	
-	function setHeader(){
-		$this->display_header = true;
-	}
 
-	function show_whitespace($bool){
+	function show_whitespace($bool)
+	{
 		$this->show_whitespace = $bool;
 	}
 
@@ -158,30 +154,12 @@ class Template
 		return;
 	}
 
-	function write($file_path, $parsed_str)
-	{
-		$dirs = explode('/', $file_path);
+	function write($file_path, $parsed_str){
+		$dir = dirname($file_path);
+		if(!file_exists($dir))
+			mkdir($dir, 0777, true);
 
-		array_shift($dirs); //don't create the root directory
-		array_pop($dirs); //get rid of the filename
-
-		$dir_path = "";
-		foreach( $dirs as $dir ){
-			$dir_path .= "/$dir";
-			if(!is_dir($dir_path) && $dir != ".."){
-				if(!mkdir($dir_path))
-					echo "Cannot create directory ($dir_path)";
-			}
-		}
-
-		$handle = fopen($file_path, "wb");
-		if(!$handle)
-			die("Cannot open file ($file_path)");
-
-		if(fwrite($handle, $parsed_str) === FALSE)
-			die("Cannot write to file ($file_path)");
-
-		fclose($handle);
+		return file_put_contents($file_path, $parsed_str);
 	}
 
 
@@ -374,7 +352,6 @@ class Template
 	 */
 	function process_tag($tag)
 	{
-		global $skindata;
 		$php_str = "";
 		$tag = trim($tag);
 		$i = -1;
@@ -426,34 +403,25 @@ class Template
 
 		elseif(substr($tag,0,6) == 'header')
 		{
-			if (!isset($skindata['isnew']) || $this->display_header == true){
-				$header = $this->process_header(trim(substr($tag, 6)));
-				if($header != null)
-				{
-					$php_str .= $header;
-				}
-				else
-				{
-					array_push($this->errors , str_replace('$1', $tag, ERROR_INVALID_TAG));
-				}
-			} else {
-				$php_str .= "<table>";
+
+			$header = $this->process_header(trim(substr($tag, 6)));
+			if($header != null)
+			{
+				$php_str .= $header;
+			}
+			else
+			{
+				array_push($this->errors , str_replace('$1', $tag, ERROR_INVALID_TAG));
 			}
 
 		}
 		elseif($tag == "addRefreshHeaders")
 		{
-			if (!isset($skindata['isnew']) || $this->display_header == true)
-				$php_str .= "<? addRefreshHeaders(); ?".">";
-			else
-				$php_str .= "<table>";
+			$php_str .= "<? addRefreshHeaders(); ?".">";
 		}
 		elseif($tag == "footer")
 		{
-			if (!isset($skindata['isnew']) || $this->display_header == true){
-				$php_str .= "<? incFooter(); ?".">";
-			} else
-				$php_str .= "</table>";
+			$php_str .= "<? incFooter(); ?".">";
 		}
 
 		//else tag

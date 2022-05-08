@@ -1,0 +1,48 @@
+<div id="music_doc">
+	<div class="yui-t2 music_administration">
+		#{css}
+		<div id="yui-main_music">
+			<div class="yui-b">
+				<div class="yui-g">
+					New Feature
+				</div>
+				<div class="yui-g">
+					<form name="new_feature" id="new_feature" method="post" action="/music/administration/feature/{submit_location}/submit/">
+						<table>
+							<tbody>
+								<tr>
+									<td>
+										Feature HTML
+									</td>
+									<td>
+										<textarea name="feature_body" id="feature_body" rows="20" cols="75">{feature.body}</textarea>
+									</td>
+								</tr>
+								<tr>
+									<td>
+										Display start date (mm/dd/yyyy)
+									</td>
+									<td>
+										<input type="text" id="feature_date" name="feature_date" value="{feature.edit_date_string}"></input>
+									</td>
+								</tr>
+								<tr>
+									<td colspan="2">
+										<input type="submit" id="feature_submit" name="feature_submit" value="Create Feature"></input>
+										<input type="submit" id="feature_cancel" name="feature_cancel" value="Cancel"></input>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</form>
+				</div>
+			</div>
+		</div>
+		<div class="yui-b">
+			<t:template-include t:module="streams" t:name="music_administration_panel"></t:template-include>
+			<div class="yui-g">
+				<a href="/music/">Music Front Page</a>
+			</div>
+		</div>
+	</div>
+</div>

@@ -254,4 +254,13 @@ class databaseobject
 	{
 		return self::deleteMulti($this->db, array(implode(':',$this->makeKey()) => &$this));
 	}
+	
+	function setFromDBResultRow($resultRow)
+	{
+		foreach ($this->values as $column => &$value)
+		{
+			if (isset($resultRow[$column]))
+				$value = $resultRow[$column];
+		}
+	}	
 }

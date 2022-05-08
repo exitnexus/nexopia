@@ -2,43 +2,26 @@
 
 	$forceserver = true;
 
-	$_SERVER['DOCUMENT_ROOT'] = getcwd();
+	$_SERVER['DOCUMENT_ROOT'] = "/home/nexopia/public_html";
 
 	require_once($_SERVER['DOCUMENT_ROOT'] . "/include/general.lib.php");
 
-	$file = null;
-	function filewriter($buffer)
-	{
-		global $file;
-		fwrite($file, $buffer);
+	$tables = array();
+
+	$names = array_keys($dbs);
+
+	foreach($names as $dbname){
+		$tableresult = $dbs[$dbname]->listtables();
+
+		while(list($tname) = $dbs[$dbname]->fetchrow($tableresult, DB_NUM)){
+			$result = $dbs[$dbname]->query("SHOW CREATE TABLE `$tname`");
+			$output = $dbs[$dbname]->fetchfield(1,0,$result);
+
+			$tables["$dbname.$tname"] = "-- $dbname.$tname\n$output";
+		}
 	}
 
-	// get an sql dump into struct.sql
-    $file = fopen('../struct.sql', 'w');
-	ob_start("filewriter");
-	include('../dumpstructsql.php');
-	ob_end_flush();
-	fclose($file);
+	ksort($tables);
 
-	// get a structured dump into struct.new
-    $file = fopen('../struct.new', 'w');
-	ob_start("filewriter");
-	include('../dumpstruct.php');
-	ob_end_flush();
-	fclose($file);
-
-	if (0 && file_exists('../struct.cur'))
-	{
-		// diff the old structure with the new and append it to struct.diff
-		$file = fopen('../struct.diff', 'a');
-		ob_start("filewriter");
-		$_SERVER['argv'] = array('dbdiff.php', '../struct.cur', '../struct.new');
-		$_SERVER['argc'] = 3;
-		include('../dbdiff.php');
-		ob_end_flush();
-		fclose($file);
-	}
-
-	// move struct.new to struct.cur
-    @unlink('../struct.cur');
-    @rename('../struct.new', '../struct.cur');
+	echo implode("\n\n--------------------------------------------------------\n\n", $tables);
+	echo "\n\n";

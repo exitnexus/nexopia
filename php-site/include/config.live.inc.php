@@ -5,21 +5,38 @@
 	if(!isset($wwwdomain))       $wwwdomain = "www.$basedomain";
 	if(!isset($pluswwwdomain))   $pluswwwdomain = "plus.www.$basedomain"; //needed only to check which db server to use, when plus only db servers are possible
 
-	if(!isset($staticimgdomain)) $staticimgdomain = "static.$basedomain";
+	if(!isset($staticdomain))    $staticdomain = "$wwwdomain/static/$reporev/files";
+	if(!isset($staticimgdomain)) $staticimgdomain = "$staticdomain/Legacy";
 	if(!isset($userimgdomain))   $userimgdomain = "images.$basedomain";
 	if(!isset($userfilesdomain)) $userfilesdomain = "users.$basedomain";
 
 	if(!isset($emaildomain))     $emaildomain = $basedomain;
 	if(!isset($cookiedomain))    $cookiedomain = ".www.$basedomain";
 
+	if(!isset($rubydomain))      $rubydomain = "ruby.$basedomain";
+
 	if(!isset($sitebasedir))     $sitebasedir = "/home/nexopia";
 
-	$docRoot = "$sitebasedir/public_html";
+	if(!isset($docRoot))         $docRoot = "$sitebasedir/public_html_ram";
+
 	$staticRoot = "$sitebasedir/public_static";
+
+	$databaseprofile = 'live';
 
 	$slowquerytime = 10*10000; // 10 secs
 
 	$errorLogging = (isset($errorLogging) ? max($errorLogging, 1) : 1);
+
+	$mogfs_domain = 'nexopia.com';
+	$mogfs_hosts = array(
+		"10.0.0.101:6001",
+		"10.0.0.102:6001",
+		"10.0.0.103:6001",
+		"10.0.0.104:6001",
+		);
+	shuffle($mogfs_hosts);
+
+	$rubysite = array('127.0.0.1:7080');
 
 	$bannerservers = array(
 		'10.0.3.1',
@@ -43,7 +60,7 @@
 		'10.0.3.19',
 		'10.0.3.20',
 		'10.0.3.21',
-#		'10.0.3.22', //not in from the beginning
+		'10.0.3.22',
 		'10.0.3.23',
 		'10.0.3.24',
 		'10.0.3.25',
@@ -66,76 +83,62 @@
 		'10.0.3.42',
 		'10.0.3.43',
 		'10.0.3.44',
+		'10.0.3.45',
+		'10.0.3.46',
+		'10.0.3.47',
+		'10.0.3.48',
+		'10.0.3.49',
+		'10.0.3.50',
+		'10.0.3.51',
+		'10.0.3.52',
+		'10.0.3.53',
+		'10.0.3.54',
+		'10.0.3.55',
+		'10.0.3.56',
+		'10.0.3.57',
+		'10.0.3.58',
+#		'10.0.3.59', # dynamic59 is not configured/does not exist.
+		'10.0.3.60',
+		'10.0.3.61',
+		'10.0.3.62',
+#		'10.0.3.63', # dynamic63 is not configured/does not exist.
+#		'10.0.3.64', # dynamic64 is of unknown stability.
+		'10.0.3.65',
+#		'10.0.3.66', # dynamic66 is of unknown stability (network problems?)
+		'10.0.3.67',
+		'10.0.3.68',
+		'10.0.3.69',
+#		'10.0.3.70', # dynamic70 is our testing/staging image.
 			);
 
 	$memcacheoptions = array(
+		'name' => 'cache',
 		'servers' => array(
-				array("10.0.2.43:11211", 8),
-				array("10.0.2.7:11211",  5),
-				array("10.0.2.8:11211",  5),
-				array("10.0.2.9:11211",  5),
-				array("10.0.2.10:11211", 5),
-				array("10.0.2.11:11211", 5),
-/*
-				"10.0.3.1:11211",
-				"10.0.3.2:11211",
-				"10.0.3.3:11211",
-				"10.0.3.4:11211",
-				"10.0.3.5:11211",
-				"10.0.3.6:11211",
-				"10.0.3.7:11211",
-				"10.0.3.8:11211",
-				"10.0.3.9:11211",
-				"10.0.3.10:11211",
-				"10.0.3.11:11211",
-				"10.0.3.12:11211",
-				"10.0.3.13:11211",
-				"10.0.3.14:11211",
-				"10.0.3.15:11211",
-				"10.0.3.16:11211",
-				"10.0.3.17:11211",
-				"10.0.3.18:11211",
-				"10.0.3.19:11211",
-				"10.0.3.20:11211",
-				"10.0.3.21:11211",
-#				"10.0.3.22:11211", //not in since reset
-				"10.0.3.23:11211",
-				"10.0.3.24:11211",
-				"10.0.3.25:11211",
-				"10.0.3.26:11211",
-				"10.0.3.27:11211",
-				"10.0.3.28:11211",
-				"10.0.3.29:11211",
-				"10.0.3.30:11211",
-				"10.0.3.31:11211",
-				"10.0.3.32:11211",
-				"10.0.3.33:11211",
-				"10.0.3.34:11211",
-				"10.0.3.35:11211",
-				"10.0.3.36:11211",
-*/
+			array ("10.0.7.1:11212", 1), // 3.1G
+			array ("10.0.7.2:11212", 1), // 3.1G
+			array ("10.0.7.3:11212", 1), // 3.1G
+			array ("10.0.7.4:11212", 1), // 3.1G
+			array ("10.0.7.5:11212", 1), // 3.1G
+			array ("10.0.7.6:11212", 1), // 3.1G
+			array ("10.0.7.7:11212", 1), // 3.1G
+			array ("10.0.7.8:11212", 1), // 3.1G
 			),
 		'debug'   => false,
+		'delete_only' => false,
 		'compress_threshold' => 8000,
 		'persistant' => true);
 
 	$pagecacheoptions = array(
+		'name' => 'pagecache',
 		'servers' => array(
-				'10.0.2.27:11211',
-				'10.0.2.28:11211',
-				'10.0.2.29:11211',
-				'10.0.2.30:11211',
-				'10.0.2.31:11211',
-/*
-				'10.0.3.37:11211',
-				'10.0.3.38:11211',
-				'10.0.3.39:11211',
-				'10.0.3.40:11211',
-				'10.0.3.41:11211',
-				'10.0.3.42:11211',
-				'10.0.3.43:11211',
-				'10.0.3.44:11211',
-*/
+			array ("10.0.7.1:11213", 1), // 128M
+			array ("10.0.7.2:11213", 1), // 128M
+			array ("10.0.7.3:11213", 1), // 128M
+			array ("10.0.7.4:11213", 1), // 128M
+			array ("10.0.7.5:11213", 1), // 128M
+			array ("10.0.7.6:11213", 1), // 128M
+			array ("10.0.7.7:11213", 1), // 128M
+			array ("10.0.7.8:11213", 1), // 128M
 			),
 		'debug'   => false,
 		'compress_threshold' => 8000,
@@ -146,14 +149,12 @@
         "Webmaster" => "webmaster@nexopia.com",
         "Admin" => "admin@nexopia.com",
         "Help" => "help@nexopia.com",
-        "Plus" => "admin@nexopia.com",
+        "Plus" => "plus@nexopia.com",
         "Advertising" => "sales@nexopia.com",
         );
 
 
-	$debuginfousers = array(1,21);
-
-#	$databaseprofile = 'live';
+	$debuginfousers = array(1,21,997372,1745917,2309088);
 
 	$tidyoutput = false;
 
@@ -173,10 +174,18 @@
 	$lockSplitWriteOps = false;
 
 	$config = array(
+		'devutil' => false,
+
+		'bannerlogserver' => '10.0.0.85:6666',
+		'adblasterserver' => "10.0.0.64:5556",
+
 		'templatefilesdir' => "$docRoot/include/templates/template_files/",
-		'templateparsedir' => "$docRoot/include/templates/compiled_files/",
+		'templateparsedir' => "$sitebasedir/cache/templates/",
 		'templateusecached' => true,
-	
+
+		'cachedbs' => true,
+		'cacheincludes' => false,
+
 		'allowThreadUpdateEmails' => false, //send subscribed users an email if a thread is updated
 		'defaultMessageAllowEmails' => true, // whether or not deliverMsg defaults to allowing emails to be sent
 
@@ -187,7 +196,9 @@
 		'skinloc' => "http://$staticimgdomain/skins/",
 
 		'bannerdir' => '/user_data/banners/', //directory relative to the $staticRoot to save banners.
-		'bannerloc' => "http://$userimgdomain/banners/", //directory relative to the $staticRoot to save banners.		'timezone' => 317, //timezone the times should be aligned to
+		'bannerloc' => "http://$userimgdomain/banners/", //directory relative to the $staticRoot to save banners.
+
+		'timezone' => 317, //timezone the times should be aligned to
 
 		'title' => 'Nexopia', //website name
 		'metadescription' => 'Nexopia.com is the latest and fastest growing ranking site on the internet. We offer fair and fun user ranking, intriguing articles regarding all walks of life, and a friendly entertaining forum.',
@@ -195,7 +206,7 @@
 
 
 		'contactsubjectPrefix' => 'Nexopia Response:', //prefix for emails from the contact us page.
-		'copyright' => '© Nexopia.com Inc. 2006 all rights reserved.',
+		'copyright' => '© Nexopia.com Inc. 2008 all rights reserved.',
 		'email' => 'no-reply@nexopia.com',
 
 		'enableCompression' => true,
@@ -206,7 +217,7 @@
 
 		'voteHistLength' => 86400*21, //poll vote length
 
-		'smtp_host' => '10.0.0.33', //outgoing email server
+		'smtp_host' => '10.0.0.8', //outgoing email server
 		'paypalemail' => 'timo@tzc.com',
 
 		'minAge' => 14, //(current year- minAge) is the first year shown in the signup page.
@@ -222,7 +233,7 @@
 		'maxAwayTime' => 3600, //max away time before a user is logged out, only applies if not a cached login.
 
 		'linesPerPage' => 25, //lines of text per page, used in forum, msgs, friends, etc.
-		'pagesInList' => 10, //number of pages to show in the page list
+		'pagesInList' => 5, //number of pages to show in the page list
 		'picsPerPage' => 10, //pics per page in a list of users in a search
 		'maxpollwidth' => 100,
 		'minusernamelength' => 4,
@@ -269,9 +280,9 @@
 		'maxGalleryPicWidth' => 640,
 
 		'picdir' => '/user_data/userpics/',
-		'picloc' => "http://$userimgdomain/userpics/",
+		'picloc' => "http://$userimgdomain/gallery/",
 		'thumbdir' => '/user_data/userpicsthumb/', //directory relative to the docroot to save thumbs.
-		'thumbloc' => "http://$userimgdomain/userpicsthumb/",
+		'thumbloc' => "http://$userimgdomain/gallerythumb/",
 		'thumbHeight' => 150,
 		'thumbWidth' => 100,
 		'minPicHeight' => 75,
@@ -284,8 +295,10 @@
 		'picmodexamdir' => '/site_data/picmodexam/', //directory relative to the docroot to save pic mod exam imgs
 		'picmodexamloc' => "http://$staticimgdomain/picmodexam/", //directory relative to the docroot to save pic mod exam imgs
 		'picmodpluserrrate' => 2.5, //maximum error rate required during a week to earn plus
-		'picmodpluspicrate'	=> 2500, //modded pics required during a week to get plus
-		'picmodmonthlymin'	=> 10000, //modded pics required during a month to make top 5
+		'picmodpluspicrate' => 2500, //modded pics required during a week to get plus
+		'picmodmonthlymin' => 10000, //modded pics required during a month to make top 5
+
+		'passthrough_all_unrecognized' => false, // pass all unrecognized urls to the ruby site.
 	);
 
 	include_once("include/errorsyslog.php");

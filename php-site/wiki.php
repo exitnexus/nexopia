@@ -1,6 +1,6 @@
 <?
 
-	$login=1;
+	$login=0;
 
 	require_once("include/general.lib.php");
 

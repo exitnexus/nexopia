@@ -1,0 +1,78 @@
+Removed
+Ass
+guns
+
+
+
+
+New
+
+Filename	Label
+beer		:beer:
+biggrin		:D
+blush		:blush:
+chat		:chat:
+confused	:consfused:
+cool		:cool:
+crazy		:crazy
+crying		:cry:
+cussing		:cussing:
+date		:date:
+drool		:drool:
+eek		:eek:
+egrin		:egrin:
+err		:err:
+evil		:evil:
+frown		:(
+girlgirl	:gdate:
+headache	:headache:
+headbang	:headbang:
+hearts		:hearts:
+high5		:high5:
+hugs		:hug:
+hungry		:hungry:
+iik		:iik:
+imslow		:imslow:
+jawdrop		:jawdrop:
+jk		:jk:
+kiss		:kiss:
+lol		:lol:
+lonely		:lonely:
+love		:love
+manman		:bdate:
+moon		:moon:
+music		:music:
+nana		:nana:
+neutral		:neutral:
+nono		:foie:
+omfg		:omfg:
+party		:party:
+pee		:pee:
+phone		:phone:
+please		:please:
+pray		:pray:
+psyco		:psyco:
+puke		:puke:
+rofl		:rofl:
+rolleyes	:rolleyes:
+shiftyeyes	:shifty:
+shocked		:shocked:
+show		:show:
+silly		:nuts:
+skull		:skull:
+sleep		:sleep:
+smileysex	:sex:
+smash		:ham:
+speak		:speak:
+steaming	:steaming:
+stun		:stun:
+throwball	:throwball:
+thumbs		:gjob:
+tongue		:p
+transport	:transport:
+tv		:tv:
+typing		:typing:
+wassup		:wassup:
+wink		;)
+yawn		:O
+nogood-red	:bjob:

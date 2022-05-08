@@ -1,0 +1,34 @@
+<span t:id="friends" xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<table width="100%" border="0" cellspacing="0" cellpadding="0">
+		<tr>
+			<td colspan="2">				
+				<div class="sidebar_hr">					
+					<hr width="100%" />
+				</div>
+			</td>
+		</tr>				
+		<tr>
+			<td>
+				<div class="sidebar_title">					
+					FRIENDS
+				</div>
+			</td>
+			<td align="right" valign="middle" width="20px" onClick="hideBody('friendsBody');" class="sidebar_imgLink">
+				<img border="0" src="http://{$site.config.static_domain}/javascript/yui/hide.bmp" />
+			</td>
+		</tr>					
+		<tr>
+			<td colspan="2" align="left">
+				<div id="friendsBody">		
+					<!-- 		
+					<b> {friends_online} friend(s) online </b> <br />
+					<div t:id="onlineFriends" t:iter="onlineFriend">
+						{onlineFriend.user.username}
+					</div>
+					-->
+					<!--handler-include path="/friends/summary_kind/mini" area="User"/-->
+				</div> 
+			</td>
+		</tr>			
+	</table>
+</span>

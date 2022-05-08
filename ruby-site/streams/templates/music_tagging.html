@@ -1,0 +1,28 @@
+<div>
+	<table>
+		<tbody>
+			<t:if t:id="!news.tag_list.empty?()">
+				<tr>
+					<td>
+						Existing Tags
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<t:template-include t:name="music_existing_tags" t:module="streams"></t:template-include>
+					</td>
+				</tr>
+			</t:if>
+			<tr>
+				<td>
+					New Tags
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<t:template-include t:name="music_new_tags" t:module="streams"></t:template-include>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+</div>

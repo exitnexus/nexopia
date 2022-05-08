@@ -1,0 +1,22 @@
+div#groups_profile_block {
+	& .groups_header {
+		color: $link_color;
+		font-weight: bold;
+		font-family: $header_font_family;
+		font-size: 14px;
+		letter-spacing: 0px;
+	}
+	
+	& .group_type {
+		font-weight: bold;
+	}
+	
+	& .location {
+		color: $minor_font_color;
+	}
+	
+	& .duration {
+		color: $minor_font_color;
+		font-style: italic;
+	}
+}

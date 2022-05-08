@@ -1,0 +1,26 @@
+<div t:docid="observables" class="update_list">
+ 	<ul class="update_list">
+		<t:loop t:id="entries" t:iter="entry" t:index="index">
+			<li id="list_{index}">
+				<div class="right_align">
+					<form id="id_{index}" name="remove_button" action="/my/updates/delete" method="post">
+						<input type="hidden" name="originator" value="{entry.userid}"/>
+						<input type="hidden" name="eventid" value="{entry.id}"/>
+						<input class="delete" type="submit" value="[x]"/>
+					</form>
+				</div>
+				<div class="img_display">
+					<img class="profile_pic" t:id="entry.image"/>&nbsp;
+				</div>
+				
+				<div class="msg_display">
+					<t:display t:id="entry"/>
+				</div>
+				<div class="right_aligned">
+					{UserTime.new(Time.at(entry.time)).strftime("%I:%M%p" )}
+				</div>
+				<div class="clearit"></div>
+			</li>
+		</t:loop>
+	</ul>
+</div>

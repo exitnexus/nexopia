@@ -21,6 +21,9 @@
 						'new' => "'1'"
 						);
 
+	$sortt = getREQval('sortt');
+	$sortd = getREQval('sortd');
+
 	isValidSortt($sortlist,$sortt);
 	isValidSortd($sortd,'ASC');
 
@@ -37,7 +40,7 @@
 	$day = gmdate("j", $startdate);
 	$year = gmdate("Y", $startdate);
 
-	$res = $mods->db->prepare_query("SELECT userid, `right`+`wrong` as total, `right`, `wrong`, strict, lenient, level, IF(`right`+`wrong`=0,0,100.0*`wrong`/(`right` + `wrong`)) as percent, '1' as new, time, creationtime FROM mods WHERE type = #", $type);
+	$res = $mods->db->prepare_query("SELECT userid, '' AS username, `right`+`wrong` as total, `right`, `wrong`, strict, lenient, level, IF(`right`+`wrong`=0,0,100.0*`wrong`/(`right` + `wrong`)) as percent, '1' as new, time, creationtime FROM mods WHERE type = #", $type);
 
 	$rows = array();
 	while($line = $res->fetchrow())
@@ -87,7 +90,7 @@
 
 
 	for($i=1;$i<=12;$i++)
-		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+		$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
 
 	incHeader();
 
@@ -97,7 +100,7 @@
 	echo "<tr><td class=header colspan=12 align=center>";
 		echo "<select class=body name='month' style=\"width:90px\"><option value=0>Month" . make_select_list_key($months,$month) . "</select>";
 		echo "<select class=body name=day style=\"width:50px\"><option value=0>Day" . make_select_list(range(1,31),$day) . "</select>";
-		echo "<select class=body name=year style=\"width:60px\"><option value=0>Year" . make_select_list(range(2005,date("Y")),$year) . "</select>";
+		echo "<select class=body name=year style=\"width:60px\"><option value=0>Year" . make_select_list(range(2005,gmdate("Y")),$year) . "</select>";
 		echo "<select class=body name=type>" . make_select_list_key($mods->modtypes,$type) . "</select>";
 	echo "<input class=body type=submit value=Go></td></tr>";
 	echo "</form>";

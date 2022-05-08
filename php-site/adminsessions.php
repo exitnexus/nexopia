@@ -4,13 +4,13 @@
 
 	require_once("include/general.lib.php");
 
-	if(!$mods->isAdmin($userData['userid'], 'listusers')){
+	if(!$mods->isAdmin($userData['userid'], 'listsessions')){
 		header("location: /");
 		exit;
 	}
 
 	$name = "";
-	$uid = getREQval('uid', 'int');
+	$uid = getREQval('uid');
 
 	if(!empty($uid)){
 		if(is_numeric($uid)){
@@ -22,8 +22,8 @@
 			$uid = getUserID($name);
 		}
 
-		if($action == 'logout' && ($sessionid = getREQval('sessionid', 'int'))){
-			$usersdb->prepare_query("DELETE FROM sessions WHERE userid = % && sessionid = #", $uid, $sessionid);
+		if($action == 'logout' && ($sessionid = getREQval('sessionid'))){
+			$usersdb->prepare_query("DELETE FROM sessions WHERE userid = % && sessionid = ?", $uid, $sessionid);
 			$mods->adminlog('remove sessions',"Remove session $sessionid for user $uid");
 		}
 
@@ -41,9 +41,9 @@
 	incHeader();
 
 	echo "<table align=center>";
-	echo "<form action=$_SERVER[PHP_SELF]>";
+	echo "<form action=$_SERVER[PHP_SELF] method=post>";
 
-	echo "<tr><td class=header colspan=6 align=center>Username or Userid: <input class=body class=text name=uid value='$name'><input class=body type=submit value=Search></td></tr>";
+	echo "<tr><td class=header colspan=6 align=center>Username or Userid: <input class=body class=text name=uid value='" . htmlentities($name) . "'><input class=body type=submit value=Search></td></tr>";
 	echo "</form>";
 
 	if(!empty($uid)){

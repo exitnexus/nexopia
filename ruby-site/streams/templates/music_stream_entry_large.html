@@ -1,0 +1,33 @@
+<div class="large_stream_entry">
+	<div>
+		<div class="stream_entry_title">
+			<t:if t:id="entry.stream_icon">
+				<img src="{entry.stream_icon.image_location}"></img>
+			</t:if>
+			<a t:id="entry"></a>
+		</div>
+		<div class="stream_entry_date">
+			<!--{entry.date_string}-->
+		</div>
+	</div>
+	<div class="stream_entry_brief">
+		<table>
+			<tbody>
+				<tr>
+					<td style="vertical-align: top; text-align:center;">
+
+					</td>
+					<td style="padding-left: 3px; vertical-align: top;">
+						#{entry.brief}
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div class="stream_entry_read_more">
+		 <a t:id="entry" t:linktype="more"></a>
+	</div>
+	<div class="stream_entry_footer">
+		<!--Views ({entry.stream_entry.views}) |Posted by&#160;<a t:id="entry.user" t:linktype="php"></a>-->
+	</div>
+</div>

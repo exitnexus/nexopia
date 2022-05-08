@@ -1,0 +1,46 @@
+<tr>
+	<td colspan="2">
+		<div class="block_container_navigation">
+			<div class="profile_nav_secondary">
+				<t:if t:id="PageRequest.current.session.user.plus?">
+					<a href="/my/profile/skin_edit/">
+						SKIN
+					</a>
+					&#160;|&#160;
+				</t:if>
+				<a href="/my/profile/">
+					DONE
+				</a>
+			</div>
+			<div class="profile_navigation">
+					PROFILE
+				&#160;|&#160;
+				
+					GALLERY
+				
+				&#160;|&#160;
+				
+					BLOG
+				
+				&#160;|&#160;
+				
+					COMMENTS
+				
+				&#160;|&#160;
+				
+					FRIENDS
+				
+			</div>
+			<br class="clear" />
+			<div>
+				<select id="new_block_selector">
+					<t:iter t:id="block_info_list" t:iter="block_info">
+						<option value="#{block_info.generate_key()}">{block_info.title}</option>
+					</t:iter>
+				</select>
+				&#160;<a href="javascript:;" onclick="YAHOO.profile.Blocks.createNewBlock();">&#062;Create</a>
+			</div>
+		</div>
+	</td>
+</tr>
+        

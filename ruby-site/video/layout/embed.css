@@ -1,0 +1,18 @@
+#show_embed {
+	padding: 6px;
+	text-align: left;
+	font-size: $page_font_size;
+	font-family: $page_font_family;
+	color: $primary_text_color;
+	background-color: $primary_background_color;
+}
+
+#show_embed a {
+	color: $link_color;
+	text-decoration: $link_text_decoration;
+}
+
+#show_embed a:hover {
+	color: $link_accent_color;
+	text-decoration: $link_accent_text_decoration;
+}

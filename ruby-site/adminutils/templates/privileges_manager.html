@@ -1,0 +1,63 @@
+<div style="background-color:white" xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<h1>Manage Privileges</h1>
+	<ul>
+		<li t:id="roles" t:iter="role">
+			<h2>{role.rolename}</h2>
+			<form method="post" action="/privileges/roles/remove">
+				<input type="hidden" name="roleid" id="roleid" value="{role.id}"/>
+				<ul>
+					<h3>Existing Privileges</h3>
+					<li t:id="role.privileges" t:iter="privilege">
+						<input type="checkbox" name="grant[{privilege.privilegeid}]"/>
+						{privilege.module_name} - {privilege.privilege_name}
+					</li>
+					<li>
+						<input type="submit" value="Remove"/>
+					</li>
+				</ul>
+			</form>
+			<form method="post" action="/privileges/roles/add">
+				<input type="hidden" name="roleid" id="roleid" value="{role.id}"/>
+				<ul>
+					<h3>Add a Privilege</h3>
+					<li><label>Module</label>
+						<select id="select_module" name="select_module">
+							<t:loop t:id="modules" t:iter="mod">
+								<option value="{mod.typeid}">{mod.typename}</option>
+							</t:loop>
+						</select>
+					</li>
+					<li><label>Privilege</label>
+						<select id="select_privilege" name="select_privilege">
+							<t:loop t:id="privileges" t:iter="privilege">
+								<option value="{privilege.privilegeid}">{privilege.name}</option>
+							</t:loop>
+						</select>
+					</li>
+					<li><input type="submit" value="Add"/></li>
+				</ul>
+			</form>
+		</li>
+	</ul>
+	<form method="post" action="/privileges/user/add">
+		<h2>Add a Privilege to a User</h2>
+		<ul>
+			<li><label>User</label><input type="text" name="username" id="username"/></li>
+			<li><label>Module</label>
+				<select id="select_module" name="select_module">
+					<t:loop t:id="modules" t:iter="mod">
+						<option value="{mod.typeid}">{mod.typename}</option>
+					</t:loop>
+				</select>
+			</li>
+			<li><label>Privilege</label>
+				<select id="select_privilege" name="select_privilege">
+					<t:loop t:id="privileges" t:iter="privilege">
+						<option value="{privilege.privilegeid}">{privilege.name}</option>
+					</t:loop>
+				</select>
+			</li>
+			<li><input type="submit" value="Add"/></li>
+		</ul>
+	</form>
+</div>

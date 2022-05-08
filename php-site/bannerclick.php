@@ -1,6 +1,7 @@
 <?
 
 	$login=0;
+	$forceserver = true;
 
 	require_once("include/general.lib.php");
 
@@ -32,5 +33,5 @@
 
 	$link = $banner->click($id, $page);
 
-	header("location: $link");
+	header("Location: $link");
 	exit;

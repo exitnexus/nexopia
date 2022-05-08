@@ -1,0 +1,19 @@
+<div class="video_page_container">
+	<div id="comments_full">
+	
+		<div id="comments_full_header">
+			<a href="/videos{back_link}">Back to Videos</a><br/><br/>
+		</div>
+	
+		<call:page t:url="'/videos/comments/full/'+videoid.to_s" t:id="comments" t:iter="comment">
+			<call:yield>
+				<t:template-include name="comments_comment" module="video"/>
+			</call:yield>
+		</call:page>
+	
+		<div class="clearit"><!-- Comment to fix IE empty DIV problem. --></div>
+			
+		<t:template-include name="comments_post" module="video"/>
+
+	</div>
+</div>

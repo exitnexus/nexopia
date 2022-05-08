@@ -1,0 +1,62 @@
+<div style="background-color:#ffffff">
+	<table>
+		<tr>
+			<td>
+				{project.name} : {sprint.name}
+			</td>
+		</tr>
+		<tr>
+			<td>
+				View Log
+			</td>
+		</tr>
+		
+		<tr>
+			<td>
+				<template-include module="devutils" name="task_list" />
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<template-include module="devutils" name="people_list" />
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<form method="post" action="{uri}/add/person">
+					<table>
+						<tr>
+							<td colspan="2">
+								Add Person
+							</td>
+						</tr>
+						<tr>
+							<td>
+								User:
+							</td>
+							<td>
+								<select name="user_id" id="user_id">
+									<option selected="selected" value="-1">Select User</option>
+									<option t:id="project.people" t:iter="person" value="{person.userid}">{person.user.username}: {person.commitment}</option>
+								</select>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								Commitment:
+							</td>
+							<td>
+								<input type="text" name="commitment" id="commitment" value="100" size="3" maxlength="3" />
+							</td>
+						</tr>
+						<tr>
+							<td colspan="2">
+								<input type="submit" />
+							</td>
+						</tr>
+					</table>
+				</form>
+			</td>
+		</tr>
+	</table>
+</div>

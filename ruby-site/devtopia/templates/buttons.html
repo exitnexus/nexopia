@@ -1,0 +1,4 @@
+<div class="button_bar">
+	<div id="save_button" class="button" onclick="ProjectManager.save('#{record.get_primary_key.to_a * %q(-)}','{record.class}')">Save</div>
+	<div id="revert_button" class="button" onclick="ProjectManager.revert('#{record.get_primary_key.to_a * %q(-)}','{record.class}')">Revert</div>
+</div>

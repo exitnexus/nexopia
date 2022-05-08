@@ -1,0 +1,13 @@
+<t:template>
+	temp = new ProfileBlockInfo({block_info.module_id()}, "#{block_info.path}");\n
+	<t:iter t:iter="accessor" t:id="block_info.data_accessors">
+		<t:varsub t:new="block_accessor_value" t:old="block_info.send(accessor.to_sym())"></t:varsub>
+		<t:if t:id="block_accessor_value.kind_of?(String) || block_accessor_value.kind_of?(Symbol)">
+			temp.{accessor} = "#{block_accessor_value}";\n
+		</t:if>
+		<t:if t:id="!(block_accessor_value.kind_of?(String) || block_accessor_value.kind_of?(Symbol))">
+			temp.{accessor} = {block_accessor_value.to_s};\n
+		</t:if>
+	</t:iter>
+	YAHOO.profile.block_info_list[temp.generate_key] = temp;\n
+</t:template>

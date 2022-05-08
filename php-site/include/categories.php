@@ -18,12 +18,22 @@ class category{
 
 		$this->db = & $db;
 
-		if($cached){
-			$this->data = $cache->hdget($name . "d", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('data')));
-			$this->child = $cache->hdget($name . "c", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('child')));
-			$this->parent = $cache->hdget($name . "p", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('parent')));
+		static $catcache = array();
+		
+		if( isset($catcache[$name])){
+			$this->data = & $catcache[$name]->data;
+			$this->child = & $catcache[$name]->child;
+			$this->parent = & $catcache[$name]->parent;
 		}else{
-			$this->dumpData();
+			if($cached){
+				$this->data = $cache->hdget($name . "d", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('data')));
+				$this->child = $cache->hdget($name . "c", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('child')));
+				$this->parent = $cache->hdget($name . "p", 0, array('function' => array(&$this, 'dumpData'), 'params' => array('parent')));
+			}else{
+				$this->dumpData();
+			}
+			
+			$catcache[$name] = & $this;
 		}
 	}
 

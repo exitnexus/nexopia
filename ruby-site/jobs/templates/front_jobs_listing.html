@@ -1,0 +1,10 @@
+<ul>
+	<t:iter t:id="job_list" t:iter="job_entry">
+		<t:if t:id="job_entry.selected">
+			<li/>{job_entry.title}
+		</t:if>
+		<t:if t:id="!job_entry.selected">
+			<li/><a t:id="job_entry" class="job_link"></a>
+		</t:if>
+	</t:iter>
+</ul>

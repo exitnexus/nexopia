@@ -66,6 +66,7 @@
 						'INSERT INTO profileblocks (userid, blockid, blocktitle, blockcontent, blockorder, permission) VALUES (%, #, ?, ?, #, ?)',
 						$this->uid, $seqid, $block['blocktitle'], $block['blockcontent'], $block['blockorder'], $block['permission']
 					);
+					enqueue("ProfileBlock", "create", $this->uid, array($this->uid, $block['blockid']));	
 				}
 
 				// save new content for existing block
@@ -74,6 +75,8 @@
 						'UPDATE profileblocks SET blocktitle = ?, blockcontent = ?, blockorder = #, permission = ? WHERE userid = % AND blockid = #',
 						$block['blocktitle'], $block['blockcontent'], $block['blockorder'], $block['permission'], $this->uid, $block['blockid']
 					);
+					// This is, sadly, no good.  It always saves, whether or not you've made changes.
+					//enqueue("ProfileBlock", "edit", $this->uid, array($this->uid, $block['blockid']));	
 				}
 				else
 					unset($blocks[$index]);

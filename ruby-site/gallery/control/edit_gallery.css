@@ -1,0 +1,44 @@
+#selected_album_cover {
+	float: left;
+}
+
+#edit_gallery {
+	width: 372px;
+}
+
+#edit_gallery_form {
+	font-size: 1.1em;
+	float: left;
+	padding: 4px;
+	width: 264px;
+	height: 98px;
+	overflow: auto;
+	& .minor {
+		font-size: 0.9em;
+		color: $minor_font_color;
+	}
+	& h2 {
+		font-size: 16px;
+	}
+	& input {
+		margin: 3px;
+	}
+	& #gallery_name_input {
+		font-size: 1.3em;
+	}
+	& #gallery_permission {
+		top: 10px;
+	}
+	& #edit_gallery_spinner {
+		float: right;
+		display: none;
+	}
+}
+
+#gallery_permission_select {
+	width: auto;
+}
+
+#gallery_name h2{
+	display: inline;
+}

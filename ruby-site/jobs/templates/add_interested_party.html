@@ -1,0 +1,10 @@
+<div>
+	<form name="add_interested_party" method="post" action="/jobs/administration/{submit_location}/add/manager/submit/">
+		<select name="manager_id" id="manager_id">
+			<t:iter t:id="manager_list" t:iter="manager">
+				<option value="{manager.userid}">{manager.name}</option>
+			</t:iter>
+		</select>
+		<input type="submit" name="add_ip_submit" id="add_ip_submit"></input>
+	</form>
+</div>

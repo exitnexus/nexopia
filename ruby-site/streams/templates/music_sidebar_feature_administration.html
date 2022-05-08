@@ -1,0 +1,75 @@
+<div id="music_doc">
+	<div class="yui-t2 music_administration">
+		#{css}
+		#{script}
+		<div id="yui-main_music">
+			<div class="yui-b">
+				<div class="yui-g">
+					Sidebar Feature Administration
+					<div style="float:right">
+						<a href="/music/administration/sidebarfeature/new/">Add a new sidebar feature</a>
+					</div>
+				</div>
+				<div class="yui-g">
+					<table>
+						<tbody>
+							<tr>
+								<th>
+									&#160;
+								</th>
+								<th>
+									Sidebar Feature ID
+								</th>
+								<th>
+									Active
+								</th>
+								<th>
+									Content Type
+								</th>
+								<th>
+									Dimensions
+								</th>
+								<th>
+									Entry Date
+								</th>
+							</tr>
+							<t:iter t:id="sidebar_feature_list" t:iter="feature" t:alternating="primary, secondary">
+								<tr class="{class_var}">
+									<td>
+										<a href="/music/administration/sidebarfeature/edit/{feature.id}/"><img src="http://{$site.static_files_url}/icons/edit_icon.jpg" alt="Edit"></img></a>
+										<a href="/music/administration/sidebarfeature/delete/{feature.id}/" onclick="return MUSIC.confirm_delete({feature.id}, 'Feature {feature.id}')"><img src="{$site.static_files_url}/streams/icons/delete_icon.jpg" alt="Delete"></img></a>
+									</td>
+									<td>
+										{feature.id}
+									</td>
+									<td>
+										<t:if t:id="feature.active">
+											<ul>
+												<li/>
+											</ul>
+										</t:if>
+									</td>
+									<td>
+										{feature.content_type}
+									</td>
+									<td>
+										{feature.width}x{feature.height}
+									</td>
+									<td>
+										{feature.date_string}
+									</td>
+								</tr>
+							</t:iter>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div class="yui-b">
+			<t:template-include t:module="streams" t:name="music_administration_panel"></t:template-include>
+			<div class="yui-g">
+				<a href="/music/">Music Front Page</a>
+			</div>
+		</div>
+	</div>
+</div>

@@ -1,0 +1,95 @@
+div#friends_profile_block {
+	& .friends_title {
+		color: $link_color;
+		font-weight: bold;
+		font-family: $header_font_family;
+		font-size: 14px;
+		letter-spacing: 0px;
+	}
+	& .view_all {
+		float: right;
+		margin-top: 2px;
+	}
+	& a {
+		color: $link_color;
+		&:hover {
+			color: $link_accent_color;
+		}
+	}
+	& ul {
+		/* todo: height: expression( this.scrollHeight > 449 ? "450px" : "auto" );  sets max-height for IE */
+		max-height: 450px;
+		overflow: hidden;
+		list-style: none;
+		padding: 0px;
+		margin: 0px;
+		& img {
+			border:none;
+			width:52px;
+			height:43px;
+		}
+	
+		& li.user_container {
+			background-color: $secondary_background_color;
+			margin-top: 2px;
+			width: 100%;
+			height: 43px;
+			&:hover {
+				background-color: $primary_background_color;
+			}
+		}
+
+		& div.user_thumb {
+			float: left;
+		}
+
+		& div.user_info {
+			float: left;
+			padding: 3px 5px 3px 5px;
+			font-size: 10px;
+		}
+
+		& div.user_functions {
+			float: right;
+			padding: 3px 5px 3px 0px;
+			text-align: center;
+	 		& a {
+				display: block;
+			}
+		}
+
+		& img.icon {
+			margin-bottom: 6px;
+			width: 10px;
+			height: 8px;
+			&.last {
+				margin-bottom: 0px;
+			}
+		}
+	}
+	& div.friends_arrow_btns {
+		position: relative;
+		width: 100%;
+		& a {
+			float: right;
+			margin-top: 4px;
+			&.friends_btns {
+				width: 82px;
+				height: 11px;
+				margin-bottom: 6px;
+				border: none;
+				background-position: center center;
+				background-repeat: no-repeat;
+				background-color: $secondary_background_color;
+			}
+			&#arrow_down {
+				margin-left: 1px;
+				background-image: url("/static/1200077378/files/Friends/images/icon_arrow_down.gif");
+			}
+			&#arrow_up {
+				margin-right: 1px;
+				background-image: url("/static/1200077378/files/Friends/images/icon_arrow_up.gif");
+			}
+		}
+	}
+}

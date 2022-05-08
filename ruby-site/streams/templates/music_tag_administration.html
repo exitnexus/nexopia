@@ -1,0 +1,55 @@
+<div id="music_doc">
+<div class="yui-t2 music_administration">
+	#{css}
+	<div id="yui-main_music">
+		<div class="yui-b">
+			<div class="yui-g">
+				Tag Administration
+			</div>
+			<div class="yui-g">
+				<table>
+					<tbody>
+						<tr>
+							<th>
+								&#160;
+							</th>
+							<th>
+								Tagword
+							</th>
+							<th>
+								# of articles
+							</th>
+							<th>
+								Object ID
+							</th>
+						</tr>
+						<t:iter t:id="tag_list" t:iter="tag" t:alternating="primary, secondary">
+							<tr class="{class_var}">
+								<td>
+									<img src="{$site.static_files_url}/streams/icons/edit_icon.jpg" alt="Edit"></img>
+									<img src="{$site.static_files_url}/streams/icons/delete_icon.jpg" alt="Delete"></img>
+								</td>
+								<td>
+									{tag.tagname}
+								</td>
+								<td>
+									{tag.entry_tags.length}
+								</td>
+								<td>
+									{tag.tagid}
+								</td>
+							</tr>
+						</t:iter>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	<div class="yui-b">
+		<t:template-include t:module="streams" t:name="music_administration_panel"></t:template-include>
+		<div class="yui-g">
+			<a href="/music/">Music Front Page</a>
+		</div>
+	</div>
+</div>
+</div>

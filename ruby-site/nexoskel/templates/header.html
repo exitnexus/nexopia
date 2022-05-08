@@ -1,0 +1,82 @@
+<t:docroot>
+	<t:statement>
+		lib_require :core, "stats"
+		lib_require :nexoskel, "menus"
+	</t:statement>
+	
+	<tr>
+		<td class="main_header" align="right">
+			<t:if t:id="true">
+				<iframe src="/bannerview.php?size=#{size}&pageid=$pageid" marginHeight="0" marginWidth="0" frameborder="0" name="banner" scrolling="no" style="width: 728" allowtransparency="true" background-color="transparent">
+				</iframe>
+			</t:if>
+		</td>
+	</tr>
+	
+	<tr>
+		<td class="menu">
+			<table width="100%" cellspacing="0" cellpadding="0">
+				<tr>
+					<t:if t:id="skindata['menuends']">
+						<td class="left_menu_end" align="left" width="1">
+							&nbsp;
+						</td>
+					</t:if>
+					<td align="left" class="menu">
+						&nbsp;&nbsp;&nbsp;&nbsp;
+						#{$menus['main'].to_html}
+					</td>
+					<td align="right" class="menu">
+						Online:&nbsp;
+						<t:if t:id="!PageRequest.current.session.user.anonymous?">
+							<a href="/users/#{PageRequest.current.session.user.username}/friends">Friends #{PageRequest.current.session.user.friends_online.length}</a>&nbsp;|&nbsp;
+						</t:if>
+						<a href="/profile.php?requestType=onlineByPrefs">Users #{Stats.online_users}</a>&nbsp;|&nbsp;
+						Guests #{Stats.online_guests}
+						&nbsp;&nbsp;
+					</td>
+					<t:if t:id="skindata['menuends']">
+						<td class="right_menu_end" align="left" width="1">
+							&nbsp;
+						</td>
+					</t:if>
+				</tr>
+			</table>
+		</td>
+	</tr>
+	<t:if t:id="!PageRequest.current.session.user.anonymous?">
+		<tr>
+			<td class="menu_divider">
+			</td>
+		</tr>
+		<tr>
+			<td class="menu">
+				<table width="100%" cellspacing="0" cellpadding="0">
+					<tr>
+						<t:if t:id="skindata['menuends']">
+							<td class="left_menu_end" align="left" width="1">
+								&nbsp;
+							</td>
+						</t:if>
+					
+						<td align="left" class="menu">    
+							&nbsp;&nbsp;&nbsp;&nbsp;
+							#{$menus['personal'].to_html}
+						</td>
+						<td align="right" class="menu">
+							<a href="/messages.php">Messages</a>
+							<a href="/messages.php?action=viewnew">&nbsp;#{PageRequest.current.session.user.newmsgs} New</a>&nbsp;|&nbsp;
+							<a href="/weblog.php?uid=203">Blog</a>&nbsp;<a href="/weblog.php?newreplies=1">1 Reply</a>
+							&nbsp;&nbsp;
+						</td>
+						<t:if t:id="skindata['menuends']">
+							<td class="right_menu_end" align="left" width="1">
+								&nbsp;
+							</td>
+						</t:if>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</t:if>
+</t:docroot>

@@ -10,7 +10,7 @@
 		if($userData['userid'] == $uid)
 			$isAdmin = 1;
 		else
-			$isAdmin = $mods->isAdmin($userData['userid'], 'deletecomments');
+			$isAdmin = ($mods->isAdmin($userData['userid'], 'deletecomments') ? 2 : false);
 	}
 
 	$data = getUserInfo($uid);
@@ -20,14 +20,14 @@
 			die("Bad user");
 	}
 
-	if($data['enablecomments']=='n'){
+	if($data['enablecomments']=='n' && $isAdmin != 2){
 		header("location: /profile.php?uid=$uid");
 		exit;
 	}
 
 	$data['plus'] = $data['premiumexpiry'] > time();
 
-	if($data['plus'] && $data['hideprofile'] == 'y' && isIgnored($uid, $userData['userid'], false, 0, true)){
+	if($data['hideprofile'] == 'y' && isIgnored($uid, $userData['userid'], false, 0, true)){
 		incHeader();
 
 		echo "This user is ignoring you.";
@@ -42,6 +42,8 @@
 				if($isAdmin && ($checkID = getPOSTval('checkID', 'array'))){
 					$usercomments->delete($uid, $checkID);
 
+					$google->updateHash($uid);
+
 //					$cache->remove("comment-$insertid");
 //					$cache->remove("commentids-$uid");
 				}
@@ -50,21 +52,36 @@
 			case "Preview":
 				$msg = getPOSTval('msg');
 
-				$parse_bbcode = getPOSTval('parse_bbcode');
-
-				addUserComment($uid, $msg, true, $parse_bbcode);
+				addUserComment($uid, $msg, true);
 
 			case "Post":
+
+				$limit = $cache->get("commentsratelimit-$userData[userid]");
+
+				if($limit){
+					$cache->put("commentsratelimit-$userData[userid]", 1, 15); //block for another 15 seconds
+					$msgs->addMsg("You can only send one comment per second");
+					break;
+				}
+
+
 				$msg = getPOSTval('msg');
 
-				$parse_bbcode = getPOSTval('parse_bbcode');
 				if(!empty($msg)){
-					if(isIgnored($uid, $userData['userid'], 'comments', $userData['age'])){
-						$msgs->addMsg("This user is ignoring you. You cannot leave a comment");
+					if($ignoreid = isIgnored($uid, $userData['userid'], 'comments', $userData['age'])){
+						if($ignoreid == 1)
+							$msgs->addMsg("This user only accepts comments from friends.");
+						else
+							$msgs->addMsg("This user is ignoring you.");
 					}else{
-						if(!$usercomments->postUserComment($uid, $msg, $userData['userid'], $parse_bbcode))
-							addUserComment($uid, $msg, true,  $parse_bbcode);
+						if(!$usercomments->postUserComment($uid, $msg, $userData['userid']))
+							addUserComment($uid, $msg, true);
+						else
+							scan_string_for_notables($msg);
+						$google->updateHash($uid);
 					}
+
+					$cache->put("commentsratelimit-$userData[userid]", 1, 5); //block for 5 seconds
 				}
 		}
 
@@ -85,7 +102,7 @@ function listComments($page){
 	global $usercomments, $userData, $data, $uid, $config, $isAdmin, $cache, $weblog;
 
 
-	$template =  new template("usercomments/listcomments", true);
+	$template =  new template("usercomments/listcomments");
 	$comments = array();
 	$authorids = array();
 
@@ -110,28 +127,13 @@ function listComments($page){
 				$authors[$id] = array('state' => 'deleted', 'userid' => $id, 'username' => $authornames[$id]);
 	}
 
-	ob_start();
-	injectSkin($data, 'comment');
-	$skin = ob_get_contents();
-	ob_end_clean();
-
-	$template->set("skin", $skin);
+	$template->set("skin", injectSkin($data, 'comment'));
 
 	$isFriend = $userData['loggedIn'] && ($userData['userid']==$uid || isFriend($userData['userid'], $uid));
 
-	$cols=3;
-	$userblog = new userblog($weblog, $uid);
 
-	if ($userblog->isVisible($userData['loggedIn'], $isFriend))
-		$cols++;
-	if($data['gallery']=='anyone' || ($data['gallery']=='loggedin' && $userData['loggedIn']) || ($data['gallery']=='friends' && $isFriend))
-		$cols++;
-
-	$width = round(100.0/$cols);
-	$template->set("width", $width);
 	$template->set("uid", $uid);
-	$template->set("can_see_gallery", $data['gallery']=='anyone' || ($data['gallery']=='loggedin' && $userData['loggedIn']) || ($data['gallery']=='friends' && $isFriend));
-	$template->set("can_see_blog", $userblog->isVisible($userData['loggedIn'], $isFriend));
+	$template->set("profilehead", incProfileHead($data));
 	$template->set("username", $data['username']);
 	$template->set("pagelist",pageList("$_SERVER[PHP_SELF]?id=$uid",$page,$numpages,'header'));
 	$template->set("no_comments", count($comments) == 0);
@@ -159,7 +161,7 @@ function listComments($page){
 					$line['author_first_pic'] = $config['thumbloc'] . floor($author['userid']/1000) . "/" . weirdmap($author['userid']) . "/$author[firstpic].jpg";
 				else
 					$line['author_first_pic'] = "";
-					
+
 				$line['author_age'] = $author['age'];
 				$line['author_sex'] = $author['sex'];
 			}
@@ -183,60 +185,29 @@ function listComments($page){
 	$template->set('only_friends_comments', !$isAdmin && ($data['onlyfriends'] == 'both' || $data['onlyfriends'] == 'comments') && !$isFriend);
 	$template->set('only_same_age', !$isAdmin && ($data['ignorebyage'] == 'both' || $data['ignorebyage'] == 'comments') && $userData['age'] && ($userData['age'] < $data['defaultminage'] || $userData['age'] > $data['defaultmaxage']) && !$isFriend);
 	$template->set('is_ignored', !$isAdmin && isIgnored($uid,$userData['userid'],'comments', $userData['age'], true));
-
-/*	if(!isset($parse_bbcode))
-		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $userData['parse_bbcode']));
-	else
-		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $parse_bbcode));
-*/
-	$template->set("checkbox_parsebbcode", '<input type="hidden" name="parse_bbcode" value="y"/>');
-
-
-	ob_start();
-	editBox("");
-	$template->set('editbox', ob_get_contents());
-	ob_end_clean();
+	$template->set('editbox', editBoxStr(""));
 
 	$template->display();
 	exit;
 }
 
-function addUserComment($uid, $msg, $preview,  $parse_bbcode){
+function addUserComment($uid, $msg, $preview){
 	$template = new Template("usercomments/addusercomment");
 	$template->set("preview", $preview);
-
 
 	if($preview){
 		$msg = trim($msg);
 
-		$nmsg = html_sanitizer::sanitize($msg);
-
-		if($parse_bbcode)
-		{
-			$nmsg2 = parseHTML($nmsg);
-			$nmsg3 = smilies($nmsg2);
-			$nmsg3 = wrap($nmsg3);
-		}
-		else
-			$nmsg3 = $nmsg;
+		$nmsg = removeHTML($msg);
+		$nmsg2 = parseHTML($nmsg);
+		$nmsg3 = smilies($nmsg2);
+		$nmsg3 = wrap($nmsg3);
 
 		$template->set("msg", nl2br($nmsg3));
 	}
 
 	$template->set("uid", $uid);
-
-/*	if(!isset($parse_bbcode))
-		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $userData['parse_bbcode']));
-	else
-		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $parse_bbcode));*/
-	$template->set("checkbox_parsebbcode", '<input type="hidden" name="parse_bbcode" value="y"/>');
-
-
-
-	ob_start();
-	editBox($nmsg);
-	$template->set("editbox",ob_get_contents() );
-	ob_end_clean();
+	$template->set("editbox", editBoxStr($msg) );
 	$template->display();
 	exit;
 }

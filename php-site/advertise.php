@@ -1,126 +1,113 @@
 <?
-	$login=0;
+
+	$login = 0;
 
 	require_once("include/general.lib.php");
+	require_once('include/mail/emailMessage.php');
 
-	if($action=='Send'){
-		$subject = "Nexopia Advertising";
-		$message = "Name: $name\nOrganization: $organization\nEmail: $email\nPhone: $phone\nTime: $time\n\n$comments";
-		$touid = 673; // rob
-		$toemail = "rob@nexopia.com";
+	$defaults = array(
+		'companyname' => "",
+		'website' => "http://",
+		'industry' => "",
+		'contactname' => "",
+		'jobtitle' => "",
+		'email' => "",
+		'phone' => "",
+		'city' => "",
+		'country' => "",
+		'startday' => 0,
+		'startmonth' => 0,
+		'startyear' => 0,
+		'endday' => 0,
+		'endmonth' => 0,
+		'endyear' => 0,
+		'budget' => "",
+		'adbefore' => '',
+		'targetdemo' => '',
+		'description' => "",
+		);
 
-		$messaging->deliverMsg($touid, $subject, $message);
+	$data = getPOSTarray($defaults, 'data');
 
-		smtpmail("$toemail", $subject, $message, "From: $name <$email>");
+	for($i=1;$i<=12;$i++)
+		$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
 
-		incHeader();
+	if($action && !blank($data['contactname'], $data['email']) && isValidEmail($data['email']) && preg_match("/^[-_a-zA-Z0-9 ]*$/", $data['contactname'])){
+		$str = "";
 
-		echo "Thanks for your interest. You will be contacted shortly.";
+		if($data['companyname'])
+			$str .= "Company Name: $data[companyname]\n";
+		if($data['website'] && $data['website'] != $defaults['website'])
+			$str .= "Website: $data[website]\n";
+		if($data['industry'])
+			$str .= "Industry: $data[industry]\n";
+		$str .= "\n";
 
-		incFooter();
+		if($data['contactname'])
+			$str .= "Contact Name: $data[contactname]\n";
+		if($data['jobtitle'])
+			$str .= "Job title:	$data[jobtitle]\n";
+		if($data['email'])
+			$str .= "Email: $data[email]\n";
+		if($data['phone'])
+			$str .= "Phone: $data[phone]\n";
+		if($data['city'])
+			$str .= "City: $data[city]\n";
+		if($data['country'])
+			$str .= "Country: $data[country]\n";
+		$str .= "\n";
+
+		if($data['startday'] || $data['startmonth'] || $data['startyear']){
+			$str .= "Start date: ";
+			if($data['startmonth'] && isset($data['startmonth']))
+				$str .= $months[$data['startmonth']];
+			if($data['startday'])
+				$str .= " $data[startday]";
+			if($data['startyear'])
+				$str .= ", $data[startyear]";
+			$str .= "\n";
+		}
+		if($data['endday'] || $data['endmonth'] || $data['endyear']){
+			$str .= "End date: ";
+			if($data['endmonth'] && isset($data['endmonth']))
+				$str .= $months[$data['endmonth']];
+			if($data['endday'])
+				$str .= " $data[endday]";
+			if($data['endyear'])
+				$str .= ", $data[endyear]";
+			$str .= "\n";
+		}
+		if($data['budget'])
+			$str .= "Budget: $data[budget]\n";
+		if($data['adbefore'])
+			$str .= "Advertised online before: $data[adbefore]\n";
+		$str .= "\n";
+		if($data['targetdemo'])
+			$str .= "Target Demographics:\n$data[targetdemo]\n\n";
+		if($data['description'])
+			$str .= "Campaign Description:\n$data[description]\n\n";
+
+		$msg = new emailMessage();
+		$msg->setSMTPParams($config['smtp_host'], 25);
+		$msg->setFrom("$data[contactname] <$data[email]>");
+		$msg->setSubject("Sales Email");
+		$msg->setText($str);
+		$msg->send(array('sales@nexopia.com'), 'smtp');
+
+
+		$template = new template("advertise/complete");
+		$template->display();
 		exit;
 	}
 
-	incHeader();
-?>
-<table width="500" align=center>
-	<tr>
-		<td class="body">
-			<font size="4">
-				<b>Advertise with Nexopia</b>
-			</font>
-			<br>
-			<br>
-			Nexopia is the ideal web based medium to reach Canada's trend setting youth. Nexopia's users number over 230,000 with an average age of 16.8. With roughly a 50:50 split between male and female, we can help you reach whatever part of Canada's youth you desire.
-			<br>
-			<br>
-			For more information about advertising with Nexopia either fill in the form below, or contact Rob Davy at
-			<a class=body href="mailto:rob@nexopia.com">
-				rob@nexopia.com</a>
-			or (780) 669 2713.
-			<br>
-			<br>
-			<table align=center>
-				<form method=post action=<?=$_SERVER['PHP_SELF']?>>
-					<tr>
-						<td class=body colspan=2 align=center>
-							<b>Request our Advertising Information Pack by email</b>
-						</td>
-					</tr>
-					<tr>
-						<td class="body" width="100">
-							Your Name:
-						</td>
-						<td class="body">
-							<input type="text" size="30" class="body" name="name" style="width:250">
-						</td>
-					</tr>
-					<tr>
-						<td class="body">
-							Organization:
-						</td>
-						<td class="body">
-							<input type="text" size="30" class="body" name="organization" style="width:250">
-						</td>
-					</tr>
-					<tr>
-						<td class="body">
-							E-Mail Address:
-						</td>
-						<td class="body">
-							<input type="text" size="30" class="body" name="email" style="width:250">
-						</td>
-					</tr>
-					<tr>
-						<td class="body">
-							Phone Number:
-						</td>
-						<td class="body">
-							<input type="text" size="30" class="body" name="phone" style="width:250">
-						</td>
-					</tr>
-					<tr>
-						<td class="body">
-							Time to Campaign:
-						</td>
-						<td class="body">
-							<select name="time" class="body" style="width:250">
-								<option value="asap">
-								As Soon As Possible
-								</option>
-								<option value="1month">
-								1 Month
-								</option>
-								<option value="3months">
-								3 Months
-								</option>
-								<option value="6months">
-								6 Months
-								</option>
-								<option value="research">
-								Research Only
-								</option>
-							</select>
-						</td>
-					</tr>
-					<tr>
-						<td class=body valign=top>
-							Comments:
-						</td>
-						<td class=body>
-<textarea class=body cols=28 rows=4 name=comments style="width:250"></textarea>
-						</td>
-					</tr>
-					<tr>
-						<td class=body colspan=2 align=center>
-							<input type="submit" name=action value="Send" class="body">
-						</td>
-					</tr>
-				</form>
-			</table>
-		</td>
-	</tr>
-</table>
-<?
-	incFooter();
+
+	$template = new template("advertise/advertise");
+	$template->set('data', $data);
+	$template->set('startday', make_select_list(range(1,31), $data['startday']));
+	$template->set('startmonth', make_select_list_key($months, $data['startmonth']));
+	$template->set('startyear', make_select_list(range(gmdate("Y"),gmdate("Y")+2), $data['startyear']));
+	$template->set('endday', make_select_list(range(1,31), $data['endday']));
+	$template->set('endmonth', make_select_list_key($months, $data['endmonth']));
+	$template->set('endyear', make_select_list(range(gmdate("Y"),gmdate("Y")+2), $data['endyear']));
+	$template->display();
 

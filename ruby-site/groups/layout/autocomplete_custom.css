@@ -1,0 +1,17 @@
+/* styles for header/body/footer wrapper within container */
+.groups .yui-ac-content, .groups_profile_block_edit .yui-ac-content{
+    background:$primary_background_color;
+	color:$primary_text_color;
+}
+
+/* styles for prehighlighted result item */
+.groups .yui-ac-content li.yui-ac-prehighlight, .groups_profile_block_edit .yui-ac-content li.yui-ac-prehighlight{
+    background:$secondary_background_color;
+	color:$secondary_text_color;
+}
+
+/* styles for highlighted result item */
+.groups .yui-ac-content li.yui-ac-highlight, .groups_profile_block_edit .yui-ac-content li.yui-ac-highlight{
+    background:$secondary_background_color;
+	color:$secondary_text_color;
+}

@@ -1,0 +1,22 @@
+<div class="band_entry" style="border: 1px solid black; padding-right:3px; margin-bottom: 2px;">
+	<div class="band_entry_image" style="width:100px; height:100px; background-color: orange; float: left;">
+		<t:if t:id="band.stream_icon">
+			<img height="100px" width="100px" src="{band.stream_icon.image}"></img>
+		</t:if>
+	</div>
+	<div class="band_entry_data" style="float:right;width:140px;">
+		<div style="margin-bottom: 6px; float: left; width: 100%;">
+			<h2><a t:id="band"></a></h2>
+		</div>
+		<div style="margin-bottom: 4px;float: left;width: 100%;">
+			{band.band_location}
+		</div>
+		<div style="margin-bottom: 4px;float: left;width: 100%;">
+			{band.genre}
+		</div>
+		<div style="float: left; width: 100%; text-align: right;">
+			&#62;Check it out
+		</div>
+	</div>
+	
+</div>

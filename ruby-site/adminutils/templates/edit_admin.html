@@ -1,0 +1,32 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<t:template-include name="admin_header" module="adminutils"/>
+	<h1>{user.username}'s Permissions</h1>
+	<form method="post" action="/admin/admins/update">
+		<input type="hidden" id="id" name="id" value="{user.userid}"/>
+		<table>
+			<tr>
+				<td class="header">
+					Grant
+				</td>
+				<td class="header">
+					Visible
+				</td>
+				<td class="header">
+					Role
+				</td>
+			</tr>
+			<tr t:alternating="body, body2" t:id="roles" t:iter="role">
+				<td class="{class_var}">
+					<input type="checkbox" name="role[{role.id}]" cond:checked="role.meta.checked"/>
+				</td>
+				<td class="{class_var}">
+					<input type="checkbox" name="title[{role.id}]" cond:checked="role.meta.visible"/>
+				</td>
+				<td class="{class_var}">
+					<a class="body" t:id="role"></a>&#xA0;({role.title})
+				</td>
+			</tr>
+		</table>
+		<input type="submit" value="Submit"/>
+	</form>
+</div>

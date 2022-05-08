@@ -1,0 +1,64 @@
+<div style="background-color:#ffffff">
+	<form method="post" action="{project.uri}/add/task">
+		<input type="hidden" name="sprint_id" id="sprint_id" value="{sprint.id}" />
+		<table>
+			<tr>
+				<td colspan="2">
+					{sprint.description}
+				</td>
+			</tr>
+			<tr colspan="2">
+				<td>
+					<ul>
+						<li t:id="tasks" t:iter="task"><a href="{task.uri}">{task.name}</a></li>
+					</ul>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2">
+					New Task
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Name:
+				</td>
+				<td>
+					<input type="text" id="name" name="name" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Owner:
+				</td>
+				<td>
+					<select name="owner_id" id="owner_id">
+						<option selected="selected" value="-1">Select User</option>
+						<option t:id="people" t:iter="person" value="{person.userid}">{person.user.username}: {person.commitment}%</option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Estimate:
+				</td>
+				<td>
+					<input type="text" name="estimate" id="estimate" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Description:
+				</td>
+				<td>
+					<input type="textarea" name="description" id="description" />
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2">
+					<input type="submit" />
+				</td>
+			</tr>
+		</table>
+	</form>
+</div>

@@ -1,0 +1,55 @@
+<t:template>
+	<a name="job_details">&#160;</a>
+	<div class="jobs_section_header">
+		{job.title}
+	</div>
+	{job.description}<br/>
+	<div class="job_responsibilities">
+		<div class="job_subtitle">
+			What you'll be doing:
+		</div>
+		#{job.responsibilities}
+	</div>
+	<div class="job_requirements">
+		<div class="job_subtitle">
+			Requirements:
+		</div>
+		#{job.requirements}
+	</div>
+	<div>
+		<div class="job_subtitle">
+			Application Materials
+		</div>
+		<ul>
+			<t:iter t:id="job.requested_assets" t:iter="asset">
+				<li>{asset.name}</li>
+			</t:iter>
+		</ul>
+	</div>
+	<div>
+		<div class="job_subtitle">
+			Posting Date
+		</div>
+		{job.jd_opening_date_string}
+	</div>
+	<t:if t:id="job.closingdate > 0">
+		<div>
+			<div class="job_subtitle">
+				Closing Date
+			</div>
+			{job.jd_closing_date_string}
+		</div>
+	</t:if>
+	<div class="job_apply">
+		<t:if t:id="app_hash.nil?()">
+			<a t:id="job" t:linktype="apply">
+				<img src="{$site.static_files_url}/jobs/icons/jobs_btn_apply.gif"></img>
+			</a>
+		</t:if>
+		<t:if t:id="!app_hash.nil?()">
+			<a href="/jobs/applicant/{app_hash}/job/{job.jobid}/apply/">
+				<img src="{$site.static_files_url}/jobs/icons/jobs_btn_apply.gif"></img>
+			</a>
+		</t:if>
+	</div>
+</t:template>

@@ -5,10 +5,13 @@
 	require_once("include/general.lib.php");
 
 
-	if(!$mods->isAdmin($userData['userid'],"editinvoice"))
+	if(!$mods->isAdmin($userData['userid'],"pluslog"))
 		die("You do not have permission to see this page");
 	
 	$supervisor = $mods->isAdmin($userData['userid'],"superviseinvoice");
+
+	$hideinvoices = getREQval("hideinvoices", 'bool');
+	$type = getREQval("type", 'string', 'username');
 
 	$user = getPOSTval('user');
 	
@@ -19,32 +22,41 @@
 		if(!checkKey($user, $k))
 			$user = '';
 	}
-	
-	$admin = getPOSTval('admin');
 
-	if(!$admin){
-		$admin = getREQval('admin', 'int');
-		$k = getREQval('k');
-
-		if(!checkKey($admin, $k))
-			$admin = '';
+	$uid = 0;	
+	if($user){
+		if(!$supervisor && $type == 'admin')
+			$uid = $userData['userid'];
+		elseif($type == 'userid')
+			$uid = intval($user);
+		else
+			$uid = getUserID($user);
 	}
+
+	$defaulttimeperiod = 2*365*86400; //past 2 years
 
 	$data = getREQval("data", "array");
-	$start = ($data['startmonth'] == 0 && $data['startday'] == 0 && $data['startyear'] == 0 ? 0 : usermktime(0,0,0,$data['startmonth'],$data['startday'],$data['startyear']));
-	$end   = ($data['endmonth'] == 0 && $data['endday'] == 0 && $data['endyear'] == 0 ? 0 : usermktime(23,59,59,$data['endmonth'],$data['endday'],$data['endyear']));
-	
-	$uid = getUserID($user);
-	$adminid = getUserID($admin);
-	if (!$supervisor) {
-		$adminid = $userData['userid'];
+	if(!isset($data['startmonth']) || $data['startmonth'] == 0 || $data['startday'] == 0 || $data['startyear'] == 0) {
+		$data['startmonth'] = userdate("n", time()-$defaulttimeperiod);
+		$data['startday'] = userdate("j", time()-$defaulttimeperiod);
+		$data['startyear'] = userdate("Y", time()-$defaulttimeperiod);
 	}
-	
+	if(!isset($data['endmonth']) || $data['endmonth'] == 0 || $data['endday'] == 0 || $data['endyear'] == 0) {
+		$data['endmonth'] = userdate("n", time());
+		$data['endday'] = userdate("j", time());
+		$data['endyear'] = userdate("Y", time());
+	}
+
+	$start = ($data['startmonth'] == 0 && $data['startday'] == 0 && $data['startyear'] == 0 ? time()-$defaulttimeperiod : usermktime(0,0,0,$data['startmonth'],$data['startday'],$data['startyear']));
+	$end   = ($data['endmonth'] == 0 && $data['endday'] == 0 && $data['endyear'] == 0 ? time() : usermktime(23,59,59,$data['endmonth'],$data['endday'],$data['endyear']));
+
+
+
 	$rows = array();
 	$users = array();
 
-	if($uid || ($supervisor && $adminid) || $start || $end){
-		if ($uid) {
+	if($uid){
+		if($type == 'userid' || $type == 'username'){
 			switch($action){
 				case "Give Plus":
 					$duration = getPOSTval('duration', 'float');
@@ -54,7 +66,7 @@
 					$msgs->addMsg(addPlus($uid, $duration, 0, 0));
 					$mods->adminlog('add plus',"Add Plus to $uid for $duration months");
 					break;
-	
+
 				case "Transfer Plus":
 					$to = getPOSTval('to');
 					$to = getUserID($to);
@@ -63,7 +75,7 @@
 						$mods->adminlog('transfer plus',"Transfer Plus from $uid to $to");
 					}
 					break;
-	
+
 				case 'remove':
 					$id = getREQval('id', 'int');
 					$k = getREQval('k');
@@ -72,7 +84,7 @@
 						$mods->adminlog('remove plus',"Remove Plus from $uid");
 					}
 					break;
-	
+
 				case "Fix Plus":
 					fixPlus($uid);
 					$mods->adminlog('fix plus',"Fix Plus for $uid");
@@ -81,21 +93,14 @@
 		}
 
 
-		if ($start) {
-			$set[] = "time >= #"; 		$params[] = $start;
-		}
-		if ($end) {
-			$set[] = "time <= #"; 		$params[] = $end;
-		}
-		if ($uid) {
-			$set[] = "userid = #"; 		$params[] = $uid;
-		}
-		if ($adminid) {
-			$set[] = "admin = #"; 		$params[] = $adminid;
-		}
-		
-		$res = $db->prepare_array_query("SELECT * FROM pluslog WHERE " . implode(" && ", $set), $params);
-		
+		if($hideinvoices){		$set[] = "(`to` = 0 || trackid = 0)"; }
+		if($start){ 			$set[] = "time >= #"; 		$params[] = $start; }
+		if($end){				$set[] = "time <= #"; 		$params[] = $end; }
+		if($type == 'admin'){	$set[] = "admin = #"; 		$params[] = $uid; }
+		else{					$set[] = "userid = #"; 		$params[] = $uid; }
+
+		$res = $db->prepare_array_query("SELECT SQL_CALC_FOUND_ROWS * FROM pluslog WHERE " . implode(" && ", $set) . " ORDER BY `time` ASC LIMIT 200", $params);
+
 		$uids = array();
 
 		while($line = $res->fetchrow()){
@@ -106,57 +111,64 @@
 		}
 		unset($uids[0]);
 
+		$totalrows = $res->totalrows();
+
 		if($uids)
 			$users = getUserInfo($uids);
 	}
 
 	incHeader();
 
-	echo "<table align=center>";
 
 	for($i=1;$i<=12;$i++)
-		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
-	
-	echo "<tr><td colspan=8 class=body><table align=\"center\"><form action=$_SERVER[PHP_SELF] method=post>";
-	echo "<tr><td class=header align=right>User:</td>";
-		echo "<td class=body><input class=body type=text name=user value=\"$user\" size=27></td></tr>";
-	if ($supervisor) {
-		echo "<tr><td class=header align=right>Admin: </td>";
-		echo "<td class=body><input class=body type=text name=admin value=\"$admin\" size=27></td></tr>";
-	}
-	echo "<tr><td class=header valign=top>Start Date:</td><td class=body colspan=7>";
+		$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
+
+	echo "<form action=$_SERVER[PHP_SELF] method=post>";
+	echo "<table align=center>";
+	echo "<tr><td class=header colspan=2 align=center>Plus Log Search</td></tr>";
+	echo "<tr><td class=body align=right>Search:</td>";
+		echo "<td class=body>";
+		echo "<select class=body name=type>" . make_select_list(array('username','userid','admin'), $type) . "</select>";
+		echo "<input class=body type=text name=user value=\"$user\" size=15>";
+	echo "</td></tr>";
+	echo "<tr><td class=body valign=top align=\"right\">Start Date:</td><td class=body colspan=7>";
 		echo "<select class=body name=data[startmonth]><option value=0>Month" . make_select_list_key($months, $data['startmonth']) . "</select>";
 		echo "<select class=body name=data[startday]><option value=0>Day" . make_select_list(range(1,31), $data['startday']) . "</select>";
-		echo "<select class=body name=data[startyear]><option value=0>Year" . make_select_list(range(userdate("Y")-1,userdate("Y")+1), $data['startyear']) . "</select>";
+		echo "<select class=body name=data[startyear]><option value=0>Year" . make_select_list(range(2004,userdate("Y")+1), $data['startyear']) . "</select>";
 	echo "</td></tr>\n";
-	echo "<tr><td class=header valign=top>End Date:</td><td class=body colspan=7>";
+	echo "<tr><td class=body valign=top align=\"right\">End Date:</td><td class=body colspan=7>";
 		echo "<select class=body name=data[endmonth]><option value=0>Month" . make_select_list_key($months, $data['endmonth']) . "</select>";
 		echo "<select class=body name=data[endday]><option value=0>Day" . make_select_list(range(1,31), $data['endday']) . "</select>";
-		echo "<select class=body name=data[endyear]><option value=0>Year" . make_select_list(range(userdate("Y")-1,userdate("Y")+1), $data['endyear']) . "</select>";
+		echo "<select class=body name=data[endyear]><option value=0>Year" . make_select_list(range(2004,userdate("Y")+1), $data['endyear']) . "</select>";
 	echo "</td></tr>\n";
-	echo "<tr><td class=body colspan=4 align=center><input class=body type=submit name=action value=Go></td></tr>";
-	echo "</form></table></td></tr>";
+	echo "<tr><td class=body colspan=2>" . makeCheckBox('hideinvoices', 'Hide Invoices', $hideinvoices);
+	echo " <input class=body type=submit name=action value=Search></td>";
+	echo "</table>";
+	echo "</form>";
+	echo "<br>";
 
-	if($uid || $adminid || $start || $end){
+	if($uid){
+		echo "<table align=center>";
+
+		echo "<tr>";
+		echo "<td class=header>ID</td>";
+		echo "<td class=header>Time</td>";
+		echo "<td class=header>Duration</td>";
+
+		echo "<td class=header>From</td>";
+		echo "<td class=header>To</td>";
+		echo "<td class=header>Admin</td>";
+		echo "<td class=header>Tracking</td>";
+
+		echo "<td class=header>Remove</td>";
+		echo "</tr>";
 
 		if($rows){
-			echo "<tr>";
-			echo "<td class=header>ID</td>";
-			echo "<td class=header>Time</td>";
-			echo "<td class=header>Duration</td>";
-
-			echo "<td class=header>From</td>";
-			echo "<td class=header>To</td>";
-			echo "<td class=header>Admin</td>";
-			echo "<td class=header>Tracking</td>";
-
-			echo "<td class=header>Remove</td>";
-			echo "</tr>";
-
 			$taken = array();
-			$moved = false;
 
 			foreach($rows as $row){
+				$moved = false;
+
 				echo "<tr>";
 				echo "<td class=body>$row[id]</td>";
 				echo "<td class=body>" . userDate("D M j, Y G:i:s", $row['time']) . "</td>";
@@ -174,12 +186,12 @@
 					}
 				}elseif($row['userid'] == $row['from']){
 					if($row['to']){
-						echo "<a class=body href=/pluslog.php?user=$row[to]&k=" . makeKey($row['to']) . ">Moved To</a>";
+						echo "<a class=body href=/adminpluslog.php?user=$row[to]&k=" . makeKey($row['to']) . ">Moved To</a>";
 						$moved = true;
 					}
 				}elseif($row['userid'] == $row['to']){
 					if($row['from']){
-						echo "<a class=body href=/pluslog.php?user=$row[from]&k=" . makeKey($row['from']) . ">Moved From</a>";
+						echo "<a class=body href=/adminpluslog.php?user=$row[from]&k=" . makeKey($row['from']) . ">Moved From</a>";
 					}else{
 						echo "Given";
 					}
@@ -193,11 +205,17 @@
 
 				echo "</tr>";
 			}
+		}else{
+			echo "<tr><td class=body colspan=8 align=center>None in that time period</td></tr>";
 		}
 
-		if ($uid) {
+		if(count($rows) < $totalrows)
+			echo "<tr><td class=body colspan=8 align=center>Showing " . number_format(count($rows)) . " of " . number_format($totalrows) . "</td></tr>";
+
+
+		if($type != 'admin'){
 			$expiry = getPlusExpiry($uid);
-	
+
 			echo "<tr><td class=header colspan=8>";
 			if($expiry > time())
 				echo "Expires: " . userdate("D M j, Y G:i:s", $expiry);
@@ -208,35 +226,75 @@
 		}
 
 		echo "</table>";
+		echo "<br>";
 
-		echo "<table align=center>";
+		if($uid && $type != 'admin'){
+			echo "<table align=center>";
 
-		if ($uid) {
+		//add plus
 			echo "<form action=$_SERVER[PHP_SELF] method=post>";
 			echo "<input type=hidden name=user value=$uid>";
-				
+
+			echo "<input type=hidden name=data[startmonth] value=$data[startmonth]>";
+			echo "<input type=hidden name=data[startday] value=$data[startday]>";
+			echo "<input type=hidden name=data[startyear] value=$data[startyear]>";
+
+			echo "<input type=hidden name=data[endmonth] value=$data[endmonth]>";
+			echo "<input type=hidden name=data[endday] value=$data[endday]>";
+			echo "<input type=hidden name=data[endyear] value=$data[endyear]>";
+
+			if($hideinvoices)
+				echo "<input type=hidden name=hideinvoices value=On>";
+
 			echo "<tr><td class=header colspan=2 align=center>Add Plus</td></tr>";
 			echo "<tr><td class=body>Give <input class=body type=text name=duration size=3> months.</td><td class=body><input class=body type=submit name=action value='Give Plus'></td></tr>";
 			echo "</form>";
-		}
-		echo "<tr><td class=body>&nbsp;</td></tr>";
+			echo "<tr><td class=body>&nbsp;</td></tr>";
 
-		if($expiry > time()){
+		//transfer plus
+			if(isset($expiry) && $expiry > time()){
+				echo "<form action=$_SERVER[PHP_SELF] method=post>";
+				echo "<input type=hidden name=user value=$uid>";
+	
+				echo "<input type=hidden name=data[startmonth] value=$data[startmonth]>";
+				echo "<input type=hidden name=data[startday] value=$data[startday]>";
+				echo "<input type=hidden name=data[startyear] value=$data[startyear]>";
+	
+				echo "<input type=hidden name=data[endmonth] value=$data[endmonth]>";
+				echo "<input type=hidden name=data[endday] value=$data[endday]>";
+				echo "<input type=hidden name=data[endyear] value=$data[endyear]>";
+	
+				if($hideinvoices)
+					echo "<input type=hidden name=hideinvoices value=On>";
+	
+				echo "<tr><td class=header colspan=2 align=center>Transfer Plus</td></tr>";
+				echo "<tr><td class=body>To <input class=body type=text name=to size=10></td><td class=body><input class=body type=submit name=action value='Transfer Plus'></td></tr>";
+				echo "</form>";
+				echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
+			}
+
+		//fix plus
 			echo "<form action=$_SERVER[PHP_SELF] method=post>";
 			echo "<input type=hidden name=user value=$uid>";
-			echo "<tr><td class=header colspan=2 align=center>Transfer Plus</td></tr>";
-			echo "<tr><td class=body>To <input class=body type=text name=to size=10></td><td class=body><input class=body type=submit name=action value='Transfer Plus'></td></tr>";
-			echo "</form>";
-			echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
 
-			echo "<form action=$_SERVER[PHP_SELF] method=post>";
-			echo "<input type=hidden name=user value=$uid>";
+			echo "<input type=hidden name=data[startmonth] value=$data[startmonth]>";
+			echo "<input type=hidden name=data[startday] value=$data[startday]>";
+			echo "<input type=hidden name=data[startyear] value=$data[startyear]>";
+
+			echo "<input type=hidden name=data[endmonth] value=$data[endmonth]>";
+			echo "<input type=hidden name=data[endday] value=$data[endday]>";
+			echo "<input type=hidden name=data[endyear] value=$data[endyear]>";
+
+			if($hideinvoices)
+				echo "<input type=hidden name=hideinvoices value=On>";
+
 			echo "<tr><td class=header colspan=2 align=center>Fix Plus</td></tr>";
 			echo "<tr><td class=body><input class=body type=submit name=action value='Fix Plus'></td></tr>";
 			echo "</form>";
 			echo "<tr><td class=body colspan=2>&nbsp;</td></tr>";
+
+			echo "</table>";
 		}
 	}
-	echo "</table>";
-	incFooter();
 
+	incFooter();

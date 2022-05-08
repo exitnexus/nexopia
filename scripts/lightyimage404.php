@@ -5,17 +5,17 @@
 	$masterroot = "/home/nexopia/public_html";
 
 	$classes = array(
-					"users"        => '/^\/(users)\/([0-9]{1,6})\/([\.a-zA-Z0-9]{0,13})$/',
-					"userthumb"    => '/^\/(users\/thumbs)\/([0-9]{1,6})\/([\.a-zA-Z0-9]{0,13})$/',
-					"gallery"      => '/^\/(gallery)\/([0-9]{1,6})\/([\.a-zA-Z0-9]{0,13})$/',
-					"gallerythumb" => '/^\/(gallery\/thumbs)\/([0-9]{1,6})\/([\.a-zA-Z0-9]{0,13})$/',
-					"galleryfull"  => '/^\/(gallery\/full)\/([0-9]{1,6})\/([\.a-zA-Z0-9]{0,13})$/',
-					"banner"       => '/^\/(banners)\/([\.\-_ a-zA-Z0-9]{0,48})$/',
-					"uploads"      => '/^\/(uploads)\/([0-9]{1,5})\/([0-9]{1,8})\/([\.\-_ a-zA-Z0-9]{0,32})$/',
-					"smilies"      => '/^\/(images\/smilies)\/([\.a-zA-Z0-9]{0,20})$/',
-					"images"       => '/^\/(images)\/([\._a-zA-Z0-9]{0,20})$/',
-					"skin"         => '/^\/(skins)\/([a-zA-Z0-9]{1,16})\/([\._a-zA-Z0-9]{0,20})$/',
-					"skinjs"       => '/^\/(skins)\/([\.a-zA-Z0-9]{0,16})$/',
+					"users"        => '/^\/+(users)\/([0-9]{1,6})\/([\.a-zA-Z0-9]{0,13})$/',
+					"userthumb"    => '/^\/+(users\/thumbs)\/([0-9]{1,6})\/([\.a-zA-Z0-9]{0,13})$/',
+					"gallery"      => '/^\/+(gallery)\/([0-9]{1,6})\/([\.a-zA-Z0-9]{0,13})$/',
+					"gallerythumb" => '/^\/+(gallery\/thumbs)\/([0-9]{1,6})\/([\.a-zA-Z0-9]{0,13})$/',
+					"galleryfull"  => '/^\/+(gallery\/full)\/([0-9]{1,6})\/([\.a-zA-Z0-9]{0,13})$/',
+					"banner"       => '/^\/+(banners)\/([\.\-_ a-zA-Z0-9]{0,48})$/',
+					"uploads"      => '/^\/+(uploads)\/([0-9]{1,5})\/([0-9]{1,8})\/([\.\-_ a-zA-Z0-9]{0,32})$/',
+					"smilies"      => '/^\/+(images\/smilies)\/([\.a-zA-Z0-9]{0,20})$/',
+					"images"       => '/^\/+(images)\/([\._a-zA-Z0-9]{0,20})$/',
+					"skin"         => '/^\/+(skins)\/([a-zA-Z0-9]{1,16})\/([\._a-zA-Z0-9]{0,20})$/',
+					"skinjs"       => '/^\/+(skins)\/([\.a-zA-Z0-9]{0,16})$/',
 					);
 
 
@@ -28,8 +28,8 @@
 	}
 
 //invalid file
-	if(!$fileclass)
-	 	failure();
+//	if(!$fileclass)
+//	 	failure();
 
 //already exists?
 	if(file_exists($imgroot . $filename))
@@ -37,7 +37,9 @@
 
 //exists on the master?
 	if(file_exists($masterroot . $filename)){
-		mkdir($imgroot . dirname($filename), 0777, true);
+		if (!file_exists(dirname($imgroot . $filename))) {
+			@mkdir($imgroot . dirname($filename), 0777, true);
+		}
 
 	 	if(copy($masterroot . $filename, $imgroot . $filename))
 			success($imgroot . $filename);
@@ -49,7 +51,9 @@
 /////////////////////
 
 function success($file){
-	header("X-LIGHTTPD-send-file: $file");
+	header("Content-Type: image/jpeg");
+#	header("X-LIGHTTPD-send-file: $file");
+	readfile($file);
 	exit;
 }
 

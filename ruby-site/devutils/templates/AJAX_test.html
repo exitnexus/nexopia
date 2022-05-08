@@ -1,0 +1,51 @@
+<html>
+	<head>
+	</head>
+	<body>
+	<script>
+		if (location.href.indexOf("#") == -1)
+			location.href += "#/test/one_test"
+	</script>
+	<span id="MainObj">
+	</span>
+	<template-include module="core" name="AJAX"/>
+
+		<table>
+			<tr>
+				<td>
+					<span id="test1">
+						Test not yet run.
+					</span>
+				</td>
+				<td>				
+					<a href="/test/one_test" t:ajax-target="test1">Test 1</a>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<span id="test2">
+						Test not yet run.
+					</span>
+				</td>
+				<td>
+					<a href="/test/one_test" t:ajax-target="test2">Test 2</a>
+				</td>
+			</tr>
+			<tr>
+				<td>			
+					<span id="test3">
+						Test not yet run.
+					</span>
+				</td>
+				<td>
+					<form method="crap" action="/test/post_test" t:target="test3">
+						<input name="test_id" type="text" value="crap"/>
+						<input type="Submit"/>
+					</form>
+				</td>
+			</tr>
+		</table>
+	
+
+	</body>
+</html>

@@ -1,0 +1,52 @@
+<div style="background-color:#ffffff">
+	<h1>
+		{project.name}
+	</h1>
+	<template-include module="devutils" name="people_list" />
+	
+	<template-include module="devutils" name="add_person" />
+	<h3>
+		Sprints
+	</h3>
+	<table>
+		<tr t:id="sprints" t:iter="sprint">
+			<td>
+				<a href="{sprint.uri}">
+					{sprint.name}
+				</a>
+			</td>
+			<td>
+				{sprint.start_date} to {sprint.end_date}
+			</td>
+		</tr>
+	</table>
+
+	<h3>
+		Add a New Sprint
+	</h3>
+	<form method="post" action="{uri}/add/sprint">
+		<table>
+			<tr>
+				<td>
+					Name:
+				</td>
+				<td>
+					<input type="text" name="SprintName" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Description:
+				</td>
+				<td>
+					<input type="text" name="SprintDescription" />
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2">
+					<input type="submit" />
+				</td>
+			</tr>
+		</table>
+	</form>
+</div>

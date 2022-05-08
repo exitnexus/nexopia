@@ -1,0 +1,55 @@
+<div t:docid="friends_page" class="friends">
+	<t:template-include name="top_menu" module="friends"/>
+	People on&#160;<a class="body" id="user_name" t:id="user"></a>'s friends list:
+	<ul>
+		<li class="friend_list_entry" t:id="friends" t:iter="friend">
+			<table class="friend">
+				<tr>
+					<td rowspan='5' class="picture"><a class="body" t:id="friend.user"><img class="picture" t:id="friend.user"/></a></td>
+					<td class="name" colspan='3'>
+						<div class="actions" t:id="logged_in">
+							<form class="noscript">  
+							 	<input type="submit" name="edit" value="Edit"/>  
+								<input type="submit" name="delete" value="Delete"/>  
+							</form> 
+							<a href="/users/%{user.username}/friends/remove/{friend.friendid}" class="body script delete">
+								<img src="#{$site.static_files_url}/Friends/images/cross_red.gif"/>
+							</a>
+						</div>
+						<a class="body" t:id="friend.user"></a>&#160;
+						<t:if t:id="friend.user.online"><img class="online" src="#{$site.static_files_url}/Friends/images/online.gif"/></t:if>
+						<t:if t:id="!friend.user.online"><img class="offline" src="#{$site.static_files_url}/Friends/images/offline.gif"/></t:if>
+						&#160;
+						<span t:id="friend.mutual">Mutual</span>
+					</td>
+				</tr>
+				<tr>
+					<td class="minor">Age:</td>
+					<td>{friend.user.age}</td>
+					<td><span class="minor">Public Notes:</span></td>
+				</tr>
+				<tr>
+					<td class="minor">Sex:</td>
+					<td>{friend.user.sex}</td>
+					<td rowspan="3" class="comment_cell">
+						<t:if t:id="logged_in">
+							<div class="comment" id="comment_{friend.friendid}">
+								<span class="minor" t:id="!friend.comment">(Click to edit)</span>
+								{friend.comment}
+							</div>
+						</t:if>
+						<t:if t:id="!logged_in">
+							{friend.comment}
+						</t:if>
+					</td>
+				</tr>
+				<tr>
+					<td class="minor">Location:</td>
+					<td>{friend.user.location}</td>
+				</tr>
+				<tr></tr>
+			</table>
+		</li>
+	</ul>
+	#{pages}
+</div>

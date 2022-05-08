@@ -1,0 +1,22 @@
+<div class="accountcreate_content_container">
+	<div class="content">
+		<div id="create_confirm">
+			<div class="header_box"><div class="header"><div class="header_text">JOIN NEXOPIA.COM</div></div></div>
+			<div class="section">
+				<div id="activation_message">
+					<h1>Thank you!</h1>
+					<t:if t:id="reactivate">
+						<t:template-include name="create_confirm_reactivate" module="accountcreate"/>
+					</t:if>
+					<t:if t:id="!reactivate">
+						<t:template-include name="create_confirm_activate" module="accountcreate"/>
+					</t:if>
+				</div>
+				<div id="activation_links" t:id="!PageRequest.current.session.anonymous? || !PageRequest.current.session.user.activated?">
+					<a href="/accountcreate/reactivate?username={username}">Resend Activation</a>&#160;|&#160;
+					<a href="/accountcreate/activate?username={username}">Activate</a>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

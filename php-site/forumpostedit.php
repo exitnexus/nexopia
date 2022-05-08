@@ -19,8 +19,7 @@
 		case "Post":
 			$msg = getPOSTval('msg', 'string');
 
-			$parse_bbcode = getPOSTval('parse_bbcode', 'bool');
-			postEdit($msgid,$msg,$action,  $parse_bbcode);
+			postEdit($msgid,$msg,$action);
 			break;
 	}
 	die("how did you get here?");
@@ -28,8 +27,7 @@
 function edit($msgid){
 	global $userData, $forums;
 
-
-	$res = $forums->db->prepare_query("SELECT forumposts.msg,forumposts.authorid,forumthreads.forumid, forumposts.time,  forumposts.parse_bbcode FROM forumposts,forumthreads WHERE forumposts.id = ? && forumposts.threadid=forumthreads.id", $msgid);
+	$res = $forums->db->prepare_query("SELECT forumposts.msg, forumposts.authorid, forumthreads.forumid, forumposts.time FROM forumposts,forumthreads WHERE forumposts.id = # && forumposts.threadid=forumthreads.id", $msgid);
 
 	$line = $res->fetchrow();
 
@@ -44,25 +42,16 @@ function edit($msgid){
 
 	$template = new template('forums/forumpostedit/edit');
 
-//	$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $line['parse_bbcode'] == 'y' ? true :false));
-	$template->set("checkbox_parsebbcode", '<input type="hidden" name="parse_bbcode" value="y"/>');
-
-
-
-	ob_start();
-	editBox($line['msg']);
-	$template->set('editbox', ob_get_contents());
-	ob_end_clean();
-
+	$template->set('editbox', editBoxStr($line['msg']));
 	$template->set('msgid', $msgid);
 	$template->display();
 	exit;
 }
 
-function postEdit($msgid, $msg, $postaction, $parse_bbcode){
+function postEdit($msgid, $msg, $postaction){
 	global $userData, $forums;
 
-	$res = $forums->db->prepare_query("SELECT forumposts.authorid, forumthreads.forumid, forumposts.threadid, forumposts.time, forumposts.parse_bbcode FROM forumposts, forumthreads WHERE forumposts.id = ? && forumposts.threadid=forumthreads.id", $msgid);
+	$res = $forums->db->prepare_query("SELECT forumposts.authorid, forumthreads.forumid, forumposts.threadid, forumposts.time FROM forumposts, forumthreads WHERE forumposts.id = ? && forumposts.threadid=forumthreads.id", $msgid);
 
 	$line = $res->fetchrow();
 
@@ -81,33 +70,24 @@ function postEdit($msgid, $msg, $postaction, $parse_bbcode){
 
 
 
-	$nmsg = html_sanitizer::sanitize($msg);
+	$nmsg = removeHTML($msg);
 
-	if($parse_bbcode)
-		$nmsg3 = $forums->parsePost($nmsg);
-	else
-		$nmsg3 = $nmsg;
+	$nmsg3 = $forums->parsePost($nmsg);
 
 	if($postaction=="Preview"){
-
 		$template = new template('forums/forumpostedit/preview');
-		ob_start();
-		editBox($nmsg);
-		$template->set('editBox', ob_get_contents());
-		ob_end_clean();
-//		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $parse_bbcode));
-		$template->set("checkbox_parsebbcode", '<input type="hidden" name="parse_bbcode" value="y"/>');
-
+		$template->set('editBox', editBoxStr($nmsg));
 		$template->set('msgid', $msgid);
 		$template->set('nmsg3', $nmsg3);
 		$template->display();
-		exit(0);
+		exit;
 	}
 
 //	$nmsg .= "\n\n[edited on " . date("F j, Y \\a\\t g:i a") . " by $userData[username]]";
 
-	$forums->db->prepare_query("UPDATE forumposts SET msg = ?, edit = #, parse_bbcode = ? WHERE id = #", $nmsg, time(), $parse_bbcode, $msgid);
+	$forums->db->prepare_query("UPDATE forumposts SET msg = ?, edit = # WHERE id = #", $nmsg, time(), $msgid);
 
+	scan_string_for_notables($nmsg);
 
 	if($userData['replyjump'] == 'forum')
 		header("location: forumthreads.php?fid=$line[forumid]");

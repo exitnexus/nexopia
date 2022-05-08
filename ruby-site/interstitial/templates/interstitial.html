@@ -1,0 +1,122 @@
+<!-- code to dynamically resize this is in the onload script in general.js -->
+<div>
+
+<style>
+
+#interstitial1 iframe
+{
+	display:none;/*sorry for IE5*/
+	display/**/:block;/*sorry for IE5*/
+	position:absolute;/*must have*/
+	top:0;/*must have*/
+	left:0;/*must have*/
+	z-index:-1;/*must have*/
+	filter:mask();/*must have*/
+	width:3000px;/*must have for any big value*/
+	height:3000px/*must have for any big value*/;
+}
+
+.select-free .bd{border:solid 1px #aaaaaa;padding:12px;}
+
+div#interstitial1 {
+	position: absolute; 
+	top: 0px; 
+	left: 0px; 
+	width: 100%; 
+	height: 100%;
+}
+
+div#interstitial_background{
+	background: #000000; 
+	position: absolute; 
+	width: 100%; 
+	height: 100%; 
+	opacity: 0.6; 
+	filter:alpha(opacity=60); 
+	text-align: center;
+}
+
+div#interstitial2{
+	position: absolute; 
+	width: 100%; 
+	height: 100%; 
+	background: transparent;
+}
+
+div#interstitial2 div#content_frame{
+	margin-top: 90px; 
+	width:640px; 
+	opacity: 1; 
+	background-color: #FFFFFF; 
+	color: #000000;
+}
+
+div#interstitial2 button{
+	font-size: 10; 
+	border: 0px; 
+	background: transparent; 
+} 
+
+div#interstitial2 div#inner_content{
+	padding: 3em; 
+	background: transparent;
+}
+
+</style>
+
+<div id="interstitial1">
+	<div id="interstitial_background" align="center">
+		&nbsp; 
+	</div>
+	<div id="interstitial2" align="center">
+		<div id="content_frame">
+			<div style="float: right">
+				<button onclick="removeInterstitial();">[X]</button>
+			</div>
+			<div id="inner_content">
+				#{text}
+				<br/>
+				<br/>
+				<div style="float: right">
+					<button onclick="removeInterstitial();">Close X</button>
+				</div>
+			</div>
+			<div style="clear: both"/>
+		</div>
+	</div>
+	<!--[if lte IE 6.5]><iframe></iframe><![endif]-->
+</div>
+<script>
+	<![CDATA[
+	if(self!=top)\{
+		if (top.headerframe)\{
+			//IE	
+			shield = top.headerframe.document.createElement("div");
+			shield.id = "interstitial1";
+			shield.innerHTML = "<div align=\\"center\\" style=\\"z-index: 99; background: #000000; position: relative; width: 100%; height: 100%; opacity: 0.6; filter:alpha(opacity=60); text-align: center;\\">&nbsp;</div>";
+			top.headerframe.document.body.insertBefore(shield, top.headerframe.document.body.firstChild);
+		} else \{
+			//FF
+			var headerDoc = top.document.getElementById("headerframe").contentDocument
+			shield = headerDoc.createElement("div");
+			shield.id = "interstitial1";
+			shield.innerHTML = "<div align=\\"center\\" style=\\"z-index: 99; background: #000000; position: absolute; width: 100%; height: 100%; opacity: 0.6; filter:alpha(opacity=60); text-align: center;\\">&nbsp;</div>";
+			headerDoc.body.insertBefore(shield, headerDoc.body.firstChild);
+		}
+	}
+	
+	function removeInterstitial()\{
+		document.getElementById('interstitial1').style.display='none';
+		var headerdoc;
+		if (top.headerframe)\{
+			headerdoc = top.headerframe.document;
+		} else if(top.document.getElementById("headerframe"))\{
+			headerdoc = top.document.getElementById("headerframe").contentDocument;
+		}
+		if (headerdoc)
+			headerdoc.getElementById('interstitial1').style.display='none';
+		return false;
+	}
+	]]>
+</script>
+</div>

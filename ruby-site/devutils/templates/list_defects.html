@@ -1,0 +1,23 @@
+<div style="background-color:white" xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<h1>Defects</h1>
+	<table>
+		<tr>
+			<th>Status</th>
+			<th>Type</th>
+			<th>Priority</th>
+			<th>Summary</th>
+			<th>Assigned To</th>
+			<th>Reported By</th>
+		</tr>
+		<tr t:id="defects" t:iter="defect">
+			<td>{defect.status}</td>
+			<td>{defect.type}</td>
+			<td>{defect.priority}</td>
+			<td><a href="{handler_root}/{defect.id}">{defect.summary}</a></td>
+			<td>{defect.ownusername}</td>
+			<td>{defect.repusername}</td>
+		</tr>
+	</table>
+	<br/>
+	<a href="/my/defects/create">Add a Defect</a>
+</div>

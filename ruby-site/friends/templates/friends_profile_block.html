@@ -1,0 +1,42 @@
+<div t:docid="friends_profile_block" id="friends_profile_block">
+	<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.4.1/build/container/assets/container.css"></link> 
+	<script type="text/javascript" src="#{$site.static_files_url}/yui/build/animation/animation-min.js"></script>
+	<script type="text/javascript" src="#{$site.static_files_url}/yui/build/container/container-min.js"></script>
+	<div class="friends_header">
+		<div class="view_all">
+			<a href="/users/%{user.username}/friends">view all ({friends.length})</a>        
+		</div>
+		<div class="friends_title">
+			FRIENDS        
+		</div>
+	</div>
+	<ul id="friends_list">
+		<li t:id="friends" t:iter="friend" class="user_container">
+			<div class="user_thumb">
+				<a t:id="friend.user"><img class="friend_pic" t:id="friend.user" t:linktype="landscapethumb"/></a>
+			</div>
+			<div class="user_info">
+				<a t:id="friend.user"></a><br/>
+				{friend.user.age}, {friend.user.sex}
+			</div>
+			<div t:id="!viewer.anonymous?" class="user_functions">
+				<a class="add_friend" href="/users/%{viewer.username}/friends/add/{friend.user.userid}?form_key={add_form_key}">
+					<img src="#{$site.static_files_url}/Friends/images/icon_add_friend.gif" class="icon"/>
+				</a>
+				<a class="send_message" href="/messages.php?action=write&to={friend.user.userid}">
+					<img src="#{$site.static_files_url}/Friends/images/icon_send_msg.gif" class="icon"/>
+				</a>
+				<a class="comment" href="http://www.baxter/usercomments.php?id={friend.user.userid}">
+					<img src="#{$site.static_files_url}/Friends/images/icon_comment.gif" class="icon last" />
+				</a>
+			</div>
+			<br class="clear" />
+		</li>
+	</ul>
+	<div t:id="friends.length > 10" class="friends_arrow_btns">
+		<!--the &#160; is needed to make ie happy.-->
+		<a id="arrow_down" href="#" class="friends_btns">&#160;</a>
+		<a id="arrow_up" href="#" class="friends_btns">&#160;</a>
+		<br class="clear" />
+	</div>
+</div>

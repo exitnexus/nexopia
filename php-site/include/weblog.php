@@ -73,7 +73,6 @@ class blogpost
 	public $allowcomments;
 	public $msg;
 
-    public $parse_bbcode;
 	public $originalscope;
 	public $fieldschanged;
 
@@ -111,14 +110,7 @@ class blogpost
 		$this->scope = isset($entrydata['scope'])? $entrydata['scope'] : 1;
 		$this->allowcomments = isset($entrydata['allowcomments'])? $entrydata['allowcomments'] : 'y';
 
-
-		$this->parse_bbcode = isset($userData['parse_bbcode']) ? $userData['parse_bbcode'] : true;
-        $this->parse_bbcode = isset($entrydata['parse_bbcode']) ? $entrydata['parse_bbcode'] : $this->parse_bbcode;
-
 		$this->msg = new textparser(isset($entrydata['msg'])? $entrydata['msg'] : '');
-
-
-		$this->msg->parse_bbcode = ($this->parse_bbcode=='y');
 
 		$this->originalscope = $this->scope;
 		$this->fieldschanged = array();
@@ -225,21 +217,6 @@ class blogpost
 		}
 		return false;
 	}
-
-
-    function setParseBBcode($yesno)
-    {
-		if ($yesno != 'y' && $yesno != 'n')
-			$yesno = ($yesno? 'y' : 'n');
-
-		if ($yesno !== $this->parse_bbcode || $yesno !== $this->msg->parse_bbcode)
-		{
-			$this->parse_bbcode = $yesno;
-			$this->msg->parse_bbcode=($yesno=='y');
-			$this->fieldschanged['parse_bbcode'] = $this->parse_bbcode;
-		}
-		return false;
-    }
 
 	function setAllowComments($yesno)
 	{
@@ -488,20 +465,21 @@ class blogpost
 
 	function commit()
 	{
-		global $cache;
+		global $cache, $google;
 		$affected = 0;
 		if ($this->entryid === false) // insert
 		{
 			$entryid = $this->db->getSeqId($this->uid, DB_AREA_WEBLOG_ENTRY);
 
-			$this->db->prepare_query("INSERT INTO blog (id, userid, time, year, month, title, scope, allowcomments, msg,  parse_bbcode) VALUES (#, %, #, #, #, ?, #, ?, ?, ?)",
-				$entryid, $this->uid, $this->time, gmdate('Y', $this->time), gmdate('m', $this->time), $this->title, $this->scope, $this->allowcomments, $this->msg->getText(), ($this->parse_bbcode ? 'y' : 'n'));
+			$this->db->prepare_query("INSERT INTO blog (id, userid, time, year, month, title, scope, allowcomments, msg) VALUES (#, %, #, #, #, ?, #, ?, ?)",
+				$entryid, $this->uid, $this->time, gmdate('Y', $this->time), gmdate('m', $this->time), $this->title, $this->scope, $this->allowcomments, $this->msg->getText());
 			$affected = $this->db->affectedrows();
 
 			$this->entryid = $entryid;
 
 			$this->userblog->invalidatePages($this->scope, $this->time);
 			$this->userblog->postCountChange(1, $this->scope);
+			
 
 		} else { // update
 			$blogsets = array();
@@ -524,6 +502,7 @@ class blogpost
 			}
 		}
 		$this->originalscope = $this->scope;
+		$google->updateHash($this->uid);
 		return $affected;
 	}
 
@@ -837,9 +816,10 @@ class userblog
 				unset($postmonths[$month]);
 		}
 
-		if ($wantarray)
+		if ($wantarray) {
+			ksort($postmonths);
 			return $postmonths;
-		else {
+		} else {
 			if (!$postmonths)
 				return false;
 			else
@@ -1147,6 +1127,8 @@ class userblog
 			$objs[] = new blogpost($this, $data, $userData);
 		}
 		blogpost::deleteMulti($this, $objs);
+
+		$this->db->prepare_query("SELECT * FROM bloglastreadfriends WHERE userid = %", $this->uid);
 	}
 }
 

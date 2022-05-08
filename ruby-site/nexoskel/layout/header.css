@@ -1,0 +1,99 @@
+test_asdf{
+	background: #ff0000;
+	& div { 
+		background: #00FF00; 
+		filter: alpha(opacity=50);
+	}
+}
+
+
+table#site_body{
+	width: 100%;
+}
+
+table.header_center{
+	align: center;
+	border-collapse: collapse;
+	border: 1px solid #000000;
+	width: 100%;
+}
+td.main_body{
+	width: 600px;
+}
+
+table#site_body .main_header{
+	background-image: $header_img;
+	height: $header_height;
+}
+
+table#site_body .main_header iframe{
+	height: $header_height;
+}
+
+table#site_body{
+	width: $skin_width;
+	align: center;
+}
+
+td.left-sidebar{
+	width: $side_width;
+	vertical-align: top;
+}
+td.right-sidebar{
+	width: $side_width;
+	vertical-align: top;
+}
+
+td.block{
+ 	width: $side_width;
+}
+
+td.left-sidebar td.blockhead{
+	background: url("http://www.thomas/static/1195475106/files/legacy/skins/$skin_dir/left$blockheadpic");
+	height: $blockheadpicsize; 
+}
+
+td.right-sidebar td.blockhead{
+	background: url("http://www.thomas/static/1195475106/files/legacy/skins/$skin_dir/right$blockheadpic");
+	height: $blockheadpicsize; 
+	text-align: right;
+}
+
+td.blockspacer{
+	height: $center_block_spacing;
+}
+
+td.block_border_horizontal_spacer{
+	width: $blockBorder; 
+	background: transparent;
+}
+td.block_border_vertical_spacer{
+	height: $blockBorder; 
+	background: transparent;
+}
+
+img.mytreat{
+	padding-bottom: 5px;
+}
+
+td.menu{
+	height: $menuheight;
+	background: $menupic;
+}
+
+td.left_menu_end{
+	height: $menuheight;
+	width: $menuendwidth;
+	background: url("/static/1195475106/files/legacy/skins/$skin_dir/left$menuends");
+}
+
+td.right_menu_end{
+	height: $menuheight;
+	width: $menuendwidth;
+	background: url("/static/1195475106/files/legacy/skins/$skin_dir/right$menuends");
+}
+
+td.menu_divider{
+  background: $menuspacer;
+  height: $menuspacersize;
+}

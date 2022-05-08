@@ -20,6 +20,7 @@ define('ABUSE_ACTION_FORUM_NOTE',		14);
 define('ABUSE_ACTION_LOGGED_MSG',		15);
 define('ABUSE_ACTION_BLOG_EDIT',		16);
 define('ABUSE_ACTION_TAGLINE_EDIT',		17);
+define('ABUSE_ACTION_PICMOD_WARNING',	18);
 
 define('ABUSE_REASON_NUDITY', 	1);
 define('ABUSE_REASON_RACISM', 	2);
@@ -38,6 +39,8 @@ define('ABUSE_REASON_CREDIT',   14);
 define('ABUSE_REASON_DISCRIM',	15); // discrimination
 define('ABUSE_REASON_WEAPONS',	16);
 define('ABUSE_REASON_THREATS',	17);
+define('ABUSE_REASON_HACKED',   18);
+define('ABUSE_REASON_REQUEST',  19); // by request of the user.
 
 class abuselog{
 	public $db;
@@ -72,13 +75,15 @@ tables
 				ABUSE_ACTION_TAGLINE_EDIT	=> 'Tagline Edit',
 				ABUSE_ACTION_FORUM_BAN 		=> 'Forum Ban',
 				ABUSE_ACTION_FORUM_WARNING	=> 'Forum Warning',
-				ABUSE_ACTION_FORUM_NOTE		=> 'Forum Note'
+				ABUSE_ACTION_FORUM_NOTE		=> 'Forum Note',
+				ABUSE_ACTION_PICMOD_WARNING => 'Pic Mod Warning',
 			);
 
 		$this->forumactions = array(
 			ABUSE_ACTION_FORUM_BAN 		=> 'Forum Ban',
 			ABUSE_ACTION_FORUM_WARNING	=> 'Forum Warning',
-			ABUSE_ACTION_FORUM_NOTE		=> 'Forum Note'
+			ABUSE_ACTION_FORUM_NOTE		=> 'Forum Note',
+			ABUSE_ACTION_SIG_EDIT 		=> 'Signature Edit',
 		);
 
 		$this->manualactions = array(
@@ -103,6 +108,8 @@ tables
 				ABUSE_REASON_NOT_USER	=> 'User not in Picture',
 				ABUSE_REASON_BLOG		=> 'Blog',
 				ABUSE_REASON_CREDIT		=> 'Credit Card',
+				ABUSE_REASON_HACKED     => 'Hacked',
+				ABUSE_REASON_REQUEST	=> 'User Request',
 				ABUSE_REASON_OTHER 		=> 'Other',
 					);
 	}
@@ -120,22 +127,27 @@ tables
 
 		if($username == $userid){
 			$msgs->addMsg("Bad user, not added to the abuse log");
-			return;
+			return 0;
 		}
 
-
-		if($action == ABUSE_ACTION_WARNING || $action == ABUSE_ACTION_FORUM_WARNING)
-			$messaging->deliverMsg($userid, $subject, $message, 0, false, false, false);
+		switch($action){
+			case ABUSE_ACTION_WARNING:
+			case ABUSE_ACTION_FORUM_WARNING:
+			case ABUSE_ACTION_PICMOD_WARNING:
+				$messaging->deliverMsg($userid, $subject, $message, 0, false, false, false);
+		}
 
 		$subject = removeHTML($subject);
 
-		$nmsg = html_sanitizer::sanitize($message);
+		$nmsg = removeHTML($message);
 		$nmsg2 = parseHTML($nmsg);
 		$nmsg3 = smilies($nmsg2);
 		$nmsg3 = wrap($nmsg3);
 		$nmsg3 = nl2br($nmsg3);
 
-		$this->db->prepare_query("INSERT INTO abuselog SET userid = #, modid = #, action = #, reason = #, time = #, subject = ?, msg = ?",
+		$col = ($action == ABUSE_ACTION_USER_REPORT ? 'reportuserid' : 'modid');
+
+		$this->db->prepare_query("INSERT INTO abuselog SET userid = #, $col = #, action = #, reason = #, time = #, subject = ?, msg = ?",
 								$userid, $userData['userid'], $action, $reason, time(), $subject, $nmsg3);
 
 		$id = $this->db->insertid();
@@ -146,6 +158,8 @@ tables
 
 		if($mods->isAdmin($userData['userid'], "abuselog"))
 			$msgs->addMsg("Abuse Log Entry added: <a class=msg href=/adminabuselog.php?action=view&id=$id>View Entry</a>");
+
+		return $id;
 	}
 
 	function addAbuseComment($id, $msg){
@@ -153,7 +167,7 @@ tables
 
 		$msg = trim($msg);
 
-		$nmsg = html_sanitizer::sanitize($msg);
+		$nmsg = removeHTML($msg);
 		$nmsg2 = parseHTML($nmsg);
 		$nmsg3 = smilies($nmsg2);
 		$nmsg3 = wrap($nmsg3);
@@ -161,7 +175,7 @@ tables
 
 		$time = time();
 
-		$res = $this->db->prepare_query("SELECT id FROM abuselogcomments WHERE abuseid = # && time > #", $id, $time - 30);
+		$res = $this->db->prepare_query("SELECT id FROM abuselogcomments WHERE abuseid = # && time > #", $id, $time - 5);
 
 		if($res->fetchrow()) //double post
 			return false;
@@ -172,11 +186,12 @@ tables
 	function getAbuseID($id){
 		$res = $this->db->prepare_query("SELECT * FROM abuselog WHERE id = #", $id);
 		$row = $res->fetchrow();
-		
+
 		if(!$row)
 			return false;
 
 		$row['username'] = getUserName($row['userid']);
+		$row['reportname'] = getUserName($row['reportuserid']);
 		$row['modname'] = getUserName($row['modid']);
 
 		$res = $this->db->prepare_query("SELECT * FROM abuselogcomments WHERE abuseid = # ORDER BY id", $id);
@@ -186,9 +201,9 @@ tables
 			$uids = array();
 			foreach($comments as $line)
 				$uids[] = $line['userid'];
-			
+
 			$usernames = getUserName($uids);
-			
+
 			foreach($comments as $k => $v)
 				$comments[$k]['username'] = $usernames[$v['userid']];
 		}

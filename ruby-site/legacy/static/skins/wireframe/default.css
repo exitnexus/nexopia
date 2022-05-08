@@ -1,0 +1,67 @@
+table {text-align: left;}
+tr {vertical-align: top;}
+
+body         { background: #000000; font-family: arial, sans-serif; font-size: 8pt; margin: 0; }
+
+td.footer		{ color:#CCCCCC; text-decoration:none; font: 6pt arial, sans-serif;}
+
+td.side					                { background-color: #373637; color: #BCBEC0; font-family: arial, sans-serif; font-size: 8pt; }
+td.side a   	                 	{ color: #d5ce72; text-decoration:none; }
+td.side a:hover	            		{ color: #fff; }
+td.side input, select, option, textarea	{ font-family: arial, sans-serif; font-size: 8pt; border:1px solid #636466; margin: 1 0 0 0;}
+td.side option { border:0px;}
+
+td.border		{ background-color:#9A9A9A; }
+
+td.sideheader		{ color:#BCBEC0; font-family: arial, sans-serif; font-size: 8pt; text-align:left; text-indent:5px;}
+
+td.header		{ background-color: #272727; color: #e6d600; font-family: arial, sans-serif; font-size: 8pt}
+a.header  	{ color: #e6d600; text-decoration:none;  }
+a.header:hover	{ color: #FFF; }
+
+td.headerfront	{ color:#BCBEC0; background: url(http://static.nexopia.com/skins/wireframe/blockhead.png); font-size: 12pt; height:30px; text-indent:10px;}
+
+td.header2			{ color: #baad00; font-family: arial, sans-serif; font-size: 8pt}
+a.header2     	{ color: #baad00; text-decoration:none; }
+a.header2:hover		{ color: #fff; }
+
+td.body			{ background-color: #403f40; color: #BCBEC0; font-family: arial, sans-serif; font-size: 8pt}
+td.body2		{ background-color: #383738; color: #BCBEC0; font-family: arial, sans-serif; font-size: 8pt}
+a.body { color: #d5ce72; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.body:hover	{ color: #FFFFFF; }
+body input, select, option, textarea	{ font-family: arial, sans-serif; font-size: 8pt; border:1px solid #BCBEC0; margin: 1 0 0 0;}
+body option {border:0px;}
+body textarea { font-size: 9pt; }
+
+td.menu				{ color: #9F9F9F; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a			{ color: #9F9F9F; text-decoration:none; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a:hover		{ color: #fff; }
+
+td.forumlst							{ color: #fff; font: 8pt arial, sans-serif;}
+a.forumlst:link,a.forumlst:visited 	{ color: #9F9F9F; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst:hover,a.forumlst:active 	{ color: #555555; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.forumlst0 { background-color:#D6E3EE; color: #000000; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst0:link,a.forumlst0:visited { color: #979797; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst0:hover,a.forumlst0:active { color: #fff; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.forumlst1 { background-color:#D6E3EE; color: #9F9F9F; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst1:link,a.forumlst1:visited { color: #d5ce72; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst1:hover,a.forumlst1:active { color: #fff; text-decoration:none; font: 8pt arial, sans-serif; }
+
+a.forumlst2:link,a.forumlst2:visited { color: #e6d600; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst2:hover,a.forumlst2:active { color: #fff; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.small  		{ background-color: #272727; color: #BCBEC0; font-family: arial, sans-serif; font-size: 8pt}
+a.small     	{ color: #baad00; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bold }
+a.small:hover	{ color: #fff; }
+
+td.msg		  	{ background-color:#cccccc; font-family: arial, sans-serif; font-size: 8pt}
+a.msg       	{ color: #598241; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.msg:hover		{ color: #598241; }
+
+a.vote      	{ color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bold }
+a.vote:hover	{ color: #000000; }
+
+td.online		{ color: #00AA00; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}
+td.offline		{ color: #BF0E00; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}

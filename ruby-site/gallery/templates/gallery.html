@@ -1,0 +1,101 @@
+<div id="gallery_body" t:docid="gallery_body">
+	<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/yui/build/button/assets/skins/sam/button.css"/>
+	<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/yui/build/container/assets/container.css"/>
+
+	<div> 
+		<script type="text/javascript" src="{$site.static_files_url}/yui/build/button/button-min.js"></script>
+		<script type="text/javascript" src="{$site.static_files_url}/yui/build/json/json-beta-min.js"></script>
+
+		<div style="visibility: hidden; display: none;">
+			<div id="edit_photo_panel">
+
+			</div>
+		</div>
+
+		<t:json t:data="PageRequest.current.user" t:handle="jsonPageOwner"/>
+		<t:json t:data="PageRequest.current.session.user" t:handle="jsonPageViewer"/>
+		<t:json t:data="gallery.pics" t:handle="jsonGalleryPics"/>
+		<script>
+		//GLOBAL
+		galleryPics = [];
+		//alert("checking for existance of JSON data...");
+		for (index in Nexopia.JSONData['jsonGalleryPics']){
+			var galleryPic = Nexopia.JSONData['jsonGalleryPics'][index];
+			galleryPics[galleryPic.id] = new GalleryPic(galleryPic);
+			//alert(galleryPic.id);
+		}
+		</script>
+	</div>
+
+	<div id="gallery_overlay">
+		<t:handler-include path="/gallery/create/" area="Self"/>
+	</div>
+	<form id="gallery_form" action="/my/gallery/action/{gallery.id}" method="POST">
+		<input type="hidden" name="galleryid" id="galleryid" value="{gallery.id}"/>
+
+		<ul id="action_bar" class="action_bar">
+			<li id="upload_images">
+				<input type="submit" name="function[upload][{gallery.id}]" value="Upload Images"/>
+			</li>
+			<li>
+				<input type="submit" name="function[cover]" id="album_cover" value="Set as album cover"/>
+			</li>
+			<li>
+				<input type="submit" name="function[delete]" id="remove" value="Delete"/>
+			</li>
+			<li>
+				<input id="move_gallery" class="noscript" type="submit" name="function[move]" value="Move to:"/>
+				<t:handler-include path="/gallery/select" area="Internal">
+					<t:var t:name="'first_option'" t:val="'Move to:'"/>
+				</t:handler-include>
+			</li>
+		</ul>
+	</form>
+	<div class="script clear javascript_select">
+		Select:&#160;
+		<a id="select_all" class="body" href="#">All</a>,&#160;
+		<a id="select_none" class="body" href="#">None</a>
+	</div>
+	<div id="album_page" class="album_page">
+		<ul class="gallery_pics_page page" t:id="gallerypics" t:iter="page" t:index="page_count" id="page_{page_count}">
+			<t:loop t:id="page" t:iter="row" t:index="count">
+				<li t:id="(page_count==0 && count==0)">
+					<t:handler-include area="Self" path="/gallery/edit_gallery/{gallery.id}"/>
+				</li>
+				<li t:id="row" t:iter="pic" id="{pic.id}">
+					<div class="photoframe">
+						<div class="edit_bar gallery_pic_bar">
+							<div>
+								<div class="left_menu">
+									<input id="picture[{pic.id}]" name="picture[{pic.id}]" type="checkbox"/>
+								</div>
+								<div class="right_menu">
+									<a id="edit_link_{pic.id}" class="edit_link" href="#">Edit</a>
+									<a class="script" name="delete_link" id="delete_link[{pic.id}]" href="/my/gallery/delete/{pic.id}">
+										<img src="{$site.static_files_url}/Gallery/images/delete.gif"/>
+									</a>
+									<input class="noscript" type="image" src="{$site.static_files_url}/Gallery/images/cross_red.gif" alt="Submit button" value="function[deletepic][{pic.id}]" name="function[deletepic][{pic.id}]"/>
+								</div>
+							</div>
+						</div>
+						<div class="middle">
+							<img class="photoframe_photo script handle" id="draggable_image[{pic.id}]" t:id="pic" t:linktype="squaremini"/>
+							<br/>
+						</div>
+						<div>
+							<div id="description[{pic.id}]" class="image_description">
+								{pic.description}
+							</div>
+							<textarea id="edit[{pic.id}]" class="edit_box"> 
+								{pic.description}
+							</textarea>
+						</div>
+						<div class="clearit"></div>
+					</div>
+				</li>
+			</t:loop>
+		</ul>
+		<div class="clearit">
+		</div>
+	</div>
+</div>

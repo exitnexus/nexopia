@@ -1,0 +1,28 @@
+<html>
+	<head>
+		<title>
+			Paste Bin
+		</title>
+		<style>
+				td { background-color: #F6F6F6; }			
+				td > pre { display: inline; }
+		</style>
+	</head>
+	<body>
+		<table align='center' cellspacing='1'>
+			<tr>
+				<td colspan='2' style='background-color: #F0F0F0;'>
+					&nbsp;<b>{description} - <a href='/pastebin/{input}/original'>Original</a></b>
+				</td>
+			</tr>
+			<tr t:id="lines" t:iter="line" t:index="linenum">
+				<td align='right'>
+					<pre>&nbsp;{linenum+1}&nbsp;</pre>
+				</td>
+				<td>
+					<pre>{line}</pre>
+				</td>
+			</tr>
+		</table>
+	</body>
+</html>

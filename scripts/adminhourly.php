@@ -1,4 +1,4 @@
-#!/usr/local/bin/php -q
+#!/usr/local/php/bin/php
 <?
 /* MODULE adminhourly.php */
 
@@ -45,6 +45,7 @@ $errorLogging=true;
 /* : okay we need to change the working directory of this script to public_html reletive to the path*/
 /* : of the script */
 $_SERVER['SERVER_NAME'] = $_SERVER['HTTP_HOST'] = ".www.nexopia.com";
+/*
 $_SERVER['SCRIPT_NAME'] = $scriptName;
 if (!file_exists(getcwd()."/".basename($scriptName))) {
 	$newCwd = $scriptDirectory.'/public_html';
@@ -52,11 +53,10 @@ if (!file_exists(getcwd()."/".basename($scriptName))) {
 	$newCwd = 'public_html';
 }
 $newCwdPart = split("/", $newCwd);
-
-
 foreach ($newCwdPart as $pathComponant) {
 	chdir ($pathComponant);
 }
+*/
 
 /* : include external deps */
 require_once("include/general.lib.php");
@@ -191,7 +191,7 @@ function daily () {
 	/* : BEGIN GLOBALS */
 	global $config, $db, $mods, $debuginfousers, $usernotify, $messaging, $polls;
 	global $usersdb, $forums, $galleries, $articlesdb, $timer, $usersdb, $filesystem;
-	global $useraccounts, $usercomments;
+	global $useraccounts, $usercomments, $archive;
 	/* : END GLOBALS */
 
 	$newtime=gmmktime(gmdate("H"),0,0,gmdate("n"),gmdate("j"),gmdate("Y"));
@@ -200,8 +200,18 @@ function daily () {
 
 	echo $timer->lap("start admin daily - " . gmdate("F j, g:i a T") );
 
+
+	echo $timer->lap("potentially create next months archive table");
+	$archive->createTable();
+
+	echo $timer->lap("remind about almost expired plus");
+	remindAlmostExpiredPlus();
+
 	echo $timer->lap("rebuild user stats");
 	rebuildStats();
+
+	echo $timer->lap("dump active account stats");
+	dumpActiveAccountStats();
 
 	echo $timer->lap("delete old cached sessions (30 days)");
 	$usersdb->prepare_query("DELETE FROM sessions WHERE cachedlogin='y' && activetime <= ?", $newtime-86400*30);
@@ -284,7 +294,7 @@ function daily () {
 	$mods->dumpModStats();
 
 	echo $timer->lap("delete old login log items");
-	$usersdb->prepare_query("DELETE FROM loginlog WHERE time <= ?",  $newtime-86400*21);
+	$usersdb->prepare_query("DELETE FROM loginlog WHERE time <= #",  $newtime-86400*365);
 
 
 	echo $timer->lap("delete old messages");
@@ -320,10 +330,10 @@ function optimize () {
 	foreach($dbs as $name => $optdb) {
 		if (gmdate("w") == 0 || gmdate("w") == 3) {
 			echo $timer->lap("optimize db: $name");
-			$dbs[$name]->optimize(0);
+			$dbs[$name]->optimize(0, array('archive'));
 		} else {
 			echo $timer->lap("analyze db: $name");
-			$dbs[$name]->analyze(0);
+			$dbs[$name]->analyze(0, array('archive'));
 		}
 	}
 }

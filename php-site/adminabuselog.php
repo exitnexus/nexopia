@@ -13,15 +13,15 @@
 	// this query now handled & cached by include/forums.php
 	//	$sth = $forumdb->prepare_query('SELECT COUNT(*) AS modcnt FROM forummods, forums WHERE forummods.userid=# AND forummods.forumid=forums.id AND forums.official=?', $userData['userid'], 'y');
 
-	if ($userData['loggedIn'] && $forums->isOfficialMod($userData['userid']))
+	if($mods->isAdmin($userData['userid'], "abuselog"))
+		$adminLevel = ABUSE_ADMINLEVEL_ADMIN;
+	elseif($forums->isOfficialMod($userData['userid']))
 		$adminLevel = ABUSE_ADMINLEVEL_FORUMMOD;
 
-	if ($userData['loggedIn'] && $mods->isAdmin($userData['userid'], "abuselog"))
-		$adminLevel = ABUSE_ADMINLEVEL_ADMIN;
-
 	$allowedActions = $abuselog->getActions($adminLevel);
-	if (! count($allowedActions) || ($abuseaction > 0 && ! isset($allowedActions[$abuseaction])) || ($adminLevel == ABUSE_ADMINLEVEL_FORUMMOD && $type != 'User'))
+	if(!$adminLevel || !count($allowedActions) || ($abuseaction > 0 && ! isset($allowedActions[$abuseaction])) || ($adminLevel == ABUSE_ADMINLEVEL_FORUMMOD && $type != 'User'))
 		die("no permission");
+
 
 	$page = getREQval('page', 'int');
 
@@ -61,6 +61,10 @@
 			$id = getPOSTval('id', 'int');
 			$msg = getPOSTval('msg');
 
+			$result = $abuselog->getAbuseID($id);
+			if (! $result || ! isset($allowedActions[ $result['abuse']['action'] ]))
+				die("no permission");
+
 			if(!empty($id) && !empty($msg))
 				$abuselog->addAbuseComment($id, $msg);
 			break;
@@ -74,24 +78,26 @@ function listAbuse($action = 0, $reason = 0, $uid = "", $type = 'User'){
 	global $abuselog, $page, $config, $adminLevel, $allowedActions;
 
 	$types = array('User');
-	if ($adminLevel == ABUSE_ADMINLEVEL_ADMIN)
+	if ($adminLevel == ABUSE_ADMINLEVEL_ADMIN){
 		$types[] = 'Mod';
+		$types[] = 'Reporter';
+	}
 
 	$where = array();
 	if($uid){
-		$col = ($type == 'Mod' ? 'modid' : 'userid');
+		$col = ($type == 'Mod' ? 'modid' : ($type == 'Reporter' ? 'reportuserid' : 'userid'));
 		$where[] = $abuselog->db->prepare("$col = ?", getUserID($uid));
 	}
 
 	if($action)
 		$where[] = $abuselog->db->prepare("action = #", $action);
 	elseif($adminLevel != ABUSE_ADMINLEVEL_ADMIN)
-		$where[] = $abuselog->db->prepare_array("action IN (" . join(',', array_fill(0, count($allowedActions), '#')) . ")", array_keys($allowedActions));
+		$where[] = $abuselog->db->prepare("action IN (#)", array_keys($allowedActions));
 
 	if($reason)
 		$where[] = $abuselog->db->prepare("reason = ?", $reason);
 
-	$res = $abuselog->db->query("SELECT SQL_CALC_FOUND_ROWS id, userid, modid, action, reason, time, subject, msg FROM abuselog" . (count($where) ? " WHERE " . implode(" && ", $where) : "" ) . " ORDER BY time DESC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]");
+	$res = $abuselog->db->query("SELECT SQL_CALC_FOUND_ROWS id, userid, reportuserid, modid, action, reason, time, subject, msg FROM abuselog" . (count($where) ? " WHERE " . implode(" && ", $where) : "" ) . " ORDER BY time DESC LIMIT " . ($page*$config['linesPerPage']) . ", $config[linesPerPage]");
 
 	$rows = array();
 	$uids = array();
@@ -99,7 +105,9 @@ function listAbuse($action = 0, $reason = 0, $uid = "", $type = 'User'){
 		$rows[$line['id']] = $line;
 		$uids[$line['userid']] = $line['userid'];
 		$uids[$line['modid']] = $line['modid'];
+		$uids[$line['reportuserid']] = $line['reportuserid'];
 	}
+	unset($uids[0]);
 
 	$numrows = $res->totalrows();
 	$numpages =  ceil($numrows / $config['linesPerPage']);
@@ -121,7 +129,7 @@ function listAbuse($action = 0, $reason = 0, $uid = "", $type = 'User'){
 	echo "<table align=center>";
 
 	echo "<form action=$_SERVER[PHP_SELF]>";
-	echo "<tr><td class=header colspan=6 align=center>";
+	echo "<tr><td class=header colspan=7 align=center>";
 
 	echo "<select name=abuseaction class=body><option value=0>Action" . make_select_list_key($allowedActions, $action) . "</select>";
 	echo "<select name=reason class=body><option value=0>Reason" . make_select_list_key($abuselog->reasons, $reason) . "</select>";
@@ -134,6 +142,7 @@ function listAbuse($action = 0, $reason = 0, $uid = "", $type = 'User'){
 
 	echo "<tr>";
 	echo "<td class=header>User</td>";
+	echo "<td class=header>Reporter</td>";
 	echo "<td class=header>Mod</td>";
 	echo "<td class=header>Action</td>";
 	echo "<td class=header>Reason</td>";
@@ -144,14 +153,15 @@ function listAbuse($action = 0, $reason = 0, $uid = "", $type = 'User'){
 	foreach($rows as $row){
 		echo "<tr>";
 		echo "<td class=body nowrap><a class=body href=/profile.php?uid=$row[userid]>" . $usernames[$row['userid']] . "</a></td>";
-		echo "<td class=body nowrap><a class=body href=/profile.php?uid=$row[modid]>" . $usernames[$row['modid']] . "</a></td>";
+		echo "<td class=body nowrap>" . ($row['reportuserid'] ? "<a class=body href=/profile.php?uid=$row[reportuserid]>" . $usernames[$row['reportuserid']] . "</a>" : "" ) . "</td>";
+		echo "<td class=body nowrap>" . ($row['modid'] ? "<a class=body href=/profile.php?uid=$row[modid]>" . $usernames[$row['modid']] . "</a>" : "" ) . "</td>";
 		echo "<td class=body nowrap>" . (isset($abuselog->actions[$row['action']]) ? $abuselog->actions[$row['action']] : 'N/A') . "</td>";
 		echo "<td class=body nowrap>" . (isset($abuselog->reasons[$row['reason']]) ? $abuselog->reasons[$row['reason']] : 'N/A') . "</td>";
 		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=view&id=$row[id]>" . (isset($comments[$row['id']]) ? ($row['msg'] ? "<b><u>$row[subject]</u></b>" : "<u>$row[subject]</u>") : ($row['msg'] ? "<b>$row[subject]</b>" : (strlen($row['subject']) ? $row['subject'] : 'N/A'))) . "</a></td>";
 		echo "<td class=body nowrap>" . userDate("M j, Y, g:i a", $row['time']) . "</td>";
 		echo "</tr>";
 	}
-	echo "<tr><td class=header colspan=6>";
+	echo "<tr><td class=header colspan=7>";
 
 	echo "<table width=100% cellspacing=0 cellpadding=0><tr>";
 	echo "<td class=header><a class=header href=$_SERVER[PHP_SELF]?action=addabuse&uid=" . urlencode($uid) . ">Add Abuse</a></td>";
@@ -168,7 +178,7 @@ function listAbuse($action = 0, $reason = 0, $uid = "", $type = 'User'){
 }
 
 function viewAbuse($id){
-	global $abuselog;
+	global $abuselog, $allowedActions;
 
 	$result = $abuselog->getAbuseID($id); //returns array('abuse' => $row, 'comments' => $comments)
 
@@ -177,13 +187,19 @@ function viewAbuse($id){
 
 	extract($result);
 	
+	if (! isset($allowedActions[$abuse['action']]))
+		die("no permission");
+	
 	incHeader();
 
 	echo "<table align=center>";
 
 	echo "<tr><td class=body colspan=2><a class=body href=$_SERVER[PHP_SELF]>Abuse Log</a></td></tr>";
 	echo "<tr><td class=header>User:</td><td class=header><a class=header href=/profile.php?uid=$abuse[userid]>$abuse[username]</a></td></tr>";
-	echo "<tr><td class=header>Mod:</td><td class=header><a class=header href=/profile.php?uid=$abuse[modid]>$abuse[modname]</a></td></tr>";
+	if($abuse['reportuserid'])
+		echo "<tr><td class=header>Report User:</td><td class=header><a class=header href=/profile.php?uid=$abuse[reportuserid]>$abuse[reportname]</a></td></tr>";
+	if($abuse['modid'])
+		echo "<tr><td class=header>Mod:</td><td class=header><a class=header href=/profile.php?uid=$abuse[modid]>$abuse[modname]</a></td></tr>";
 	echo "<tr><td class=header>Action:</td><td class=header>" . (isset($abuselog->actions[$abuse['action']]) ? $abuselog->actions[$abuse['action']] : 'N/A') . "</td></tr>";
 	echo "<tr><td class=header>Reason:</td><td class=header>" . (isset($abuselog->reasons[$abuse['reason']]) ? $abuselog->reasons[$abuse['reason']] : 'N/A') . "</td></tr>";
 	echo "<tr><td class=header>Time:</td><td class=header>" . userDate("F j, Y, g:i a", $abuse['time']) . "</td></tr>";
@@ -231,7 +247,7 @@ function addAbuseComment($id, $msg, $preview){
 
 	if($preview){
 		$msg = trim($msg);
-		$nmsg = html_sanitizer::sanitize($msg);
+		$nmsg = removeHTML($msg);
 		$nmsg2 = parseHTML($nmsg);
 		$nmsg3 = smilies($nmsg2);
 		$nmsg3 = wrap($nmsg3);
@@ -273,7 +289,7 @@ function addAbuse($uid = "", $action = 0, $reason = 0, $subject = "", $msg = "",
 
 	if($preview){
 		$msg = trim($msg);
-		$nmsg = html_sanitizer::sanitize($msg);
+		$nmsg = removeHTML($msg);
 		$nmsg2 = parseHTML($nmsg);
 		$nmsg3 = smilies($nmsg2);
 		$nmsg3 = wrap($nmsg3);

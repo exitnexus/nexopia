@@ -104,7 +104,7 @@
 		}
 
 		for($i=1;$i<=12;$i++)
-			$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+			$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
 
 		if (empty($month))
 			$month = userdate('n');
@@ -117,14 +117,14 @@
 
 		$friends = getFriendsList($userData['userid']);
 
-		$nmsg = html_sanitizer::sanitize(trim($msg));
+		$nmsg = removeHTML(trim($msg));
 
 		incHeader();
 
 		echo "<table align=center>";
 
 		if($preview){
-			$nsubject = trim(html_sanitizer::sanitize($subject));
+			$nsubject = trim(removeHTML($subject));
 
 			$nmsg2 = parseHTML($nmsg);
 			$nmsg3 = smilies($nmsg2);
@@ -150,7 +150,7 @@
 		echo "<tr><td class=body>When to Send: </td><td class=body>";
 			echo "<select class=body name=\"month\"><option value=0>Month" . make_select_list_key($months,$month) . "</select>";
 			echo "<select class=body name=\"day\"><option value=0>Day" . make_select_list(range(1,31),$day) . "</select>";
-			echo "<select class=body name=\"year\"><option value=0>Year" . make_select_list(range(date("Y"),date("Y")+5),$year) . "</select>\n";
+			echo "<select class=body name=\"year\"><option value=0>Year" . make_select_list(range(gmdate("Y"),gmdate("Y")+5),$year) . "</select>\n";
 			echo "<select class=body name=hour><option value=0>Hour" . make_select_list(range(0, 23), $hour) . "</select></td></tr>\n";
 		echo "</td></tr>\n";
 		echo "<tr><td class=body colspan=2>";

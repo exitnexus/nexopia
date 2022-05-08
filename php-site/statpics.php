@@ -1,5 +1,6 @@
 <?
 	$login = 1;
+	$accepttype=false;
 	require_once('include/general.lib.php');
 	require_once('include/chartClasses.php');
 	$bannerAdmin = $mods->isAdmin($userData['userid'],"listbanners");

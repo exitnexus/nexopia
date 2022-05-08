@@ -1,0 +1,37 @@
+<html>
+	<head>
+		<title>
+			Page handlers
+		</title>
+		<style>
+			tr.head  th { background-color: #F8B623; font-weight: bold; }
+			tr.body1 td { background-color: #F0F0F0; }
+			tr.body2 td { background-color: #DDDDDD; }
+		</style>
+	</head>
+	<body>
+		<table>
+			<tr class="head">
+				<th>Area</th>
+				<th>Node</th>
+				<th>Type</th>
+				<th>Class</th>
+				<th>Method</th>
+				<th>Privilege</th>
+			</tr>
+
+			<tr t:id="nodes" t:iter="node" class="body1,body2">
+				<td><b>#{node.area}</b></td>
+				<td><b>#{node.name}</b></td>
+				<td>#{node.type}</td>
+				<td>#{node.class}</td>
+				<td>
+					<span t:id="node.method" t:iter="(selector,method)">
+						{selector}: {method}<br />
+					</span>
+				</td>
+				<td>#{node.priv}</td>
+			</tr>
+		</table>
+	</body>
+</html>

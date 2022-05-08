@@ -1,0 +1,69 @@
+<t:docroot>
+	<t:if t:id="!$poll.has_voted?(PageRequest.current.session.user)">
+		<table border="0" cellspacing="0" cellpadding="2" width="100%">
+			<form action="/poll.php" method="get">
+				<input type="hidden" name="pollid" value="{$poll.id}"/>
+				<input type="hidden" name="k" value="{$poll.key}"/>
+				<tr>
+					<td colspan="2" class="header">
+						{$poll.question}
+					</td>
+				</tr>
+				<t:loop t:id="$poll.answers" t:iter="answer">
+					<tr>
+						<td class="side" width="20px">
+							<input type="radio" name='ans' value="#{ans.id}" id="ans#{ans.id}"/>
+						</td>
+						<td class="side">
+							<label for="ans#{ans.id}">#{ans.answer}</label>
+						</td>
+					</tr>
+				</t:loop>
+				<tr>
+					<td class="side">
+					</td>
+					<td class="side">
+						<input type="submit" name="action" value="Vote"/> 
+						<a href="/poll.php?pollid={$poll.id}&ans=0&k={$poll.key}&action=Vote">Results</a>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="2" class="side" align="center">
+						<a href="/poll.php?action=list">List polls</a> 
+						| <a href="/poll.php?action=add">Suggest a Poll</a> 
+					</td> 
+				</tr>
+				</form>
+			</table>
+	</t:if>
+	<t:if t:id="$poll.has_voted?(PageRequest.current.session.user)">
+	
+		<table width="100%">
+			<tr>
+				<td class="header">poll['question']</td>
+			</tr>
+			<t:loop t:id="$poll.answers" t:iter="answer">
+				<tr><td class="side">ans['answer']:</td></tr>
+				<tr><td class="side"><img src="config['imageloc']red.png" width="ans['width']" height="10"/> {$ans['votes']}</td></tr>
+			</t:loop>
+	
+			<tr>
+				<td class="side">{$poll.tvotes} votes | 
+					<a href="comments.php?id={$poll.id}&db=polls">{$poll.comments} Comments</a>
+				</td>
+			</tr>
+			
+			<tr>
+				<td class="side">  
+					<a href="/poll.php?pollid={$poll.id}">Results</a> | 
+					<a href="/poll.php?action=list">List polls</a>
+				</td>
+			</tr>
+			<tr>
+				<td class="side"> 
+					<a href="/poll.php?action=add">Suggest a Poll</a>
+				</td>
+			</tr>
+		</table>
+	</t:if>
+</t:docroot>

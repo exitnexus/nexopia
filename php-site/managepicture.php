@@ -1,6 +1,6 @@
 <?
 
-	$login = 1;
+	$login = 0.5;
 
 	require_once("include/general.lib.php");
 
@@ -9,14 +9,14 @@
 		function __construct()
 		{
 			$this->registerSubHandler('/managepicture.php/uploaded/legacy',
-				new varsubhandler($this, array('uploadedPictures', 1), REQUIRE_LOGGEDIN,
+				new varsubhandler($this, array('uploadedPictures', 1), REQUIRE_HALFLOGGEDIN,
 					varargs('signpic', 'integer', 'post', false, false),
 					varargs('uploadid', 'integer', 'post')
 				)
 			);
 
 			$this->registerSubHandler('/managepicture.php/uploaded',
-				new varsubhandler($this, array('uploadedPictures', 0), REQUIRE_LOGGEDIN,
+				new varsubhandler($this, array('uploadedPictures', 0), REQUIRE_HALFLOGGEDIN,
 					varargs('signpic', 'integer', 'post', false, false),
 					varargs('uploadid', 'integer', 'post')
 				)
@@ -24,7 +24,7 @@
 
 			$this->registerSubHandler(__FILE__,
 				new varsubhandler($this, 'editPicture',
-										 array(REQUIRE_LOGGEDIN, 'editpictures'),
+										 array(REQUIRE_HALFLOGGEDIN, 'editpictures'),
 					varargs('uid', 'integer', 'post', false, false),
 					varargs('pictureid', 'integer', 'post'),
 					varargs('description', 'string', 'post'),
@@ -34,7 +34,7 @@
 			);
 			$this->registerSubHandler(__FILE__,
 				new varsubhandler($this, 'deletePicture',
-										 array(REQUIRE_LOGGEDIN, 'editpictures'),
+										 array(REQUIRE_HALFLOGGEDIN, 'editpictures'),
 					varargs('uid', 'integer', 'request', false, false),
 					varargs('pictureid', 'integer', 'request'),
 					varargs('k', 'string', 'request'),
@@ -42,7 +42,7 @@
 				)
 			);
 			$this->registerSubHandler(__FILE__,
-				new varsubhandler($this, 'priorityPicture', REQUIRE_LOGGEDIN,
+				new varsubhandler($this, 'priorityPicture', REQUIRE_HALFLOGGEDIN,
 					varargs('pictureid', 'integer', 'request'),
 					varargs('direction', 'integer', 'request'),
 					varargs('k', 'string', 'request'),
@@ -51,12 +51,12 @@
 			);
 
 			$this->registerSubHandler(__FILE__,
-				new varsubhandler($this, 'uploadPictures', REQUIRE_LOGGEDIN,
+				new varsubhandler($this, 'uploadPictures', REQUIRE_HALFLOGGEDIN,
 					varargs('type', 'upload', 'request')
 				)
 			);
 			$this->registerSubHandler(__FILE__,
-				new varsubhandler($this, 'deletePending', array(REQUIRE_LOGGEDIN, 'editpictures'),
+				new varsubhandler($this, 'deletePending', array(REQUIRE_HALFLOGGEDIN, 'editpictures'),
 					varargs('uid', 'integer', 'post', false, false),
 					varargs('commit', array('t'), 'post'),
 					varargs('type', 'pending', 'post'),
@@ -64,7 +64,7 @@
 				)
 			);
 			$this->registerSubHandler(__FILE__,
-				new varsubhandler($this, 'savePending', REQUIRE_LOGGEDIN,
+				new varsubhandler($this, 'savePending', REQUIRE_HALFLOGGEDIN,
 					varargs('commit', array('t'), 'post'),
 					varargs('description', array('string'), 'post'),
 					varargs('type', 'pending', 'post'),
@@ -74,14 +74,14 @@
 
 			$this->registerSubHandler(__FILE__,
 				new varsubhandler($this, 'editPictures',
-				                         array(REQUIRE_LOGGEDIN, 'editpictures'),
+				                         array(REQUIRE_HALFLOGGEDIN, 'editpictures'),
 					varargs('uid', 'integer', 'request', false)
 				)
 			);
 
 			$this->registerSubHandler('/manage/pictures',
 				new urisubhandler($this, 'editPicturesUsername',
-				                         array(REQUIRE_LOGGEDIN, 'editpictures'),
+				                         array(REQUIRE_HALFLOGGEDIN, 'editpictures'),
 					uriargs('username', 'string')
 				)
 			);
@@ -89,7 +89,7 @@
 
 		function editPicture($uid, $pictureid, $description, $signpic)
 		{
-			global $userData, $msgs, $cache, $usersdb;
+			global $userData, $msgs, $cache, $usersdb, $google;
 			if (!$uid)
 				$uid = $userData['userid'];
 
@@ -107,6 +107,8 @@
 			$usersdb->prepare_query("UPDATE pics SET $signpicupdate description = ? WHERE userid = % AND id = #", removeHTML(trim(str_replace("\n", ' ', $description))), $uid, $pictureid);
 
 			$cache->remove("pics-$uid");
+			
+			$google->updateHash($uid);
 
 			$msgs->addMsg("Update Complete");
 
@@ -117,7 +119,7 @@
 
 		function priorityPicture($pictureid, $direction, $k)
 		{
-			global $userData, $usersdb;
+			global $userData, $usersdb, $google;
 			$uid = $userData['userid'];
 
 			if (checkKey($pictureid, $k))
@@ -128,6 +130,7 @@
 					increasepriority($usersdb, "pics", $pictureid, $usersdb->prepare("userid = %", $uid), true);
 
 				setFirstPic($uid);
+				$google->updateHash($uid);
 			}
 			header("Status: 301 Redirect");
 			header("Location: /manage/pictures/$userData[username]");
@@ -136,7 +139,7 @@
 
 		function deletePicture($uid, $pictureid, $k)
 		{
-			global $usersdb, $userData, $mods;
+			global $usersdb, $userData, $mods, $google;
 			if (!$uid)
 				$uid = $userData['userid'];
 
@@ -156,6 +159,7 @@
 					if($uid != $userData['userid'])
 						$mods->adminlog("delete picture", "Delete user picture: userid $uid");
 				}
+				$google->updateHash($uid);
 			}
 
 			header("Status: 301 Redirect");
@@ -373,33 +377,17 @@
 			global $userData, $config, $usersdb, $msgs, $skinloc, $skindata;
 
 			$userfirstpic = $userData['firstpic'];
-			$usersignpic = $userData['signpic'];
-
-			$maxpics = ($userData['premium'] ? $config['maxpicspremium'] : $config['maxpics']);
-			if($usersignpic == 'y')
-				$maxpics++;
-			$reachedMax = false;
 
 			// file stuff is not built into the new system, so hack it for now. It's optional,
 			// so no big deal.
 			$userfiles = getFILEval('userfile');
 			$picid = 0;
+			$reachedMax = false;
 			if (!empty($userfiles['tmp_name']))
 			{
-				$res = $usersdb->prepare_query("SELECT count(*) FROM pics WHERE userid = %", $userData['userid']);
-				$num = $res->fetchfield();
-				$res = $usersdb->prepare_query("SELECT count(*) FROM picspending WHERE userid = %", $userData['userid']);
-				$num += $res->fetchfield();
-
-				if($num < $maxpics) //premium check
-				{
-					$description = preg_replace('/(\.[jJ][pP][gG])$/', '', $userfiles['name']);
-					$picid = addPic($userfiles['tmp_name'], $description, $signpic);
-					$description = htmlentities($description);
-				} else {
-					$msgs->addMsg("You have uploaded your maximum number of pictures ($maxpics)");
-					$reachedMax = true;
-				}
+				$description = preg_replace('/(\.[jJ][pP][gG])$/', '', $userfiles['name']);
+				$picid = addPic($userfiles['tmp_name'], $description, $signpic, $reachedMax);
+				$description = htmlentities($description);
 			} else {
 				$msgs->addMsg("No file received, it may have been too large.");
 			}
@@ -488,4 +476,4 @@
 	}
 
 	$managepicturepage = new managepicturepage();
-	return $managepicturepage->runPage();
+	$managepicturepage->runPage();

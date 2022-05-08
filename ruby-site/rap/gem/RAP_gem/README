@@ -1,0 +1,41 @@
+RAP
+
+What needs to be done:
+	- We are going to install a custom version of php in a custom path so it can't
+	  mess with your system's normal php install.
+	- Then we will do the gem install telling it where 
+	- ...
+
+Quick Setup:
+	1. Run the configure script.
+	   This will fetch php for you, compile it to a path you specify and create a
+	   script to anounce the path to a shell.
+			- In ruby-site/rap/lib/gem
+				- ./configure [PHP install directory]
+	
+	2. Install RAP gem.
+			- In ruby-site/rap/lib/gem/RAP_gem/pkg
+				- RAP-x.x.x.gem -- --with-php-dir=[PHP install directory]
+	
+	3. Remove the pass through from your lighttpd.conf and change the ruby subdomain
+	   to "www".
+			
+	4. Add the custom php path to your current shell.
+	   (This will need to be done each time before you launch your server on a new
+	   shell.)
+			- In ruby-site/
+				- run ". ./rap_path_setup"
+				- or ". ./rap_path_setup && ruby nexopia.rb -c [you] [options]" will
+				  configure the path and launch the server.
+	
+	5. Install apc and add it to your php.ini
+	
+	6. Launch your server normally.
+	
+	7. There is no step seven.
+	
+
+The Long Way:
+	- get php source
+		- http://www.php.net/get/php-5.2.4.tar.gz/from/a/mirror
+	- ...

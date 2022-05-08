@@ -1,0 +1,30 @@
+<div class="show_video">
+	<div id="welcome_msg">Welcome to Nexopia Video. Browse videos posted anywhere on Nexopia by you the users.</div>
+	<div id="video_block">
+		<div id="video_title">{video.title}</div>
+		<div id="video_embed">#{video.nex_embed(382)}</div><br/>
+		<div id="show_video_bottom">
+			<div id="actions">
+				<div><a href="{handler_root}/embed{video_parameters}" onclick="Viewer.show_embed(); return false;">+ Add to Profile</a></div>
+				<div><a href="/messages.php?action=Preview&subject=%{video.share_subject}&msg=%{video.share_body}">+ Share with Friends</a></div>
+				<br/>
+				<div><a href="/reportabuse.php?type=71&id=#{video.id}&section=offensivevideo">- Report Abuse</a></div>
+				<br/>
+				<div class="clearit"><!-- Comment to fix IE empty DIV problem. --></div>
+			</div>
+			<div id="stats">
+				Date Added: {video.display_addtime}<br/>
+				Views: {video.views}
+			</div>
+			<div class="clearit"><!-- Comment to fix IE empty DIV problem. --></div>
+		</div>
+		<div id="show_embed" style="display: none; height: 120px">
+			<form>
+				Copy and paste the following text into your profile:<br/><br/>
+
+				<textarea id="embed" name="embed" style="width: 100%; height: 100px">{video.embed}</textarea>
+			</form>
+		</div>
+	</div>
+	<div class="clearit">&#160;</div>
+</div>

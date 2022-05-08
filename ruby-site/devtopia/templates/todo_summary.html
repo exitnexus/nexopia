@@ -1,0 +1,14 @@
+<div class="devtaskman_content_container" t:docid="todo_summary">
+	<t:template-include name="navigation" module="devtopia" />
+	
+	<form method="POST" action="/my/projectmanager/todos/summary/update">
+		<t:loop t:id="products" t:iter="product">
+			<h2>{product.name}</h2>
+				<t:loop t:id="product.tasks(programmer)" t:iter="task">
+					#{handler.html_task(task)}
+				</t:loop>
+		</t:loop>
+		<input type="hidden" id="programmer_id" name="programmer_id" value="{programmer.userid}" />
+		<input type="submit" value="Update" />
+	</form>
+</div>

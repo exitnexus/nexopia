@@ -1,0 +1,36 @@
+div.accountcreate_arrows
+{
+	width: 471px;
+	margin-top: 30px;
+	margin-bottom: 20px;
+}
+
+div.accountcreate_arrows div.arrow
+{
+	width: 157px;
+	height: 17px;
+	color: #ffffff;
+	text-align: left;
+	font-size: 14px;
+	font-family: $header_font_family;
+	position: relative;
+}
+
+div.accountcreate_arrows div.arrow_block
+{
+	position: relative;
+	float: left;
+}
+
+div.accountcreate_arrows div.arrow_text
+{
+	line-height: 17px;
+	padding-left: 12px;
+	padding-top: 1px;
+}
+
+div.accountcreate_arrows div.arrow_long_description
+{
+	padding-top: 6px;
+	position: relative;
+}

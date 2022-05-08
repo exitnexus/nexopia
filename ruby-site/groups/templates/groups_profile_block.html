@@ -1,0 +1,27 @@
+<div t:docid="groups_profile_block" id="groups_profile_block">
+	<div class="groups_header">
+		<div class="groups_title">
+			GROUPS
+		</div>
+	</div>
+	<table>
+		<!-- Groups Table -->
+		<t:loop t:id="user_group_types" t:iter="user_group_type">
+			<t:loop t:id="user_group_type" t:iter="user_group" t:index="num">
+				<tr valign="top">
+					<t:if t:id="num == 0">
+						<td class="group_type">{user_group.group_type_name}</td>
+					</t:if>
+					<t:if t:id="num > 0">
+						<td></td>
+					</t:if>
+					<td>
+						{user_group.group_name}<br />
+						<span class="location">{user_group.group_location_path}</span><br/>
+						<span class="duration">{user_group.duration}</span><br/>
+					</td>
+				</tr>
+			</t:loop>
+		</t:loop>
+	</table>
+</div>

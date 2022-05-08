@@ -1,0 +1,30 @@
+<div id="music_doc">
+	<div id="news_item" class="yui-t7">
+		#{css}
+		<div class="yui-g back_nav">
+			<a href="{back_link}">BACK</a>
+		</div>
+		<div class="yui-g news_title">
+			<div>
+				<div class="stream_entry_title">
+					<t:if t:id="news.stream_icon">
+						<img src="{news.stream_icon.image_location}"></img>
+					</t:if>
+					<span>{news.title}</span>
+				</div>
+				<div class="stream_entry_date">
+					<!--{news.date_string}-->
+				</div>
+			</div>
+		</div>
+		<div class="yui-g news_content">
+			#{news.body}
+			<div class="item_share">
+				<a t:id="news" t:linktype="share"><img src="{$site.static_files_url}/streams/icons/share_icon.gif"></img></a>
+			</div>
+		</div>
+		<div class="yui-g back_nav_bottom">
+			<a href="{back_link}">BACK</a>
+		</div>
+	</div>
+</div>

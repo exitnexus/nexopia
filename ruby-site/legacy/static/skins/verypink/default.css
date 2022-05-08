@@ -1,0 +1,75 @@
+table {text-align: left;}
+tr {vertical-align: top;}
+
+body         { background-color: #e9acac; font-family: arial, sans-serif; font-size: 8pt; margin: 0; }
+
+input, select, option, textarea	{ font-family: arial, sans-serif; font-size: 8pt; color: #2c2c2c !important; border:1px solid #2c2c2c;}
+body textarea { font-size: 9pt; }
+option { border:0px; margin:0px; background: #fac1e2; color: #2c2c2c !important;}
+option:hover { background: #c1d4fa !important; }
+select { color: #2c2c2c !important; }
+
+td.footer		{ color:#CCCCCC; text-decoration:none; font: 6pt arial, sans-serif;}
+
+td.side					                { background-color: #f7f8f8; color: #2c2c2c; font-family: arial, sans-serif; font-size: 8pt; }
+td.side a   	                 	{ color: #2c2c2c; text-decoration:none; }
+td.side a:hover	            		{ color: #f27fc2 }
+
+td.border		{ background-color:#9A9A9A; }
+
+a.sidelink      		{ color: #2c2c2c; text-decoration:underline; font-family: arial, sans-serif; font-size: 8pt; font-weight: bold }
+a.sidelink:hover		{ color: #f27fc2; }
+
+td.sideheader		{ color:#2c2c2c; font-family: arial, sans-serif; font-size: 8pt; text-align:left;}
+
+td.header		{ background: #fac1e2; color: #2c2c2c; font-family: arial, sans-serif; font-size: 8pt}
+a.header  	{ color: #2c2c2c; text-decoration:none; }
+a.header:hover	{ color: #f27fc2; }
+
+td.headerfront	{ color:#2c2c2c; background: #fff url(http://static.nexopia.com/skins/verypink/blockhead.png); font-size: 12pt; height:26px; text-indent:10px; padding-bottom:10px;}
+
+td.header2			{ color: #fff; font-weight: bold; font-family: arial, sans-serif; font-size: 8pt}
+a.header2     	{ color: #fff; text-decoration:none; }
+a.header2:hover		{ color: #f27fc2; }
+
+td.body			{ background-color: #f7f8f8; color: #6f6f6f; font-family: arial, sans-serif; font-size: 8pt}
+td.body2		{ background: #f9d0e8; color: #6f6f6f; font-family: arial, sans-serif; font-size: 8pt}
+td.body2 a:hover { color: #fff; }
+a.body { color: #636466; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.body:hover	{ color: #f27fc2; }
+
+td.menu				{ color: #f7f8f8; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a			{ color: #f7f8f8; text-decoration:none; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a:hover		{ color: #f27fc2; }
+
+td.forumlst						{ color: #fff; font: 8pt arial, sans-serif; }
+a.forumlst:link,a.forumlst:visited 	{ color: #f27fc2; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst:hover,a.forumlst:active 	{ color: #f27fc2; text-decoration:none; font: 8pt arial, sans-serif;}
+
+/*visited forum or thread*/
+td.forumlst0  { background-color:#D6E3EE; color: #6e5b67; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst0:link,a.forumlst0:visited { color: #9c8795; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst0:hover,a.forumlst0:active { color: #f27fc2; text-decoration:none; font: 8pt arial, sans-serif; }
+
+/*not visited forum*/
+td.forumlst1 	 { background-color:#D6E3EE; color: #9F9F9F; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst1:link,a.forumlst1:visited { color: #f27fc2; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst1:hover,a.forumlst1:active { color: #f27fc2; text-decoration:none; font: 8pt arial, sans-serif; }
+
+/*thread not visited*/ 
+a.forumlst2:link,a.forumlst2:visited { color: #000; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst2:hover,a.forumlst2:active { color: #f27fc2; text-decoration:none; font: 8pt arial, sans-serif;}
+
+td.small		{ background: #fac1e2 url(http://static.nexopia.com/skins/verypink/headerbg.png);color: #2c2c2c; font-family: arial, sans-serif; font-size: 8pt}
+a.small  	{ color: #2c2c2c; text-decoration:none; }
+a.small:hover	{ color: #f27fc2; }
+
+td.msg		  	{ background-color:#cccccc; font-family: arial, sans-serif; font-size: 8pt}
+a.msg       	{ color: #598241; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.msg:hover		{ color: #598241; }
+
+a.vote      	{ color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bold }
+a.vote:hover	{ color: #000000; }
+
+td.online		{ color: #00AA00; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}
+td.offline		{ color: #BF0E00; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}

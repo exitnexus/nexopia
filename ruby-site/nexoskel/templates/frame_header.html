@@ -1,0 +1,23 @@
+<t:docroot>
+	<html>
+		<head>
+			<title>#{$config.site_name}</title>
+			<script src="#{$site.static_files_url}/Legacy/javascript/general.js?rev=#{reporev}"></script>
+			<script src="#{$site.static_files_url}/Legacy/javascript/yui.js?rev=#{reporev}"></script>
+			<link rel="stylesheet" href="#{$site.static_files_url}/Legacy/skins/#{PageRequest.current.session.user.skin}/default.css?rev=#{reporev}"/>
+			<t:loop t:id="PageHandler.modules" t:iter="smodule">
+				<script type="text/javascript" src="#{$site.script_url}/#{smodule}.js"></script>
+			</t:loop>
+			<link rel="stylesheet" href="#{$site.style_url}/#{cmodule}/#{PageRequest.current.session.user.skin}.css"/>
+			
+			
+		</head>
+		
+		<body>
+			{InterstitialModule::show}
+			<table id="site_body" cellspacing="0" cellpadding="0">
+				<t:handler-include t:path="/header" t:area="Internal"/>
+			</table>
+		</body>
+	</html>
+</t:docroot>

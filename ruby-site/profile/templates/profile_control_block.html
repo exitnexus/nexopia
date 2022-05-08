@@ -1,0 +1,62 @@
+<!-- PROFILE FUNCTION SECTION START -->
+<div>
+	<div class="online_status">
+		<img border="0" src="{$site.static_files_url}/profile/images/icon_online.gif" width="7" height="7" />
+	</div>
+	<div class="user_page_info">
+		<div class="username" id="h1_1">
+			<a t:id="user"/>
+		</div>
+		{user.profile.views} Hits<br />
+		
+		<t:if t:id="user.plus?">
+			Plus Member <img class="icon_plus" border="0" src="{$site.static_files_url}/profile/images/icon_plus.gif" width="7" height="7" />
+		</t:if>
+	</div>
+	<br class="clear" />
+
+	<table border="0" class="profile_function_table" cellspacing="0" cellpadding="0">
+		<tr>
+			<td><a href="#">ADD AS FRIEND</a></td>
+			<td class="profile_function_icon">
+				<a href="#"><img border="0" src="{$site.static_files_url}/profile/images/icon_add_friend.gif" width="10" height="8" /></a>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<a href="#">SEND MESSAGE</a>
+			</td>
+			<td class="profile_function_icon">
+				<a href="#"><img border="0" src="{$site.static_files_url}/profile/images/icon_send_msg.gif" width="10" height="8" /></a>
+			</td>
+		</tr>
+		<tr>
+			<td><a href="#">COMMENT</a></td>
+			<td class="profile_function_icon">
+				<a href="#"><img border="0" src="{$site.static_files_url}/profile/images/icon_comment.gif" width="10" height="8" /></a>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<a href="#">SUBSCRIBE</a>
+			</td>
+			<td class="profile_function_icon">
+				<a href="#"><img border="0" src="{$site.static_files_url}/profile/images/icon_subscribe.gif" width="10" height="8" /></a>
+			</td>
+		</tr>
+	</table>
+
+	<table border="0" class="profile_function_table" cellspacing="0" cellpadding="0">
+		<tr>
+			<td><a href="#">IGNORE USER</a></td>
+			<td class="profile_function_icon">
+				<a href="#"><img border="0" src="{$site.static_files_url}/profile/images/icon_ignore_user.gif" width="8" height="8" /></a>
+			</td>
+		</tr><tr>
+			<td><a href="#">REPORT ABUSE</a></td>
+			<td class="profile_function_icon">
+				<a href="#"><img border="0" src="{$site.static_files_url}/profile/images/icon_report_abuse.gif" width="8" height="8" /></a>
+			</td>
+		</tr>
+	</table>
+</div>

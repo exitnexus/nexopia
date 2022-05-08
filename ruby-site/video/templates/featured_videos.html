@@ -1,0 +1,8 @@
+<div class="browser">
+	<div class="thumbnail_grid">
+		<t:loop t:id="videos" t:iter="video">
+			<t:template-include name="browser_thumbnail" module="video"/>
+		</t:loop>
+	</div>
+	<div class="clearit"><!-- Comment to fix IE empty DIV problem. --></div>
+</div>

@@ -1,0 +1,55 @@
+<div>
+	<a t:id="band" t:linktype="user_delete"></a>
+	<form id="new_band" name="new_band" method="post" action="/music/bandentry/{submit_location}/submit/">
+		<table>
+			<tbody>
+				<tr>
+					<td>
+						Band Name
+					</td>
+					<td>
+						<input type="text" name="band_name" id="band_name" value="{band.name}"></input>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						Band Bio
+					</td>
+					<td>
+						<textarea name="band_bio" id="band_bio" rows="10" cols="50">{band.bio}</textarea>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						Band Website
+					</td>
+					<td>
+						<input type="text" name="band_url" id="band_url" value="{band.uri}"></input>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						Music Genre	
+					</td>
+					<td>
+						<input type="text" name="band_genre" id="band_genre" value="{band.genre}"></input>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						Band Icon
+					</td>
+					<td>
+						<t:template-include t:module="streams" t:name="music_stream_icon_widget"></t:template-include>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="2">
+						<input type="submit" name="band_submit" id="band_submit" value="Save"></input>
+						<input type="submit" name="band_cancel" id="band_cancel" value="Cancel"></input>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</form>
+</div>

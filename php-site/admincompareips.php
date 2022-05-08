@@ -31,7 +31,7 @@
 	if ($username2 && !$userid2)
 		$msgs->addMsg("'$username2' is not a valid user.");
 		
-	$ipMatches = false;
+	$ipMatches = array();
 	if ($userid1 && $userid2) {
 		$mods->adminlog('compare ips',"Compare ips for $username1 and $username2");
 		$result1 = $usersdb->prepare_query("SELECT userid, activetime, ip, hits FROM userhitlog WHERE userid = %", $userid1);
@@ -42,19 +42,23 @@
 		
 		foreach($rows1 as $line1) {
 			foreach($rows2 as $line2) {
-				if ($line1['ip'] == $line2['ip']) {
-					$ipMatches[] = array(	'ip' => long2ip($line1['ip']), 
-					'activetime1' => userDate("F j, Y, g:i a", $line1['activetime']),
-					'activetime2' => userDate("F j, Y, g:i a", $line2['activetime']),
-					'hits1' => $line1['hits'],
-					'hits2' => $line2['hits'],
-					'ipkey' => makeKey(long2ip($line1['ip'])));
+				if($line1['ip'] == $line2['ip']){
+					$ipMatches[] = array(
+							'ip' => long2ip($line1['ip']), 
+							'activetime1' => userDate("F j, Y, g:i a", $line1['activetime']),
+							'activetime2' => userDate("F j, Y, g:i a", $line2['activetime']),
+							'hits1' => $line1['hits'],
+							'hits2' => $line2['hits'],
+							'ipkey' => makeKey(long2ip($line1['ip']))
+							);
+					continue;
 				}
 			}
 		}
 	}
 	
 	$template = new template('admin/ipcompare');
+	$template->set('ipAdmin', $mods->isAdmin($userData['userid'], 'showips'));
 	$template->set('username1', $username1);
 	$template->set('username2', $username2);
 	$template->set('key1', makeKey($username1));

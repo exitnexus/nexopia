@@ -1,0 +1,41 @@
+<div t:docid="edit_gallery" id="edit_gallery">
+	<img id="selected_album_cover" t:linktype="square" t:id="gallery"/>
+		<form id="edit_gallery_form" action="/my/gallery/submit_gallery_edit/#{gallery.id}" method="POST">
+			<img class="script" id="edit_gallery_spinner" src="#{$site.static_files_url}/Legacy/images/spinner.gif"/>
+			<div class="noscript">
+				<span class="noscript">Gallery Name:</span>
+				<input id="gallery_name_input" maxlength="32" type="text" value="{gallery.name}" name="name"/>
+			</div>
+			<div id="gallery_name" class="script">
+				<h2 class="script">{gallery.name}</h2>&#160;
+				<span class="script minor">(Click to edit)</span>
+			</div>
+			<div class="noscript">
+				<span class="noscript">Description:</span>
+				<input id="gallery_description_input" type="text" value="{gallery.description}" name="description"/>
+			</div>
+			<div id="gallery_description" class="script">
+				<span class="script">{gallery.description}</span>&#160;
+				<span class="script minor">(Click to edit)</span>
+			</div>
+			<div id="image_count" class="minor">
+				{gallery.pics.length} image<t:if t:id="gallery.pics.length != 1">s</t:if>
+			</div>
+			<div class="minor" id="gallery_permission">
+				<span class="script" id="current_gallery_permission">
+					<t:if t:id="gallery.permission == 'anyone'">Visible To Anyone</t:if>
+					<t:if t:id="gallery.permission == 'loggedin'">Visible To Logged In Users</t:if>
+					<t:if t:id="gallery.permission == 'friends'">Visible To Friends</t:if>
+					&#160;(Click to edit)
+				</span>
+				<span class="noscript">Permissions:</span>
+				<select class = "noscript" id="gallery_permission_select" name="permission">
+					<option cond:selected="gallery.permission == 'anyone'" value="anyone">Visible To Anyone</option>
+					<option cond:selected="gallery.permission == 'loggedin'" value="loggedin">Visible To Logged In Users</option>
+					<option cond:selected="gallery.permission == 'friends'" value="friends">Visible To Friends</option>
+				</select><br/>
+			</div>
+			<div><a class="body" href="/galleries/%{user.username}/{gallery.id}/%{gallery.name}">View Gallery</a></div>
+			<input class="noscript" type="submit" value="Update Gallery" name="action"/><br/>
+		</form>
+</div>

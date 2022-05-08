@@ -42,10 +42,8 @@ function editForum($id){
 	$cats = $forums->getCategories();
 	$outputcats = array(-1 => 'Select a category');
 	foreach ($cats as $catid => $cat)
-	{
 		if ($isForumAdmin || $cat['official'] != 'y')
 			$outputcats[$catid] = $cat['name'];
-	}
 
 	extract($data);
 
@@ -74,19 +72,22 @@ function editForum($id){
 function updateForum($data,$id){
 	global $msgs,$userData,$forums,$sorttime,$sorttimes, $cache, $mods;
 
-	$name="";
-	$description="";
-	$catid=-1;
-	$autolock=0;
-	$edit='n';
-	$countposts='y';
-	$public='y';
-	$official='n';
-	$mute='n';
-	$sorttime = 14;
-	$ownername = "";
-
-	extract($data);
+	$defaults = array(
+		'name' => "",
+		'description' => "",
+		'catid' => -1,
+		'autolock' => 0,
+		'edit' => 'n',
+		'countposts' => 'y',
+		'public' => 'y',
+		'official' => 'n',
+		'mute' => 'n',
+		'sorttime' => 14,
+		'ownername' => "",
+		'rules' => "",
+		);
+	
+	extract(setDefaults($data, $defaults));
 
 	$isForumAdmin = $mods->isAdmin($userData['userid'],'forums');
 
@@ -154,7 +155,7 @@ function updateForum($data,$id){
 	$commands[] = $forums->db->prepare("mute = ?", $mute);
 	$commands[] = $forums->db->prepare("ownerid = ?", $ownerid);
 	if($isForumAdmin){
-		if(isset($sorttime) && !in_array($sorttime, $forums->sorttimes))
+		if(!isset($forums->sorttimes[$sorttime]))
 			$sorttime = 14;
 		$commands[] = $forums->db->prepare("sorttime = #", $sorttime);
 	}

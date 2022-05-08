@@ -1,0 +1,14 @@
+<div style="min-width:500px;height:100px" xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+
+<span t:id="message_missing">The requested message {userid}:{messageid} was not found.{header}{text}</span>
+<div t:id="header" id="message-{messageid}">
+	<input type="hidden" name="replyid" value="{messageid}"/>
+	<table style="background-color:white;width:100%">
+		<tr><td colspan="2" style="text-align:center;background-color:#999999">{header}</td></tr>
+		<tr><td style="background-color:#CCCCCC;width:100px">Sender Information</td><td>{text}</td></tr>
+	</table>
+</div>
+<div style="background-color:GoldenRod;width:100px;height:16px;float:right">
+	<a href="/my/messages/create" onclick="MessageDialog.show({messageid});return false;">Reply</a>
+</div>
+</div>

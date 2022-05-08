@@ -1,0 +1,32 @@
+<div>
+	There is not a current Manager profile associated with this user. Please provide your
+	information. The name will be what you will be address by internal to the Jobs system only.
+	The email provided will be where the notification emails are sent to.
+	<form name="new_supervisor" method="post" action="/jobs/administration/supervisor/new/submit/">
+		<table>
+			<tbody>
+				<tr>
+					<td>
+						Name
+					</td>
+					<td>
+						<input type="text" id="supervisor_name" name="supervisor_name" value="{supervisor.name}"></input>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						Email
+					</td>
+					<td>
+						<input type="text" name="supervisor_email" id="supervisor_email" value="{supervisor.email}"></input>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="2">
+						<input type="submit" name="supervisor_name" id="supervisor_name"></input>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</form>
+</div>

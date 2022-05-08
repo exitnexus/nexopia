@@ -1,0 +1,18 @@
+<div t:docid="profile_edit">
+	#{my_javascript}
+	<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/yui/build/button/assets/skins/sam/button.css"/>
+	
+	<div class="profile_main">
+		<table class="page_container_tbl" cellspacing="0" cellpadding="0">
+			<tr>
+				<td colspan="2">
+					<t:template-include t:module="profile" t:name="edit_profile_header"></t:template-include>
+				</td>
+			</tr>
+			<t:template-include t:module="profile" t:name="profile_body"></t:template-include>
+		</table>
+		<input type="hidden" id="profile_form_key" name="profile_form_key" value="{profile_form_key}" />
+		<input type="hidden" id="profile_block_form_key" name="profile_block_form_key" value="{profile_block_form_key}" />
+	</div>
+<script type="text/javascript" src="{$site.static_files_url}/yui/build/json/json-beta-min.js"></script>
+</div>

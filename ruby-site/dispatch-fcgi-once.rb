@@ -1,51 +1,91 @@
 #!/bin/env ruby
-require 'erb';
-require "core/lib/fcgi-ext";
-require "core/lib/dispatch";
+require 'core/lib/fcgi-native-ext';
 
-pids = [];
+FCGI.listen($ipaddr, $port);
+
+$pids = [];
 
 # Pushes sigterms to child processes
 def propagate(pids)
 	pids.each {|pid|
-		$stderr.print "Killing child process #{pid}\n";
-		Process.kill("SIGTERM", pid);
+		$log.info("Killing child process #{pid}");
+		begin
+			Process.kill("SIGTERM", pid);
+		rescue Errno::ESRCH
+			$log.info("Process #{pid} did not exist.");
+		end
 	}
-	exit();
 end
 
 # Creates a child process and returns its pid.
 def create_proc()
 	pid = fork {
-		trap("EXIT", "DEFAULT"); # make sure we don't kill off the listening port when we exit.
-		trap("SIGTERM", "DEFAULT"); # make sure we don't try to reap other child processes when we exit.
-		FCGI.accept_cgi {|$cgi|
-			require "core/lib/config";
-#			require "core/lib/pagehandler";
-			require "core/lib/var_dump";
+		base_child_name = "nexopia-child"
+		$0 = base_child_name;
 
-			#dispatch($cgi);
-			puts $cgi.header;
-			puts "hello";
+		handling_request = false;
+
+		trap("EXIT", "DEFAULT");
+
+		trap("SIGTERM") {
+			# since this script always exits after one request, if we're in the
+			# middle of one just ignore it. Otherwise, exit immediately.
+			if (!handling_request)
+				$site.shutdown();
+			end
 		}
-		exit();
+		catch(:end_fcgi) {
+			FCGI.each_cgi {|cgi|
+				handling_request = true;
+				$0 = "#{base_child_name} active";
+
+				# we'll never accept another connection, so just shut down our copy of the listening socket now.
+				IO.for_fd(0).close();
+
+				$log.reassert_stderr();
+				require 'site_initialization';
+				initialize_site();
+				PageRequest.new_from_cgi(cgi) {|pageRequest|
+					PageHandler.execute(pageRequest);
+				}
+
+				$0 = "#{base_child_name} quitting";
+				throw :end_fcgi; # leave the fcgi loop gracefuly.
+			}
+		}
+		$site.shutdown();
 	}
 	return pid;
 end
 
+
 $num_children.times {
-	pids.push(create_proc());
+	$pids.push(create_proc());
 }
 
-trap("SIGTERM") {
-	savepids = pids;
-	pids = []; # make it so that our child reloading handling below doesn't blow everything up
+def shutdown()
+	$log.info("Pid #{Process.pid} received termination signal");
+	savepids = $pids;
+	$pids = []; # make it so that our child reloading handling below doesn't blow everything up
+	if ($log.stderr_pid)
+		savepids.push($log.stderr_pid)
+	end
 	propagate(savepids);
-}
+	exit();
+end
 
-while (exitpid = Process.wait)
-	if (pidindex = pids.index(exitpid))
-		$stderr.print("Pid #{exitpid} died, restarting\n");
-		pids[pidindex] = create_proc();
+trap("SIGTERM") { shutdown(); }
+trap("SIGINT")  { shutdown(); }
+
+while (sleep(0.1))
+	if ($pids.length < 1)
+		break;
+	end
+	exitpid = Process.wait(-1, Process::WNOHANG);
+	if (exitpid)
+		if (pidindex = $pids.index(exitpid))
+			$log.info("Pid #{exitpid} died, restarting");
+			$pids[pidindex] = create_proc();
+		end
 	end
 end

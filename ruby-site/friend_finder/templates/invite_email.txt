@@ -1,0 +1,16 @@
+Hey,
+
+So {my_name} thinks it totally sucks that you’re not on Nexopia yet and has invited you to join up and hang out.
+{personal_message}
+So, What is Nexopia?
+- The fastest growing online community in Canada!
+- The social network where moms, teachers and the government won’t stalk you!
+- The place where you can talk to the friends you want to talk to!
+- A place to meet new people who are into what you’re into!
+- The place where you can really be and do what ya want!
+
+
+Check out {my_name}'s profile here: {wwwdomain}/profile.php?uid={my_userid}
+Or get signed up and start creating your own profile here: {wwwdomain}/accountcreate
+
+If you do not want to receive invitation emails from Nexopia members in the future, you can click here: {wwwdomain}/accountcreate/optout/{friend_email}/{friend_key}

@@ -1,0 +1,55 @@
+<div id="applicant_previous_applications" class="yui-g">
+	<div class="jobs_section_header">
+		Previous Applications
+	</div>
+	<table class="applicant_information">
+		<tbody>
+			<t:if t:id="!app_list[:job].empty?()">
+				<tr>
+					<td class="app_summary_description">
+						Job Applications
+					</td>
+					<td>
+						<table class="previous_apps">
+							<tbody>
+								<t:iter t:id="app_list[:job]" t:iter="job_app">
+									<tr>
+										<td class="app_title">
+											{job_app.target.title}
+										</td>
+										<td class="app_date">
+											{job_app.application.app_date_string}
+										</td>
+									</tr>
+								</t:iter>
+							</tbody>
+						</table>
+					</td>
+				</tr>
+			</t:if>
+			<t:if t:id="!app_list[:dep].empty?()">
+				<tr>
+					<td class="app_summary_description">
+						Department Applications
+					</td>
+					<td>
+						<table class="previous_apps">
+							<tbody>
+								<t:iter t:id="app_list[:dep]" t:iter="dep_app">
+									<tr>
+										<td class="app_title">
+											{dep_app.target.name}
+										</td>
+										<td class="app_date">
+											{dep_app.application.app_date_string}
+										</td>
+									</tr>
+								</t:iter>
+							</tbody>
+						</table>
+					</td>
+				</tr>
+			</t:if>
+		</tbody>
+	</table>	
+</div>

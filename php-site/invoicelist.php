@@ -3,6 +3,7 @@
 	$login=1;
 
 	require_once("include/general.lib.php");
+	set_time_limit(180);
 
 	$isAdmin = $mods->isAdmin($userData['userid'],'viewinvoice');
 
@@ -63,7 +64,7 @@
 
 	foreach($invoices as $invoice){
 		echo "<tr>";
-		echo "<td class=body><a class=body href=/invoice.php?id=$invoice[id]>$invoice[id]</a></td>";
+		echo "<td class=body><a class=body href=/invoice.php?id=$invoice[id]>" . number_format($invoice['id']) . "</a></td>";
 		echo "<td class=body><a class=body href=/profile.php?uid=$invoice[userid]>$invoice[username]</a></td>";
 		echo "<td class=body>" . userDate("M j, Y, g:i a", $invoice['creationdate']) . "</td>";
 		echo "<td class=body align=right>\$$invoice[total]</td>";

@@ -1,0 +1,19 @@
+<div>
+	<div>
+		Check a tag to remove it.
+	</div>
+	<table>
+		<tbody>
+			<t:iter t:id="news.tag_list" t:iter="tag">
+				<tr>
+					<td>
+						<input type="checkbox" name="tag_{tag.tagid}" id="tag_{tag.tagid}" value="Remove"></input>
+					</td>
+					<td>
+						{tag.tagname}
+					</td>
+				</tr>
+			</t:iter>
+		</tbody>
+	</table>
+</div>

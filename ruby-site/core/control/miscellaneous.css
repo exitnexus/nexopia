@@ -1,0 +1,10 @@
+div.simple_message {
+	background-color: $primary_background_color;
+	color: $primary_text_color; 
+	font-family: $page_font_family;
+	font-size: $page_font_size;
+	font-size-adjust: 1;
+	font-weight: bold;
+	text-align: center;
+	padding: 1em;
+}

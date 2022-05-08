@@ -1,0 +1,46 @@
+<div id="search_results">
+	<table width="100%">
+		<tr>
+			<td colspan="2" align="right">
+				#{page_list}
+			</td>
+		</tr>
+		<tr>
+			<t:loop t:id="[users[0, (users.size.to_f/2).ceil], users[(users.size.to_f/2).ceil, users.size]]" t:iter="half">
+				<td width="50%" valign="top">
+					<table width="100%">
+						<t:loop t:id="half" t:iter="user" t:index="index">
+							<t:if t:id="index > 0">
+								<tr>
+									<td colspan="2">
+										<hr size="1" />
+									</td>
+								</tr>
+							</t:if>
+
+							<tr>
+								<td valign="top">
+									<a t:id="user"><img t:id="user" /></a>
+								</td>
+								<td valign="top">
+									<a t:id="user"><b>{user.username}</b></a>
+									<t:if id="user.online">
+										&nbsp;-&nbsp;<b>Online</b>
+									</t:if>
+									<br />
+									{user.age}, {user.sex}, {user.location} <br /><br />
+									{user.profile.tagline.wrap(20)}
+								</td>
+							</tr>
+						</t:loop>
+					</table>
+				</td>
+			</t:loop>
+		</tr>
+		<tr>
+			<td colspan="2" align="right">
+				#{page_list}
+			</td>
+		</tr>
+	</table>
+</div>

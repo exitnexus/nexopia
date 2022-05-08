@@ -1,0 +1,39 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<t:template-include name="admin_header" module="adminutils"/>
+	<form method="post" action="apply">
+		<ul>
+			<li>
+				<label>Role Name:</label>
+				<input type="text" name="rolename" id="rolename" value="{rolename}"/>
+			</li>
+			<li>
+				<label>Role Title:</label>
+				<input type="text" name="title" id="title" value="{title}"/>
+			</li>
+		</ul>
+			
+		<input type="hidden" name="roleid" id="roleid" t:id="roleid" value="{roleid}"/>
+		<ul>
+			<li t:iter="permission_module" t:id="modules">{permission_module.name}
+				<ul>
+					<li t:iter="permission" t:id="permission_module.permissions">
+						<input type="checkbox" cond:checked="permission.meta.checked" name="permission[{permission.privilegeid}]" id="permission[{permission.privilegeid}]"/>
+						{permission.name} 
+					</li>
+				</ul>
+			</li>
+		</ul>
+		<input type="submit" value="Submit"/>
+	</form>
+	<form action="/admin/privileges/create" method="post">
+		Create a new privilege for site_module
+		<select name="site_module">
+			<option t:id="site_modules" t:iter="site_module" value="{site_module.typeid}">
+				{site_module.typename}
+			</option>
+		</select>
+		named
+		<input type="text" name="name"/>
+		<input type="submit" value="Create"/>
+	</form>
+</div>

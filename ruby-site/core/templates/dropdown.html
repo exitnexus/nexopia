@@ -1,0 +1,19 @@
+<div>
+	<script type="text/javascript">
+		<![CDATA[ 
+			function toggleDisplay(element) {
+				if (element.style.display == "none") {
+					element.style.display = "";
+				} else {
+					element.style.display = "none";
+				}
+			}
+		]]>
+	</script>
+	<div onclick="toggleDisplay(document.getElementById('call_dropdown_body_{bodyid}'))">
+		<call:yield id="header"/>
+	</div>
+	<div id="call_dropdown_body_{bodyid}" style="display:none">
+		<call:yield id="body"/>
+	</div>
+</div>

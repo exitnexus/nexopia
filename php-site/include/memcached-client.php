@@ -125,6 +125,14 @@ class memcached {
 	public $_debug;
 
 	/**
+	 * Whether or not to actually do write and read operations. Does not affect delete
+	 *
+	 * @var	  boolean
+	 * @access  private
+	 */
+	public $_delete_only;
+
+	/**
 	 * Dead hosts, assoc array, 'host'=>'unixtime when ok to check again'
 	 *
 	 * @var	  array
@@ -206,7 +214,7 @@ class memcached {
 
 
 	/*
-	 * caching functions to save state about the memcached servers. If a machine goes down, 
+	 * caching functions to save state about the memcached servers. If a machine goes down,
 	 * we won't be hitting it from EVERY page, only once every couple seconds per machine.
 	 * $_localget should be of the form: get("key");
 	 * $_localput should be of the form: put("key", $value, $ttyl);
@@ -216,9 +224,15 @@ class memcached {
 	public $_localget;
 	public $_localput;
 
+	public $_rehash;
 
 	// }}}
 	// }}}
+
+
+	public $numserversused = 0; //number of servers hit by the last get_multi call
+
+
 	// {{{ methods
 	// {{{ public functions
 	// {{{ memcached()
@@ -234,6 +248,7 @@ class memcached {
 	function __construct($args){
 		$this->set_servers($args['servers']);
 		$this->_debug = (isset($args['debug']) ? $args['debug'] : 0 );
+		$this->_delete_only = (isset($args['delete_only']) ? $args['delete_only'] : false);
 		$this->stats = array(	'add' => 0,
 								'set' => 0,
 								'append' => 0,
@@ -246,9 +261,11 @@ class memcached {
 								'decr' => 0
 								);
 		$this->_compress_threshold = (isset($args['compress_threshold']) ? $args['compress_threshold'] : 8000 ); //if it won't fit in a 8kb slot, compress, use 8000 instead of 8192 due to the key and flags
-		$this->_persistant = isset($args['persistant']) ? $args['persistant'] : false;
-		$this->_compress_enable = $args['compress_threshold'] > 0;
+		$this->_persistant = (isset($args['persistant']) ? $args['persistant'] : false);
+		$this->_compress_enable = (isset($args['compress_threshold']) ? $args['compress_threshold'] > 0 : false);
 		$this->_have_zlib = function_exists("gzcompress") && function_exists("gzuncompress");
+
+		$this->_rehash = (isset($args['rehash']) ? $args['rehash'] : false);
 
 		$this->_localget = (function_exists("apc_fetch") ? 'apc_fetch' : false);
 		$this->_localput = (function_exists("apc_store") ? 'apc_store' : false);
@@ -422,7 +439,7 @@ class memcached {
 	 * @access  public
 	 */
 	function get($key){
-		if (!$this->_active)
+		if (!$this->_active || $this->_delete_only)
 			return false;
 
 		$sock = $this->get_sock($key);
@@ -465,8 +482,8 @@ class memcached {
 	 * @access  public
 	 */
 	function get_multi ($keys) {
-		if (!$this->_active)
-			return false;
+		if (!$this->_active || $this->_delete_only)
+			return array();
 
 		if(!is_array($keys))
 			$keys = array($keys);
@@ -477,6 +494,7 @@ class memcached {
 		$this->stats['get_multi']++;
 
 		$socks = array();
+		$sock_keys = array();
 		foreach ($keys as $key) {
 			$sock = $this->get_sock($key);
 			if (!is_resource($sock)) continue;
@@ -488,13 +506,12 @@ class memcached {
 			$sock_keys[(int)$sock][] = $key;
 		}
 
+		$this->numserversused = count($socks);
+
 		$gather = array();
 		// Send out the requests
 		foreach ($socks as $sock) {
-			$cmd = "get";
-			foreach ($sock_keys[(int)$sock] as $key)
-				$cmd .= " ". $key;
-			$cmd .= "\r\n";
+			$cmd = "get " . implode(" ", $sock_keys[(int)$sock]) . "\r\n";
 
 			if (fwrite($sock, $cmd, $this->_byte_count($cmd)))
 				$gather[] = $sock;
@@ -758,13 +775,13 @@ class memcached {
 
 		$this->_host_dead[$ip] = $retry;
 		$this->_host_dead[$host] = $retry;
-		
+
 		if($this->_localput){
 			$localput = $this->_localput;
 			$localput("deadhost-$host", $retry, 10);
 			$localput("deadhost-$ip", $retry, 10);
 		}
-		
+
 		unset($this->_cache_sock[$host]);
 	}
 
@@ -802,8 +819,10 @@ class memcached {
 			$this->_bucketcount = count($bu);
 		}
 
+		$maxtries = ($this->_rehash ? 1 : 20);
+
 		$realkey = is_array($key) ? $key[1] : $key;
-		for ($tries = 0; $tries<20; $tries++){
+		for ($tries = 0; $tries < $maxtries; $tries++){
 			$host = $this->_buckets[$hash % $this->_bucketcount];
 			$sock = $this->sock_to_host($host);
 			if (is_resource($sock))
@@ -849,7 +868,7 @@ class memcached {
 	 */
 	function _incrdecr($cmd, $key, $amt=1)
 	{
-		if (!$this->_active)
+		if (!$this->_active || $this->_delete_only)
 			return null;
 
 		$sock = $this->get_sock($key);
@@ -945,6 +964,9 @@ class memcached {
 		if (!$this->_active)
 			return false;
 
+		if ($this->_delete_only) // act as if we set it.
+			return true;
+
 		$sock = $this->get_sock($key);
 		if (!is_resource($sock))
 			return false;
@@ -1007,7 +1029,7 @@ class memcached {
 	function sock_to_host($host){
 		if(is_array($host))
 			$host = $host[0];
-	
+
 		if (isset($this->_cache_sock[$host]))
 			return $this->_cache_sock[$host];
 
@@ -1016,7 +1038,7 @@ class memcached {
 		if (isset($this->_host_dead[$host]) && $this->_host_dead[$host] > $now ||
 			isset($this->_host_dead[$ip]) && $this->_host_dead[$ip] > $now)
 			return null;
-		
+
 		if(($localget = $this->_localget) &&
 		    ((($ret = $localget("deadhost-$host")) && $ret > $now) ||
 		     (($ret = $localget("deadhost-$ip")) && $ret > $now)   ) ){
@@ -1041,7 +1063,7 @@ class memcached {
 	// }}}
 	// }}}
 
-	function _byte_count($val){
+	function _byte_count(& $val){
 		return (function_exists('mb_strlen')) ? mb_strlen($val, 'latin1') :	strlen($val);
 	}
 

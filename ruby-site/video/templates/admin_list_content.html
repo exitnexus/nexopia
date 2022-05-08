@@ -1,0 +1,44 @@
+<div>
+	
+	<center>
+		<a href="{handler_root}/content/reported">Reported</a> &nbsp; | &nbsp; 
+		<a href="{handler_root}/content/banned">Banned</a><br/><br/>
+	</center>
+	
+	<form action="{handler_root}/content/update" method="post">
+		<table>
+			<tr>
+				<th width="350px">Video</th>
+				<th>Reported Reason</th>
+				<th>Ban</th>
+			</tr>
+		
+			<call:page t:id="videos" t:url="'/admin/videos/content/' + handler_query" t:iter="video">
+				<call:yield>
+					<tr valign="top">
+						<td>
+							<h2>{video.title}</h2>
+							#{video.nex_embed(350)}
+						</td>
+						<td>
+							#{video.repreason}
+						</td>
+						<td>
+							<center>
+								<input type='hidden' name='videos[{video.id}]' id='videos[{video.id}]' value='{video.id}'/>
+								<input type='checkbox' name='ban[{video.id}]' id='ban[{video.id}]' value='{video.ban}' cond:checked='video.ban'/>
+							</center>
+						</td>
+					</tr>
+					<tr>
+						<td colspan="3"><hr/></td>
+					</tr>
+				</call:yield>
+			</call:page>
+		</table>
+		
+		<input type="submit" value="Update"/>
+		<input type="hidden" name="handler_query" id="handler_query" value="{handler_query}"/>
+		
+	</form>
+</div>

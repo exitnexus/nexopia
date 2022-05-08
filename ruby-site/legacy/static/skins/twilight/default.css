@@ -1,0 +1,71 @@
+/*  
+    Skin Name:  Twilight
+    Google Search:  GALT:#2F5FAC;GL:1;DIV:#00003B;VLC:2F5FAC;AH:center;BGC:00003B;LBGC:00003B;ALC:FFFFFF;LC:FFFFFF;T:CCCCCC;GFNT:2F5FAC;GIMP:2F5FAC;FORID:1
+*/
+
+table {text-align: left;}
+tr {vertical-align: top;}
+
+body         { background: #000000; font-family: arial, sans-serif; font-size: 8pt; margin: 0; }
+
+a       		{ color: #d1d3d4; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a:hover			{ color: #598241; }
+
+td.footer		{ color:#d4d6d7; text-decoration:none; font: 6pt arial, sans-serif;}
+
+td.side					                { background-color: #00003B; color: #ccc; font-family: arial, sans-serif;  font-size: 8pt; }
+td.side a   	                 	{ color: #2F5FAC; text-decoration:none; }
+td.side a:hover	            		{ color: #ccc; }
+td.side input, select, textarea { font-family: arial, sans-serif; font-size: 8pt; border:1px solid #2F5FAC; margin: 1 0 0 0;}
+
+td.border		{ background-color:#fff; }
+
+td.sideheader		{ color:#fff; font-family: arial, sans-serif; font-size: 8pt; text-align: left; padding-left:5px; padding-bottom:3px; }
+
+td.header		{ background-color: #4a5a4b; color: #ccc; font-family: arial, sans-serif; font-size: 8pt}
+a.header  	{ color: #ccc; text-decoration:none;  }
+a.header:hover	{ color: #d4d6d7; }
+
+td.headerfront	{ padding-left:5px; color:#fff; background: #00003B url(http://static.nexopia.com/skins/twilight/fronthead.png); height:30px; padding-bottom:8px; }
+
+
+td.header2			{ color: #ccc; font-family: arial, sans-serif; font-size: 8pt}
+a.header2     	{ color: #ccc; text-decoration:none; }
+a.header2:hover		{ color: #2F5FAC; }
+
+td.body			{ background-color: #00003B; color: #ccc; font-family: arial, sans-serif; font-size: 8pt}
+td.body2		{ background-color: #1a251a; color: #ccc; font-family: arial, sans-serif; font-size: 8pt}
+a.body { color: #2F5FAC; }
+a.body:hover	{ color: #ccc; }
+body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; border:1px solid #2F5FAC;}
+body textarea { font-size: 9pt; }
+
+td.menu				{ color: #fff; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a			{ color: #fff; text-decoration:none; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a:hover		{ color: #2F5FAC; }
+
+td.forumlst							{ color: #fff; font: 8pt arial, sans-serif;}
+a.forumlst:link,a.forumlst:visited 	{ color: #9F9F9F; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst:hover,a.forumlst:active 	{ color: #555555; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.forumlst1 { background-color:#D6E3EE; color: #0353A2; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst1:link,a.forumlst1:visited { color: #2F5FAC; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst1:hover,a.forumlst1:active { color: #81939a; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.forumlst0 { background-color:#D6E3EE; color: #ccc; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst0:link,a.forumlst0:visited { color: #ccc; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst0:hover,a.forumlst0:active { color: #81939a; text-decoration:none; font: 8pt arial, sans-serif; }
+
+a.forumlst2:link,a.forumlst2:visited { color: #bc1212; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst2:hover,a.forumlst2:active { color: #516068; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.small  		{ background-color: #1a251a; color: #ccc; font-family: arial, sans-serif; font-size: 8pt}
+a.small     	{ color: #ccc; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bold }
+a.small:hover	{ color: #3A3A3A; }
+
+td.msg		  	{ background-color:#d7dff2; font-family: arial, sans-serif; font-size: 8pt}
+a.msg       	{ color: #000; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.msg:hover		{ color: #3A3A3A; }
+
+td.online		{ color: #2F5FAC; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}
+td.offline		{ color: #ccc; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}

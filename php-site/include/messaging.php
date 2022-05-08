@@ -9,7 +9,7 @@ class messaging{
 
 	public $db;
 
-	public $prunelength = 15;
+	public $prunelength = 21;
 	public $warning_threshold = 2;
 /*
 tables:
@@ -240,7 +240,7 @@ tables:
 		$missingids = array_diff($ids, array_keys($msgtexts));
 
 		if(count($missingids)){
-			$res = $this->db->prepare_query("SELECT id, msg, html, parse_bbcode FROM msgtext WHERE userid = % && id IN (?)", $uid, $missingids);
+			$res = $this->db->prepare_query("SELECT id, msg, html FROM msgtext WHERE userid = % && id IN (?)", $uid, $missingids);
 
 			while($line = $res->fetchrow()){
 				$msgtexts[$line['id']] = $line;
@@ -252,14 +252,13 @@ tables:
 		foreach($msgs as $msg){
 			$msgs[$msg['id']]['msg'] = $msgtexts[$msg['id']]['msg'];
 			$msgs[$msg['id']]['html'] = $msgtexts[$msg['id']]['html'];
-			$msgs[$msg['id']]['parse_bbcode'] = $msgtexts[$msg['id']]['parse_bbcode'];
 		}
 
 		return ($multiple ? $msgs : array_shift($msgs));
 	}
 
-	function deliverMsg($to, $subject, $message, $replyto = 0, $fromname = false, $fromid = false, $ignorable = true, $html = false, $parse_bbcode = true, $allowemail = -1){
-		global $userData, $msgs, $emaildomain, $config, $usersdb, $cache, $useraccounts;
+	function deliverMsg($to, $subject, $message, $replyto = 0, $fromname = false, $fromid = false, $ignorable = true, $html = false, $allowemail = -1){
+		global $userData, $msgs, $emaildomain, $config, $usersdb, $cache, $useraccounts, $archive;
 
 		if ($allowemail === -1)
 			$allowemail = $config['defaultMessageAllowEmails'];
@@ -288,15 +287,18 @@ tables:
 		$nsubject = removeHTML(trim($subject));
 
 
-		$nmsg = html_sanitizer::sanitize($message);
+		$nmsg = removeHTML($message);
 
 		if($nsubject=="")
 			$nsubject="No Subject";
 
 		if($ignorable && $fromid){
 			foreach($tousers as $to => $line){
-				if(isIgnored($to, $fromid, 'msgs', $age, ($replyto > 0) )){ //if ignored by age group or friends list, allow if it is a reply
-					$msgs->addMsg("Message Ignored");
+				if($ignoreid = isIgnored($to, $fromid, 'msgs', $age, ($replyto > 0) )){ //if ignored by age group or friends list, allow if it is a reply
+					if($ignoreid == 1)
+						$msgs->addMsg("This user only accepts messages from friends.");
+					else
+						$msgs->addMsg("Message Ignored");
 					unset($tousers[$to]);
 				}
 			}
@@ -320,34 +322,38 @@ tables:
 		}
 
 		$html = 'n';
-		$msgtext = array('html' => $html, 'msg' => $nmsg, 'parse_bbcode' => $parse_bbcode);
+		$msgtext = array('html' => $html, 'msg' => $nmsg);
+		$ip = ($fromid ? ip2int(getip()) : 0);
 
 		foreach($tousers as $toid => $user){
 			$firstmsgid = $this->db->getSeqID($toid, DB_AREA_MESSAGE);
 			$secondmsgid = ($fromid ? $this->db->getSeqID($fromid, DB_AREA_MESSAGE) : 0);
 
-			$this->db->prepare_query("INSERT INTO msgs SET userid = %, id = ?, folder = #, otheruserid = #, `to` = #, toname = ?, `from` = #, fromname = ?, date = #, status = 'new', subject = ?, replyto = #, othermsgid = #",
-								$toid, $firstmsgid, MSG_INBOX, $fromid, $toid, $user['username'], $fromid, $fromname, $time, $nsubject, $otherreply, $secondmsgid);
+			$this->db->prepare_query("INSERT INTO msgs SET userid = %, id = ?, folder = #, otheruserid = #, `to` = #, toname = ?, `from` = #, fromname = ?, date = #, status = 'new', subject = ?, replyto = #, othermsgid = #, sentip = #",
+								$toid, $firstmsgid, MSG_INBOX, $fromid, $toid, $user['username'], $fromid, $fromname, $time, $nsubject, $otherreply, $secondmsgid, $ip);
 
-			$this->db->prepare_query("INSERT INTO msgtext SET userid = %, id = ?, msg = ?, date = #, html = ?, parse_bbcode = ?", $toid, $firstmsgid, $nmsg, $time, $html, $parse_bbcode);
+			$this->db->prepare_query("INSERT INTO msgtext SET userid = %, id = ?, msg = ?, date = #, html = ?", $toid, $firstmsgid, $nmsg, $time, $html);
 			$cache->put("msgtext-$toid-$firstmsgid", $msgtext, 86400);
 
 			if($fromid){
-				$this->db->prepare_query("INSERT INTO msgs SET userid = %, id = ?, folder = #, otheruserid = #, `to` = #, toname = ?, `from` = #, fromname = ?, date = #, status = 'new', subject = ?, replyto = #, othermsgid = #",
-									$fromid, $secondmsgid, MSG_SENT, $toid, $toid, $user['username'], $fromid, $fromname, $time, $nsubject, $replyto, $firstmsgid);
+				$this->db->prepare_query("INSERT INTO msgs SET userid = %, id = ?, folder = #, otheruserid = #, `to` = #, toname = ?, `from` = #, fromname = ?, date = #, status = 'new', subject = ?, replyto = #, othermsgid = #, sentip = #",
+									$fromid, $secondmsgid, MSG_SENT, $toid, $toid, $user['username'], $fromid, $fromname, $time, $nsubject, $replyto, $firstmsgid, $ip);
 
-				$this->db->prepare_query("INSERT INTO msgtext SET userid = %, id = ?, msg = ?, date = #, html = ?, parse_bbcode = ?", $fromid, $secondmsgid, $nmsg, $time, $html, $parse_bbcode);
+				$this->db->prepare_query("INSERT INTO msgtext SET userid = %, id = ?, msg = ?, date = #, html = ?", $fromid, $secondmsgid, $nmsg, $time, $html);
 				$cache->put("msgtext-$fromid-$secondmsgid", $msgtext, 86400);
 			}
 
-			$this->db->prepare_query("INSERT INTO msgarchive SET userid = %, id = ?, `to` = ?, toname = ?, `from` = ?, fromname = ?, date = ?, subject = ?, msg = ?",
-						$toid, $firstmsgid, $toid, $user['username'], $fromid, $fromname, $time, $nsubject, $nmsg);
+//			$this->db->prepare_query("INSERT INTO msgarchive SET userid = %, id = ?, `to` = ?, toname = ?, `from` = ?, fromname = ?, date = ?, subject = ?, msg = ?",
+//						$toid, $firstmsgid, $toid, $user['username'], $fromid, $fromname, $time, $nsubject, $nmsg);
 
-			$new = $cache->remove("newmsglist-$to");
+			$archive->save($fromid, $secondmsgid, ARCHIVE_MESSAGE, ARCHIVE_VISIBILITY_PRIVATE, $toid, 0, $nsubject, $nmsg);
+
+
+			$new = $cache->remove("newmsglist-$toid");
 		}
 
 		if($otherreply)
-			$this->db->prepare_query("UPDATE msgs SET status='replied' WHERE (userid = % && id = ?) || (userid = % && id = ?)", $toid, $otherreply, $fromid, $replyto);
+			$this->db->prepare_query("UPDATE msgs SET status='replied' WHERE (userid = % && id = #) || (userid = % && id = #)", $toid, $otherreply, $fromid, $replyto);
 
 		$this->db->prepare_query("UPDATE users SET newmsgs = newmsgs+1 WHERE userid IN (%)", array_keys($tousers));
 
@@ -357,11 +363,14 @@ tables:
 
 		$nmsg2 = smilies($nmsg);
 		$nmsg2 = parseHTML($nmsg2);
-		if ($allowemail)
-		{
-			foreach($tousers as $to => $user)
-				if($user['fwmsgs'] == 'y')
-					smtpmail($useraccounts->getEmail($user['userid']), $nsubject, "From: $fromname\n\n$nmsg2\n\n------Forwarded Offline Message From $config[title]-----\nThe return address is NOT valid", "From: " . (strpos($fromname, ':') === false && strpos($fromname, ';') === false && strpos($fromname,',') === false ? "$fromname on " : "") . "$config[title] <no-reply@$emaildomain>");
+
+		if($allowemail){
+			foreach($tousers as $to => $user){
+				if($user['fwmsgs'] == 'y'){
+					$emailaddr = $useraccounts->getEmail($user['userid']);
+					smtpmail($emailaddr, $nsubject, "From: $fromname\n\n$nmsg2\n\n------Forwarded Offline Message From $config[title]-----\nThe return address is NOT valid\nYou can disable these emails from your preferences page.", "From: " . (strpos($fromname, ':') === false && strpos($fromname, ';') === false && strpos($fromname,',') === false ? "$fromname on " : "") . "$config[title] <no-reply@$emaildomain>");
+				}
+			}
 		}
 
 	//	ignore_user_abort(false);

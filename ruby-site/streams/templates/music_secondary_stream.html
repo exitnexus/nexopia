@@ -1,0 +1,9 @@
+<t:template xmlns:t="http://www.nexopia.com/dev/template">
+	<span class="secondary_stream_title">{stream.stream_title}</span>
+	<t:iter t:id="stream.small_display_entries" t:iter="entry">
+		<t:template-include t:name="music_stream_entry_micro" t:module="streams"></t:template-include>
+	</t:iter>
+	<t:iter t:id="stream.micro_display_entries" t:iter="entry">
+		<t:template-include t:name="music_stream_entry_micro" t:module="streams"></t:template-include>
+	</t:iter>
+</t:template>

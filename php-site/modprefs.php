@@ -69,10 +69,10 @@
 	// pic mod stats (pics modded, error rate, strict/leniency hint. given for 3 periods: weekly, monthly, lifetime.
 	// also, provides the 5th lowest error rate
 	if ($type == MOD_PICS) {
+/*		echo "<tr><td colspan=\"2\" class=\"body\" align=\"center\"><strong>Due to difficulties with the picmod stats, they have<br />been removed until the issue has been resolved.</strong></td></tr>";
+
 		$modstats = $mods->getPicModStats($userData['userid']);
 		$top5 = getTop5ErrRate();
-
-//		echo "<tr><td class=header colspan=2 align=center>Picmod Stats</td></tr>";
 
 //		if ($modstats['weekly']['earnedplus'])
 //			echo "<tr><td class=body colspan=2 align=center><strong>You have earned Plus this week!</strong></td></tr>";
@@ -85,7 +85,7 @@
 		echo "<tr><td class=body2>Pics Modded</td><td class=body>{$modstats['weekly']['picsmodded']}</td><td class=body>{$modstats['monthly']['picsmodded']}</td><td class=body>{$modstats['lifetime']['picsmodded']}</td></tr>";
 		echo "<tr><td class=body2>Error Rate</td><td class=body>{$modstats['weekly']['errrate']} %</td><td class=body>{$modstats['monthly']['errrate']} %</td><td class=body>{$modstats['lifetime']['errrate']} %</td></tr>";
 		echo "<tr><td class=body2>Strict/Lenient</td><td class=body>{$modstats['weekly']['lenientOrStrict']}</td><td class=body>{$modstats['monthly']['lenientOrStrict']}</td><td class=body>{$modstats['lifetime']['lenientOrStrict']}</td></tr>";
-		echo "</table>";
+*/
 	}
 
 

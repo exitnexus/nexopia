@@ -1,0 +1,96 @@
+<table>
+	<tbody>
+		<t:if t:id="!manager_list[:supervisor].empty?()">
+			<tr>
+				<th colspan="5">
+					Supervisors
+				</th>
+			</tr>
+			<tr>
+				<th>
+					&#160;
+				</th>
+				<th>
+					Name
+				</th>
+				<th>
+					Email Address
+				</th>
+				<th>
+					Departments
+				</th>
+				<th>
+					User Name
+				</th>
+			</tr>
+			<t:iter t:id="manager_list[:supervisor]" t:iter="manager">
+				<tr>
+					<td>
+						Edit/Delete
+					</td>
+					<td>
+						{manager.name}
+					</td>
+					<td>
+						{manager.email}
+					</td>
+					<td>
+						<ul>
+							<t:iter t:id="manager.my_departments" t:iter="department">
+								<li>{department.name}</li>
+							</t:iter>
+						</ul>
+					</td>
+					<td>
+						{manager.username}
+					</td>
+				</tr>
+			</t:iter>
+		</t:if>
+		<tr>
+			<th colspan="5">
+				Department Managers
+			</th>
+		</tr>
+		<tr>
+			<th>
+				&#160;
+			</th>
+			<th>
+				Name
+			</th>
+			<th>
+				Email Address
+			</th>
+			<th>
+				Departments
+			</th>
+			<th>
+				User Name
+			</th>
+		</tr>
+		<t:iter t:id="manager_list[:manager]" t:iter="manager">
+			<tr>
+				<td>
+					Edit/Delete
+				</td>
+				<td>
+					{manager.name}
+				</td>
+				<td>
+					{manager.email}
+				</td>
+				<td>
+					<ul>
+						<t:iter t:id="manager.my_departments" t:iter="department">
+							<li>{department.name}</li>
+						</t:iter>
+					</ul>
+				</td>
+				<td>
+					{manager.username}
+				</td>
+			</tr>
+		</t:iter>
+	</tbody>
+</table>

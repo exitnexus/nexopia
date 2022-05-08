@@ -1,0 +1,69 @@
+<t:docroot>
+	<table align="center" width="98" cellspacing="0" cellpadding="0">
+		<tr>
+			<td class="side" align="right">
+				<b>New:</b> <a href='/profile.php?requestType=newUsers&requestParams[sex]=Female&requestParams[ageRangeMin]={minage}&requestParams[ageRangeMax]={maxage}&requestParams[displayList]=y'>Girls</a> | <a href='/profile.php?requestType=newUsers&requestParams[sex]=Male&requestParams[ageRangeMin]={minage}&requestParams[ageRangeMax]={maxage}&requestParams[displayList]=y'>Guys</a><br/>
+				<b>Online:</b> <a href='/profile.php?requestType=onlineByPrefs&requestParams[sex]=Female'>Girls</a> | <a href='/profile.php?requestType=onlineByPrefs&requestParams[sex]=Male'>Guys</a><br/>
+				<b>B-day:</b> <a href='/profile.php?requestType=bday&requestParams[sex]=Female&requestParams[ageRangeMin]={minage}&requestParams[ageRangeMax]={maxage}&requestParams[displayList]=y'>Girls</a> | <a href='/profile.php?requestType=bday&requestParams[sex]=Male&requestParams[ageRangeMin]={minage}&requestParams[ageRangeMax]={maxage}&requestParams[displayList]=y'>Guys</a>
+			</td>
+		</tr>
+	</table>
+	<hr />
+	<table id="sort_block_advanced" align="center" cellpadding="0" cellspacing="1" border="0">
+		<form method="post" action="/search/advanced/results">
+			<tr>
+				<td class="side">
+					Age <input id="agemin" name="agemin" value="{agemin}" size="1" maxlength="2" />
+					to  <input id="agemax" name="agemax" value="{agemax}" size="1" maxlength="2" />
+					<br />
+					<select id="sex" name="sex">
+						<option value="Both"   cond:selected="sex == 'Both'"> Male/Female</option>
+						<option value="Male"   cond:selected="sex == 'Male'"> Male</option>
+						<option value="Female" cond:selected="sex == 'Female'"> Female</option>
+					</select>
+					<br />
+					<t:handler-include path="/current/selector/location/{location}" area="Skeleton" />
+					<t:handler-include path="/current/selector/interest/{interest}" area="Skeleton" />
+					<select name="active">
+						<option value="0" cond:selected="active == 0"> All Users</option>
+						<option value="1" cond:selected="active == 1"> Active Recently</option>
+						<option value="2" cond:selected="active == 2"> Online</option>
+					</select><br />
+					<select name="pic">
+						<option value="0" cond:selected="pic == 0"> All Users</option>
+						<option value="1" cond:selected="pic == 1"> With Pictures</option>
+						<option value="2" cond:selected="pic == 2"> With a Verified Picture</option>
+					</select><br />
+					<select name="sexuality">
+						<option value="0" cond:selected="sexuality == 0"> Any Sexuality</option>
+						<option value="1" cond:selected="sexuality == 1"> Heterosexual </option>
+						<option value="2" cond:selected="sexuality == 2"> Homosexual </option>
+						<option value="3" cond:selected="sexuality == 3"> Bisexual/Open-Minded </option>
+					</select><br />
+
+					<input type="checkbox" id="singleusers" name="singleusers" cond:checked="singleusers" />
+					<label for="singleusers"> Single Users Only</label>
+					<br />
+					<input type="checkbox" id="displaylist" name="displaylist" />
+					<label for="displaylist"> Show List</label>
+				</td>
+			</tr>
+			<tr>
+				<td align="center">
+					<input type="submit" value="Search" />
+				</td>
+			</tr>
+		</form>
+	</table>
+	<hr />
+	<table id="sort_block_simple" align="center">
+		<form action="/search/simple/results" method="POST">
+			<tr>
+				<td class="side">Search by Username:<br/>
+					<input id="value" type="text" name="value" size="8" />
+					<input id="submit" type="submit" value="Go" />
+				</td>
+			</tr>
+		</form>
+	</table>
+</t:docroot>

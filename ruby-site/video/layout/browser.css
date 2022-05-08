@@ -1,0 +1,50 @@
+div.thumbnail {
+	float: left; 
+	margin: 2px; 
+	padding: 2px;
+	position: relative;
+	z-index: 1;
+}
+
+div.thumbnail img {
+	border: 0px;
+}
+
+div.thumbnail_title {
+	position: relative;
+	bottom: -10px;
+	overflow: hidden; 
+	width: 100px; 
+	height: 13px; 
+	vertical-align: bottom;
+	font-weight: 700;
+	text-align: left;
+}
+
+div.thumbnail_views {
+	text-align: left;
+}
+
+div.sort_bar {
+	text-align: left;
+}
+
+div.browser {
+	clear: left;
+	position: relative;
+	text-align: center;
+	width: 332px;
+	z-index: 0;
+}
+
+div.browser div.page_header
+{
+	text-align: right;
+}
+
+div.thumbnail_grid {
+	text-align: left;
+	margin-left: auto;
+	margin-right: auto;
+	width: 326px;
+}

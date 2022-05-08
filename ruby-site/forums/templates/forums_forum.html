@@ -1,0 +1,59 @@
+<t:forums_forum xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<template-include module="forums" name="forums_forum_header" />
+	<template-include module="forums" name="forums_toolbar" />	
+	
+	<div class="yui-b" style="float:left;">
+		<table width="100%">
+			<tbody>
+				<tr>
+					<th>
+						<t:iter t:id="nav_links" t:iter="link" t:index="index">
+							<a href="{link.uri}">{link.name}</a> 
+							<t:if t:id="link.show_seperator">
+								&#62;
+							</t:if>
+						</t:iter>
+					</th>
+					<th>
+						Author
+					</th>
+					<th>
+						Replies
+					</th>
+					<th>
+						Views
+					</th>
+					<th>
+						Last Post
+					</th>
+				</tr>
+				<t:iter t:id="thread_list" t:iter="thread">
+					<tr>
+						<td>
+							<t:if t:id="thread.locked">
+								Display lock image
+							</t:if>
+							<t:if t:id="thread.announcement">
+								Announcement: 
+							</t:if>
+							<a href="/forum/{forum_id}/thread/{thread.id}/">{thread.title}</a>
+						</td>
+						<td>
+							{thread.author_name}
+						</td>
+						<td>
+							{thread.posts}
+						</td>
+						<td>
+							{thread.reads}
+						</td>
+						<td>
+							{thread.time_readable} by {thread.last_author_name}
+						</td>
+					</tr>
+				</t:iter>
+			</tbody>
+		</table>
+	</div>
+	<template-include module="forums" name="forums_toolbar" />	
+</t:forums_forum>

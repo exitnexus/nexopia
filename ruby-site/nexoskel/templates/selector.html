@@ -1,0 +1,8 @@
+<div>
+	<t:if text="{value}"/>
+	<select id="{ref}" name="{ref}" onchange="{onchange_handler}">
+		<t:loop t:id="options" t:iter="option">
+			<option value="{option.value}" cond:selected="option.value.to_s == value.to_s">{option.text}</option>
+		</t:loop>
+	</select>
+</div>

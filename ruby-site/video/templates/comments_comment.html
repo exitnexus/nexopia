@@ -1,0 +1,17 @@
+<div class="comment">
+	<div class="comment_info_container">
+		<div>{comment.username}<br/></div>
+		<div><img width="100px" t:id="comment.user"/><br/></div>
+		<div>{comment.user_stats}</div>
+		<t:if t:id="is_video_mod">
+			<div><br/>
+			<a href="/admin/videos/mute/{comment.id}">Mute</a></div>
+		</t:if>
+	</div>
+
+	<div class="comment_text_container">
+		<div class="comment_text">#{comment.display_comment}</div>
+	</div>
+
+	<div class="clearit"><!-- Comment to fix IE empty DIV problem. --></div>
+</div>

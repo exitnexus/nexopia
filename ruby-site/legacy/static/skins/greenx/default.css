@@ -1,0 +1,101 @@
+table {text-align: left;}
+tr {vertical-align: top;}
+
+body         { background-color:#414141; font-family: arial, sans-serif; font-size: 8pt; SCROLLBAR-FACE-COLOR: black; SCROLLBAR-HIGHLIGHT-COLOR: #cccccc; SCROLLBAR-SHADOW-COLOR: #cccccc; SCROLLBAR-3DLIGHT-COLOR: #cccccc; SCROLLBAR-ARROW-COLOR: #cccccc; SCROLLBAR-DARKSHADOW-COLOR: #cccccc; scrollbar-track-COLOR: #cccccc; margin: 0;  }
+
+input,select,textarea			{ font: 10pt arial, sans-serif; color: #000000 }
+
+a:active		{ color: #84C14A; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a:link			{ color: #506A36; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a:visited		{ color: #506A36; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a:hover			{ color: #84C14A; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+
+td.footer		{ color:#CCCCCC; text-decoration:none; font: 6pt arial, sans-serif;}
+
+td.side				{ color: #84C14A; background-color: #272727; font-family: arial, sans-serif; 	font-size: 8pt}
+td.side a:active	{ color: #84C14A; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+td.side a:link		{ color: #628241; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+td.side a:visited	{ color: #628241; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+td.side a:hover		{ color: #84C14A; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+td.side label		{ font-family: arial, sans-serif; font-size: 8pt; }
+td.side input,
+td.side select		{ font-family: arial, sans-serif; font-size: 8pt; }
+
+td.border		{ background-color:#84C14A; }
+
+a.sidelink:active		{ color: #84C14A; text-decoration:underline; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+a.sidelink:link			{ color: #506A36; text-decoration:underline; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+a.sidelink:visited		{ color: #506A36; text-decoration:underline; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+a.sidelink:hover		{ color: #84C14A; text-decoration:underline; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+
+td.sideheader		{ color:#84C14A; font-family: arial, sans-serif; font-size: 8pt; height:26 }
+
+a.header:active	{ color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.header:link	{ color: #272727; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.header:visited{ color: #272727; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.header:hover	{ color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+td.header		{ background-color: #84C14A; color: #272727; font-family: arial, sans-serif; font-size: 8pt}
+
+a.header2:active	{ color: #787777; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.header2:link		{ color: #787777; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.header2:visited	{ color: #787777; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.header2:hover		{ color: #84C14A; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+td.header2			{ color: #787777; font-family: arial, sans-serif; font-size: 8pt}
+
+a.body:active	{ color: #84C14A; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.body:link		{ color: #628241; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.body:visited	{ color: #628241; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.body:hover	{ color: #84C14A; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+td.body			{
+	background-color: #272727;
+	color: #878787;
+	font-family: arial, sans-serif;
+	font-size: 8pt;
+	border: none;
+}
+input.body,select.body			{ font: 8pt arial, sans-serif;, sans-serif; color: #000000 }
+textarea.body					{ font: 8pt arial, sans-serif;, sans-serif; color: #000000 }
+
+td.body2		{ background-color: #303030; color: #878787; font-family: arial, sans-serif; font-size: 8pt}
+
+td.menu				{ color: #628241; font-family: arial, sans-serif; font-size: 9pt; }
+td.menu a:active	{ color: #84C14A; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+td.menu a:link		{ color: #628241; text-decoration:none; font-family: arial, sans-serif; font-size: 9pt }
+td.menu a:visited	{ color: #628241; text-decoration:none; font-family: arial, sans-serif; font-size: 9pt }
+td.menu a:hover		{ color: #84C14A; text-decoration:none; font-family: arial, sans-serif; font-size: 9pt }
+
+td.forumlst { background-color:#D6E3EE; color: #000000; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst:link,a.forumlst:visited { color: #222222; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst:hover,a.forumlst:active { color: #000000; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.forumlst0 { background-color:#D6E3EE; color: #000000; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst0:link,a.forumlst0:visited { color: #878787; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst0:hover,a.forumlst0:active { color: #B1D889; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.forumlst1 { background-color:#D6E3EE; color: #000000; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst1:link,a.forumlst1:visited { color: #84C14A; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst1:hover,a.forumlst1:active { color: #B1D889; text-decoration:none; font: 8pt arial, sans-serif; }
+
+a.forumlst2:link,a.forumlst2:visited { color: #CCFF33; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst2:hover,a.forumlst2:active { color: #B1D889; text-decoration:none; font: 8pt arial, sans-serif; }
+
+a.small:active { color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+a.small:link { color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+a.small:visited { color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+a.small:hover { color: #3A3A3A; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bolder }
+td.small { background-color: #999999; color: #000000; font-family: arial, sans-serif; font-size: 8pt}
+
+a.msg:active	{ color: #84C14A; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.msg:link		{ color: #787777; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.msg:visited	{ color: #787777; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.msg:hover		{ color: #84C14A; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+td.msg			{ background-color:#414141; color: #787777; font-family: arial, sans-serif; font-size: 8pt}
+
+a.vote:active	{ color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bolder }
+a.vote:link		{ color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bolder }
+a.vote:visited	{ color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bolder }
+a.vote:hover	{ color: #000000; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bolder }
+
+td.online		{ color: #84C14A; font-family: arial, sans-serif; font-size: 16pt; font-weight: bolder}
+td.offline		{ color: #414141; font-family: arial, sans-serif; font-size: 16pt; font-weight: bolder}
+

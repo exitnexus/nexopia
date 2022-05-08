@@ -1,0 +1,52 @@
+<html>
+<head>
+	<title>Console</title>
+	<link rel="stylesheet" id="{style}" href='{$site.static_url}/skins/newsite/newsite.css'/>
+	<link rel="stylesheet" href='{$site.static_url}/javascript/yui/build/treeview/assets/tree.css'/>
+	<link rel="stylesheet" href='{$site.static_url}/javascript/yui/build/logger/assets/logger.css'/>
+	<link rel="stylesheet" href='{$site.static_url}/javascript/yui/build/tabview/assets/tabs.css'/>
+	<link rel="stylesheet" href='{$site.static_url}/javascript/yui/build/tabview/assets/border_tabs.css'/>
+	<script type="text/javascript" src="{$site.static_url}/javascript/yui/build/yahoo/yahoo.js"> </script>
+	<script type="text/javascript" src="{$site.static_url}/javascript/yui/build/event/event.js"> </script>
+	<script type="text/javascript" src="{$site.static_url}/javascript/yui/build/dom/dom.js"> </script>
+	<script type="text/javascript" src="{$site.static_url}/javascript/yui/build/treeview/treeview.js"> </script>
+	<script type="text/javascript" src="{$site.static_url}/javascript/yui/build/logger/logger.js"> </script>
+	<script type="text/javascript" src="{$site.static_url}/javascript/yui/build/tabview/tabview.js"> </script>
+	<script type="text/javascript" src="{$site.static_url}/javascript/namespace.js"> </script>
+	<script type="text/javascript" src="{$site.static_url}/javascript/log_console.js"> </script>
+	<script type="text/javascript" src="{$site.static_url}/javascript/console_output.js"> </script>
+	<style type="text/css">
+		#tabset .yui-content { padding:1em; }
+	</style>
+</head>
+
+<body>
+
+	<script type="text/javascript">
+	<!--
+	window.focus();
+	//-->
+	var myTabs = new YAHOO.widget.TabView("tabset");
+	</script>
+
+	<div id="tabset" class="yui-navset">
+		<ul class="yui-nav">
+			<li class="selected"><a href="#tab1"><em>Execution Tree</em></a></li>
+	        <li><a href="#tab3"><em>Database Stats</em></a></li>
+		    <li><a href="#tab2"><em>Log Console</em></a></li>
+	        <li><a href="#tab3"><em>Form</em></a></li>
+		</ul>
+		<div class="yui-content">
+			<div id="console_tree"></div>
+			<div id="databases"></div>
+			<div id="yui_log"></div>
+			<div id="console_form">
+				<form action="" method="post">
+					<input id="console_cmd" type="text"/>
+				</form>
+				<button onclick="return LogConsole.target_opener(document.getElementById('console_cmd').value);">SEND</button>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

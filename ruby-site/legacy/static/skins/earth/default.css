@@ -1,0 +1,71 @@
+/*
+    Skin Name: Earth by ~saunders
+    Google Search:  GALT:#145F79;GL:1;DIV:#E1D5B8;VLC:145F79;AH:center;BGC:E1D5B8;LBGC:E1D5B8;ALC:B45C15;LC:B45C15;T:000000;GFNT:145F79;GIMP:145F79;FORID:1
+*/
+
+table {text-align: left;}
+tr {vertical-align: top;}
+
+body         { background: #125972; font-family: arial, sans-serif; font-size: 8pt; margin: 0; }
+
+a       		{ color: #d1d3d4; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a:hover			{ color: #598241; }
+
+td.footer		{ color:#d4d6d7; text-decoration:none; font: 6pt arial, sans-serif;}
+
+td.side					                { background-color: #e1d5b8; color: #135c75; font-family: arial, sans-serif; font-size: 8pt; }
+td.side a   	                 	{ color: #b45c15; text-decoration:none; }
+td.side a:hover	            		{ color: #145f79; }
+td.side input, select, textarea { font-family: arial, sans-serif; font-size: 8pt; border:1px solid #135c75; margin: 1 0 0 0;}
+
+td.border		{ background-color:#fff; }
+
+td.sideheader		{ color:#000; font-family: arial, sans-serif; font-size: 8pt; padding-bottom:3px; }
+
+td.header		{ background-color: #256E82; color: #fff; font-family: arial, sans-serif; font-size: 8pt}
+a.header  	{ color: #fff; text-decoration:none;  }
+a.header:hover	{ color: #da7b00; }
+
+td.headerfront	{ color:#000; background: #fff url(http://static.nexopia.com/skins/earth/fronthead.png); height:30px; padding-bottom:8px; }
+
+
+td.header2			{ color: #fff; font-family: arial, sans-serif; font-size: 8pt}
+a.header2     	{ color: #fff; text-decoration:none; }
+a.header2:hover		{ color: #b45c15; }
+
+td.body			{ background-color: #e1d5b8; color: #000000; font-family: arial, sans-serif; font-size: 8pt}
+td.body2		{ background-color: #C6BEAC; color: #000; font-family: arial, sans-serif; font-size: 8pt}
+a.body { color: #b45c15; }
+a.body:hover	{ color: #145f79; }
+body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; border:1px solid #135c75;}
+body textarea { font-size: 9pt; }
+
+td.menu				{ color: #f3f2ed; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a			{ color: #f3f2ed; text-decoration:none; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a:hover		{ color: #da7b00; }
+
+td.forumlst							{ color: #fff; font: 8pt arial, sans-serif;}
+a.forumlst:link,a.forumlst:visited 	{ color: #9F9F9F; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst:hover,a.forumlst:active 	{ color: #555555; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.forumlst1 { background-color:#D6E3EE; color: #b45c15; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst1:link,a.forumlst1:visited { color: #b45c15; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst1:hover,a.forumlst1:active { color: #145f79; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.forumlst0 { background-color:#D6E3EE; color: #0353A2; text-decoration:none; font: 8pt arial, sans-serif;}
+a.forumlst0:link,a.forumlst0:visited { color: #145f79; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst0:hover,a.forumlst0:active { color: #b45c15; text-decoration:none; font: 8pt arial, sans-serif; }
+
+a.forumlst2:link,a.forumlst2:visited { color: #bc1212; text-decoration:none; font: 8pt arial, sans-serif; }
+a.forumlst2:hover,a.forumlst2:active { color: #516068; text-decoration:none; font: 8pt arial, sans-serif; }
+
+td.small  		{ background-color: #C6BEAC; color: #000; font-family: arial, sans-serif; font-size: 8pt}
+a.small     	{ color: #000; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bold }
+a.small:hover	{ color: #fff; }
+
+td.msg		  	{ background-color:#da7b00; color:#fff; font-family: arial, sans-serif; font-size: 8pt}
+a.msg       	{ color: #fff; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.msg:hover		{ color: #145f79; }
+
+td.online		{ color: #145f79; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}
+td.offline		{ color: #da7b00; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}

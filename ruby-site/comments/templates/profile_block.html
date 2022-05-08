@@ -1,0 +1,68 @@
+<div t:docid="comments_profile_block" id="comments_profile_block">
+	#{emoticons}
+
+	<div class="view_all">
+		<a href="#">view all (64)</a>    
+	</div>
+	<div class="title">
+		COMMENTS    
+	</div>
+	
+	<div id="comment_write" t:id="can_post">
+		<center t:id="error" class="error">{error}</center>
+		<center t:id="success" class="success">{success}</center>
+		<form id="comment_write_form" method="post" action="{post_url}">
+			<input type="hidden" name="edit_form_key" value="{post_form_key}" />
+			<input type="hidden" name="ajax_post_url" value="{ajax_post_url}" />
+			<table class="comment_write_table" border="0" cellspacing="0" cellpadding="0">
+			<tr>
+			
+				<td class="user_info" rowspan="2">
+					<a t:id="viewing_user"><img class="picture" t:id="viewing_user.landscapethumb" /></a>
+				</td>
+				<td colspan="2">
+					<textarea t:id="text" class="enhanced_text_input" id="comment_text" name="comment_text">{text}</textarea>
+					<textarea t:id="!text" class="enhanced_text_input" id="comment_text" name="comment_text">Post a comment...</textarea>
+				</td>
+			</tr><tr>
+				<td>
+			
+					<input id="comment_post_submit" type="submit" class="submit" value="post" />
+				</td>
+			</tr>
+			</table>
+		</form>
+	</div>
+	
+	<t:loop t:id="comments" t:iter="comment">
+		<table class="comment_view" border="0" cellspacing="0" cellpadding="0">	
+			<tr>
+				<td class="picture" rowspan="3">
+					<a t:id="comment.author"><img class="picture" t:id="comment.author.landscapethumb" /></a>
+				</td>
+				<td class="info">
+					<div class="delete" t:id="can_delete">
+						<form class="delete_form">
+							<input type="hidden" name="comment_id" value="{comment.id}"/>
+							<input type="hidden" name="form_key" value="{delete_form_key}" />
+							<input type="hidden" name="ajax_delete_url" value="{ajax_delete_url}"/>
+							<a href="#" class="delete_submit"><img src="{static_url}/images/icon_delete_comment.gif"/></a>
+						</form>
+					</div>
+					<div class="date">{comment.date}</div>
+					<div class="comment_username"><a t:id="comment.author">{comment.author.username}</a></div>
+				</td>
+			</tr><tr>
+				<td class="comment_body">
+					@{comment.nmsg}
+				</td>
+			
+			</tr><tr>
+				<td class="conversation">
+					<a href="#">Conversation</a>
+				</td>  
+			</tr>
+		</table>
+	</t:loop>
+</div>
+

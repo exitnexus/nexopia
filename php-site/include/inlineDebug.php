@@ -2,10 +2,10 @@
 /* MODULE: inlineDebug.php */
 
 /* MODULE REVISION
- * $URL$
- * $Revision$
- * $Date$
- * $Author$
+ * $URL: http://192.168.0.50/svn/trunk/public_html/include/inlineDebug.php $
+ * $Revision: 3558 $
+ * $Date: 2006-07-20 13:52:23 -0600 (Thu, 20 Jul 2006) $
+ * $Author: timo $
  * END MODULE REVISION */
 
 /* OVERVIEW
@@ -138,4 +138,3 @@ class inlineDebug {
 
 /* END MODULE inlineDebug.php */
 
-?>

@@ -1,0 +1,31 @@
+<table width="100%">
+	<tr>
+		<td class="side">
+			<t:if t:id="types_count">
+				No requests<br/>
+			</t:if>
+			<t:if t:id="not_types_count">
+				<t:loop t:id="types" t:iter="num">
+					<!--#{num['nbsp']}#{num['num']}--> 
+					<a href="/moderate.php?mode=#{type}">
+						<!--#{num['modtype']}-->
+					</a>
+					<br/>
+				</t:loop>
+			</t:if>
+			<hr/>
+			<a href="/modprefs.php">Preferences</a><br/>
+			<hr/>
+			<a href="/profile.php?uid=NexopiaHelp">NexopiaHelp</a><br/>
+			<a href="/modlist.php"><b>#{modsonline} Mod(s) online</b></a><br/>
+			<b>#{adminsonline_count} Admin(s) online</b><br/>
+			<t:loop t:id="adminsonline" t:iter="admin">
+				<a href="/profile.php?uid=#{admin.userid}">#{admin.username}</a><br/>
+			</t:loop>
+			<b> #{globalmodsonline_count} Global(s) online</b><br/>
+			<t:loop t:id="globalmodsonline" t:iter="mod">
+				<a href="/profile.php?uid=#{mod.userid}">#{mod.username}</a><br/>
+			</t:loop>
+		</td>
+	</tr>
+</table>

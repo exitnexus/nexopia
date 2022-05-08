@@ -13,9 +13,9 @@
 		elseif(isset($action) && $action == "-->")
 			$day++;
 
-		$time=mktime(0,0,0,$month,$day,$year);
+		$time=usermktime(0,0,0,$month,$day,$year);
 	}else{
-		$time=mktime(0,0,0,date("n"),date("j"),date("Y"));
+		$time=usermktime(0,0,0,userdate("n"),userdate("j"),userdate("Y"));
 	}
 
 	$mods->adminlog("hit history", "Checking hit history for date " . userdate("F j, Y", $time));
@@ -26,7 +26,7 @@
 	$year = userdate("Y",$time);
 
 	for($i=1;$i<=12;$i++)
-		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+		$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
 
 	$res = $db->query("SELECT * FROM hithist WHERE time >= $time && time < $time + 86400 ORDER BY time ASC LIMIT 24");
 
@@ -40,7 +40,7 @@
 	echo "<input type=submit class=body name=action value=\"<--\">";
 	echo "<select class=body name=\"month\"><option value=0>Month" . make_select_list_key($months,$month) . "</select>";
 	echo "<select class=body name=\"day\"><option value=0>Day" . make_select_list(range(1,31),$day) . "</select>";
-	echo "<select class=body name=\"year\"><option value=0>Year" . make_select_list(array_reverse(range(2002,date("Y"))),$year) . "</select>";
+	echo "<select class=body name=\"year\"><option value=0>Year" . make_select_list(array_reverse(range(2002, gmdate("Y"))),$year) . "</select>";
 	echo "<input type=submit class=body name=action value=\"Go\">";
 	echo "<input type=submit class=body name=action value=\"-->\">";
 	echo "</form></center>";

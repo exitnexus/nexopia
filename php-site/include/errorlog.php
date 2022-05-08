@@ -1,13 +1,15 @@
 <?
 
-//use debug_backtrace()
+global $errorLogging;
 
 if($errorLogging){
 
 	function userErrorHandler($errno, $errmsg, $filename, $linenum, $vars) {
 		global $sitebasedir, $userData, $debuginfousers, $errorLogging;
 
-		if (error_reporting() == 0) return;
+		if(error_reporting() == 0) //likely disabled with the @ operator
+			return;
+
 		$time = gmdate("M d Y H:i:s");
 
 	// Get the error type from the error number
@@ -28,11 +30,11 @@ if($errorLogging){
 
 	//Write error to log file (CSV format)
 		if($errno <= 128)
-			$file = "$sitebasedir/logs/site/errors.csv";
+			$file = "$sitebasedir/logs/errors.csv";
 		elseif($errno == 256)
-			$file = "$sitebasedir/logs/site/usererrors.csv";
+			$file = "$sitebasedir/logs/usererrors.csv";
 		else
-			$file = "$sitebasedir/logs/site/userwarnings.csv";
+			$file = "$sitebasedir/logs/userwarnings.csv";
 
 		$user = ($userData['loggedIn'] ? $userData['userid'] : 'anon');
 		$ip = getip();

@@ -1,0 +1,14 @@
+<table>
+	<tbody>
+		<t:iter t:id="icon_row_list" t:iter="icon_row">
+			<tr>
+				<t:iter t:id="icon_row" t:iter="icon">
+					<td>
+						<input type="radio" id="icon_choice" name="icon_choice" value="icon_{icon.iconid}" cond:checked="icon.selected"></input>
+						<img src="{icon.image_location}"></img>
+					</td>
+				</t:iter>
+			</tr>
+		</t:iter>
+	</tbody>
+</table>

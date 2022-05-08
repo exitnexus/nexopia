@@ -1,0 +1,166 @@
+.groups
+{
+	width: 750px;
+	color: $primary_text_color;
+	background-color: $primary_background_color;
+	padding: 3px 86px 6px 86px;
+	text-align: center;
+}
+
+.groups table, .groups td {
+	vertical-align: top;
+	color: $primary_text_color;
+	background-color: $primary_background_color;
+}
+
+.groups .tblContainer {
+	width: 750px;
+	color: $primary_text_color;
+	background-color: $primary_background_color;
+	border: 1px solid #000;
+}
+
+.groups .tdContainer {
+	padding: 6px 86px 6px 86px;
+	text-align: center;
+}
+
+.groups div.navigation {
+	margin-bottom: 5px;
+}
+
+.groups div.navigation a:link, .groups div.navigation a:visited {
+	font-weight: bold;
+	color: $link_color;
+	text-decoration: none;
+}
+
+.groups div.navigation a:hover {
+	color: $link_accent_color;
+	text-decoration: none;
+}
+
+.groups div.navigation .selected {
+	font-weight: bold;
+}
+
+.groups div.header {
+	background-color: $header_background_color;
+	color: $header_text_color;
+	text-align: center;
+	margin-bottom: 5px;
+	padding: 1px;
+}
+
+.groups .tblContent {
+	margin-bottom: 17px;
+	text-align: left;
+}
+
+.groups .tblContent a:link, .groups .tblContent a:visited {
+	color: $link_color;
+	text-decoration: none;
+}
+
+.groups .tblContent a:hover {
+	color: $link_accent_color;
+	text-decoration: none;
+}
+
+.groups .tblContent td {
+	padding-bottom: 4px;
+}
+
+.groups .location {
+	color: $minor_font_color;
+}
+
+.groups .secondary_info {
+	color: $minor_font_color;
+}
+
+.groups select, .groups input, .groups textarea {
+	font-family: arial, sans-serif;
+	font-size: 8pt;
+}
+
+.groups .tdTitle {
+	width: 230px;
+	color: $primary_text_color;
+}
+
+.groups .tdInfo {
+	width: 200px;
+	color: $primary_text_color;
+}
+
+.groups .tdInfo select {
+	width: 100%;
+}
+
+.groups .tdInfo input {
+	width: 99%;
+}
+
+.groups .tdPrivacy {
+	padding-left: 4px;
+}
+
+.groups .delete {
+	margin-left: 6px;
+	margin-top: 2px;
+}
+
+.groups .checkbox {
+	margin-left: 0px;
+}
+
+.groups .submit {
+	background-color: #ece9d8;
+}
+
+.groups tr.row_spacer {
+	height: 8px;
+}
+
+
+.groups div.validation_error_text
+{
+	color: #ff0000;
+}
+
+.groups div.validation_valid_text
+{
+	color: #00ff00;
+}
+
+.groups div.validation_warning_text
+{
+	color: #ff8000;
+}
+
+.groups div.validation_none_text
+{
+	color: #000000;
+}
+
+.groups .validate_valid_image
+{
+	margin-left: 4px;
+	width: 15px;
+	height: 15px;
+}
+
+.groups .validate_error_image
+{
+	margin-left: 4px;
+	width: 15px;
+	height: 15px;
+}
+
+.groups .validate_warning_image
+{
+	margin-left: 4px;
+	width: 15px;
+	height: 15px;
+}

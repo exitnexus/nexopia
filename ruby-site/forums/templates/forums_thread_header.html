@@ -1,0 +1,74 @@
+<span xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">	
+	<table class="forum">
+		<tr class="forum_bg_dark">
+			<td class="forum_header_structure">
+				<a class="forum_header_name forum_text_dark" href="/forums">FORUMS</a>
+
+				<t:if t:id="logged">
+					<a class="forum_text_light" href="/forums/thread/subscribed"> Show subscribed threads </a>
+				</t:if>
+			</td>
+			<td class="forum_header_filter forum_header_structure">
+				<t:if t:id="jumpViews">
+					<b> Jump: </b>
+					<t:if t:id="pageViewsJumps" t:iter="pageViewsJump">
+						<t:if t:id="pageViewsJump[0]">
+							<a style="padding-left:4px;" class="forum_text_light" href="/forums/forum/{forum_id}/thread/{thread_id}/page/{pageViewsJump[2]}"> 
+								{pageViewsJump[1]}
+							</a>						
+						</t:if>
+						<t:if t:id="(! pageViewsJump[0])">
+							{pageViewsJump[1]}
+						</t:if>											
+					</t:if>
+
+					<br/>
+				</t:if>
+				<t:if t:id="pageViews">
+					<b> Page: </b>
+					<t:if t:id="pageViewsLinks" t:iter="pageViewsLink">
+						<t:if t:id="pageViewsLink[0]">
+							<a style="padding-left:4px;" class="forum_text_light" href="/forums/forum/{forum_id}/thread/{thread_id}/page/{pageViewsLink[1]}"> 
+								<span class="forum_text_light" style="display:{pageViewsLink[2]};">[</span> 
+									{pageViewsLink[1]}
+								<span class="forum_text_light" style="display:{pageViewsLink[2]};">]</span>
+							</a>						
+						</t:if>
+						<t:if t:id="(! pageViewsLink[0])">
+							{pageViewsLink[1]}
+						</t:if>											
+					</t:if>
+				</t:if>
+			</td>
+		</tr>
+		<tr class="forum_bg_dark">
+			<td class="forum_header_menu forum_header_structure">
+			</td>
+			<td class="forum_header_filter forum_header_structure forum_text_light">
+				<t:if t:id="logged">			
+					<t:if t:id="(! subscribe)">
+						<a class="forum_text_light" href="/forums/subscribe/forum/{forum_id}/thread/{thread_id}/page/{page}"> Subscribe </a>
+					</t:if>
+					<t:if t:id="subscribe">
+						<a class="forum_text_light" href="/forums/unsubscribe/forum/{forum_id}/thread/{thread_id}/page/{page}"> Unsubscribe </a>
+					</t:if>
+				</t:if>
+			</td>
+		</tr>
+		<tr><td colspan="2" class="forum_big_horizontal_space"></td></tr>
+	</table>
+	
+	<table class="forum">
+		<tr>
+			<td colspan="2" class="forum_threads_title forum_bg_dark forum_text_light forum_header_menu forum_header_structure">
+				<a href="/forums/category/{category_id}" class="forum_forum_title"> {category_name} </a>
+				>
+				<t:if t:id="forum_official"> Official: </t:if>				
+				<a href="/forums/forum/{forum_id}" class="forum_forum_title"> {forum_name} </a>
+				>
+				<a href="/forums/forum/{forum_id}/thread/{thread_id}" class="forum_forum_title"> {thread_title} </a>
+			</td>
+		</tr>
+		<tr><td colspan="2" class="forum_big_horizontal_space"></td></tr>
+	</table>
+</span>

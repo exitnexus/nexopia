@@ -21,7 +21,6 @@ public:
 
 class cache{
 	public $basedir;
-	public $cachedb;
 
 	public $values; //hdget values
 	public $locksuccess;
@@ -30,8 +29,12 @@ class cache{
 	public $memcache;
 
 	public $actions = array();
+	public $numactions = 0;
 	public $keyactions = 0;
 	public $time = 0;
+	public $keymap = 0;
+
+	public $hdbasic;
 
 	function __construct( & $memcache, $basedir, $debug = true){
 		$this->values = array();
@@ -42,11 +45,12 @@ class cache{
 		$this->memcache = & $memcache;
 
 		$this->debug = $debug;
+
+		$this->hdbasic = !function_exists('apc_fetch');
 	}
 
 
 	function get($key, $refresh = false, $callback = false, $default = array()){
-
 		$time1 = gettime();
 
 		$name = (is_array($key) ? $key[1] : $key);
@@ -106,57 +110,108 @@ class cache{
 	function get_multi($keys, $prefix = ''){
 		$time1 = gettime();
 
-		$realkeys = array();
-		$mapkeys = array();
-		if ($prefix)
-		{
-			foreach ($keys as $key)
-			{
-				if (is_array($key))
-				{
-					$realkeys[] = $prefix . implode(':', $key);
-					$mapkeys[$prefix . implode(':', $key)] = implode(':', $key);
-				} else {
-					$realkeys[] = $prefix.$key;
-					$mapkeys[$prefix.$key] = $key;
-				}
+		if($prefix){
+			$realkeys = array();
+			foreach($keys as & $key){
+				if(is_array($key))
+					$key = implode(':', $key);
+
+				$realkeys[] = $prefix . $key;
 			}
-			$keys = $realkeys;
+		}else{
+			$realkeys = $keys;
 		}
 
-		$ret = $this->memcache->get_multi($keys);
+		$ret = $this->memcache->get_multi($realkeys);
 		$this->keyactions += count($keys);
 
-		if ($prefix)
-		{
+		if($prefix){
+			$prefixlength = strlen($prefix);
+
 			$realret = array();
-			foreach ($ret as $key => $val)
-			{
-				$realret[ $mapkeys[$key] ] = $val;
-			}
-			$ret = $realret;
+			foreach($ret as $k => $v)
+				$realret[ substr($k, $prefixlength) ] = $v;
+		}else{
+			$realret = $ret;
 		}
 
-		// TODO: make this work correctly for when prefix is not specified (currently outputs empty keylist)
-		$this->action("get_multi (" . count($ret) . "/" . count($keys) . ")", $prefix.'('.implode(',',array_values($mapkeys)).')', gettime() - $time1);
+		$this->action("get_multi (" . count($realret) . "/" . count($keys) . ") - " . $this->memcache->numserversused, $prefix . '(' . implode(',',$keys) . ')', gettime() - $time1);
 
-		return $ret;
+		return $realret;
+	}
+
+	function get_multi_multi($keys, $prefixes){
+		$time1 = gettime();
+
+		$realkeys = array();
+		$realret = array();
+
+		$prefixlen = array();
+
+		foreach($prefixes as $prefix){
+			$realret[$prefix] = array();
+			$prefixlen[$prefix] = strlen($prefix);
+
+			foreach($keys as & $key){
+				if(is_array($key))
+					$key = implode(':', $key);
+
+				$realkeys[] = $prefix . $key;
+			}
+		}
+
+		$ret = $this->memcache->get_multi($realkeys);
+		$this->keyactions += count($realkeys);
+
+		foreach($ret as $k => $v)
+			foreach($prefixes as $prefix)
+				if(strncmp($k, $prefix, $prefixlen[$prefix]) == 0)
+					$realret[$prefix][ substr($k, $prefixlen[$prefix]) ] = $v;
+
+		$this->action("get_multi2 (" . count($ret) . "/" . count($realkeys) . ") - " . $this->memcache->numserversused, '(' . implode(',', $prefixes) . ')-(' . implode(',',$keys) . ')', gettime() - $time1);
+
+		return $realret;
 	}
 
 	function get_multi_missing($keys, $prefix, &$missing){
 		$ret = $this->get_multi($keys, $prefix);
-		foreach ($keys as $key)
-		{
+		foreach ($keys as $key){
 			$stringkey = implode(':',$key);
 			if (!isset($ret[$stringkey]))
-			{
 				$missing[] = $key;
-			}
 		}
 		return $ret;
 	}
 
+	function verifyKeymap() {
+		global $db;
+		if (!$this->keymap && $db) {
+			$this->keymap = $this->hdget("php-keymap", 86400, array($this, 'getKeymap'));
+		}
+	}
+	
+	function getKeymap(){
+		global $db;
+		$map = array();
+		if($db){
+			$res = $db->query("SELECT phpkey,rubykey FROM keymap");
+
+			while($line = $res->fetchrow())
+				$map[$line['phpkey']] = $line['rubykey'];
+		}
+		return $map;
+	}
+
+	function signalModification($key){
+		$this->verifyKeymap();
+		if($this->keymap)
+			foreach($this->keymap as $phpkey => $rubykey)
+				if(strncmp($phpkey, $key, strlen($phpkey)) == 0)
+					$this->remove($rubykey . substr($key, strlen($phpkey)));
+	}
+
 	function put($key, $value, $refresh, $wrap = false){
+		$this->signalModification($key);
 		$time1 = gettime();
 		$name = (is_array($key) ? $key[1] : $key);
 		if($wrap){
@@ -171,6 +226,7 @@ class cache{
 	}
 
 	function append($key, $value, $refresh){
+		$this->signalModification($key);
 		$time1 = gettime();
 		$name = (is_array($key) ? $key[1] : $key);
 		$this->memcache->append($key, $value, $refresh);
@@ -178,6 +234,7 @@ class cache{
 	}
 
 	function incr($key, $value = 1){
+		$this->signalModification($key);
 		$time1 = gettime();
 		$name = (is_array($key) ? $key[1] : $key);
 		$ret = $this->memcache->incr($key, $value);
@@ -191,6 +248,7 @@ class cache{
 	}
 
 	function decr($key, $value = 1){
+		$this->signalModification($key);
 		$time1 = gettime();
 		$name = (is_array($key) ? $key[1] : $key);
 		$ret = $this->memcache->decr($key, $value);
@@ -204,6 +262,7 @@ class cache{
 	}
 
 	function remove($key){
+		$this->signalModification($key);
 		$time1 = gettime();
 		$name = (is_array($key) ? $key[1] : $key);
 		$this->memcache->delete($key);
@@ -227,13 +286,14 @@ class cache{
 
 	function action($action, $name, $time){
 		if($this->debug)
-			$this->actions[] = array('action' => $action, 'key' => $name, 'time' => $time);
+			array_add_max($this->actions, array('action' => $action, 'key' => $name, 'time' => $time), 1000);
+		$this->numactions++;
 		$this->time += $time;
 	}
 
 	function outputActions(){
 		echo "<table border=0 cellspacing=1 cellpadding=2>";
-		echo "<tr><td class=header>MemCache</td><td class=header colspan=2>" . count($this->actions) . " actions, " . $this->keyactions . " keys</td></tr>";
+		echo "<tr><td class=header>MemCache</td><td class=header colspan=2>" . number_format($this->numactions) . " actions" . ($this->numactions != count($this->actions) ? ' (only ' . number_format(count($this->actions)) . ' shown)' : '') . ", " . number_format($this->keyactions) . " keys</td></tr>";
 		echo "<tr><td class=header>Total Time</td><td class=header colspan=2>" . number_format($this->time/10, 3) . " ms</td></tr>";
 
 		foreach($this->actions as $row){
@@ -246,9 +306,49 @@ class cache{
 	}
 
 
-
-
 	function hdget($name, $refresh, $callback, $default = false){
+		if($this->hdbasic)
+			return $this->hdgetbasic($name, $refresh, $callback, $default);
+
+		$time1 = gettime();
+
+		$line = apc_fetch($name);
+
+		if($line === false)
+			$line = array('time' => 0, 'expire' => 1, 'value' => $default);
+		else
+			$line = unserialize($line);  //apc doesn't seem to auto-serialize
+
+		$result = $line['value'];
+
+		$this->action("hdget", $name, gettime() - $time1);
+
+		$time = (int)($time1/10000);
+
+		if(!$line['time'] || ($line['expire'] && $time >= $line['expire'])){
+			if($refresh == 0)	$memrefresh = 60; 		//save for 60 seconds for the other servers to grab it too
+			else				$memrefresh = $refresh; //else only save it as long as it is valid
+
+			$result = $this->get($name, $memrefresh, $callback, $default); //sets $this->memexpire to the expiry date
+
+			if($this->memexpire > $time){
+				if($refresh == 0)			$expire = 0;
+				elseif($refresh < 30*86400)	$expire = $this->memexpire;
+				else						$expire = $refresh;
+
+				$dump = array(	'time' => $time,
+								'expire' => $expire,
+								'value' => $result,
+								);
+
+				apc_store($name, serialize($dump), 0);  //apc doesn't seem to auto-serialize
+			}
+		}
+
+		return $result;
+	}
+
+	function hdgetbasic($name, $refresh, $callback, $default = false){
 		$time1 = gettime();
 
 //		$filename = "$name.php";
@@ -274,14 +374,13 @@ class cache{
 
 		$this->action("hdget", $name, gettime() - $time1);
 
-		$time = time();
+		$time = $time1/10000;
 
 		if(!$line['time'] || ($line['expire'] && $time >= $line['expire'])){
 			if($refresh == 0)	$memrefresh = 60; 		//save for 60 seconds for the other servers to grab it too
 			else				$memrefresh = $refresh; //else only save it as long as it is valid
 
 			$result = $this->get($name, $memrefresh, $callback, $default); //sets $this->memexpire to the expiry date
-
 			if($this->memexpire > $time){
 				if($refresh == 0)			$expire = 0;
 				elseif($refresh < 30*86400)	$expire = $this->memexpire;

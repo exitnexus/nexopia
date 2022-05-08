@@ -39,40 +39,44 @@
 
 
 	if($action == "Create Forum")
-		insertForum(getREQval('data', 'array', array()));
+		insertForum();
 
-	addForum();	//exit
+	addForum(); //exit
 
 
-function addForum($data = array()){
+function addForum(){
 	global $isForumAdmin, $userData, $forums;
 
 	$cats = $forums->getCategories();
 	$outputcats = array(-1 => 'Select a category');
 	foreach ($cats as $catid => $cat)
-	{
 		if ($isForumAdmin || $cat['official'] != 'y')
 			$outputcats[$catid] = $cat['name'];
-	}
 
-	$name="";
-	$description="";
-	$catid = getREQval('catid', 'integer', -1); // allow this one to be done by a GET as well.
-	$autolock=0;
-	$edit='n';
-	$countposts='y';
-	$official='n';
-	$public='y';
-	$mute='n';
 
-	if (isset($_POST['data']))
-		extract($_POST['data']);
+	$data = getREQval('data', 'array');
+
+	$defaults = array(
+		'name' => "",
+		'description' => "",
+		'catid' => -1,
+		'parent' => 0,
+		'autolock' => 0,
+		'edit' => 'n',
+		'countposts' => 'y',
+		'official' => 'n',
+		'public' => 'y',
+		'mute' => 'n',
+		);
+
+	extract(setDefaults($data, $defaults));
+
 
 	$selectCategory = make_select_list_key($outputcats, $catid);
 	$radioAllowPostEdit = make_radio_key("data[edit]", $forums->editlengths, $edit);
-	$radioOfficial = make_radio_key("data[official]", array('y'=>"Yes", 'n'=>"No"),$official);
-	$radioPublic = make_radio_key("data[public]", array('y'=>"Yes", 'n'=>"No"),$public);
-	$radioMute = make_radio_key("data[mute]", array('y'=>"Yes", 'n'=>"No"),$mute);
+	$radioOfficial = make_radio_key("data[official]", array('y'=>"Yes", 'n'=>"No"), $official);
+	$radioPublic = make_radio_key("data[public]", array('y'=>"Yes", 'n'=>"No"), $public);
+	$radioMute = make_radio_key("data[mute]", array('y'=>"Yes", 'n'=>"No"), $mute);
 
 	$template = new template('forums/forumcreateforum/addForum');
 	$template->set('name', $name);
@@ -88,21 +92,25 @@ function addForum($data = array()){
 	exit;
 }
 
-function insertForum($data){
+function insertForum(){
 	global $msgs, $isForumAdmin, $userData, $forums, $userData, $cache;
 
-	$name="";
-	$description="";
-	$catid=-1;
-	$parent=0;
-	$autolock=0;
-	$edit='n';
-	$countposts='y';
-	$official='n';
-	$public='y';
-	$mute='n';
+	$data = getPOSTval('data', 'array');
 
-	extract($data);
+	$defaults = array(
+		'name' => "",
+		'description' => "",
+		'catid' => -1,
+		'parent' => 0,
+		'autolock' => 0,
+		'edit' => 'n',
+		'countposts' => 'y',
+		'official' => 'n',
+		'public' => 'y',
+		'mute' => 'n',
+		);
+
+	extract(setDefaults($data, $defaults));
 
 	$error=false;
 	if(trim($name)=="" || strlen(trim($name)) < 4){
@@ -127,11 +135,9 @@ function insertForum($data){
 		$error=true;
 	}
 	if ($catid != -1 && $cats[$catid]['official'] == 'y')
-	{
 		$official = 'y'; // force official forums in official categories.
-	}
-	if (!$isForumAdmin && $official == 'y')
-	{
+
+	if (!$isForumAdmin && $official == 'y'){
 		$msgs->addMsg("You do not have permission to create an official forum.");
 		$error = true;
 	}
@@ -146,7 +152,7 @@ function insertForum($data){
 	}
 
 	if($error)
-		addForum($data); //exit
+		addForum(); //exit
 
 	$unofficial = ($official=='y')? 'n' : 'y';
 

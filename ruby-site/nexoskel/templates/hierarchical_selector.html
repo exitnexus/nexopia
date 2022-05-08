@@ -1,0 +1,8 @@
+<div>
+	<t:if t:id="selected_node"/>
+	<select id="{ref}" name="{ref}" onchange="{onchange_handler}">
+		<t:loop t:id="nodes" t:iter="node">
+			<option value="{node.id}" cond:selected="node.id == selected_node">#{"- "*node.depth + node.name}</option>
+		</t:loop>
+	</select>
+</div>

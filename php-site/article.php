@@ -18,7 +18,7 @@
 	$article = $cache->get("article-$id");
 
 	if(!$article){
-		$res = $articlesdb->prepare_query("SELECT * FROM articles WHERE articles.id = ?", $id);
+		$res = $articlesdb->prepare_query("SELECT * FROM articles WHERE id = #", $id);
 		$article = $res->fetchrow();
 		if (!$article)
 			die("Invalid article id");
@@ -28,7 +28,7 @@
 		$cache->put("article-$id", $article, 86400);
 	}
 
-	$res = $articlesdb->prepare_query("SELECT authorid, time, nmsg FROM comments, commentstext WHERE itemid = ? && comments.id = commentstext.id ORDER BY comments.id ASC LIMIT 5", $id);
+	$res = $articlesdb->prepare_query("SELECT authorid, time, nmsg FROM comments, commentstext WHERE itemid = # && comments.id = commentstext.id ORDER BY comments.id ASC LIMIT 5", $id);
 
 	$comments = array();
 	$uids = array();
@@ -47,8 +47,7 @@
 	$categories = new category( $articlesdb, "cats");
 
 
-	if($article['parse_bbcode'] == 'y')
-		$article['text'] = nl2br(smilies(parseHTML($article['text'])));
+	$article['text'] = nl2br(smilies(parseHTML($article['text'])));
 
 
 	$template =  new template("articles/article/article");

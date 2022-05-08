@@ -1,0 +1,146 @@
+<div id="backdiv">
+	<form name="new_forum" id="new_forum" method="post" action="/forums/forum/new/submit">
+		<table>
+			<tr>
+				<td colspan="2">
+					Add Forum
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Name:
+				</td>
+				<td>
+					<input type="text" name="forum_name" id="forum_name" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Description:
+				</td>
+				<td>
+					<input type="text" name="forum_desc" id="forum_desc" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Category:
+				</td>
+				<td>
+					<select name="forum_category" id="forum_category">
+						<option value="-1">Select a category</option>
+						<t:iter t:id="forum_categories" t:iter="category">
+							<option value="{category.id}">{category.name}</option>
+						</t:iter>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2">
+					Options
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Auto-lock time:
+				</td>
+				<td>
+					<input type="text" name="forum_thread_lock_time" id="forum_thread_lock_time" value="0" /> days. 0 to disable, otherwise time in days.
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Allow Post Editing:
+				</td>
+				<td>
+					<table>
+						<tr>
+							<td>
+								<input type="radio" name="forum_post_edit" id="forum_post_edit_0" value="y" /> Yes
+							</td>
+							<td>
+								<input type="radio" name="forum_post_edit" id="forum_post_edit_1" value="n" checked="checked" /> No
+							</td>
+							<td>
+								<input type="radio" name="forum_post_edit" id="forum_post_edit_2" value="5" /> 5 Minutes
+							</td>
+							<td>
+								<input type="radio" name="forum_post_edit" id="forum_post_edit_3" value="15" /> 15 Minutes
+							</td>
+							<td>
+								<input type="radio" name="forum_post_edit" id="forum_post_edit_4" value="60" /> 1 Hour
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Official:
+				</td>
+				<td>
+					<table>
+						<tr>
+							<td>
+								<input type="radio" name="forum_official" id="forum_official_0" value="y" /> Yes
+							</td>
+							<td>
+								<input type="radio" name="forum_official" id="forum_official_1" value="n" checked="checked" /> No
+							</td>
+							<td>
+								Forums in restricted categories are automatically official
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Public:
+				</td>
+				<td>
+					<table>
+						<tr>
+							<td>
+								<input type="radio" name="forum_public" id="forum_public_0" value="y" checked="checked" /> Yes
+							</td>
+							<td>
+								<input type="radio" name="forum_public" id="forum_public_1" value="n" /> No
+							</td>
+							<td>
+								Only invited users can enter a private forum
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Mute:
+				</td>
+				<td>
+					<table>
+						<tr>
+							<td>
+								<input type="radio" name="forum_mute" id="forum_mute_0" value="y" /> Yes
+							</td>
+							<td>
+								<input type="radio" name="forum_mute" id="forum_mute_1" value="n" checked="checked" /> No
+							</td>
+							<td>
+								Only mods can post in a mute forum
+							</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+			<tr>
+				<td colspan="2">
+					<input type="submit" />
+					<input type="button" value="cancel" />
+				</td>
+			</tr>
+		</table>
+	</form>
+	
+</div>

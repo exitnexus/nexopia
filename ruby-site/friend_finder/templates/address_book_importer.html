@@ -1,0 +1,42 @@
+<div>
+	<form action="/friends/find/import" method="post">
+		<table>
+			<tr>
+				<td><label>Email Address</label></td>
+				<td><input type="text" name="email"/></td>
+			</tr>
+			<tr>
+				<td><label>Password</label></td>
+				<td><input type="password" name="password"/></td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><input type="submit" value="Fetch Contacts"/></td>
+			</tr>
+		</table>
+	</form>
+
+	<form action="{$site.upload_url}/httpupload/friends/find/import" method="post" enctype="multipart/form-data">
+		<table>
+			<tr>
+				<td><label>File</label></td>
+				<td><input type="file" name="file_upload"/></td>
+			</tr>
+			<tr>
+				<td><label>Type</label></td>
+				<td>
+					<select name="file_type">
+						<option value="outlook">Outlook</option>
+						<option value="thunderbird_csv">Thunderbird CSV</option>
+						<option value="thunderbird_ldif">Thunderbird LDIF</option>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td><input type="submit" value="Fetch Contacts"/></td>
+			</tr>
+		</table>
+		<input name="type" type="hidden" value="FriendFinder"/>
+	</form>
+</div>

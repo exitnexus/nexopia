@@ -1,56 +1,70 @@
 <?php
 
-	if(!isset($basedomain))      $basedomain = "dev.nexopia.com";
+	if(!isset($basedomain))      $basedomain = "dev";
 
 	if(!isset($wwwdomain))       $wwwdomain = "www.$basedomain";
-	if(!isset($pluswwwdomain))   $pluswwwdomain = "plus.www.$basedomain"; //needed only to check which db server to use, when plus only db servers are possible
+	if(!isset($pluswwwdomain))   $pluswwwdomain = $wwwdomain; //needed only to check which db server to use, when plus only db servers are possible
 
-	if(!isset($staticimgdomain)) $staticimgdomain = "static.$basedomain";
-	if(!isset($userimgdomain))   $userimgdomain = "images.$basedomain";
+	if(!isset($staticdomain))	 $staticdomain = "$wwwdomain/static/$reporev/files";
+	if(!isset($staticimgdomain)) $staticimgdomain = "$staticdomain/Legacy";
+	if(!isset($userimgdomain))   $userimgdomain = "$wwwdomain/images";
 	if(!isset($userfilesdomain)) $userfilesdomain = "users.$basedomain";
 
 	if(!isset($emaildomain))     $emaildomain = $basedomain;
 	if(!isset($cookiedomain))    $cookiedomain = ".www.$basedomain";
 
+	if(!isset($rubydomain))      $rubydomain = "ruby.$basedomain";
 
-	if(!isset($sitebasedir))		$sitebasedir = "/home/nexopia";
+	if(!isset($sitebasedir))     $sitebasedir = "/home/nexopia/php-site";
 
-	$docRoot = "$sitebasedir/public_html";
+	if(!isset($docRoot))         $docRoot = "$sitebasedir/public_html";
+
 	$staticRoot = "$sitebasedir/public_static";
+
+	if (!isset($pendingdir))	 $pendingdir = "$staticRoot/user_data/pending";
+
+
+	$databaseprofile = 'dev';
 
 	$slowquerytime = 1*10000; // 1 secs
 
 	$errorLogging = (isset($errorLogging) ? max($errorLogging, 2) : 2);
 
-	$bannerservers = array('192.168.0.50');
+	$mogfs_domain = 'nexopia.com';
+	$mogfs_hosts = array('192.168.10.5:6001');
+
+	$rubysite = array($rubydomain); // in the dev server, there is usually only one of these and its domain is set in rubydomain
+
+	$bannerservers = array('192.168.10.50');
 
 	$memcacheoptions = 	array(
 		'name' => 'cache',
-		'servers' => array( '192.168.0.50:11211',
-							),
+		'servers' => array( '192.168.10.50:11211' ),
 		'debug'   => false,
 		'compress_threshold' => 8000,
-		"compress" => 0,
-		'persistant' => false);
+		'persistant' => false,
+		'delete_only' => false,
+		);
 
 	$pagecacheoptions = array(
 		'name' => 'pagecache',
-		'servers' => array( '192.168.0.50:11211'		),
+		'servers' => array( '192.168.10.50:11211' ),
 		'debug'   => false,
 		'compress_threshold' => 8000,
-		"compress" => 0,
-		'persistant' => false);
-
-	$contactemails = array(
-		"Information" => "timo@tzc.com",
-		"Webmaster" => "timo@tzc.com",
-		"Admin" => "timo@tzc.com",
-		"Help" => "timo@tzc.com",
-		"Plus" => "timo@tzc.com",
-		"Advertising" => "timo@tzc.com"
+		'persistant' => false,
 		);
 
-	$debuginfousers = array(5, 7, 175, 192, 193, 199, 200);
+    $contactemails = array(
+        "Information" => "info@nexopia.com",
+        "Webmaster" => "webmaster@nexopia.com",
+        "Admin" => "admin@nexopia.com",
+        "Help" => "help@nexopia.com",
+        "Plus" => "plus@nexopia.com",
+        "Advertising" => "sales@nexopia.com",
+        );
+
+
+	$debuginfousers = array(5, 7, 175, 192, 193, 199, 200, 203, 6638);
 
 	$tidyoutput = false;
 
@@ -70,9 +84,19 @@
 	$lockSplitWriteOps = false;
 
 	$config = array(
+		'devutil' => true,
+
+		'bannerlogserver' => '10.0.0.85:6666',
+		'adblasterserver' => "10.0.0.64:5556",
+
+		'queue_cluster' => '',
+
 		'templatefilesdir' => "$sitebasedir/templates/template_files/",
-		'templateparsedir' => "$sitebasedir/templates/compiled_files/",
+		'templateparsedir' => "$sitebasedir/cache/templates/",
 		'templateusecached' => false,
+
+		'cachedbs' => false,
+		'cacheincludes' => false,
 
 		'allowThreadUpdateEmails' => false, //send subscribed users an email if a thread is updated
 		'defaultMessageAllowEmails' => true, // whether or not deliverMsg defaults to allowing emails to be sent
@@ -94,7 +118,7 @@
 
 
 		'contactsubjectPrefix' => 'Nexopia Response:', //prefix for emails from the contact us page.
-		'copyright' => '© Nexopia.com Inc. 2006 all rights reserved.',
+		'copyright' => '© Nexopia.com Inc. 2008 all rights reserved.',
 		'email' => 'no-reply@nexopia.com',
 
 		'enableCompression' => true,
@@ -111,7 +135,7 @@
 		'minAge' => 14, //(current year- minAge) is the first year shown in the signup page.
 		'maxAge' => 60,
 
-		'maxfriends' => 200,
+		'maxfriends' => 250,
 		'maxpics' => 8,
 		'maxpicspremium' => 12,
 		'maxgallerypics' => 20,
@@ -121,7 +145,7 @@
 		'maxAwayTime' => 3600, //max away time before a user is logged out, only applies if not a cached login.
 
 		'linesPerPage' => 25, //lines of text per page, used in forum, msgs, friends, etc.
-		'pagesInList' => 10, //number of pages to show in the page list
+		'pagesInList' => 5, //number of pages to show in the page list
 		'picsPerPage' => 10, //pics per page in a list of users in a search
 		'maxpollwidth' => 100,
 		'minusernamelength' => 4,
@@ -168,9 +192,9 @@
 		'maxGalleryPicWidth' => 640,
 
 		'picdir' => '/user_data/userpics/',
-		'picloc' => "http://$userimgdomain/userpics/",
+		'picloc' => "http://$userimgdomain/gallery/",
 		'thumbdir' => '/user_data/userpicsthumb/', //directory relative to the docroot to save thumbs.
-		'thumbloc' => "http://$userimgdomain/userpicsthumb/",
+		'thumbloc' => "http://$userimgdomain/gallerythumb/",
 		'thumbHeight' => 150,
 		'thumbWidth' => 100,
 		'minPicHeight' => 75,
@@ -184,7 +208,9 @@
 		'picmodexamloc' => "http://$staticimgdomain/picmodexam/", //directory relative to the docroot to save pic mod exam imgs
 		'picmodpluserrrate' => 2.5, //maximum error rate required during a week to earn plus
 		'picmodpluspicrate' => 2500, //modded pics required during a week to get plus
-		'picmodmonthlymin'	=> 10000
+		'picmodmonthlymin' => 10000, //modded pics required during a month to make top 5
+
+		'passthrough_all_unrecognized' => true, // pass all unrecognized urls to the ruby site.
 	);
 
-	include_once("include/errorlog.php");
+/* 	include_once("include/errorlog.php"); */

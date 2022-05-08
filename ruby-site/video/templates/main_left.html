@@ -1,0 +1,17 @@
+<div id="left_panel">
+	<div id="viewer_panel">
+		<div class="section_header"><div>Nex Videos</div></div>
+		<div class="video_section_container">
+			<div class="video_section_content">
+				<div t:id="videoid">
+					<t:handler-include path="/videos/show/{videoid}" area="Public"/>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div id="comments_panel" t:id="videoid">
+		<div class="section_header"><div>Comments</div></div>
+		<div class="comment_section_content"><t:handler-include path="/videos/comments/partial/{videoid}" area="Public"/></div>
+	</div>
+</div>

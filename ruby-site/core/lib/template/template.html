@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+	<META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=windows-1252">
+	<TITLE>Template Language Description</TITLE>
+	<STYLE>
+	<!--
+		P { margin-bottom: 0.08in }
+		H1 { margin-bottom: 0.08in, font-size: 16pt }
+		H2 { margin-bottom: 0.08in, font-size: 14pt; font-style: italic }
+	-->
+	</STYLE>
+</HEAD>
+<BODY LANG="en-US" DIR="LTR">
+<H1>Template Language Definition</H1>
+<H1><FONT FACE="Wingdings">N</FONT></H1>
+
+<OL START=1>
+	<LI VALUE=1><H2> Definition</H2>
+		<P>A Template Document is composed of XHTML fragments. The document
+		may be rooted at any html tag, such as a SPAN or DIV tag.  Within
+		the XHTML fragments there is two additional types of markup.  One is
+		template code, which is delimited in <CODE>{}</CODE> blocks.  The
+		other is template variables, which are marked by special tags and
+		attributes in special namespaces.</P>
+		<P></P>
+	<LI><H2>Syntax</H2>
+		<OL>
+			<LI><P>Valid XHTML.</P>
+			<P STYLE="margin-left: 0in; margin-bottom: 0in">
+	Ex:
+				<PRE>
+	&lt;html&gt;
+	  &lt;body&gt;
+	    Hello, World
+	  &lt;/body&gt;
+	&lt;/html&gt;</PRE>
+			</P>
+	
+			<LI><P>Ruby template code within <CODE>{}</CODE> blocks. Must return 
+			a value that is 'to_s'-able.</P>
+	
+			<P>Ex:</P>
+			<P STYLE="margin-left: 0.49in; margin-bottom: 0in"><CODE>{&quot;static string&quot;}</CODE></P>
+			<P STYLE="margin-left: 0.49in; margin-bottom: 0in"><CODE>{$global}</CODE></P>
+			<P STYLE="margin-left: 0.49in; margin-bottom: 0in"><CODE>{object.to_s}</CODE></P>
+			<P STYLE="margin-left: 0.49in; margin-bottom: 0in"><CODE>{my_num + 1}</CODE></P>
+			<P></P>
+			<LI><P>The ruby template code may appear in text elements:</P>
+			<P STYLE="margin-left: 0.49in; margin-bottom: 0in">
+				<PRE>
+&lt;html&gt;
+  &lt;body&gt;
+    {&quot;hello,world&quot;}
+  &lt;/body&gt;
+&lt;/html&gt;
+				</PRE>
+			</P>
+			<P>Associated Test: test_array,
+			test_simple (template.test.rb)</P>
+			<P></P>
+			<LI><P>Ruby template code may appear in
+			attributes:</P>
+			<P STYLE="margin-left: 0.49in; margin-bottom: 0in"><CODE>&lt;span
+			class=&quot;{classname}&quot;&gt;</CODE></P>
+			<P>Associated Test: test_attribute (template.test.rb)</P>
+			<P></P>
+		</OL>
+	<LI><H2>Template Variables</H2>
+		<OL>
+			<LI><P>Template variables are &quot;blanks&quot;
+			in the template document.  Their value can be different every time
+			the template is run.</P>
+			<P></P>
+			<LI><P>Usage</P>
+			<P>In text &ndash; <CODE>{}</CODE>
+			surrounding them</P>
+			<P>In attributes &ndash; <CODE>{}</CODE>
+			surrounding them</P>
+			<P>In namespaced attributes - no <CODE>{}</CODE>
+			surrounding them, since the contents of these attributes can ONLY be
+			template code.</P>
+			<P STYLE="margin-left: 0.49in; margin-bottom: 0in"><BR>
+			</P>
+	
+			<LI><P>Setting Template Variables</P>
+			
+			<P>In ruby, after instanciating a template
+			<CODE>t</CODE>, you set the variable <CODE>var</CODE> with the following code:</P>
+			<P><CODE>t.var = &quot;Whatever&quot;</CODE></P>
+			<P><CODE><FONT FACE="Times New Roman, serif">Associated
+			Test: test_simple</FONT></CODE></P>
+			<P><BR>
+			</P>
+			<LI><P>Setting a variable that is never
+			used is allowed.  Not setting a variable that is used is also
+			allowed.</P>
+			<P></P>
+		</OL>
+	<LI><H2>Special Tags and Attributes</H2>
+		<P></P>
+		<OL>
+			<LI><P><CODE>t:id</CODE>, <CODE>t:index</CODE>,	<CODE>t:iter</CODE></P>
+			<P>Associated test: test_array (template.test.rb)</P>
+			<P></P>
+			<LI><P><CODE>cond:attr</CODE></P>
+			<P>Associated test: test_cond_attr (template.test.rb)</P>
+			<P></P>
+			<LI><P><CODE>t:template-include, t:handler-include</CODE></P>
+			<P>When template-include is invoked, any required variables are passed 
+			into the deeper scope. Technically, the	entire scope is shared.</P>
+			<P>Associated test: test_include, test_handler</P>
+			<P></P>
+			<LI><P><CODE>t:define</CODE></P>
+			<P>This tag allows you to define a function.</P>
+			<P>Associated test: test_define</P>
+		</OL>
+	<LI><H2>. Template output</H2>
+		<OL>
+			<LI><P><CODE>template.display()</CODE>
+			returns the output of a template as a string.</P>
+			<P>Associated test: test_simple	(template.test.rb)</P>
+			<P></P>
+		</OL>
+	<LI><H2>. Template Class Generation/Caching</H2>
+		<OL>
+			<LI><P>Templates generate a class with a
+			name like: TemplateMODULENAME_FILENAME.</P>
+			<P></P>
+			<LI><P>Templates should cache a .rb file
+			version of themselves, which is overwritten when the source .html
+			file is newer than the .rb file.  It is possible for this to get
+			mucked up by changing the system time.  If so, you can fix it by
+			deleting all of the files in ruby-site/generated.</P>
+		</OL>
+</OL>
+</BODY>
+</HTML>

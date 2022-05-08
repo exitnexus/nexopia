@@ -1,0 +1,81 @@
+<div id="music_doc">
+	<div class="yui-t2 music_administration">
+		#{css}
+		#{script}
+		<div id="yui-main_music">
+			<div class="yui-b">
+				<div class="yui-g">
+					News Administration
+					<div style="float:right">
+						<a href="/music/administration/item/news/new/">Add a new news item</a>	
+					</div>
+				</div>
+				<div class="yui-g">
+					<table>
+						<tbody>
+							<tr>
+								<th>
+									&#160;
+								</th>
+								<th>
+									Title
+								</th>
+								<th>
+									Type
+								</th>
+								<th>
+									Date Added
+								</th>
+								<th>
+									Tagged with
+								</th>
+								<th>
+									Views
+								</th>
+								<th>
+									Object ID
+								</th>
+							</tr>
+							<t:iter t:id="news_item_list" t:iter="news_item" t:alternating="primary, secondary">
+								<tr class="{class_var}">
+									<td>
+										<a href="{news_item.edit_url}"><img src="{$site.static_files_url}/streams/icons/edit_icon.jpg" alt="Edit"></img></a>
+										<a href="{news_item.delete_url}" onclick="return MUSIC.confirm_delete({news_item.id}, '{news_item.title}')"><img src="{$site.static_files_url}/streams/icons/delete_icon.jpg" alt="Delete"></img></a>
+									</td>
+									<td>
+										<a t:id="news_item"></a>
+									</td>
+									<td>
+										{news_item.class}
+									</td>
+									<td>
+										{news_item.date_string}
+									</td>
+									<td>
+										<ul>
+											<t:iter t:id="news_item.tag_list" t:iter="tag">
+												<li>{tag.tagname}</li>
+											</t:iter>
+										</ul>
+									</td>
+									<td>
+										{news_item.stream_entry.views}
+									</td>
+									<td>
+										{news_item.id}
+									</td>
+								</tr>
+							</t:iter>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		<div class="yui-b">
+			<t:template-include t:module="streams" t:name="music_administration_panel"></t:template-include>
+			<div class="yui-g">
+				<a href="/music/">Music Front Page</a>
+			</div>
+		</div>
+	</div>
+</div>

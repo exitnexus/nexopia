@@ -1,0 +1,285 @@
+.ruby_content {text-align:center;}
+
+.ruby_content *{text-align:left;}
+
+#music_doc, #music_doc .yui-t2, #music_doc .yui-t7
+{
+	margin:auto;text-align:left;
+	width:68.4em !important;*width:68.455em;min-width:730px;
+}
+
+#yui-main_music .yui-b{position:static;}
+	
+#yui-main_music {width:100%;}
+
+.yui-t1 #yui-main_music,
+.yui-t2 #yui-main_music,
+.yui-t3 #yui-main_music{float:right; margin-left:-25em;} /*IE: preserve layout at narrow widths */
+
+.yui-t4 #yui-main_music,
+.yui-t5 #yui-main_music,
+.yui-t6 #yui-main_music{float:left;margin-right:-25em;/* IE: preserve layout at narrow widths */}
+
+.yui-t2 .yui-b {
+	float:left;
+	width:16.8750em;*width:16.8856em;
+}
+
+.yui-t2 #yui-main_music .yui-b {
+	margin-left: 17.5313em; *margin-left:17.629em;
+}
+
+.yui-t7 #yui-main_music .yui-b {
+	display:block;margin:0 0 1em 0;
+}
+
+#yui-main_music .yui-b {float:none;width:auto;}
+
+#music_doc .yui-gb .yui-u,
+#music_doc .yui-gc .yui-u,
+#music_doc .yui-gd .yui-u{float:left;margin-left:1%;*margin-left:0.9759%;width:30.62%;*width:32.7%} /* Was 2% and 1.895% */
+
+#music_doc .yui-gb div.first,
+#music_doc .yui-gc div.first,
+#music_doc .yui-gd div.first{margin-left:0;}
+
+div.yui-t2, #music_doc div.yui-t7
+{
+	margin-top: 5px;
+	margin-bottom:5px;
+}
+
+#music_doc div.yui-b div.yui-g 
+{
+	margin-top: 5px;
+	margin-bottom: 3px;
+}
+
+div.music_holder
+{
+	margin-top:0px;
+}
+
+div.music_holder > table
+{
+	width: 100%;
+}
+
+div.music_holder td
+{
+	padding: 2px;
+}
+
+.feature_stream_title
+{
+	margin-bottom: 6px;
+}
+
+#news_item .news_content
+{
+	padding-top: 5px;
+}
+
+.secondary_stream_title
+{
+	margin-bottom: 4px;
+}
+
+#band_register
+{
+width:100%;
+float:right;
+display: block;
+}
+
+.band_entry_micro, .stream_entry_micro, .stream_entry_micro td a
+{
+display: block;
+float: left;
+margin-bottom: 3px;
+}
+
+.stream_entry_micro
+{
+margin-top: 2px;
+margin-right: 2px;
+padding-right: 1px;
+}
+
+.band_entry_micro, .band_entry_micro table, .stream_entry_micro, .stream_entry_micro table
+{
+width: 100%;
+}
+
+.micro_icon_col
+{
+width:23px;
+padding-right: 3px;
+padding-top: 2px;
+padding-left: 3px;
+padding-bottom: 2px;
+}
+
+#music_popular_entries
+{
+	padding-right: 2px;
+}
+
+.band_micro_icon_col
+{
+width:29px;
+padding-right: 3px;
+}
+
+
+.yui-g
+{
+padding-top: 2px;
+padding-right: 4px;
+padding-left: 4px;
+padding-bottom: 2px;
+}
+
+#music_feature
+{
+padding-bottom: 6px;
+padding-top: 6px;
+}
+
+.large_stream_entry
+{
+display: block;
+float: left;
+width:100%;
+padding-bottom: 25px;
+padding-top: 6px;
+margin-bottom: 4px;
+}
+
+.large_stream_entry .stream_entry_footer
+{
+width:100%;
+float:left;
+}
+
+.large_stream_entry .stream_entry_title *, #feature_stream .stream_entry_title a:hover,
+#feature_stream .stream_entry_title a:visited, #feature_stream .stream_entry_title a:active,
+#news_item .stream_entry_title span, #news_item .stream_entry_title *
+{
+float: left;
+display: block;
+}
+
+.large_stream_entry .stream_entry_date,
+#news_item .stream_entry_date
+{
+float: right;
+display: block;
+}
+
+#feature_stream .large_stream_entry .stream_entry_title a
+{
+	width: 80%;
+}
+
+.large_stream_entry .stream_entry_brief
+{
+float: left;
+width: 100%;
+display: block;
+padding-top: 5px;
+}
+
+.large_stream_entry .stream_entry_read_more
+{
+	float: right;
+	padding-right: 10px;
+}
+
+.secondary_stream
+{
+padding-right: 4px;
+padding-left: 4px;
+padding-top: 2px;
+padding-bottom: 2px;
+}
+
+.stream_entry_small
+{
+width: 100%;
+padding-right: 4px;
+margin-bottom: 3px;
+}
+
+
+
+.stream_entry_small table
+{
+	width: 100%;
+}
+
+.band_entry
+{
+width: 95%;
+overflow: auto;
+margin-top: 0px;
+margin-bottom: 4px;
+margin-left: 2px;
+padding: 3px;
+}
+
+
+#individual_band_entry h2, #individual_band_entry h4
+{
+	margin-top: 10px;
+}
+
+
+/*  This is for the images by the stream entries */
+.large_stream_entry img, .stream_entry_small img,
+#news_item img
+{
+	margin-right: 3px;
+}
+
+div.music_administration #yui-main table
+{
+	border-collapse: seperate;
+	border-spacing: 0px;
+	width: 100%;
+}
+
+div.band_entry_data div
+{
+	margin-bottom: 4px;
+	width: 100%;
+	float: left;
+}
+
+.sidebar_feature
+{
+	margin-top: 4px;
+	margin-bottom: 4px;
+}
+
+#music_administration ul,#music_administration li,#music_administration ol
+{
+	margin-left: 8px;
+}
+
+.news_content .item_share
+{
+	float: right;
+	padding-right: 85px;
+}
+
+.back_nav a, .back_nav_bottom a
+{
+	padding-bottom: 5px;
+}
+
+#news_item .back_nav_bottom
+{
+	padding-bottom: 20px;
+	padding-left: 85px;
+}

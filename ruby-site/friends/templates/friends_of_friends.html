@@ -1,0 +1,49 @@
+<div t:docid="friends_of_friends" class="friends friends_of_friends">
+	<t:template-include name="top_menu" module="friends"/>
+	<t:if t:id="hidden_count > 0">
+		<a href="/users/%{user.username}/friends/friends/show/all?form_key={form_key}" class="show_all">Unhide All</a>
+	</t:if>
+	Friends of friends of&#160;<a class="body" t:id="user"></a>:
+	<ul>
+		<li class="friend_list_entry" t:id="friends_of_friends" t:iter="(friend_of_friend, friends)">
+			<table class="friend">
+				<tr>
+					<td rowspan='5' class="picture"><a class="body" t:id="friend_of_friend"><img class="picture" t:id="friend_of_friend"/></a></td>
+					<td class="name" colspan='2'>
+						<a class="body" t:id="friend_of_friend"></a>&#160;
+					</td>
+					<td>
+						<span class="actions">
+							<a class="add" href="/users/%{user.username}/friends/add/%{friend_of_friend.userid}?form_key={form_key}">
+								<img src="#{$site.static_files_url}/Friends/images/add_friend.gif"/>
+							</a>
+							<a class="hide" href="/users/%{user.username}/friends/friends/hide/%{friend_of_friend.userid}?form_key={form_key}">
+								<img src="#{$site.static_files_url}/Friends/images/cross_red.gif"/>
+							</a>
+						</span>
+					</td>
+				</tr>
+				<tr>
+					<td class="minor">Age:</td>
+					<td>{friend_of_friend.age}</td>
+					<td rowspan='4' class="connected_friends">
+						<ul>
+							<li t:id="friends" t:iter="friend">
+								<a class="body connected_friend" id="picture_{friend_of_friend.userid}_{friend.username}" t:id="friend"><img class="picture" t:id="friend"/></a>
+							</li>
+						</ul>
+					</td>
+				</tr>
+				<tr>
+					<td class="minor">Sex:</td>
+					<td>{friend_of_friend.sex}</td>
+				</tr>
+				<tr>
+					<td class="minor">Location:</td>
+					<td>{friend_of_friend.location}</td>
+				</tr>
+				<tr></tr>
+			</table>
+		</li>
+	</ul>
+</div>

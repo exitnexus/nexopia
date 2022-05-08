@@ -1,0 +1,40 @@
+.accordion_view .accordion_handle
+{
+	display: block;
+	position: relative;
+	left: 0px;
+	right: 0px;
+	
+	margin: 0px;
+	padding: 2px;
+	padding-left: 6px;
+	
+	font-size: 16px;
+	color: $secondary_text_color;
+	text-decoration: none;
+	
+	background-color: $secondary_background_color;
+	
+	cursor: pointer;
+}
+.accordion_view .accordion_handle.accordion_handle_active
+{
+	border-bottom: solid 2px transparent;
+	
+	cursor: default;
+}
+
+.accordion_view .accordion_body
+{
+	position: relative;
+	
+	padding: 6px;
+	
+	overflow: hidden;
+	
+	border-bottom: solid 2px transparent;
+}
+.accordion_view .accordion_body.accordion_body_active
+{
+	
+}

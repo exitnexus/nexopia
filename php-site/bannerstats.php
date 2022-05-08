@@ -1,5 +1,6 @@
 <?
 	$login=1;
+	$accepttype = false;
 	require_once('include/general.lib.php');
 	$bannerAdmin = $mods->isAdmin($userData['userid'],"listbanners");
 	
@@ -53,6 +54,7 @@
 	
 	$res = $banner->db->prepare_array_query("SELECT title, clientid, id FROM bannercampaigns WHERE " . implode(" && ", $where), $params);
 	$campaigns = array();
+	$campaignnames = array();
 	while ($line = $res->fetchrow()) {
 		$line['clientname'] = $clients[$line['clientid']];
 		$campaigns[$line['id']] = $line;
@@ -136,6 +138,10 @@
 													   ), htmlentities($action)));
 	}
 	
+	$template->set('jsloc', "$config[jsloc]calendar.js");
+	$template->set('cssloc', "$config[jsloc]calendar.css");
+	$template->set('calimgloc', "$config[imageloc]calendar/");
+	
 	$template->set('selectCampaign', make_select_list_key($campaignnames, $campaignid));
 	$template->set('selectClient', make_select_list_key($clients, $clientid));
 	
@@ -175,6 +181,13 @@
 	$template->set('clientid', $clientid);
 	$template->set('all', $all);
 	$template->set('campaignid', $campaignid);
+	$menu_template = new template('admin/adminbanners/menu');
+	$menu_template->set('size', $size);
+	$menu_template->set('type', $type);
+	$menu_template->set('clientid', $clientid);
+	$menu_template->set('all', $all);
+	$menu_template->set('campaignid', $campaignid);
+	$template->set('menu', $menu_template->toString());
 	$template->display();
 	
 	function parseDate($date) {

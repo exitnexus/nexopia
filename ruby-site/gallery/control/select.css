@@ -1,0 +1,32 @@
+.select_separator {
+	margin-top:2px;
+	display:block;
+	border-top: 1px;
+	border-bottom: 0px;
+	border-left: 0px;
+	border-right: 0px;
+	border-color: $page_background_color;
+	border-style: solid;
+}
+
+#gallery_overlay {
+	position: absolute;
+	display:none;
+	width:210px;
+	padding:5px;
+	background-color: $secondary_background_color;
+	border: 1px solid #7F7F7F;
+	color: $secondary_text_color;
+}
+
+#gallery_overlay select, #gallery_overlay input, #gallery_overlay textarea {
+	font-size: $page_font_size;
+	font-family: $page_font_family;
+	width: 200px;
+	border-color:$primary_background_color;
+}
+
+#gallery_overlay input.submit {
+	width: 80px;
+	margin-left: 120px;
+}

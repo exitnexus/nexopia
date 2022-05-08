@@ -1,0 +1,74 @@
+<div class="yui-t2 music_administration">
+	#{css}
+	<div id="yui-main">
+		<div class="yui-b">
+			<div class="yui-g">
+				<table>
+					<tbody>
+						<tr>
+							<th>
+								&#160;
+							</th>
+							<th>
+								Band Name
+							</th>
+							<th>
+								User
+							</th>
+							<th>
+								Genre
+							</th>
+							<th>
+								Bio
+							</th>
+							<th>
+								Band Website
+							</th>
+							<th>
+								Date Added
+							</th>
+							<th>
+								Object ID
+							</th>
+						</tr>
+						<t:iter t:id="user_band_list" t:iter="user_band">
+							<tr>
+								<td>
+									<a href="/music/bandentry/edit/{user_band.id}/"><img src="http://{$site.config.static_domain}/icons/edit_icon.jpg"></img></a>
+									<a href="/music/bandentry/delete/{user_band.id}/"><img src="http://{$site.config.static_domain}/icons/delete_icon.jpg"></img></a>
+								</td>
+								<td>
+									<a t:id="user_band"></a>
+								</td>
+								<td>
+									<a t:id="user_band.user" t:linktype="php"></a>
+								</td>
+								<td>
+									{user_band.genre}
+								</td>
+								<td>
+									Show Bio <!--<a t:id="user_band" t:linktype="admin_bio"></a>-->
+								</td>
+								<td>
+									<a t:id="user_band" t:linktype="band_site"></a>
+								</td>
+								<td>
+									{user_band.date_string}
+								</td>
+								<td>
+									{user_band.id}
+								</td>
+							</tr>
+						</t:iter>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	<div class="yui-b">
+		<t:template-include t:module="streams" t:name="music_administration_panel"></t:template-include>
+		<div class="yui-g">
+			<a href="/music/">Music Front Page</a>
+		</div>
+	</div>
+</div>

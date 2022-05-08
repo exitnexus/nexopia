@@ -1,0 +1,325 @@
+#jobs_doc
+{
+	background-color: white;
+}
+
+#jobs
+{
+	font-family: Arial, Helvetica, sans-serif;
+	background-color: white;
+}
+
+#jobs div#hd
+{
+	
+	color: black;
+	font-size: 14px;
+	padding: 2px 0px 16px 18px;
+	background-image: $section_header_background_image;
+	font-weight: bold;
+}
+
+#jobs_page_title
+{
+	font-size: 23px;
+	font-weight: bold;
+}
+
+#jobs_intro .jobs_image
+{
+	text-align: center;
+	margin-bottom: 20px;
+}
+
+#jobs table
+{
+	width: 100%;
+}
+
+.applicant_asset .applicant_asset_update
+{
+	width:20%;
+	text-align: right;
+}
+
+.applicant_information tr td
+{
+	padding-top: 7px;
+}
+
+.applicant_information .applicant_asset tr td,
+.applicant_information #applicant_previous_applications table tr td
+{
+	padding-top: 0px;
+	vertical-align: top;
+}
+
+#applicant_previous_applications
+{
+	margin-top: 14px;
+}
+
+.applicant_asset
+{
+	border-collapse: collapse;
+}
+
+.company_info, .jobs_reapplication
+{
+	font-weight: bold;
+}
+
+.jobs_reapplication a
+{
+	color: #2e3192;
+}
+
+.company_benefits ul
+{
+	margin-top: 10px;
+	list-style: square;
+	list-style-position: inside;
+}
+
+.company_benefits ul li, #jobs_listing ul li, #jobs_departments ul li,
+.jobs_department_detail ul li
+{
+	padding-bottom: 3px;
+}
+
+.jobs_section_header
+{
+	font-size: 16px;
+	font-weight: bold;
+}
+
+#jobs_content, #jobs_departments, .jobs_department_detail
+{
+	border-top: solid 1px black;
+	padding-top: 5px;
+}
+
+#jobs_departments
+{
+	margin-top: 15px;
+}
+
+#jobs_content .jobs_section_header,
+#jobs_departments .jobs_section_header
+{
+	padding-bottom: 8px;
+}
+
+#jobs_listing ul, #jobs_departments ul, .jobs_department_detail ul
+{
+	list-style-position: inside;
+	list-style: none;
+}
+
+#jobs_details
+{
+	padding-top: 4px;
+	border-top: solid 1px black;
+	margin: 20px 30px 0px 30px;
+}
+
+.job_apply
+{
+	float: right;
+	
+}
+
+.applicant_information .applicant_edit
+{
+	text-align: right;
+}
+
+.applicant_edit img, .applicant_asset_update img, .applicant_reapply img
+{
+	border: none;
+}
+
+.applicant_information .applicant_asset_update, .applicant_information .applicant_reapply
+{
+	text-align: right;	
+}
+
+.job_subtitle
+{
+	padding: 15px 0px 16px 0px;
+	font-weight: bold;
+}
+
+.app_field_description, .app_summary_description
+{
+	font-weight: bold;
+	text-align: right;
+	width: 25%;
+	padding-right: 7px;
+	vertical-align: top;
+}
+
+.app_field_description
+{
+	padding-top: 13px;
+}
+
+#jobs textarea, #jobs select, #jobs input
+{
+	font-family: Arial, sans-serif;
+	font-size: 11px;
+}
+
+#jobs_listing, #jobs_listing a, #jobs_departments a, .jobs_department_detail a
+{
+	font-weight: bold;
+	font-size: 12px;
+}
+
+#jobs_listing a, #jobs_departments a, .jobs_department_detail a
+{
+	color: #2e3192;
+}
+
+.job_admin .yui-b, .job_admin #bd, .job_admin #hd
+{
+	background-color: white;
+}
+
+.job_admin ul
+{
+	list-style: none;
+}
+
+.job_admin *
+{
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 13px;
+}
+
+.job_admin dd a
+{
+	color: #003399;
+}
+
+.job_admin dt a
+{
+	color: #336633;
+}
+
+.job_admin_tab_menu
+{
+	width: 100%;
+	padding-top: 4px;
+	border-bottom: solid 5px #330099;
+	padding-bottom: 2px;
+}
+
+.job_admin_tab_menu div
+{
+	display: inline;
+	width: auto;
+	padding: 1px 3px 0px 3px;
+	margin-right: 2px;
+	border-top: 1px solid #777;
+	border-left: solid 1px #777;
+	border-right: solid 1px #777;
+	background-color: #ddd;
+	border-bottom: solid 2px #ddd;
+}
+
+.job_admin_tab_menu div.selected
+{
+	padding-top: 3px;
+	background-color: #330099;
+	color: #fff;
+	border-bottom: solid 2px #330099;
+}
+
+#job_admin_details h1
+{
+	font-size: 18px;
+}
+
+#job_admin_details h2
+{
+	font-size: 14px;
+}
+
+.job_admin #hd
+{
+	font-size: 18px;
+}
+
+.job_admin tr.primary td
+{
+	background-color: $music_stripe_1_color;
+}
+	
+.job_admin tr.secondary td
+{
+	background-color: $music_stripe_2_color;
+}
+
+.job_admin table
+{
+	border-collapse: collapse;
+}
+
+.job_apply img
+{
+	border: none;
+}
+
+#add_note
+{
+	display: none;
+}
+
+#update_applicant_status
+{
+	display: none;
+}
+
+#app_interview_container
+{
+	display: none;
+}
+
+.applicant_asset a
+{
+	color: #2e3192;
+	font-weight: bold;
+}
+
+#applicant_previous_applications .previous_apps
+{
+	border-collapse: collapse;
+	width: 79%;
+}
+
+#applicant_previous_applications .previous_apps tr td
+{
+	padding-top: 0px;
+}
+
+#applicant_previous_applications .previous_apps .app_title
+{
+	font-weight: bold;
+}
+
+#applicant_previous_applications .previous_apps .app_date
+{
+	text-align: right;
+}
+
+.form_submit input
+{
+	text-align: center;
+	border: 1px solid #757779;
+}
+
+.app_input_no_border input
+{
+	border: none;
+}

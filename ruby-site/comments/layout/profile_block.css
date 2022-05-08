@@ -1,0 +1,115 @@
+div#comments_profile_block {
+	color:#5D5D5D;
+	font-family:Verdana,Arial,Helvetica,sans-serif;
+	font-size:10px;
+	
+	& a {
+		color: #5D5D5D;
+		font-weight: bold;
+		text-decoration: none;		
+	}
+
+	& a:hover {
+		color:#EC008C;
+		text-decoration:none;
+	}
+	
+	& a:visited {
+		color:#5D5D5D;
+		text-decoration:none;
+	}
+	
+	& .title {
+		font-weight: bold;
+		font-family: $header_font_family;
+		font-size: 14px;
+		letter-spacing: 0px;
+		margin-bottom: 6px;
+	}
+
+	& .view_all {
+		float: right;
+		margin-top: 2px;
+	}
+
+	& img.picture {
+		width: 52px;
+		height: 43px;
+		border: 0px;
+	}
+	
+	& .comment_write {
+		& .comment_write_table {
+			margin-bottom: 12px;
+			width: 100%;
+			
+			& .user_info {
+				vertical-align: top;
+				width: 70px;
+			}
+			& #comment_text {
+				border: 1px solid #929292; /* make this come from the skin somehow */
+				color: #5d5d5d; /* make this come from the skin somehow */
+				font-family: Verdana,Arial,Helvetica,sans-serif;
+				font-size: 10px;
+				height: 74px;
+				margin-bottom: 4px;
+				padding: 3px 5px;
+				width: 313px;
+			}
+		}
+	}
+	
+	& .comment_view {
+		background-color: #dfdfdf;
+		margin-top: 3px;
+		width: 100%;
+		
+		& .user_info {
+			padding: 2px;
+			vertical-align: top;
+			width: 65px;	
+		}
+		
+		& td.picture {
+			padding:2px;
+			vertical-align:top;
+			width:65px;
+		}
+		
+		& .info {
+			padding: 6px 6px 0px 0px;
+			
+			& .delete {
+				float: right;	
+				margin: 1px 0px 0px 12px;
+				
+				& img {
+					width: 9px;
+					height: 9px;
+					border: 0px;
+				}
+			}
+			
+			& .date {
+				float: right;
+			}
+			
+			& .comment_username {
+				& a {
+					font-size: 11px;
+					font-weight: bold;
+				}
+			}
+		}
+		
+		& .comment_body {
+			padding: 12px 6px 12px 0px;
+		}
+		
+		& .conversation {
+			padding-bottom: 6px;
+		}
+	}
+}
+

@@ -5,6 +5,7 @@ class sql_base {
 	function __construct($options)
 	function connect()
 	function close()
+	function describe()
 
 	function begin()
 	function commit()
@@ -89,39 +90,8 @@ debuglevels:
 		$this->debuglevel	= (isset($options['debuglevel'])  ? $options['debuglevel']  : 1);
 		$this->debugtables	= (isset($options['debugtables']) ? $options['debugtables'] : array());
 		$this->debugregex	= (isset($options['debugregex'])  ? $options['debugregex']  : '');
-		$this->slowtime 	= (isset($options['slowtime'])    ? $options['slowtime']    : 10000);
+		$this->slowtime 	= (isset($options['slowtime'])    ? $options['slowtime']    : 100000);
 		$this->queries = array();
-	}
-
-	function parseargs(& $arg_list){ //takes the $key off the arg_list, if it exists. May throw errors if a key is expected and missing or found and unexpected
-
-		if(is_null($arg_list[0])){ //this is an internal call, don't error check
-			array_shift($arg_list);
-			return;
-		}
-
-		if (isset($this->needkey))
-		{
-			if(is_numeric($arg_list[0]) || is_array($arg_list[0]) || is_bool($arg_list[0])){ //found
-				array_shift($arg_list); //strip it, as this layer can't use it
-
-				switch($this->needkey){
-					case DB_KEY_OPTIONAL:
-					case DB_KEY_REQUIRED:
-						return;
-//					case DB_KEY_FORBIDDEN:
-//						trigger_error("Key supplied when not allowed for query: " . $arg_list[0], E_USER_ERROR);
-				}
-			}else{
-				switch($this->needkey){
-					case DB_KEY_OPTIONAL:
-					case DB_KEY_FORBIDDEN:
-						return;
-//					case DB_KEY_REQUIRED:
-//						trigger_error("Key not supplied when required for query: " . $arg_list[0], E_USER_ERROR);
-				}
-			}
-		}
 	}
 
 	// this function should be called before running a new query to prevent buffer overlaps
@@ -143,20 +113,12 @@ debuglevels:
 		return $this->query($query, $buffered);
 	}
 
-	function unbuffered_query(){ //$keys = false, $query
-		$arg_list = func_get_args();
-
-		$this->parseargs($arg_list);
-
-		$query = $arg_list[0];
-
+	function unbuffered_query($query){
 		return $this->query($query, false);
 	}
 
-	function prepare_query(){ //$keys = false, $query, $args...
+	function prepare_query(){ //$query, $args...
 		$arg_list = func_get_args();
-
-		$this->parseargs($arg_list);
 
 		$query = call_user_func_array(array(&$this, 'prepare'), $arg_list);
 
@@ -173,14 +135,7 @@ debuglevels:
 		return $this->squery($keys, $query);
 	}
 
-	function prepare_array_query(){ //$keys=false, $query, $args
-		$arg_list = func_get_args();
-
-		$this->parseargs($arg_list);
-
-		$query = $arg_list[0];
-		$args = $arg_list[1];
-
+	function prepare_array_query($query, $args){
 		array_unshift($args, $query);
 
 		$query = call_user_func_array(array(&$this, 'prepare'), $args);
@@ -195,44 +150,36 @@ debuglevels:
 		return call_user_func_array(array(&$this, 'prepare'), $arg_list);
 	}
 
-	function massage_query($query)
-	{
+	function massage_query($query){
 		// derived by implementations
 		return $query;
 	}
 
+//splitting and reconstructing is faster than matching and replacing in place
 	function prepare(){
 		$numargs = func_num_args();
 		$arg_list = func_get_args();
 		if($numargs == 0){
-			trigger_error("SQL error: prepare_query() called with 0 arguments.", E_USER_ERROR);
+			trigger_error("SQL error: prepare() called with 0 arguments.", E_USER_ERROR);
 			return "";
 		}
 		if($numargs == 1)
-			return $this->massage_query($arg_list[0]);
+			return $arg_list[0];
+//			return $this->massage_query($arg_list[0]);
 
-		$query = $this->massage_query($arg_list[0]);
+//		$query = $this->massage_query($arg_list[0]);
+		$query = $arg_list[0];
 
-		$parts = array();
-		$tokens = array();
-		$i = 0;
-		do{
-			if($query{$i} == '?' || $query{$i} == '#' || $query{$i} == '%' || $query{$i} == '^'){
-				$parts[] = substr($query, 0, $i);
-				$tokens[] = $query{$i};
-				$query = substr($query, ($i+1));
-				$i = 0;
-			}else
-				$i++;
-		}while($i < strlen($query));
-		$parts[] = $query;
+		$tokens = preg_split('/([\?\#%^])/', $query, -1, PREG_SPLIT_DELIM_CAPTURE);	
 
-		if(count($parts) != $numargs){
+		$numtokens = count($tokens);
+
+		if($numtokens != ($numargs*2 - 1)){
 			trigger_error("SQL error: prepare() placeholder and argument count mismatch in " . $arg_list[0] . ". $arg_list[1]", E_USER_ERROR);
 			return false;
 		}
 
-		$query = $parts[0];
+		$query = $tokens[0];
 		for($i = 1; $i < $numargs; $i++) {
 			$var = $arg_list[$i];
 
@@ -240,7 +187,7 @@ debuglevels:
 				$var = array($var);
 
 		//strings
-			if($tokens[$i-1] == '?'){
+			if($tokens[$i*2-1] == '?'){
 				foreach($var as $k => $v){
 					if(is_array($v))
 						trigger_error("SQL error: Trying to escape: " . var_export($v, true), E_USER_ERROR);
@@ -249,7 +196,7 @@ debuglevels:
 				}
 				$query .= "'" . implode("','", $var). "'";
 		//already prepared by a subprepare function
-			}else if($tokens[$i-1] == '^'){
+			}else if($tokens[$i*2-1] == '^'){
 				if (count($var) != 1 || is_array($var[0]) || !preg_match('|/\*\*\^\*\*/$|', $var[0])) // looking for /**^**/ at the end of the string
 						trigger_error("SQL error: Trying to inject: " . var_export($v, true), E_USER_ERROR);
 				$query .= $var[0];
@@ -264,11 +211,11 @@ debuglevels:
 						$var[$k] = intval($v);
 				}
 				$query .= implode(",", $var);
-				if($tokens[$i-1] == '%')
-					$query .= "/**%: " . implode(",", $var) . " :%**/";
+				if($tokens[$i*2-1] == '%')
+					$query .= " /**%: " . implode(",", $var) . " :%**/";
 			}
 
-			$query .= $parts[$i];
+			$query .= $tokens[$i*2];
 		}
 		return $query;
 	}
@@ -276,16 +223,14 @@ debuglevels:
 	// pass this into prepare() with the ^ (inject) symbol
 	// $keys is an array of column names => prepare types (ie. uid=>'%', id=>'#')
 	// $values is the actual values to pass to prepare
-	function prepare_multikey($keys, $values)
-	{
+	function prepare_multikey($keys, $values){
 		$clauses = array();
-		foreach ($values as $item)
-		{
+		foreach ($values as $item){
 			if (!is_array($item))
 				$item = explode(':', $item);
 
 			if (count($keys) != count($item))
-				trigger_error("Argument count mismatch in prepare_multikey: " . var_export($keys, true) . ", " . var_export($values, true), E_USER_ERROR);
+				trigger_error("Argument count mismatch in prepare_multikey: " . var_export($keys, true) . ", " . var_export($item, true) /*. ", " . var_export($values, true) */, E_USER_ERROR);
 
 			// make it into a single array
 			$item = array_combine(array_keys($keys), $item);
@@ -301,36 +246,47 @@ debuglevels:
 	function getServerValues(&$query){
 		$ids = array();
 
-		$len = strlen($query);
+		if(strpos($query, "\\") === false){ //simple way that works if nothing is escaped
 
-		$quote = false;
-		$escape = false;
+			$output = preg_replace("/'.+?'/", "", $query); //take out all strings
+			preg_match_all("/\/\*\*%: ([0-9,-]+) :%\*\*\//", $output, $matches); //parse out all the server key comments
 
-		for($i = 0; $i < $len; $i++){
+			foreach($matches[1] as $match)
+				$ids = array_merge($ids, explode(",", $match));
 
-		//only look for the balance comment if it's not within a string
-			if(!$quote){
-				if($query{$i} == '"' || $query{$i} == "'"){
-					$quote = $query{$i};
-					continue;
-				}
+		}else{ //more correct, but slower, way
+			$len = strlen($query);
 
-			//matches, cut it out of the string, and return its results
-				if($query{$i} == '/' && preg_match("/^(\/\*\*%: ([0-9,-]+) :%\*\*\/)/", substr($query, $i), $matches)){
-					$ids = array_merge($ids, explode(",", $matches[2]));
+			$quote = false;
+			$escape = false;
 
-					$replace = $matches[1];
-					$query = substr($query, 0, $i) . substr($query, $i + strlen($replace));
-					$len = strlen($query);
-				}
-			}else{ //look for the end of the string
-				if(!$escape && $query{$i} == '\\'){
-					$escape = true;
-				}else{
-					if(!$escape && $query{$i} == $quote) {
-						$quote = false;
+			for($i = 0; $i < $len; $i++){
+				$chr = $query{$i};
+
+			//only look for the balance comment if it's not within a string
+				if(!$quote){
+					if($chr == '"' || $chr == "'"){
+						$quote = $chr;
+						continue;
 					}
-					$escape = false;
+
+				//matches, cut it out of the string, and return its results
+					if($chr == '/' && preg_match("/^(\/\*\*%: ([0-9,-]+) :%\*\*\/)/", substr($query, $i), $matches)){
+						$ids = array_merge($ids, explode(",", $matches[2]));
+
+						$replace = $matches[1];
+						$query = substr($query, 0, $i) . substr($query, $i + strlen($replace));
+						$len = strlen($query);
+					}
+				}else{ //look for the end of the string
+					if(!$escape && $chr == '\\'){
+						$escape = true;
+					}else{
+						if(!$escape && $chr == $quote) {
+							$quote = false;
+						}
+						$escape = false;
+					}
 				}
 			}
 		}
@@ -342,14 +298,7 @@ debuglevels:
 	}
 
 //useful for huge deletes or updates
-	function repeatquery(){ //$keys = false, $query,$limit=1000){
-		$arg_list = func_get_args();
-
-		$this->parseargs($arg_list);
-
-		$query = $arg_list[0];
-		$limit = isset($arg_list[1]) ? $arg_list[1] : 1000;
-
+	function repeatquery($query, $limit = 1000){
 		do{
 			$this->query("$query LIMIT $limit");
 			usleep(100);
@@ -366,10 +315,10 @@ debuglevels:
 						($this->debugregex && preg_match($this->debugregex, $query))
 					);
 
-		$this->queries[] = array('time' => $querytime, 'query' => $query, 'explain' => $explain);
+		array_add_max($this->queries, array('time' => $querytime, 'query' => $query, 'explain' => $explain), 1000);
 
 		if($querytime > $this->slowtime)
-			trigger_error("SQL warning: took " . number_format($querytime/10000,4) . " secs. Query: $query", E_USER_NOTICE);
+			trigger_error("SQL query on " . $this->describe() . " took " . number_format($querytime/10000, 2) . "s. Query: $query", E_USER_NOTICE);
 	}
 
 	function debugerror($msg, $debugmsg, $die){
@@ -387,6 +336,48 @@ debuglevels:
 
 	function setslowtime($time){
 		$this->slowtime = $time;
+	}
+
+	function checkschema(& $schema, $skiptables = array()){ //pass in a null variable for $schema to bass it on the first
+		$subdbs = $this->getSplitDBs();
+
+		$error = "";
+
+		if(count($subdbs) > 1){
+			foreach($subdbs as &$db)
+				$error .= $db->checkschema($schema, $skiptable);
+		}else{
+			$res = $this->listtables();
+
+			$thisschema = array();
+			while($line = $res->fetchrow()){
+				$table = $line['Name'];
+
+				if(!in_array($table, $skiptables)){
+					$res2 = $this->query("SHOW CREATE TABLE `$table`");
+					$row = $res2->fetchrow();
+					
+					$thisschema[$table] = preg_replace("/ AUTO_INCREMENT *= *[0-9]+/", '', $row['Create Table']);
+				}
+			}
+
+			if(!$schema){
+				$schema = $thisschema;
+			}else{
+				foreach($schema as $table => $val){
+					if(!isset($thisschema[$table])){
+						$error .= str_pad($table, 25) . " missing on       " . $this->describe() . "\n";
+					}elseif($thisschema[$table] != $val){
+						$error .= str_pad($table, 25) . " doesn't match on " . $this->describe() . "\n";
+					}
+				}
+				foreach($thisschema as $table => $val)
+					if(!isset($schema[$table]))
+						$error .= str_pad($table, 25) . " unknown on       " . $this->describe() . "\n";
+			}
+		}
+
+		return $error;
 	}
 
 	function explain($query){
@@ -460,7 +451,15 @@ debuglevels:
 
 	function outputQueries($name){
 		echo "<table border=0 cellspacing=1 cellpadding=2>";
-		echo "<tr><td class=header nowrap colspan=2><b>$name</b> - $this->server - $this->num_queries " . ($this->num_queries == 1 ? "Query" : "Queries" ) . "</td></tr>";
+
+		echo "<tr><td class=header nowrap colspan=2>";
+		echo "<b>$name</b> - $this->server / $this->dbname ($this->user)- ";
+		if(count($this->queries) == $this->num_queries)
+			echo number_format($this->num_queries);
+		else
+			echo "Showing " . number_format(count($this->queries)) . " of " . number_format($this->num_queries);
+		echo " " . ($this->num_queries == 1 ? "Query" : "Queries" );
+		echo "</td></tr>";
 
 		if($this->debuglevel && count($this->queries)){
 			foreach($this->queries as $row){
@@ -640,4 +639,3 @@ class sql_empty_result {
 	}
 }
 
-?>

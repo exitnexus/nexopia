@@ -1,0 +1,10 @@
+<div>
+	<t:template-include module="wiki" name="header" />
+	<form method="post" action="/wiki/edit/post{addr}:SubmitEdit">
+		Article Name:<input type="text" id="wikititle" name="wikititle" value="{title}"></input><br/>
+		<textarea cols="80" rows="30" name="wikitxt" id="wikitxt">
+			{content}
+		</textarea><br/>
+		<input type="submit" value="Submit Changes"/>
+	</form>
+</div>

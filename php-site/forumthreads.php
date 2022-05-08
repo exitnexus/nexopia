@@ -138,7 +138,7 @@
 	$threadids = array();
 	$uids = array();
 
-	$select = "id, title, authorid, reads, posts, time, lastauthorid, locked, sticky, moved, announcement, flag, pollid, '0' as new, '0' as subscribe";
+	$select = "id, title, authorid, `reads`, posts, time, lastauthorid, locked, sticky, moved, announcement, flag, pollid, '0' as new, '0' as subscribe";
 
 	if($page == 0){
 		$res = $forums->db->prepare_query("SELECT $select FROM  forumthreads USE INDEX (announcement) WHERE announcement='y' && forumid = # ORDER BY time DESC", $fid);

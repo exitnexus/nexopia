@@ -1,0 +1,49 @@
+<div>
+	<div class="block_title_4margin" id="h2_2">
+		VITALS
+	</div>
+	<form method="post" action="/my/profile_blocks/Profile/vitals/5/save">
+		<table border="0" cellspacing="0" cellpadding="0" class="stat_table">
+			<tr>
+				<td class="vitals_name">
+					Username:
+				</td>
+				<td>
+					{user.username}
+				</td>
+			</tr>
+			<tr>
+				<td class="vitals_name">
+					Date of Birth:
+				</td>
+				<td>
+					<t:handler-include path="/current/date/dob/#{dob}" area="Skeleton">
+						<t:var t:name="'year_onchange_handler'" t:val="''" />
+						<t:var t:name="'month_onchange_handler'" t:val="''" />
+						<t:var t:name="'day_onchange_handler'" t:val="''" />
+					</t:handler-include>
+				</td>
+			</tr>
+			<tr>
+				<td class="vitals_name">
+					Sex:
+				</td>
+				<td>
+					<input type="radio" name="sex" value="Male" cond:checked="user.sex == 'Male'">Male</input>
+					<input type="radio" name="sex" value="Female" cond:checked="user.sex == 'Female'">Female</input>
+				</td>
+			</tr>
+			<tr>
+				<td class="vitals_name">
+					Location:
+				</td>
+				<td>
+					<t:handler-include path="/current/selector/location/{user.location.id}" area="Skeleton">
+						<t:var t:name="'onchange_handler'" t:val="''" />
+					</t:handler-include>
+				</td>
+			</tr>
+		</table>
+		<input type="submit"/>
+	</form>
+</div>

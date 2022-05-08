@@ -2,10 +2,10 @@
 /* MODULE: userSearch.php */
 
 /* MODULE REVISION
- * $URL$
- * $Revision$
- * $Date$
- * $Author$
+ * $URL: http://192.168.0.50/svn/trunk/public_html/include/userSearch.php $
+ * $Revision: 3500 $
+ * $Date: 2006-07-18 01:25:27 -0600 (Tue, 18 Jul 2006) $
+ * $Author: timo $
  * END MODULE REVISION */
 
 /* OVERVIEW
@@ -2440,7 +2440,7 @@ class userSearchMenuOptions {
 							   	'searchActivity' 	=> Array(1, 0),
 							   	'searchPicture'		=> Array(1, 0),
 							   	'searchSingleOnly'  => Array(false, false),
-							   	'searchShowList'	=> Array(false, false));
+							   	'searchShowList'	=> Array(true, false));
 
 
 		// set what the defaults should be if the user is logged in, and what userData key they map to
@@ -2581,4 +2581,3 @@ class userSearchMenuOptions {
 
 
 /* END MODULE userSearch.php */
-?>

@@ -1,0 +1,8 @@
+<div>
+	&nbsp;<b>#{PageRequest.current.session.user.friends_online.length}&nbsp; 
+		<a href="/users/#{PageRequest.current.session.user.username}/friends">friend(s)</a>&nbsp;online</b>
+	<br/>
+	<t:loop t:id="PageRequest.current.session.user.friends_online" t:iter="friend">
+		&nbsp;<a href="/profile.php?uid={friend.userid}">#{friend.username}</a><br/>
+	</t:loop>
+</div>	

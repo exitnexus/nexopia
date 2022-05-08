@@ -1,0 +1,36 @@
+ul.status_list li {
+	padding:0px;
+	margin:0px;
+	list-style:none;
+}
+ul.status_list li img {
+	margin-right:10px;
+	margin-bottom:6px;
+	width:30px;
+}
+ul.status_list li div {
+	margin-bottom:6px;
+}
+ul.status_list li img.singular {
+	float:left;
+}
+ul.status_list li ul {
+	margin:0px;
+	padding:2px;
+}
+ul.status_list li ul li{
+	float: left;
+	padding: 0px 5px 5px 0px;
+	margin: 0px 0px 0px 0px;
+	font-size: x-small;
+}
+ul.status_list li hr {
+	clear:both;
+}
+
+ul.status_list li li input{
+	text-decoration: underline;
+	font-size: xx-small;
+	border-style: groove;
+	cursor: pointer;
+}

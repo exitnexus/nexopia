@@ -1,0 +1,32 @@
+<t:template xmlns:t="http://www.nexopia.com/dev/template">
+	<div id="feature_stream" class="yui-g">
+		<span class="feature_stream_title">{primary_stream.stream_title}</span>
+		<t:iter t:id="primary_stream.large_display_entries" t:iter="entry">
+			<t:template-include t:module="streams" t:name="music_stream_entry_large"></t:template-include>
+		</t:iter>
+		<t:if t:id="primary_stream.display_smaller_entries">
+			<div class="yui-u first">
+				<t:iter t:id="primary_stream.small_display_entries.list_1" t:iter="entry">
+					<t:template-include t:name="music_stream_entry_small" t:module="streams"/>
+				</t:iter>
+				<t:iter t:id="primary_stream.micro_display_entries.list_1" t:iter="entry">
+					
+						<t:template-include t:name="music_stream_entry_micro" t:module="streams"/>
+					
+				</t:iter>
+			</div>
+			<div class="yui-u">
+				<t:iter t:id="primary_stream.small_display_entries.list_2" t:iter="entry">
+					<t:if t:id="entry">
+						<t:template-include t:module="streams" t:name="music_stream_entry_small"></t:template-include>
+					</t:if>
+				</t:iter>
+				<t:iter t:id="primary_stream.micro_display_entries.list_2" t:iter="entry">
+					<t:if t:id="entry">
+						<t:template-include t:module="streams" t:name="music_stream_entry_small"></t:template-include>
+					</t:if>
+				</t:iter>
+			</div>
+		</t:if>
+	</div>
+</t:template>

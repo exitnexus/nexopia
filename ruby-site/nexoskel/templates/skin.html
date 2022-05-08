@@ -1,0 +1,53 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template" xml:lang="en" lang="en">
+<t:var name="menuitems" type="Array"/>
+<t:var name="innerpage" type="String"/>
+<t:var name="user" type="User"/>
+	<head>
+		<title>DevNexus</title>
+   <link rel="stylesheet" href="{$site.static_url}/javascript/yui/build/reset/reset-min.css" type="text/css" />
+   <link rel="stylesheet" href="{$site.static_url}/javascript/yui/build/fonts/fonts-min.css" type="text/css" />
+   <link rel="stylesheet" href="{$site.static_url}/javascript/yui/build/grids/grids-min.css" type="text/css" />
+
+		<link rel="stylesheet" id="skeleton" href='{$site.style_url}/skeleton.css'/>
+		<link rel="stylesheet" id="{style}" href='http://{$site.style_url}/skeleton/concrete.css'/>
+		<script type="text/javascript" src="{$site.static_url}/javascript/namespace.js"> </script>
+
+		<script type="text/javascript" src="{$site.static_url}/javascript/log_console.js"> </script>
+		<script>
+			onload_funcs = new Array();
+		</script>
+	</head>
+
+
+	<body>
+		<t:template-include module='core' name='AJAX'/>
+
+		<div id="log-console-button">
+			<a onclick="LogConsole.popup('/console', 'Console'); return false;">Show Console</a>
+		</div>
+
+		<div id="side">
+			<t:handler-include path="/sidebar:Body" area="Public"/>
+		</div>
+
+		<div id="doc">
+			<div id="hd" style="background-color: black;">
+				<t:template-include module="core" name="header" />
+			</div>
+			<div id="bd">
+				<t:handler-include path="/skin/{skin}/menu/{area}" />
+				#{page}
+			</div>
+			<div id="ft">
+
+			</div>
+		</div>
+		<div style="display: none" id="skin_log">
+			<t:handler-include path="/log/timeline/xml" area="Internal"/>
+			<script>
+				if (typeof(XPathResult) != 'undefined')
+					LogConsole.add_log(document.evaluate('//timeline:timeline', document, NamespaceResolver, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null));
+			</script>
+		</div>
+	</body>
+</html>

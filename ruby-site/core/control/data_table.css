@@ -1,0 +1,23 @@
+table.data_table {
+	width: 400px;
+	border-collapse: collapse;
+	border-style: solid;
+	border-width: 1px;
+	font-size: $standard_font_size;
+}
+
+table.data_table form {
+	margin: 0px;
+}
+
+table.data_table td {
+	text-align: center;
+	border-style: solid;
+	border-width: 1px;
+}
+
+table.data_table th {
+	border-style: solid;
+	background-color: $primary_background;
+	border-width: 1px;
+}

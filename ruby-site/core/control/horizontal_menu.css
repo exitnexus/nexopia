@@ -1,0 +1,23 @@
+ul.horizontal_menu {
+	padding:0px;
+	text-align: center;
+}
+ul.horizontal_menu li{
+	margin: 3px;
+	padding: 0px;
+	float: left;
+	list-style: none;
+}
+
+ul.horizontal_menu li.selected a {
+	font-weight: bold;
+	color: $primary_text_color;
+}
+ul.horizontal_menu li a{
+	color: $link_color;
+	text-decoration:none;
+}
+ul.horizontal_menu li a:hover{
+	color: $link_accent_color;
+	text-decoration:underline;
+}

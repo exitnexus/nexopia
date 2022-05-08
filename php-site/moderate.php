@@ -13,6 +13,7 @@
 	$mode = getREQval('mode', 'int');
 
 	$id = getREQval('id', 'int');
+	$for_uid = ($mods->isAdmin($userData['userid'])? getREQval('uid', 'int', null) : null);
 
 	$vote = getREQval('vote');
 
@@ -33,6 +34,7 @@
 			case MOD_USERABUSE:
 			case MOD_USERABUSE_CONFIRM:
 			case MOD_QUESTIONABLEPICS:
+			case MOD_VIDEO:
 //		print_r($checkID);
 
 
@@ -63,6 +65,10 @@
 
 	$moditemcounts = $mods->getModItemCounts();
 
+	$stopModding = getREQval('stopModding');
+	if ($stopModding == 'y')
+		displayTypes($moditemcounts); // exit
+
 	switch($mode){
 		case MOD_PICS:				if(isset($moditemcounts[MOD_PICS]))				displayPic(MOD_PICS);						break;
 		case MOD_SIGNPICS:			if(isset($moditemcounts[MOD_SIGNPICS]))			displaySignPics();							break;
@@ -77,6 +83,7 @@
 		case MOD_BANNER:			if(isset($moditemcounts[MOD_BANNER]))			displayBanners();							break;
 		case MOD_ARTICLE:			if(isset($moditemcounts[MOD_ARTICLE]))			displayArticles($id);						break;
 		case MOD_POLL:				if(isset($moditemcounts[MOD_POLL]))				displayPolls($id);							break;
+		case MOD_VIDEO:				if(isset($moditemcounts[MOD_VIDEO]))			displayVideos($id);
 	}
 	displayTypes($moditemcounts); // exit
 
@@ -103,21 +110,24 @@ function displayTypes($moditemcounts){
 }
 
 function displayPic($type){ //pics or questionable
-	global $config, $usersdb, $userData, $mods, $wwwdomain;
+	global $config, $usersdb, $userData, $mods, $wwwdomain, $for_uid;
 
 	$lvl = $mods->getModLvl($userData['userid'], $type);
 
 	$prefs = $mods->getModPrefs($userData['userid'], $type);
 
-	$ids = $mods->getModItems($type, $prefs['picsperpage'], 3, 120);
+	$ids = $mods->getModItems($type, $prefs['picsperpage'], 3, 120, true, $for_uid);
 
 	if(!count($ids))
 		return;
 
 	$keys = array('userid' => '%', 'id' => '#');
-	$res = $usersdb->prepare_query("SELECT id, userid, description, time FROM picspending WHERE ^",
+	
+//	$res = $usersdb->prepare_query("SELECT id, userid, description, time FROM picspending WHERE ^",
+//		$usersdb->prepare_multikey($keys, $ids));
+	$res = $usersdb->prepare_query("SELECT id, userid, description FROM gallerypics WHERE ^",
 		$usersdb->prepare_multikey($keys, $ids));
-
+		
 	$rows = array();
 	$uids = array();
 
@@ -179,7 +189,7 @@ function displaySignPics(){
 
 	$prefs = $mods->getModPrefs($userData['userid'], MOD_SIGNPICS);
 
-	$ids = $mods->getModItems(MOD_SIGNPICS, $prefs['picsperpage'], 3, 60);
+	$ids = $mods->getModItems(MOD_SIGNPICS, $prefs['picsperpage'], 3, 60, true);
 
 	if(!count($ids))
 		return;
@@ -238,7 +248,7 @@ function displayGallery(){
 
 	$prefs = $mods->getModPrefs($userData['userid'], MOD_GALLERY);
 
-	$ids = $mods->getModItems(MOD_GALLERY, $prefs['picsperpage'], 3, 60);
+	$ids = $mods->getModItems(MOD_GALLERY, $prefs['picsperpage'], 3, 60, true);
 
 	if(!count($ids))
 		return;
@@ -293,7 +303,7 @@ function displayGalleryAbuse(){
 
 	$prefs = $mods->getModPrefs($userData['userid'], MOD_GALLERYABUSE);
 
-	$ids = $mods->getModItems(MOD_GALLERYABUSE, $prefs['picsperpage'], 20, 60);
+	$ids = $mods->getModItems(MOD_GALLERYABUSE, $prefs['picsperpage'], 20, 60, true);
 
 	if(!count($ids))
 		return;
@@ -350,6 +360,61 @@ function displayGalleryAbuse(){
 	exit;
 }
 
+function displayVideos(){
+	global $config, $db, $usersdb, $userData, $mods, $wwwdomain, $videodb;
+	$lvl = $mods->getModLvl($userData['userid'], MOD_VIDEO);
+
+	$prefs = $mods->getModPrefs($userData['userid'], MOD_VIDEO);
+
+	$ids = $mods->getModItems(MOD_VIDEO, $prefs['picsperpage'], 180, 300, false);
+
+	if(!count($ids))
+		return;
+
+	$res = $videodb->prepare_query("SELECT id, title, description, embed FROM video WHERE id IN (#)", $ids);
+
+	$videos = array();
+	$uids = array();
+	while ($line = $res->fetchrow()){
+		$videos[$line['id']] = $line;
+		unset($ids[$line['id']]);
+	}
+
+	if(count($ids))
+		$mods->deleteItem(MOD_VIDEO, $ids);
+
+	$res = $db->prepare_query("SELECT itemid, userid, reason, time FROM abuse WHERE type = # && itemid IN (#)", MOD_VIDEO, array_keys($videos));
+	while ($line = $res->fetchrow()){
+		if (!isset($videos[$line['itemid']]['abuses']))
+			$videos[$line['itemid']]['abuses'] = array();
+		$videos[$line['itemid']]['abuses'][] = $line;
+		$uids[] = $line['userid'];
+	}
+
+	$users = getUserInfo($uids);
+
+	$template = new template('moderate/displayVideo');
+	$template->set('videos', $videos);
+	$template->set('type', MOD_VIDEO);
+	$template->set('users', $users);
+	$template->set('type', MOD_VIDEO);
+	$template->display();
+
+	exit;
+
+
+/*	while($line = $res->fetchrow()){
+		$line['abuseid'] = "$line[userid]:$line[id]";
+		$rows["$line[userid]:$line[id]"] = $line;
+		$uids[$line['userid']] = $line['userid'];
+		unset($ids["$line[userid]:$line[id]"]);
+	}*/
+
+//	if(count($ids))
+//		$mods->deleteSplitItem(MOD_VIDEO, $ids);
+
+}
+
 function displayUserAbuse($type){ //type = MOD_USERABUSE or MOD_USERABUSE_CONFIRM
 	global $config, $db, $usersdb, $configdb, $userData, $mods, $abuselog;
 	$lvl = $mods->getModLvl($userData['userid'], $type);
@@ -366,7 +431,7 @@ function displayUserAbuse($type){ //type = MOD_USERABUSE or MOD_USERABUSE_CONFIR
 
 	$result1 = $usersdb->prepare_query("SELECT userid as id, age, sex, loc, firstpic, state FROM users WHERE userid IN (%)", $ids);
 
-	$result2 = $abuselog->db->prepare_query("SELECT id, userid, modid, action, reason, time, subject FROM abuselog WHERE userid IN (#) ORDER BY time DESC", $ids);
+	$result2 = $abuselog->db->prepare_query("SELECT id, userid, reportuserid, modid, action, reason, time, subject FROM abuselog WHERE userid IN (#) ORDER BY time DESC", $ids);
 
 	while($line = $result1->fetchrow()){
 		$rows[$line['id']] = $line;
@@ -383,8 +448,10 @@ function displayUserAbuse($type){ //type = MOD_USERABUSE or MOD_USERABUSE_CONFIR
 
 			$uids[$line['userid']] = $line['userid'];
 			$uids[$line['modid']] = $line['modid'];
+			$uids[$line['reportuserid']] = $line['reportuserid'];
 		}
 	}
+	unset($uids[0]);
 
 	if(count($ids))
 		$mods->deleteItem($type, $ids);
@@ -640,7 +707,7 @@ function forumPostAbuse(){
 		$links = array();
 
 		$links[] = "<a class=small href=\"/messages.php?action=write&to=$line[authorid]\">Send Message</a>";
-		if($mods->isAdmin($userData['userid'],"editprofile"))
+		if($mods->isAdmin($userData['userid'],"editsig"))
 			$links[] = "<a class=small href=\"/manageprofile.php?uid=$line[authorid]&section=forums\">Edit Sig</a>";
 
 		$implodedLinks[$i] = implode(" &nbsp; &nbsp; ", $links);
@@ -705,7 +772,7 @@ function forumBans(){
 									LEFT JOIN forums ON forummute.forumid = forums.id
 									LEFT JOIN forumthreads ON forummutereason.threadid = forumthreads.id
 								WHERE 	forummute.id = forummutereason.id &&
-										forummute.id IN (?)", $ids);
+										forummute.id IN (#)", $ids);
 
 	$uids = array();
 	$users = array();
@@ -737,7 +804,7 @@ function forumBans(){
 										forummutereason
 									LEFT JOIN forums ON forummute.forumid = forums.id
 								WHERE 	forummute.id = forummutereason.id &&
-										forummute.userid IN (?)
+										forummute.userid IN (#)
 								ORDER BY mutetime DESC", $uids);
 
 	while($line = $res->fetchrow())
@@ -818,7 +885,7 @@ function displayArticles($id){
 //DELETE articles FROM articles LEFT JOIN moditems ON articles.id=moditems.itemid WHERE articles.moded = 'n' && moditems.id IS NULL
 
 	if($id){
-		$res = $articlesdb->prepare_query("SELECT * FROM articles WHERE id = ?", $id);
+		$res = $articlesdb->prepare_query("SELECT * FROM articles WHERE id = #", $id);
 		$line = $res->fetchrow();
 		$line['author'] = getUserName($line['authorid']);
 

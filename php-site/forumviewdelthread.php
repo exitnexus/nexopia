@@ -4,21 +4,36 @@
 
 	require_once("include/general.lib.php");
 
-	if(!($tid = getREQval('tid', 'int')))
-		die("Bad Thread id");
 
-	$perms = $forums->getForumPerms(26); //TODO: Fix this!
-
-	if(!$perms['view'])
-		die("You don't have permission to view this");
+	if(!$mods->isadmin($userData['userid'],"forums"))
+		die("Permission denied");
 
 
-	$res = $forums->db->prepare_query("SELECT forumid, moved, title, posts, sticky, locked, announcement, flag, pollid, time FROM forumthreadsdel WHERE id = #", $tid);
-	$thread = $res->fetchrow();
+	$isAdmin = $mods->isAdmin($userData['userid'],'listusers');
 
-	if(!$thread || $thread['moved'])
-		die("Bad Thread id");
+	$tid = getREQval('tid', 'int');
 
+	if($tid){
+		$res = $forums->db->prepare_query("SELECT forumid, moved, title, posts, sticky, locked, announcement, flag, pollid, time FROM forumthreadsdel WHERE id = #", $tid);
+		$thread = $res->fetchrow();
+	
+		if(!$thread || $thread['moved']){
+			$tid = 0;
+			$msgs->addMsg("Bad Threadid");
+		}
+	}
+	
+	if(!$tid){
+		incHeader();
+	
+		echo "<form action=$_SERVER[PHP_SELF] method=post>";
+	
+		echo "Thread id: <input class=body type=text name=tid value=" . ($tid ? $tid : '') . "> ";
+		echo "<input class=body type=submit value=Go>";
+		echo "</form>";
+		incFooter();
+		exit;
+	}
 
 
 	$postsPerPage = $userData['forumpostsperpage'];
@@ -46,20 +61,13 @@
 	}
 
 
-	$res = $forums->db->prepare_query("SELECT id, author, authorid, time, msg, edit FROM forumpostsdel WHERE threadid = # ORDER BY time $sortd LIMIT $offset, $limit", $tid);
+	$res = $forums->db->prepare_query("SELECT id, authorid, time, msg, edit FROM forumpostsdel WHERE threadid = # ORDER BY time $sortd LIMIT $offset, $limit", $tid);
 	$postdata = array();
 	$posterids = array();
 	$posterdata = array();
 
-
-	if($userData['loggedIn'] && ($thread['locked']=='n' || $isMod) && $page==$numpages-1)
-		$posterids[$userData['userid']] = $userData['userid'];
-
-	$lasttime=0;
 	while($line = $res->fetchrow()){
 		$postdata[] = $line;
-		if($sortd == 'ASC' || !$lasttime)
-			$lasttime=$line['time'];
 
 		if($line['authorid'])
 			$posterids[$line['authorid']] = $line['authorid'];
@@ -73,97 +81,58 @@
 
 		// remove posterids that weren't in there, they are deleted accounts.
 		$missingdata = array_diff($posterids, array_keys($posterdata));
-		foreach ($missingdata as $id)
-		{
+		foreach($missingdata as $id){
+			$posterdata[$id]['state'] = 'deleted';
 			$posterdata[$id]['username'] = getUserName($id);
-			unset($posterids[$id]);
 		}
-
-		foreach($posterids as $id){
-			$posterdata[$id]['posts'] = 0;
-			$posterdata[$id]['nsigniture'] = '';
-		}
-
-		$res = $usersdb->prepare_query("SELECT userid, posts FROM users WHERE userid IN (%)", $posterids);
-
-		while($line = $res->fetchrow())
-			$postcounts[$line['userid']] = $line['posts'];
-
-
-		foreach($postcounts as $id => $posts)
-			$posterdata[$id]['posts'] = $posts;
 	}
 
+	$time = time();
 
+	$posts = array();
 
-
-	$i = -1;
 	foreach($postdata as $line){
-		$i++;
-		$frozenAuthor[$i] = false;
-		$premiumRank[$i] = false;
-		$showPicture[$i] = false;
-		$showAbuses[$i] = false;
+		$post = array();
 
-		if(isset($posterdata[$line['authorid']]) && $posterdata[$line['authorid']]['state'] == 'frozen'){
-			$frozenAuthor[$i] = true;
-			$data = $posterdata[$line['authorid']];
+		$user = $posterdata[$line['authorid']];
+
+		$post['id'] = $line['id'];
+		$post['authorid'] = $line['authorid'];
+		$post['author'] = $user['username'];
+		$post['time'] = $line['time'];
+
+		if($user['state'] == 'active'){
+			$post['userstate'] = 'active';
+		}elseif($user['state'] == 'frozen'){
+			$post['userstate'] = ($isAdmin ? 'frozen' : 'deleted');
 		}else{
-			$line['authorid']=0;
+			$post['userstate'] = 'deleted';
 		}
 
-		if($line['authorid']){
-			if($data['forumrank']!="" && $data['premiumexpiry'] > $time)
-				$premiumRank[$i] = true;
-			$forumRank[$i] = $forums->forumrank($posterdata[$line['authorid']]['posts']);
+		if($post['userstate'] == 'active' || $post['userstate'] == 'frozen'){
+			$post['online'] = ($user['online'] == 'y');
+			$post['forumrank'] = ($user['forumrank'] && $user['premiumexpiry'] > $time ? $user['forumrank'] : $forums->forumrank($user['posts']));
+			$post['thumb'] = "";
+			if($config['forumPic'] && $user['firstpic'])
+				$post['thumb'] = $config['thumbloc'] . floor($line['authorid']/1000) . '/' . weirdmap($line['authorid']) . "/" . $user['firstpic'] . ".jpg";
+			$post['age'] = $user['age'];
+			$post['sex'] = $user['sex'];
+			$post['postcount'] = ($user['showpostcount'] == 'y' ? $user['posts'] : '');
+			$post['abuses'] = ($user['abuses'] ? $user['abuses'] : '');
 		}
 
-		if($config['forumPic'] && $line['authorid'] && $data['firstpic']>0) {
-			$showPicture[$i] = true;
-			$imageDirectory[$i] = floor($data['authorid']/1000) . '/' . weirdmap($data['authorid']);
-		}
-		if($line['authorid']){
-			if($data['showpostcount'] == 'y') {
-				$postCount[$i] = number_format($data['posts']);
-			}
+		$post['msg'] = $forums->parsePost($line['msg']);
+		$post['edittime'] = $line['edit'];
 
-
-			if($userData['loggedIn'] && $sigAdmin && $data['abuses']){
-				$showAbuses[$i] = true;
-			}
-		}
-
-		$parsedPost[$i] = $forums->parsePost($line['msg']);
-
-		$links = array();
-
-		if($sigAdmin)
-			$links[] = "<a class=small href=/manageprofile.php?section=forums&uid=$line[authorid]>Sig</a>";
-		if($perms['mute'])
-			$links[] = "<a class=small href=/forummute.php?action=add&fid=$thread[forumid]&tid=$tid&username=" . htmlentities($line['author']) . ">Mute</a>";
-
-		$links[] =  "<a class=small href=#top>Top</a>";
-
-		$displayLinks[$i] = implode(" &nbsp; &nbsp; ", $links);
-
+		$posts[] = $post;
 	}
 
 	$template = new template('forums/forumviewdelthread');
-	$template->set('pageList', pageList("$_SERVER[PHP_SELF]?tid=$tid",$page,$numpages,'header'));
+	$template->set('pageList', pageList("$_SERVER[PHP_SELF]?tid=$tid", $page, $numpages, 'header'));
 	$template->set('tid', $tid);
 	$template->set('config', $config);
 	$template->set('thread', $thread);
-	$template->set('postdata', $postdata);
-	$template->set('posterdata', $posterdata);
-	$template->set('premiumRank', $premiumRank);
-	$template->set('frozenAuthor', $frozenAuthor);
-	$template->set('postCount', $postCount);
-	$template->set('showPicture', $showPicture);
-	$template->set('imageDirectory', $imageDirectory);
-	$template->set('showAbuses', $showAbuses);
-	$template->set('parsedPost', $parsedPost);
-	$template->set('displayLinks', $displayLinks);
+	$template->set('posts', $posts);
 	$template->set('forums', $forums);
-	$template->set('forumRank', $forumRank);
 	$template->display();
 

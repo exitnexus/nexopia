@@ -242,7 +242,7 @@ function view($id){
 	echo "<tr><td class=header>Time Estimate:</td><td class=header>" . $timereqs[$line['timereq']] . "</td></tr>";
 	echo "<tr><td class=header>Section:</td><td class=header>" . $sections[$line['section']] . "</td></tr>";
 	echo "<tr><td class=header>Status:</td><td class=header>" . $statuss[$line['status']] . "</td></tr>";
-	echo "<tr><td class=body colspan=2>" . nl2br(html_sanitizer::sanitize(removeHTML($line['description']))) . "</td></tr>\n";
+	echo "<tr><td class=body colspan=2>" . nl2br(removeHTML($line['description'])) . "</td></tr>\n";
 	echo "</table>\n";
 
 	incFooter();

@@ -12,40 +12,24 @@
 			$category = getPOSTval('category');
 			$title = getPOSTval('title');
 			$msg = getPOSTval('msg');
-			$parse_bbcode = getPOSTval('parse_bbcode', 'bool');
 
 			if($category && $title && $msg)
-				addArticle($category, $title, $msg, $action, $parse_bbcode);
-			break;
-
-
+				addArticle($category, $title, $msg, $action); //exit
 	}
 
+
 	$template = new template('articles/addarticle/index');
-/*	if(!isset($parse_bbcode))
-		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $userData['parse_bbcode']));
-	else
-		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $parse_bbcode));*/
-	$template->set("checkbox_parsebbcode", '<input type="hidden" name="parse_bbcode" value="y"/>');
-
-
-	if(!isset($msg))
-		$msg = '';
-	ob_start();
-	editBox($msg);
-	$template->set('editBox', ob_get_contents());
-	ob_end_clean();
-
-	$template->setMultiple(array(
-		'catSel'	=> makeCatSelect($branch)
-	));
+	$template->set('editBox', editBoxStr(''));
+	$template->set('catSel', makeCatSelect($branch));
 	$template->display();
 
 
-	function addArticle($category, $title, $msg, $action, $parse_bbcode) {
+	function addArticle($category, $title, $msg, $action){
 		global $branch, $cats, $msgs, $userData, $articlesdb, $mods;
 
-		if(!isset($title) || strlen($title) < 1) {
+		$title = trim($title);
+
+		if(empty($title) || strlen($title) < 1) {
 			$action = 'Preview';
 			$msgs->addMsg('Needs a Title');
 		}
@@ -53,7 +37,7 @@
 			$action = 'Preview';
 			$msgs->addMsg('Title is too short');
 		}
-		if(!isset($msg) || strlen($msg) < 1) {
+		if(empty($msg) || strlen($msg) < 1) {
 			$action = 'Preview';
 			$msgs->addMsg('No text');
 		}
@@ -61,47 +45,29 @@
 			$action = 'Preview';
 			$msgs->addMsg('Text is too long');
 		}
-		if(!isset($category) || !$cats->isValidCat($category)) {
+		if(empty($category) || !$cats->isValidCat($category)) {
 			$action = 'Preview';
 			$msgs->addMsg('Bad category');
 		}
 
 		$ntitle = removeHTML($title);
-		$ntitle = trim($ntitle);
 
 
-		$narticle = html_sanitizer::sanitize($msg);
+		$narticle = removeHTML($msg);
+		$narticle2 = parseHTML($narticle);
+		$narticle3 = smilies($narticle2);
+		$narticle3 = nl2br($narticle3);
 
-
-		if($parse_bbcode)
-		{
-			$narticle2 = parseHTML($narticle);
-			$narticle3 = smilies($narticle2);
-			$narticle3 = nl2br($narticle3);
-		}
-		else
-			$narticle3 = $narticle;
-
-		if ($action == 'Preview' || $ntitle == '') {
+		if($action == 'Preview') {
 			$template = new template('articles/addarticle/preview');
-
-			ob_start();
-			editBox($narticle);
-			$template->set('editBox', ob_get_contents());
-			ob_end_clean();
 
 			$template->setMultiple(array(
 				'ntitle'	=> $ntitle,
 				'narticle3'	=> $narticle3,
 				'selCat'	=> makeCatSelect($branch, $category),
-				'title'		=> $title
+				'title'		=> $title,
+				'editBox'	=> editBoxStr($narticle),
 			));
-/*			if(!isset($parse_bbcode))
-				$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $userData['parse_bbcode']));
-			else
-				$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $parse_bbcode));*/
-			$template->set("checkbox_parsebbcode", '<input type="hidden" name="parse_bbcode" value="y"/>');
-
 
 			$template->display();
 			exit;
@@ -112,14 +78,14 @@
 			$userData['userid'], $ntitle, $narticle
 		);
 
-		$parse_bbcode = $parse_bbcode ? 'y': 'n';
-
 
 		if (!$res->fetchrow()) { //dupe detection
 			$articlesdb->prepare_query(
-				"INSERT INTO articles SET authorid = ?, submittime = ?, category = ?, title = ?, text = ?, parse_bbcode = ?", //, ntext = ?",
-				$userData['userid'], time(), $category, $ntitle, $narticle , $parse_bbcode//, $narticle3
+				"INSERT INTO articles SET authorid = ?, submittime = ?, category = ?, title = ?, text = ?", //, ntext = ?",
+				$userData['userid'], time(), $category, $ntitle, $narticle //, $narticle3
 			);
+
+			scan_string_for_notables($narticle);
 
 			$articleID = $articlesdb->insertid();
 			$mods->newItem(MOD_ARTICLE, $articleID);

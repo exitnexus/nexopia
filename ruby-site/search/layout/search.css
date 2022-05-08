@@ -1,0 +1,69 @@
+#search {
+	padding: 10px;
+	width: 750px;
+	text-align: left;
+	margin-left: auto;
+	margin-right: auto;
+	color: $primary_text_color;
+	background-color: $primary_background_color;
+	font-size: $page_font_size;
+	font-family: $page_font_family;
+
+	& table {
+		color: $primary_text_color;
+	}
+
+	& a {
+		color: $link_color;
+		text-decoration: none;
+		&:hover {
+			color: $link_accent_color;
+		}
+		& img {
+			border: none;
+		}
+	}
+
+	& select, input {
+		font-size: $page_font_size;
+		font-family: $page_font_family;
+	}
+}
+
+.search_cols {
+	float: left;
+	margin-right: 3px;
+}
+
+#search_input {
+	& select, #search_simple #value  {
+		width: 150px;
+	}
+
+	& #agemin, #agemax {
+		width: 35px;
+		padding-left: 3px;
+		margin-left: 5px;
+		margin-right: 5px;
+	}
+}
+
+#search_results {
+	& .pages {
+		color: $header_text_color;
+		background-color: $header_background_color;
+		text-align: right;
+
+		& a {
+			color: $header_link_color;
+			&:hover {
+				color: $header_link_accent_color;
+			}
+		}
+
+		& .current_page {
+			font-weight: bold;
+			text-decoration: underline;
+		}
+	}
+}

@@ -1,0 +1,16 @@
+<div class="devtaskman_content_container" t:docid="list_product_tasks">
+	
+	<t:template-include name="navigation" module="devtopia" />
+	
+	<a href="{directing_record.edit_link}">Back to #{directing_record.type.to_s.gsub(/.*::(.*)/, '\1')}: {directing_record.name}</a>
+
+	<h1>Tasks</h1>
+
+	<div class="summary_panel">
+		<t:template-include name="summary_panel" module="devtopia" />
+	</div>
+	<div class="detail_panel">
+		<t:template-include name="edit_task" module="devtopia" />
+	</div>
+		
+</div>

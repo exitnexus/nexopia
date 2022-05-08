@@ -1,7 +1,7 @@
 <?
 
 function uploadPic($uploadFile,$picID){
-	global $config, $staticRoot, $msgs, $userData, $filesystem;
+	global $config, $staticRoot, $msgs, $userData, $filesystem, $mogfs;
 
 	$picName = $config['picdir'] . floor($userData['userid']/1000) . "/" . weirdmap($userData['userid']) . "/" . $picID . ".jpg";
 	$thumbName = $config['thumbdir'] . floor($userData['userid']/1000) . "/" . weirdmap($userData['userid']) . "/" . $picID . ".jpg";
@@ -140,10 +140,13 @@ function uploadPic($uploadFile,$picID){
 	$filesystem->add($picName);
 	$filesystem->add($thumbName);
 
+	$mogfs->add(FS_USERPICS, "{$userData['userid']}/${picID}.jpg", file_get_contents("${staticRoot}${picName}"));
+	$mogfs->add(FS_USERPICSTHUMB, "{$userData['userid']}/${picID}.jpg", file_get_contents("${staticRoot}${thumbName}"));
+
 	return true;
 }
 
-function addPic($userfile,$description, $signpic){
+function addPic($userfile,$description, $signpic, &$reachedMax){
 	global $userData, $msgs, $usersdb, $config, $staticRoot, $mods;
 
 	if(!file_exists($userfile)){
@@ -181,14 +184,31 @@ function addPic($userfile,$description, $signpic){
 	if(!is_dir($staticRoot . $config['thumbdir'] . floor($userData['userid']/1000) . "/" . weirdmap($userData['userid'])))
 		@mkdir($staticRoot . $config['thumbdir'] . floor($userData['userid']/1000) . "/" . weirdmap($userData['userid']),0777, true);
 
-	if(uploadPic($userfile, $picID)){
-		$res = $usersdb->prepare_query("INSERT INTO picspending SET userid = %, id = #, description = ?, md5 = ?, signpic = ?, time = #", $userData['userid'], $picID, removeHTML(trim(str_replace("\n", ' ', $description))), $md5, ($signpic ? 'y' : 'n'), time());
+	$usersignpic = $userData['signpic'];
+	$maxpics = ($userData['premium'] ? $config['maxpicspremium'] : $config['maxpics']);
+	if($usersignpic == 'y')
+		$maxpics++;
+	$reachedMax = false;
 
-		$mods->newSplitItem(MOD_PICS,array($userData['userid'] => $picID),$userData['premium']);
+	$res = $usersdb->prepare_query("INSERT INTO picspending SET userid = %, id = #, description = ?, md5 = ?, signpic = ?, priority = ?, time = #", $userData['userid'], $picID, removeHTML(trim(str_replace("\n", ' ', $description))), $md5, ($signpic ? 'y' : 'n'), ($userData['premium'] ? 'y' : 'n'), time());
 
-		$msgs->addMsg("Picture uploaded successfully.");
-		return $picID;
+	$num = $usersdb->prepare_query("SELECT count(*) FROM pics WHERE userid = %", $userData['userid'])->fetchfield();
+	$num += $usersdb->prepare_query("SELECT count(*) FROM picspending WHERE userid = %", $userData['userid'])->fetchfield();
+	
+	if ($num <= $maxpics)
+	{
+		if($res->affectedrows() == 1 && uploadPic($userfile, $picID)){
+				$mods->newSplitItem(MOD_PICS,array($userData['userid'] => $picID),$userData['premium']);
+		
+				$msgs->addMsg("Picture uploaded successfully.");
+				return $picID;
+		}
+	} else {
+		$msgs->addMsg("You have uploaded your maximum number of pictures ($maxpics)");
+		$reachedMax = true;
 	}
+	// clear out a picspending entry made above if the rest of the process failed somehow.
+	$usersdb->prepare_query("DELETE FROM picspending WHERE userid = % AND id = #", $userData['userid'], $picID);
 	return false;
 }
 
@@ -232,13 +252,16 @@ function removePicPending($ids, $deletemoditem = true){
 }
 
 function deletePic($uid, $id){
-	global $filesystem, $config, $staticRoot;
+	global $filesystem, $config, $staticRoot, $mogfs;
 
 	$picName = $config['picdir'] . floor($uid/1000) . "/" . weirdmap($uid) . "/" . $id . ".jpg";
 	$thumbName = $config['thumbdir'] . floor($uid/1000) . "/" . weirdmap($uid) . "/" . $id . ".jpg";
 
 	$filesystem->delete($picName);
 	$filesystem->delete($thumbName);
+
+	$mogfs->delete(FS_USERPICS, "${uid}/${id}.jpg");
+	$mogfs->delete(FS_USERPICSTHUMB, "${uid}/{$id}.jpg");
 
 	if(file_exists($staticRoot . $picName))
 			@unlink($staticRoot . $picName);
@@ -256,7 +279,7 @@ function removeAllUserPics($uids){
 	while($line = $result->fetchrow())
 		deletePic($line['userid'], $line['id']);
 
-	$result = $usersdb->prepare_query("SELECT id FROM picspending WHERE userid IN (%)", $uids);
+	$result = $usersdb->prepare_query("SELECT userid, id FROM picspending WHERE userid IN (%)", $uids);
 	while($line = $result->fetchrow())
 		deletePic($line['userid'], $line['id']);
 

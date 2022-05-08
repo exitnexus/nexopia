@@ -1,0 +1,70 @@
+/* fee7e7
+    Skin Name:  Big Music by wysiwyg
+    Google Search:  GALT:#FF6666;GL:1;DIV:#FFCCCC;VLC:FF6666;AH:center;BGC:FFCCCC;LBGC:FFCCCC;ALC:FF6666;LC:FF6666;T:CC6666;GFNT:FF6666;GIMP:FF6666;FORID:1
+*/
+table {text-align: left;}
+tr {vertical-align: top;}
+
+body         { background: #f7f2dc; font-family: arial, sans-serif; font-size: 8pt; margin: 0; }
+
+a       		{ color: #d1d3d4; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a:hover			{ color: #598241; }
+
+td.footer		{ color:#d4d6d7; text-decoration:none; font: 6pt arial, sans-serif}
+
+td.side					                { background-color: #ffcccc; color: #cc6666; font-family: arial, sans-serif; font-size: 8pt; }
+td.side a   	                 	{ color: #ff6666; text-decoration:none; }
+td.side a:hover	            		{ color: #ffffff; }
+td.side input, select, textarea { font-family: arial, sans-serif; font-size: 8pt; border:1px solid #cc6666; margin: 1 0 0 0;}
+
+td.border		{ background-color:#fff; }
+
+td.sideheader		{ color:#336666; font-family: arial, sans-serif; font-size: 8pt; padding-bottom:3px; }
+
+td.header		{ background-color: #f5ebbc; color: #cc6666; font-family: arial, sans-serif; font-size: 8pt}
+a.header  	{ color: #ff6666; text-decoration:none;  }
+a.header:hover	{ color: #ffffff; }
+
+td.headerfront	{ color:#336666; background: #fff url(http://static.nexopia.com/skins/bigmusic/fronthead.png); height:30px; padding-bottom:8px; }
+
+
+td.header2			{ color: #323237; font-family: arial, sans-serif; font-size: 8pt}
+a.header2     	{ color: #323237; text-decoration:none; }
+a.header2:hover		{ color: #ff6666; }
+
+td.body			{ background-color: #ffcccc; color: #cc6666; font-family: arial, sans-serif; font-size: 8pt}
+td.body2		{ background-color: #edbdbd; color: #cc6666; font-family: arial, sans-serif; font-size: 8pt}
+a.body { color: #ff6666; }
+a.body:hover	{ color: #ffffff; }
+body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; border:1px solid #cc6666;}
+body textarea { font-size: 9pt; }
+
+td.menu				{ color: #cc6666; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a			{ color: #cc6666; text-decoration:none; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a:hover		{ color: #ffffff; }
+
+td.forumlst							{ color: #fff; font: 8pt arial, sans-serif}
+a.forumlst:link,a.forumlst:visited 	{ color: #9F9F9F; text-decoration:none; font: 8pt arial, sans-serif }
+a.forumlst:hover,a.forumlst:active 	{ color: #555555; text-decoration:none; font: 8pt arial, sans-serif }
+
+td.forumlst1 { background-color:#D6E3EE; color: #9ba495; text-decoration:none; font: 8pt arial, sans-serif}
+a.forumlst1:link,a.forumlst1:visited { color: #9ba495; text-decoration:none; font: 8pt arial, sans-serif }
+a.forumlst1:hover,a.forumlst1:active { color: #ffffff; text-decoration:none; font: 8pt arial, sans-serif }
+
+td.forumlst0 { background-color:#D6E3EE; color: #cc6666; text-decoration:none; font: 8pt arial, sans-serif}
+a.forumlst0:link,a.forumlst0:visited { color: #cc6666; text-decoration:none; font: 8pt arial, sans-serif }
+a.forumlst0:hover,a.forumlst0:active { color: #ffffff; text-decoration:none; font: 8pt arial, sans-serif }
+
+a.forumlst2:link,a.forumlst2:visited { color: #ff6666; text-decoration:none; font: 8pt arial, sans-serif }
+a.forumlst2:hover,a.forumlst2:active { color: #fff; text-decoration:none; font: 8pt arial, sans-serif }
+
+td.small  		{ background-color: #e0e3ea; color: #000; font-family: arial, sans-serif; font-size: 8pt}
+a.small     	{ color: #000; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bold }
+a.small:hover	{ color: #3A3A3A; }
+
+td.msg		  	{ background-color:#ff6666; color:#fff; font-family: arial, sans-serif; font-size: 8pt}
+a.msg       	{ color: #fff; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.msg:hover		{ color: #000; }
+
+td.online		{ color: #fff; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}
+td.offline		{ color: #000; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}

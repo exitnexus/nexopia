@@ -1,0 +1,35 @@
+<div>
+	<script type="text/javascript">
+		<![CDATA[ 
+			function toggleDisplay(element) {
+				if (element.style.display == "none") {
+					element.style.display = "";
+				} else {
+					element.style.display = "none";
+				}
+			}
+		]]>
+	</script>
+	Click on a row to see the comment for the revision.
+	<table>
+		<tr>
+			<th>Modified on</th>
+			<th>Modified by</th>
+			<th>Changes</th>
+		</tr>
+		<t:loop t:id="defecthistorygroups" t:iter="defecthistorygroup, index">
+			<tr onclick="toggleDisplay(document.getElementById('defecthistorygroup[{index}]'))">
+				<td>{defecthistorygroup.modtime}</td>
+				<td>{defecthistorygroup.modusername}</td>
+				<td>{defecthistorygroup.changes}</td>
+			</tr>
+			<tr id="defecthistorygroup[{index}]" style="display:none">
+				<td colspan="3">
+					<pre style="font-size:1em;background-color:LightGoldenRodYellow;border-style:solid;border-width:1px">
+						{defecthistorygroup.comment}
+					</pre>
+				</td>
+			</tr>
+		</t:loop>
+	</table>
+</div>

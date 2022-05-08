@@ -1,0 +1,53 @@
+<div xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<t:template-include name="admin_header" module="adminutils"/>
+	<table id="admins_list">
+		<tr>
+			<td class="header">
+				Admin
+			</td>
+			<td class="header">
+				Roles
+			</td>
+			<td class="header">
+				Titles
+			</td>
+			<td class="header">
+				Permissions
+			</td>
+			<td class="header">
+				Funcs
+			</td>
+		</tr>
+		<tr t:alternating="body, body2" t:id="users" t:iter="user">
+			<td class="{class_var}" >
+				{user.meta.user_name}
+			</td>
+			<td class="{class_var}" >
+				<ul>
+					<li t:id="user.meta.roles_list" t:iter="role">
+						{role.rolename}
+					</li>
+				</ul>
+			</td>
+			<td class="{class_var}" >
+				<span t:id="user.meta.roles_list" t:iter="role">
+					{role.title}<br t:id="!role.title.empty?"/>
+				</span>
+			</td>
+			<td class="{class_var}" >
+				{user.meta.permissions}
+			</td>
+			<td class="{class_var}" >
+				<a class="body" href="/admin/admins/{user.meta.uid}">Edit</a>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="5" align="right" class="header">
+				<form method="post" action="/admin/admins/create">
+					<input type="text" id="name" name="name"/>
+					<input type="submit" value="Create Admin"/>
+				</form>
+			</td>
+		</tr>
+	</table>
+</div>

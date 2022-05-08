@@ -1,0 +1,20 @@
+<div class="video_page_container">
+	<div id="comment_preview">
+		<a href="/videos">Back to Videos</a><br/><br/>
+		Here is a preview of what the post will look like:<br/>
+	
+		<t:template-include name="comments_comment" module="video"/>	
+	
+		<div style="padding: 4px; clear: left;">
+			<form action="{handler_root}/comments/post" method="post" name="editbox">
+				Post a Comment:<br/>
+				<textarea rows="5" name="comment" style="width: 100%">{comment.comment}</textarea><br/>
+				<input type="hidden" id="back_link" name="back_link" value="{back_link}"/>
+				<input type="hidden" id="videoid" name="videoid" value="{comment.videoid}"/>
+				<input type="hidden" id="last_page" name="last_page" value="{last_page}"/>
+				<input class="body" type="submit" name="action" value="Preview"/>
+				<input class="body" type="submit" name="action" value="Post"/>
+			</form>
+		</div>
+	</div>
+</div>

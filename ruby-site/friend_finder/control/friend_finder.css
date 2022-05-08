@@ -1,0 +1,92 @@
+#friend_finder
+{
+	min-width: 600px;
+	width:600px;
+	background-color: $primary_background_color;
+	color: $primary_text_color;
+	margin-left: auto;
+	margin-right: auto;
+	padding-bottom: 50px;
+}
+
+#friend_finder .label
+{
+	color: $primary_text_color;
+}
+
+#friend_finder a
+{
+	color: $primary_link_color;
+}
+
+#friend_finder #email_import
+{
+	margin-right: 70px;
+	margin-left: 70px;
+}
+	
+#email_import .email_import_block
+{
+	padding-top: 10px;
+	padding-bottom: 10px;
+	border-bottom: 2px solid $secondary_background_color;
+}
+
+#email_import div.email_import_block_last
+{
+	border-bottom: none;
+}
+
+#email_import .more_info_body {
+	display: none;
+}
+
+#email_import .page_description
+{
+	font-size: 12px;
+	font-weight: bold;
+	padding-bottom: 6px;
+}
+
+#email_import .block_title
+{
+	font-size: 12px;
+	font-weight: bold;
+	padding-bottom: 8px;
+}
+
+#email_import .fine_print
+{
+	font-size: 9px;
+	color: $minor_font_color;
+}
+
+.more_info_body
+{
+	margin-top: 4px;
+	margin-bottom: 6px;
+}
+
+.more_info_body .webmail_support_list
+{
+	list-style-type: none;
+	padding-left: 10px;
+	font-weight: bold;
+}
+
+.more_info_body .info_import_title
+{
+	font-weight: bold;
+}
+
+#info_csv_body ul
+{
+	padding-left: 23px;
+	margin-top: 3px;
+	margin-bottom: 13px;
+}
+
+#info_csv_body ul li
+{
+	list-style-type: decimal;
+}

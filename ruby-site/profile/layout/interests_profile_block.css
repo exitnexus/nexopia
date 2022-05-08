@@ -1,0 +1,29 @@
+div#interests_profile_block {
+	& h2 {
+		font-family: $page_font_family;
+		font-size: 14px;
+		letter-spacing: 0px;
+		margin: 0px;
+	}
+	& ul {
+		list-style: none;
+		padding: 0px;
+	}
+	& div.category {
+		float: left;
+		width: 140px;
+		font-weight: bold;
+	}
+}
+
+div#interests_edit_block {
+	& ul {
+		list-style: none;
+		padding: 0px;
+		text-align: left;
+	}
+	& div.column {
+		float: left;
+		width: 180px;
+	}
+}

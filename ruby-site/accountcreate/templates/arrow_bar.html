@@ -1,0 +1,63 @@
+<div class="accountcreate_arrows">
+	
+	<div class="arrow_block">
+		<a href="/my/accountcreate/profile">
+			<div class="arrow" style="background-image: url(#{$site.static_files_url}/accountcreate/images/arrow_1_black.gif)">
+				<div class="arrow_text">
+					<t:if t:id="step2"><span style="color: grey">1. PROFILE</span></t:if>
+					<t:if t:id="!step2">1. PROFILE</t:if>
+				</div>
+			</div>
+		</a>
+		<div style="left: 8px" class="arrow_long_description">
+			<t:if t:id="step2"><span style="color: grey">Basic profile info</span></t:if>
+			<t:if t:id="!step2">Basic profile info</t:if>
+		</div>
+	</div>
+
+	<div class="arrow_block">	
+		<a href="/my/accountcreate/picture">
+			<t:if t:id="!step2">
+				<div class="arrow" style="background-image: url(#{$site.static_files_url}/accountcreate/images/arrow_2_grey.gif); left: -8px">
+					<div class="arrow_text" style="margin-left: 10px">
+						<t:if t:id="step3"><span style="color: grey">2. PICTURE</span></t:if>
+						<t:if t:id="!step3">2. PICTURE</t:if>
+					</div>
+				</div>
+			</t:if>
+			<t:if t:id="step2">
+				<div class="arrow" style="background-image: url(#{$site.static_files_url}/accountcreate/images/arrow_2_black.gif); left: -8px">
+					<div class="arrow_text" style="margin-left: 10px">
+						<t:if t:id="step3"><span style="color: grey">2. PICTURE</span></t:if>
+						<t:if t:id="!step3">2. PICTURE</t:if>
+					</div>
+				</div>
+			</t:if>
+		</a>
+		<div class="arrow_long_description" style="left: 2px">
+			<t:if t:id="step3"><span style="color: grey">Upload profile picture</span></t:if>
+			<t:if t:id="!step3">Upload profile picture</t:if>
+		</div>
+	</div>
+
+	<div class="arrow_block">		
+		<a href="/my/accountcreate/activate">
+			<t:if t:id="!step3">
+				<div class="arrow" style="background-image: url(#{$site.static_files_url}/accountcreate/images/arrow_2_grey.gif); left: -18px">
+					<div class="arrow_text" style="margin-left: 10px">3. ACTIVATE</div>
+				</div>
+			</t:if>
+			<t:if t:id="step3">
+				<div class="arrow" style="background-image: url(#{$site.static_files_url}/accountcreate/images/arrow_2_black.gif); left: -18px">
+					<div class="arrow_text" style="margin-left: 10px">3. ACTIVATE</div>
+				</div>
+			</t:if>
+		</a>
+		<div class="arrow_long_description" style="left: -8px">
+			Activate your account.
+		</div>
+	</div>
+	
+	<div class="clearit"/>
+	
+</div>

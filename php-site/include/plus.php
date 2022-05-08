@@ -15,7 +15,7 @@ function plusCallback($data){
 }
 
 function addPlus($userid, $duration, $fromid, $trackid){ //duration in months
-	global $db, $usersdb, $cache, $messaging, $userData;
+	global $db, $usersdb, $cache, $messaging, $userData, $wiki;
 
 	$adminid = 0;
 	if($userData['userid'] != $fromid)
@@ -25,9 +25,10 @@ function addPlus($userid, $duration, $fromid, $trackid){ //duration in months
 		return "Bad userid: $userid";
 
 	if(!is_numeric($userid)){
+		$tempuser = $userid;
 		$userid = getUserID($userid);
 		if(!is_numeric($userid))
-			return "Bad userid: $userid";
+			return "Bad userid: ${userid} :: ${tempuser}";
 	}
 
 	if(empty($duration) || $duration <= 0)
@@ -45,7 +46,8 @@ function addPlus($userid, $duration, $fromid, $trackid){ //duration in months
 
 	$subject = "You've got Plus!";
 
-	$message = getStaticValue('plusaddmsg');
+	$message = $wiki->getPage("/SiteText/plus/addmsg");
+	$message = $message['content'];
 	$message = str_replace("%duration%", number_format($duration*31,0), $message);
 
 	$messaging->deliverMsg($userid, $subject, $message, 0, "Nexopia", 0);
@@ -53,9 +55,8 @@ function addPlus($userid, $duration, $fromid, $trackid){ //duration in months
 	return "Plus Added for userid $userid for $duration months\n";
 }
 
-//untested
 function remindAlmostExpiredPlus(){
-	global $usersdb, $messaging;
+	global $usersdb, $messaging, $wiki;
 
 	$time = time();
 
@@ -66,48 +67,10 @@ function remindAlmostExpiredPlus(){
 		$to[] = $line['userid'];
 
 	$subject = "Not Much Plus Left!";
-	$message = getStaticValue('plusremindermsg');
+	$message = $wiki->getPage("/SiteText/plus/remindermsg");
+	$message = $message['content'];
 
 	$messaging->deliverMsg($to, $subject, $message, 0, "Nexopia", 0);
-}
-
-function deletePlus($userid){
-	global $db, $forums, $config, $mods, $docRoot;
-
-die("broken function");
-
-//reset forumrank, anonymousviews
-	$usersdb->prepare_query("UPDATE users SET forumrank = '', anonymousviews = 'n' WHERE userid = %", $userid);
-
-//pending forumranks
-	$res = $forums->db->prepare_query("SELECT id FROM forumrankspending WHERE userid = #", $userid);
-	$rank = $res->fetchrow();
-	if($rank){
-		$id = $rank['id'];
-		$forums->db->prepare_query("DELETE FROM forumrankspending WHERE userid = #", $userid);
-		$mods->deleteItem('forumrank',$id);
-	}
-
-/*
-//pics
-	$result = $db->prepare_query("SELECT id FROM pics WHERE itemid = ? && priority > ?", $userid, $config['maxpics']);
-
-	while($line = $result->fetchrow())
-		removePic($userid, $line['id']);
-*/
-//gallery
-	$result = $gallerydb->prepare_query("SELECT id FROM gallery WHERE userid = %", $userid);
-
-	while($line = $result->fetchrow())
-		removeGalleryPic($id);
-
-	$gallerydb->prepare_query("DELETE FROM gallerycats WHERE userid = %", $uid);
-
-//files
-	rmdirrecursive( $docRoot . $config['basefiledir'] . floor($userid/1000) . "/" . $userid );
-
-	//custom forums?
-
 }
 
 function transferPlus($from, $to){

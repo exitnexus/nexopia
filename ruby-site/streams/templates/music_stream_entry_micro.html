@@ -1,0 +1,19 @@
+<div class="stream_entry_micro">
+	<table>
+		<tbody>
+			<tr>
+				<td class="micro_icon_col">
+					<t:if t:id="entry.stream_icon">
+						<img src="{entry.stream_icon.thumbnail_location}"></img>
+					</t:if>
+					<t:if t:id="!entry.stream_icon">
+						<img src="{$site.static_url}/music/images/music_placeholder.jpg"></img>
+					</t:if>
+				</td>
+				<td>
+					<a t:id="entry" t:linktype="micro"></a>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+</div>

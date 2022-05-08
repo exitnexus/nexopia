@@ -1,0 +1,76 @@
+<div id="jobs_doc" class="yui-t7">
+	<div id="jobs">
+		<div id="hd">
+			Jobs
+		</div>
+		<div id="bd">
+			<div class="yui-g" id="jobs_intro">
+				<div id="jobs_page_title">
+					Applicant Profile
+				</div>
+				<div class="company_info">
+					This is the information you submitted to Nexopia.com the last time you applied. From here
+					you can update your information and any submitted assets. You can also submit new applications
+					for jobs and departments. It also shows which positions you've applied for previously.
+				</div>
+			</div>
+			<div class="yui-g" id="job_app">
+				<form method="post" name="edit_applicant" id="edit_applicant" action="/jobs/applicant/{app_hash}/edit/submit/">
+					<table>
+						<tbody>
+							<tr>
+								<td class="app_field_description">
+									Full Name
+								</td>
+								<td class="app_input">
+									<input type="text" name="app_name" id="app_name" value="{app.name}" />
+								</td>
+							</tr>
+							<tr>
+								<td class="app_field_description">
+									E-mail Address
+								</td>
+								<td class="app_input">
+									<input type="text" name="app_email" id="app_email" value="{app.email}" />
+								</td>
+							</tr>
+							<tr>
+								<td class="app_field_description">
+									Telephone Number
+								</td>
+								<td class="app_input">
+									<input type="text" name="app_phone" id="app_phone" value="{app.phonenumber}"/>
+								</td>
+							</tr>
+							<tr>
+								<td class="app_field_description">
+									Preferred Contact Method
+								</td>
+								<td class="app_input_nosize app_input_no_border">
+									<input type="radio" name="app_contact_type" id="app_contact_type" value="email" cond:checked="app.contact_email()"/><span class="jobs_radio_text">E-Mail</span><br />
+									<input type="radio" name="app_contact_type" id="app_contact_type" value="phone" cond:checked="app.contact_phone()"/><span class="jobs_radio_text">Telephone, according to hours below</span>
+								</td>
+							</tr>
+							<tr>
+								<td class="app_field_description">
+									Contact Notes
+								</td>
+								<td class="app_input">
+									<textarea name="app_contact_details" id="contact_details">
+										{app.contactnotes}
+									</textarea>
+								</td>
+							</tr>
+							<tr>
+								<td colspan="2" class="app_input_nosize form_submit">
+									<input type="submit" name="applicant_edit_submit" value="Save Changes"/>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+

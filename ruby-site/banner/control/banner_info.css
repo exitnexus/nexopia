@@ -1,0 +1,13 @@
+table.banner_info, table.banner_info td, table.banner_info th {
+	border-style: solid;
+	border-width: 1px;
+	padding:2px;
+	border-collapse: collapse;
+	font-style:$page_font_style;
+	font-size:$page_font_size;
+}
+
+table.banner_info th {
+	background-color: $secondary_background_color;
+	color: $secondary_text_color;
+}

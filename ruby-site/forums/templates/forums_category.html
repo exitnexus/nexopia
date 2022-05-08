@@ -1,0 +1,55 @@
+<div class="category_container content_cell" style="margin-top:5px;">
+	<table class="forum_listing" cellspacing="2" width="100%">
+		<tr>
+			<th>
+				<a href="/forums/category/{category.id}/">{category.name}</a>
+			</th>
+			<th class="forum_listing_threads">
+				Threads
+			</th>
+			<th class="forum_listing_posts">
+				Posts
+			</th>
+			<th class="forum_listing_last_post">
+				Last Post
+			</th>
+		</tr>
+		<t:iter t:id="category.forum_list" t:iter="forum">
+			<tr>
+				<td>
+					<table>
+						<tbody>
+							<tr>
+								<td>
+									<t:if t:id="forum.official">
+										Official:
+									</t:if>
+								</td>
+								<td>
+									<a href="/forums/forum/{forum.id}/">{forum.name}</a>
+								</td>
+							</tr>
+							<tr>
+								<td colspan="2">
+									{forum.description}
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</td>
+				<td class="forum_listing_threads">
+					{forum.threads}
+						</td>
+				<td class="forum_listing_posts">
+					{forum.posts}
+					</td>
+				<td class="forum_listing_last_post">
+					{forum.time_readable}
+				</td>
+			</tr>
+		</t:iter>
+		<t:if t:id="page_control">
+			
+		</t:if>
+	</table>
+</div>

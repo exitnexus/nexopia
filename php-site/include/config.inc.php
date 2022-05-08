@@ -8,12 +8,19 @@
 	// - DO NOT EVER COMMIT YOUR CONFIG.INC.PHP.LOCAL. You can commit your custom named
 	//   profile if there's any reason you'd like to have it versioned.
 
-	$databaseprofile = 'dev';
 	$configprofile = 'dev';
 
-   if (file_exists(__FILE__ . ".local"))
-        include_once __FILE__ . ".local";
+	if(isset($_SERVER['NEXOPIA_PHP_CONFIG']) && $_SERVER['NEXOPIA_PHP_CONFIG'])
+		$configprofile = $_SERVER['NEXOPIA_PHP_CONFIG'];
+	elseif(file_exists(__FILE__ . ".local"))
+		include(__FILE__ . ".local");
 
-	if (isset($configprofile) && file_exists($profinc = inherit_config_profile($configprofile)))
-		include_once($profinc);
+	if(isset($configprofile) && file_exists($profinc = inherit_config_profile($configprofile)))
+		include($profinc);
+
+	// call with include inherit_config_profile('name');
+	function inherit_config_profile($profilename){
+		global $cwd;
+		return("$cwd/include/config.$profilename.inc.php");
+	}
 

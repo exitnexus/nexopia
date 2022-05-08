@@ -35,7 +35,7 @@
 	$sigAdmin = false;
 	if($userData['loggedIn']){
 		$isAdmin = $mods->isAdmin($userData['userid'],'listusers');
-		$sigAdmin = $mods->isAdmin($userData['userid'],'editprofile');
+		$sigAdmin = $mods->isAdmin($userData['userid'],'editsig');
 	}
 
 	$isMod = $perms['move'] || $perms['deletethreads'] || $perms['deleteposts'] || $perms['lock'] || $perms['stick'];
@@ -438,18 +438,5 @@
 	$template->set('pid', $pid);
 	$template->set('subscribeSelected', (($userData['loggedIn'] && ($userData['autosubscribe'] == 'y' || $subscribe=='y')) ? ' selected' : ''));
 	$template->set('currentPage', $_SERVER['REQUEST_URI']);
-
-/*	if(!isset($parse_bbcode))
-		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $userData['parse_bbcode']));
-	else
-		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $parse_bbcode));
-*/
-	$template->set("checkbox_parsebbcode", '<input type="hidden" name="parse_bbcode" value="y"/>');
-
-
-	ob_start();
-	editBox("");
-	$template->set('editBox', ob_get_contents());
-	ob_end_clean();
-
+	$template->set('editBox', editBoxStr(""));
 	$template->display();

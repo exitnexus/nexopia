@@ -1,0 +1,23 @@
+<div id="dep_admin_details">
+	<h1>
+		{dep.name}
+	</h1>
+	<div class="yui-u first">
+		<div>
+			<h2>
+				Description
+			</h2>
+			{dep.description}
+		</div>
+	</div>
+	<div class="yui-u">
+		<h2>
+			Department Managers
+		</h2>
+		<div>
+			<t:iter t:id="dep.manager_list()" t:iter="manager">
+				{manager.name}<br/>
+			</t:iter>
+		</div>
+	</div>
+</div>

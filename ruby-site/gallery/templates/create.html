@@ -1,0 +1,17 @@
+<div class="gallery_creation" id="gallery_creation">
+	<form id="gallery_create_form" action="/my/gallery/submit_create" method="post">
+		Gallery Name:<br/>
+		<input class="body" type="text" name="name" id="create_gallery_name" maxlength="32"/><br/>
+		Description:<br/>
+		<textarea class="body" type="text" name="description" maxlength="255"></textarea><br/>
+		Permissions:<br/>
+		<select class="body" name="permission">
+			<option value="anyone"> Visible to Anyone</option>
+			<option value="loggedin"> Logged In Users Only</option>
+			<option value="friends"> Friends Only</option>
+		</select>
+		<br/>
+		<br/>
+		<input class="body submit" type="submit" name="action" value="Create Gallery" id="gallery_create_submit"/><br/>
+	</form>
+</div>

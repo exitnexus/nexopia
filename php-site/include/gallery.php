@@ -36,12 +36,14 @@ class galleries
 		global $sourcepictures, $cache;
 
 		$deleteitems = array();
+		$queueitems = array();
 		$uids = array();
 		// select in one big chunk.
 		$result = $this->db->prepare_query("SELECT sourceid, userid FROM gallerypending WHERE uploadtime > #", time() - 24*60*60); // runs on all servers
 		while ($row = $result->fetchrow())
 		{
 			$deleteitems[] = "$row[userid]:$row[sourceid]";
+			$queueitems[] = array($row['userid'], $row['sourceid']);
 		}
 
 		// delete pending images in groups of 100
@@ -55,12 +57,17 @@ class galleries
 			$sourceobjs = $sourcepictures->getSourcePictures($subdeleteitems);
 			if ($sourceobjs)
 				sourcepicture::deleteMulti($sourcepictures->db, $sourceobjs);
+			
 		}
 
 		// delete memcache entries for pending pictures
 		foreach ($uids as $uid)
 		{
 			$cache->remove("gallery-pics-pending-$uid");
+		}
+		
+		foreach ($queueitems as $itemkey){
+			enqueue("Gallery::Pic", "create", $itemkey[0], $itemkey);
 		}
 	}
 }
@@ -364,6 +371,34 @@ class gallery extends databaseobject
 			$this->previewpicture = 0;
 		}
 	}
+	static function fixPreviewPictures($objs)
+	{
+		global $galleries;
+		
+		if(count($objs) == 0)
+			return;
+
+		
+		$zeropics = array();
+		foreach ($objs as $obj)
+		{
+			$zeropics["{$obj->ownerid}:{$obj->id}"] = false;
+		}
+		$res = $galleries->db->prepare_query("SELECT userid, galleryid, id FROM gallerypics WHERE ^ AND priority = 0",
+			$galleries->db->prepare_multikey(array("userid" => "%", "galleryid" => "#"), array_keys($zeropics)));
+		while ($row = $res->fetchrow())
+		{
+			$zeropics["$row[userid]:$row[galleryid]"] = $row["id"];
+		}
+		foreach ($objs as $obj)
+		{
+			$zeropic = $zeropics["{$obj->ownerid}:{$obj->id}"];
+			if ($zeropic)
+			{
+				$obj->previewpicture = $zeropic;
+			}
+		}
+	}
 }
 
 class gallerypic extends databaseobject
@@ -390,7 +425,7 @@ class gallerypic extends databaseobject
 
 	function invalidateCache($type)
 	{
-		global $cache, $mods, $filesystem;
+		global $cache, $mods, $filesystem, $mogfs;
 		parent::invalidateCache($type);
 
 		if ($type == 'delete')
@@ -404,18 +439,21 @@ class gallerypic extends databaseobject
 			{
 				@unlink($normal);
 				$filesystem->delete($normal);
+				$mogfs->delete(FS_GALLERY, "{$this->userid}/{$this->id}.jpg");
 			}
 			$full = $this->getImagePath('full');
 			if (file_exists($full))
 			{
 				@unlink($full);
 				$filesystem->delete($full);
+				$mogfs->delete(FS_GALLERYFULL, "{$this->userid}/{$this->id}.jpg");
 			}
 			$thumb = $this->getImagePath('thumb');
 			if (file_exists($thumb))
 			{
 				@unlink($thumb);
 				$filesystem->delete($thumb);
+				$mogfs->delete(FS_GALLERYTHUMB, "{$this->userid}/{$this->id}.jpg");
 			}
 
 			$mods->deleteItem(MOD_GALLERY,$this->id);
@@ -459,7 +497,8 @@ class gallerypic extends databaseobject
 		if ($deleted && $this->sourceid)
 		{
 			$sourcepic = $sourcepictures->getSourcePicture("{$this->userid}:{$this->sourceid}");
-			$sourcepic->delete();
+			if ($sourcepic)
+				$sourcepic->delete();
 		}
 		return $deleted;
 	}
@@ -525,7 +564,7 @@ class gallerypic extends databaseobject
 	// sourceobj is a sourcepicture object.
 	function generatePictures($sourceobj, $addtag = true)
 	{
-		global $staticRoot, $config;
+		global $staticRoot, $config, $mogfs;
 
 		set_time_limit(60); // reset the timeout counter to 1 minute for every image processed.
 
@@ -551,8 +590,12 @@ class gallerypic extends databaseobject
 		);
 
 		$sourceobj->duplicateImage($generate);
-
 		$this->sourceid = $sourceobj->id;
+
+		$mogfs->add(FS_GALLERY, "{$this->userid}/{$this->id}.jpg", file_get_contents($picdir));
+		$mogfs->add(FS_GALLERYFULL, "{$this->userid}/{$this->id}.jpg", file_get_contents($thumbdir));
+		$mogfs->add(FS_GALLERYTHUMB, "{$this->userid}/{$this->id}.jpg", file_get_contents($fulldir));
+
 		return true;
 	}
 

@@ -1,0 +1,50 @@
+<div>
+	<!--[if IE]><script type="text/javascript" src="{$site.static_files_url}/userpics/film_strip/js/excanvas-compressed.js"></script><![endif]-->
+	<!-- 	Done with extras -->
+	
+	<div id="film_strip">
+		<div id="film_strip_images_wrapper">
+			<div id="film_strip_images">
+				<t:images t:id="pics" t:iter="pic">
+					<img t:id="pic" alt="" t:linktype="landscape"/>
+				</t:images>
+				<t:if t:id="pics.empty?">
+					<img class="film_strip_no_picture" src="{$site.static_files_url}/userpics/film_strip/images/noImage.png" />
+				</t:if>
+			</div>
+		</div>
+		<canvas id="film_strip_overlay" width="404" height="184"></canvas>
+		<img id="film_strip_gradient" src="{$site.static_files_url}/userpics/film_strip/images/gradient.png" />
+		<div id="film_strip_comments_wrapper">
+			<div id="film_strip_comments">
+				<t:images t:id="pics" t:iter="pic">
+					<p>{pic.description}</p>
+				</t:images>
+				<t:if t:id="pics.empty?">
+					<p>User has no profile pictures.</p>
+				</t:if>
+			</div>
+		</div>
+		<div id="film_strip_page"></div>
+		<div id="film_strip_handle"></div>
+	</div>
+<!--
+	<div id="move_info" class="info">Position:</div>
+	<div id="click_info" class="info" style="text-indent: 75px;">Click:</div>
+	<div id="in_info" class="info" style="text-indent: 150px;">In:</div>
+	<div id="out_info" class="info" style="text-indent: 225px;">Out:</div>
+	<div id="offset_info" class="info" style="text-indent: 300px;">Offset:</div>
+-->
+	
+	
+<!--
+	<div id="mock">
+		<img src="{$site.static_files_url}/userpics/film_strip/images/profile_user_picture.jpg" />
+	</div>
+	<div id="mock_comment">
+		<img src="{$site.static_files_url}/userpics/film_strip/images/comment.png" />
+	</div>
+-->
+	
+	<script type="text/javascript" src="{$site.static_files_url}/userpics/film_strip/js/film_strip.js"></script>
+</div>

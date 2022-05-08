@@ -1,0 +1,21 @@
+h1.header{
+	text-align: left;
+	color: $header_text_color;
+	background-color: $header_background_color;
+	font-family: $header_font_family;
+	font-size: $header_font_size;
+}
+.header a{
+	color: $header_link_color;
+}
+.header a:hover{
+	color: $header_link_accent_color;
+}
+
+.right_align{
+	float: right;
+}
+
+[disabled] {
+	color: $minor_font_color;
+}

@@ -1,12 +1,16 @@
 <?
 
-define("ACCOUNT_PRIMARY", 1);
-define("ACCOUNT_BAND", 2);
+global $config;
 
 $config['activetimeout'] = 600;
 $config['sessiontimeout'] = 3600;
 $config['longsessiontimeout'] = 30*86400;
 
+define("ACCOUNT_STATE_NEW", 1);
+define("ACCOUNT_STATE_ACTIVE", 2);
+define("ACCOUNT_STATE_FROZEN", 11);
+//perm frozen vs temp frozen?
+define("ACCOUNT_STATE_DELETED", 15);
 
 class accounts {
 
@@ -20,33 +24,25 @@ class accounts {
 		$this->db = $db;
 	}
 
-	function getNewServerID($type){
-		$res = $this->masterdb->prepare_query("SELECT serverid FROM serverbalance WHERE weight > 0 ORDER BY (count/weight) ASC LIMIT 1");
+	function createAccount($type){
+		global $cache;
 
+		// TODO: Pull db_type_user from generaldb.typeid instead.
+		$res = $this->masterdb->prepare_query("SELECT serverid FROM serverbalance WHERE type = # AND weight > 0 ORDER BY (realaccounts/weight) ASC LIMIT 1", $type);
 		$serverid = $res->fetchfield();
 
-		$this->masterdb->prepare_query("UPDATE serverbalance SET count = count + 1 WHERE serverid = #", $serverid);
+		$this->masterdb->prepare_query("UPDATE serverbalance SET totalaccounts = totalaccounts + 1, realaccounts = realaccounts + 1 WHERE serverid = #", $serverid);
 
-		return $serverid;
-	}
+		$this->masterdb->prepare_query("INSERT INTO accounts SET type = #, serverid = #, state = #", $type, $serverid, ACCOUNT_STATE_NEW);
 
-	function createAccount($type){
-		$serverid = $this->getNewServerID($type);
+		$id = $this->masterdb->insertid();
 
-		$this->masterdb->prepare_query("INSERT INTO accounts SET type = #, serverid = #", $type, $serverid);
+		// Create the primary relationship.
+		$this->masterdb->prepare_query("INSERT INTO accountmap SET primaryid = #, accountid = #", $id, $id);
 
-		return $this->masterdb->insertid();
-	}
+		$cache->remove("serverid-user-$id");
 
-	function createPrimaryAccount($username){
-		$userid = $this->createAccount(ACCOUNT_PRIMARY);
-
-		$this->masterdb->prepare_query("INSERT IGNORE INTO usernames SET userid = #, username = ?, live='y'", $userid, $username);
-
-		if(!$this->masterdb->affectedrows())
-			return false;
-
-		return $userid;
+		return $id;
 	}
 
 	function getUserAccounts($userid){
@@ -80,9 +76,15 @@ class useraccounts {
 	}
 
 	function createAccount($username, $password, $email, $dob, $sex, $loc){
-		global $accounts, $auth, $config;
+		global $accounts, $auth, $config, $msgs, $typeid;
 
-		$userid = $accounts->createPrimaryAccount($username);
+		$type = $typeid->getTypeID("User");
+		$userid = $accounts->createAccount($type);
+
+		$this->masterdb->prepare_query("INSERT IGNORE INTO usernames SET userid = #, username = ?, live='y'", $userid, $username);
+
+		if(!$this->masterdb->affectedrows())
+			return false;
 
 		if(!$userid){
 			$msgs->addMsg("Username already in use");
@@ -181,7 +183,7 @@ class useraccounts {
 				unset($uids[$line['userid']]);
 			}else{
 				$userName = $usernames[$line['userid']];
-				$db->prepare_query("INSERT INTO deletedusers SET userid = #, username= ?, email = ?, time = #, reason = ?, deleteid = #, jointime = #, ip = #",
+				$db->prepare_query("REPLACE INTO deletedusers SET userid = #, username= ?, email = ?, time = #, reason = ?, deleteid = #, jointime = #, ip = #",
 				$line['userid'], $userName, $emails[$line['userid']], $time, $reason, $deleteid, $line['jointime'], $line['ip']);
 			}
 		}
@@ -213,12 +215,16 @@ class useraccounts {
 				$cache->remove("friendids" . USER_FRIENDS . "-$id");
 				$cache->remove("friendsonline-$id");
 			}
-
 		}
 
 
 		$this->usersdb->prepare_query("DELETE FROM users WHERE userid IN (%)", $uids);
+		$this->usersdb->prepare_query("DELETE FROM userpasswords WHERE userid IN (%)", $uids);
+		$this->usersdb->prepare_query("DELETE FROM usercounter WHERE id IN (%)", $uids);
+		$this->usersdb->prepare_query("DELETE FROM useractivetime WHERE userid IN (%)", $uids);
+		
 		$this->usersdb->prepare_query("DELETE FROM profile WHERE userid IN (%)", $uids);
+		$this->usersdb->prepare_query("DELETE FROM profileblocks WHERE userid IN (%)", $uids);
 
 		$this->masterdb->prepare_query("UPDATE usernames SET live = NULL WHERE userid IN (#)", $uids);
 		$this->masterdb->prepare_query("DELETE FROM useremails WHERE userid IN (#)", $uids);
@@ -229,6 +235,7 @@ class useraccounts {
 
 		$this->usersdb->prepare_query("DELETE FROM friends WHERE userid IN (%)", $uids);
 		$this->usersdb->prepare_query("DELETE FROM friends WHERE friendid IN (#)", $uids); //yes, all dbs
+		$this->usersdb->prepare_query("DELETE FROM friendscomments WHERE userid IN (%)", $uids);
 
 		$mods->deleteAdmin($uids);
 		$mods->deleteMod($uids);
@@ -257,8 +264,13 @@ class useraccounts {
 		$this->usersdb->prepare_query("DELETE FROM msgtext WHERE userid IN (%)", $uids);
 		$this->usersdb->prepare_query("DELETE FROM msgfolder WHERE userid IN (%)", $uids);
 
+		$this->usersdb->prepare_query("DELETE FROM usercomments WHERE userid IN (%)", $uids);
+
 		foreach($uids as $uid)
 			$this->usersdb->squery($uid, "UPDATE stats SET userstotal = userstotal - 1"); //can't do as a single query, as it'd substract the total from all dbs
+
+		$this->masterdb->prepare_query("UPDATE serverbalance, accounts SET serverbalance.realaccounts = serverbalance.realaccounts - 1, state = # WHERE accounts.id IN (#) && accounts.serverid = serverbalance.serverid", ACCOUNT_STATE_DELETED, $uids);
+
 
 		ignore_user_abort($old_user_abort);
 
@@ -341,6 +353,7 @@ class useraccounts {
 		$this->masterdb->prepare_query("UPDATE useremails SET active = 'y' WHERE userid = # && active = 'n'", $userid);
 
 		$this->usersdb->prepare_query("UPDATE users SET state = 'active' WHERE userid = % && state IN ('new','active')", $userid);
+		$this->masterdb->prepare_query("UPDATE accounts SET state = # WHERE id = #", ACCOUNT_STATE_ACTIVE, $userid);
 
 		$cache->remove("userprefs-$userid");
 		$cache->remove("userinfo-$userid");
@@ -361,8 +374,9 @@ class useraccounts {
 
 	function freeze($userid, $time = 0){
 		global $cache;
-		
+
 		$this->usersdb->prepare_query("UPDATE users SET state = 'frozen', frozentime = # WHERE userid = %", ($time ? (time() + $time) : 0), $userid);
+		$this->masterdb->prepare_query("UPDATE accounts SET state = # WHERE id = #", ACCOUNT_STATE_FROZEN, $userid);
 
 		$cache->remove("userinfo-$userid");
 		$cache->remove("userprefs-$userid");
@@ -372,8 +386,9 @@ class useraccounts {
 
 	function unfreeze($userid){
 		global $cache;
-	
+
 		$this->usersdb->prepare_query("UPDATE users SET state = 'active' WHERE userid = %", $userid);
+		$this->masterdb->prepare_query("UPDATE accounts SET state = # WHERE id = #", ACCOUNT_STATE_ACTIVE, $userid);
 
 		$cache->remove("userinfo-$userid");
 		$cache->remove("userprefs-$userid");
@@ -440,9 +455,9 @@ class authentication {
 
 				$this->loginlog($userid, 'frozen');
 				if($user['frozentime'])
-					$msgs->addMsg("Your account is frozen for another " . number_format((time()-$user['frozentime'])/86400,1) . " days.");
+					$msgs->addMsg("Your account is frozen for another " . number_format(($user['frozentime'] - time())/86400,3) . " days. <a class=body href=/contactus.php>Contact an admin if you've got questions.</a>");
 				else
-					$msgs->addMsg("Your account is frozen");
+					$msgs->addMsg("Your account is frozen. <a class=body href=/contactus.php>Contact an admin if you've got questions.</a>");
 				return false;
 
 		//TODO: show a reason for deleted (frozen?) users
@@ -591,7 +606,7 @@ class authentication {
 	}
 
 	function auth($userid, $key, $kill = true, $simple = false){
-		global $config, $cookiedomain, $cache, $debuginfousers;
+		global $config, $cookiedomain, $cache, $debuginfousers, $msgs;
 
 		settype($userid, 'int');
 		settype($key, 'string');
@@ -602,6 +617,7 @@ class authentication {
 		$ip = ip2int(getip());
 
 		$userData['loggedIn'] = false;
+		$userData['halfLoggedIn'] = false;
 		$userData['timeoffset']=$config['timezone'];
 		$userData['limitads'] = false;
 		$userData['premium'] = false;
@@ -677,52 +693,11 @@ class authentication {
 		//update memcached more often than the db
 		if($session['activetime'] < $time - 120 || $sessionmemcacheput){
 			$session['activetime'] = $time;
+			$session['username'] = getUserName($userid);
 			$cache->put("session-$userid-$key", $session, $config['sessiontimeout']);
 		}
 
 
-	/*
-	//attempt at full caching, has bugs, likely caused by the cache not being invalidated at all places where it should be
-
-
-	//not cached due to updates. Won't show new messages, etc.
-		$prefs = $cache->get("userprefs-$userid");
-
-		if($prefs){
-			$prefs['newmsgs'] = $cache->get("newmsgs-$userid");
-			$prefs['newcomments'] = $cache->get("newcomments-$userid");
-
-			if($prefs['newmsgs'] === false || $prefs['newcomments'] === false){
-
-				$db->prepare_query("SELECT newmsgs, newcomments FROM users WHERE userid = #", $userid);
-				$row = $db->fetchrow();
-
-				if($prefs['newmsgs'] === false)
-					$cache->put("newmsgs-$userid", $row['newmsgs'], $config['maxAwayTime']);
-				if($prefs['newcomments'] === false)
-					$cache->put("newcomments-$userid", $row['newcomments'], $config['maxAwayTime']);
-			}
-		}else{
-			$cols = array("username", "frozen", "online", "sex", "age", "loc", "premiumexpiry", 'email',
-						"posts", "newmsgs", "newcomments",
-						"showrightblocks", "timeoffset", "enablecomments", "defaultminage", "defaultmaxage", "defaultsex", "skin", "limitads",
-						'replyjump','autosubscribe', 'forumsort', 'forumpostsperpage', 'showsigs', 'friendslistthumbs', 'enablecomments', 'journalentries' ,'gallery', 'hideprofile'
-						);
-
-			$db->prepare_query("SELECT " . implode(", ", $cols) . " FROM users WHERE userid = #", $userid);
-			$prefs = $db->fetchrow();
-
-			if(!$prefs)
-				die("That account doesn't exist");
-
-			$temp = $prefs;
-			$temp['online'] = 'y';
-
-			$cache->put("userprefs-$userid", $temp, $config['maxAwayTime']);
-			$cache->put("newmsgs-$userid", $prefs['newmsgs'], $config['maxAwayTime']);
-			$cache->put("newcomments-$userid", $prefs['newcomments'], $config['maxAwayTime']);
-		}
-	*/
 
 
 	//simple version where only the prefs are cached so that simple pages (ie pages without the messages/comments) can pull the prefs from the cache
@@ -740,7 +715,7 @@ class authentication {
 			if(!$prefs)
 				die("That account doesn't exist");
 
-			$prefs['username'] = $username = getUserName($userid);
+			$prefs['username'] = $username = $session['username']; //getUserName($userid);
 
 			$temp = $prefs;
 			$temp['online'] = 'y';
@@ -750,9 +725,10 @@ class authentication {
 				$cache->put("useractive-$userid", time(), 86400*7);
 		}
 
+		$activated = false;
 		switch($prefs['state']){
-			case "active":  break;
-			case "new":     die("You have to activate your account?"); //how do you get here if it's in state=new?
+			case "active":  $activated = true; break;
+			case "new":     break;//die("You have to activate your account?"); //how do you get here if it's in state=new?
 			case "frozen":
 				$this->destroySession($userid, $key);
 				die("Your account is frozen. If it was a timed freeze, try logging in again");
@@ -785,15 +761,15 @@ class authentication {
 		$userData = $prefs;
 
 	//set the more complex stuff that isn't in prefs, or that needs manipulation
-		$userData['loggedIn'] = true;
+		$userData['loggedIn'] = $activated? true : false;
+		$userData['halfLoggedIn'] = true;
 		$userData['sessionkey'] = $key; //logout on password change
 		$userData['sessionlockip'] = ($session['lockip']=='y'); //disallow admin powers unless locked ip
 		$userData['interests'] = $interests;   //for banners
-		$userData['premium'] = ($prefs['premiumexpiry'] > $time);
+		$userData['premium'] = $userData['loggedIn'] && ($prefs['premiumexpiry'] > $time);
 		$userData['limitads'] = ($prefs['limitads'] == 'y' && $userData['premium']);
 		$userData['debug'] = in_array($userid, $debuginfousers);
-		$userData['bbcode_editor'] = true; //($prefs['bbcode_editor']== 'y' ? true : false);
-		$userData['parse_bbcode'] = ($prefs['parse_bbcode']== 'y' ? true : false);
+		$userData['trustjstimezone'] = ($prefs['trustjstimezone'] == 'y' ? true : false);
 
 		// fix up timezone info, first from the session table if set
 		if(isset($session['jstimezone']))
@@ -808,6 +784,9 @@ class authentication {
 		}
 
 		$this->statsHeaders($userData);
+
+		if ($userData['halfLoggedIn'] && !$userData['loggedIn'])
+			$msgs->addMsg("Your account has not been activated yet.<br>You can use some features of the site until then, but you will not be able to log back in until you have activated.");
 
 		return $userData;
 	}
@@ -830,8 +809,9 @@ class authentication {
 
 		$expire = ($cachedlogin == 'y' ? $time + $config['longsessiontimeout'] : 0);  //cache for 1 month
 
-		setCookie("userid", $userid, $expire, '/', $cookiedomain);
-		setCookie("key", $key, $expire, '/', $cookiedomain);
+	//use a set cookie wrapper, so on php 5.2+ the http only flag works, but doesn't fail on earlier versions.
+		set_cookie('userid', $userid, $expire, '/', $cookiedomain, false, true);
+		set_cookie('key',    $key,    $expire, '/', $cookiedomain, false, true);
 
 		return $userid;
 	}
@@ -843,8 +823,10 @@ class authentication {
 
 		$cache->remove("session-$userid-$key");
 
-		setCookie("userid", $userid, time()-10000000, '/', $cookiedomain);
-		setCookie("key", $key, time()-10000000, '/', $cookiedomain);
+		$expire = time()-10000000;
+
+		set_cookie("userid", $userid, $expire, '/', $cookiedomain, false, true);
+		set_cookie("key",    $key,    $expire, '/', $cookiedomain, false, true);
 	}
 
 	function checktimezone()

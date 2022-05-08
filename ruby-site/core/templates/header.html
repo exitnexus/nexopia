@@ -1,0 +1,83 @@
+<t:header_template xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+	<div>
+		<div id="title_search">
+			<table>
+				<tbody>
+					<form name="search_form" id="search_form" method="post" action="#">
+						<tr>
+							<td>
+								<img src="{$site.static_url}/images/NexopiaLogo.png" />
+							</td>
+							<td style="vertical-align: middle;">
+								<h4>nexopia</h4>
+							</td>
+							<td style="vertical-align: middle;">
+								<input type="text" id="title_search_text" name="title_search_text" />
+								<input type="image" src="{$site.static_url}/images/SearchIcon.png" id="title_search_submit" name="title_search_submit" />
+							</td>
+							<td style="vertical-align: middle;">
+								users
+							</td>
+							<td style="vertical-align: middle;">
+								<input type="radio" checked="checked" name="title_search_selection" id="title_search_selection_users" value="users" />
+							</td>
+							<td style="vertical-align: middle;">
+								web
+							</td>
+							<td style="vertical-align: middle;">
+								<input type="radio" name="title_search_selection" id="title_search_selection_web" value="web" />
+							</td>
+							<td style="vertical-align: middle;">
+								Google
+							</td>
+						</tr>
+					</form>
+				</tbody>
+			</table>
+		</div>
+		<div id="title_users">
+			<table>
+				<tbody>
+					<tr>
+						<td>
+							51.233
+						</td>
+						<td>
+							users.online
+						</td>
+						<td>
+							32.053
+						</td>
+						<td>
+							guests.online
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+	<div id="title_navigation" class="yui-t7">
+		<table>
+			<tbody>
+				<tr>
+					<t:iter t:id="menuitems" t:iter="item">
+						<td>
+							::
+						</td>
+						<td>
+							<a href="/{item}">{item}</a>
+						</td>
+					</t:iter>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+		<script>
+			<![CDATA[
+
+			function show(t) {
+				document.getElementById('MainObj').innerHTML = t;
+			}
+			]]>
+		</script>
+</t:header_template>

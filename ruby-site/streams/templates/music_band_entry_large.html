@@ -1,0 +1,28 @@
+<div id="individual_band_entry" class="yui-t7">
+	#{css}
+	<div class="yui-gd">
+		<div class="yui-u first">
+			<img src="{band.stream_icon.image}"></img>
+		</div>
+		<div class="yui-u">
+			<h1>{band.name}</h1>
+			{band.band_location}
+
+			<h2>Musical Genres</h2>
+			{band.genre}
+
+			<h2>Band Website</h2>
+			<a t:id="band" t:linktype="band_website"></a>
+
+			<h2>Bio</h2>
+			{band.bio}
+
+			<h4>
+				<!-- Added by&#160;<a t:id="band.user" t:linktype="php"></a> -->
+			</h4>
+		</div>
+	</div>
+	<div class="yui-g back_nav">
+		<a href="{back_link}">Back</a>
+	</div>
+</div>

@@ -1,0 +1,50 @@
+<div id="page">
+
+	<t:varsub t:old="Template::DefaultView.translate_url(@__url)" t:new="__url"/>
+	
+	<div class="page_header">
+		<t:if t:id="__entries.total_pages &lt;= 8">
+			Displaying {(__entries.page-1)*__entries.page_length + 1}-{(__entries.page-1)*__entries.page_length+__entries.length} of {__entries.total_rows}.
+			Page: 
+					
+			 	<t:loop t:id="(1..__entries.total_pages)" t:iter="_page">
+					<t:if t:id="_page == __entries.page">
+						&#160;{_page}
+					</t:if>
+					<t:if t:id="_page != __entries.page">
+						&#160;<a href="#{__url}page=#{_page}">#{_page}</a> 
+					</t:if>
+				</t:loop>	
+		</t:if>
+		<t:if t:id="__entries.total_pages &gt; 8">
+		
+			Displaying {(__entries.page-1)*__entries.page_length + 1}-{(__entries.page-1)*__entries.page_length+__entries.length} of {__entries.total_rows}.
+			Page: 
+		
+				&#160;<a href="#{__url}page=1">|&lt;</a> 
+				
+				<t:varsub t:new="begin_page" t:old="[__entries.page - 3, 1].max"/>
+				<t:varsub t:new="end_page" t:old="[begin_page+6, __entries.total_pages].min"/>
+				<t:varsub t:new="begin_page" t:old="end_page-6"/>
+							
+				<t:loop t:id="((begin_page)..(end_page))" t:iter="_page">
+					<t:if t:id="_page == __entries.page">
+						&#160;{_page}
+					</t:if>
+					<t:if t:id="_page != __entries.page">
+						&#160;<a href="#{__url}page=#{_page}">#{_page}</a> 
+					</t:if>
+				</t:loop>
+		
+				&#160;<a href="#{__url}page=#{__entries.total_pages}">&gt;|</a>
+		</t:if>			
+	</div>
+
+	<t:if t:id="__entries.total_pages == 0">
+		<div class="body2">None to display</div>
+	</t:if>
+	<t:loop t:id="__entries" t:iter="__entry" t:url="'/my/status_updates'">
+		<call:yield call:params="__entry | t:iter"/>
+	</t:loop>
+	
+</div>			

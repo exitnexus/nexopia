@@ -1,0 +1,116 @@
+.enhanced_text_input_wrapper .emoticon_left_arrow
+{
+	display: block;
+	position: absolute;
+	top: 0px;
+	bottom: 0px;
+	left: 0px;
+	
+	padding-top: 12px;
+	padding-left: 2px;
+	padding-right: 2px;
+	
+	cursor: pointer;
+}
+
+.enhanced_text_input_wrapper .emoticon_right_arrow
+{
+	display: block;
+	position: absolute;
+	top: 0px;
+	bottom: 0px;
+	right: 0px;
+	
+	padding-top: 12px;
+	padding-left: 2px;
+	padding-right: 2px;
+	
+	cursor: pointer;
+	
+	border-right: solid 1px $primary_background_color;
+}
+
+.enhanced_text_input_wrapper .emoticon_left_back
+{
+	display: block;
+	position: absolute;
+	top: 0px;
+	bottom: 0px;
+	left: 0px;
+	
+	color: $primary_background_color;
+}
+*html .enhanced_text_input_wrapper .emoticon_left_back
+{
+	left: -1px;
+}
+.enhanced_text_input_wrapper .emoticon_right_back
+{
+	display: block;
+	position: absolute;
+	top: 0px;
+	bottom: 0px;
+	right: 0px;
+	
+	color: $primary_background_color;
+}
+
+.enhanced_text_input_wrapper .emoticon_list
+{
+	position: absolute;
+	top: 0px;
+	bottom: 0px;
+	left: 0px;
+	width: 100%;
+	
+	overflow: hidden;
+}
+
+.enhanced_text_input_wrapper .emoticon_list table
+{
+	margin-left: 10px;
+	margin-right: 10px;
+	padding-right: 10px;
+}
+
+.enhanced_text_input_wrapper .emoticon_list td
+{
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+.enhanced_text_input_wrapper .foreground_as_background
+{
+	color: $primary_background_color;
+}
+
+.enhanced_text_input_wrapper .standard_colors
+{
+	color: $secondary_text_color;
+	background-color: $primary_background_color;
+	border-color: $secondary_text_color;
+}
+
+.enhanced_text_input_wrapper .text_box_wrapper
+{
+	margin: 0px;
+	border-width: 1px;
+	border-style: solid;
+	border-top-width: 0px;
+}
+*html .enhanced_text_input_wrapper .text_box_wrapper
+{
+	border-top-width: 1px;
+}
+
+.enhanced_text_input_wrapper .input_button
+{
+	height: 18px;
+	border: solid 1px #666;
+	background-color: $secondary_background_color;
+	color: $secondary_text_color;
+	font-size: 10px;
+	margin: 0px;
+	margin-right: 2px;
+	outline: none;
+}

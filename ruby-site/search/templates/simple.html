@@ -1,0 +1,10 @@
+<div id="search_simple">
+	<form method="post" action="/search/simple/results">
+		<input type="radio" id="search_type/username" name="type" value="username" cond:checked="type == 'username'" /><label for="search_type/username">&nbsp;Username&nbsp;</label>
+		<input type="radio" id="search_type/email"    name="type" value="email"    cond:checked="type == 'email'"    /><label for="search_type/email">&nbsp;E-mail&nbsp;</label>
+		<input type="radio" id="search_type/realname" name="type" value="realname" cond:checked="type == 'realname'" /><label for="search_type/realname">&nbsp;Real Name&nbsp;</label>
+		<br />
+		<input class="text" type="text" id="value" name="value" maxlength="100" value='{value}'/>
+		<input type="submit" value="Search" />
+	</form>
+</div>

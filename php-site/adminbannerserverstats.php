@@ -17,8 +17,8 @@
 						'Click' => array(0,0,0),
 						'Connections' => 0);
 
-
-		$sock = fsockopen($host, BANNER_PORT);
+		
+		$sock = fsockopen($host, BANNER_PORT, $errno, $errstr, 0.02); //20ms timeout
 		
 		fwrite($sock, "stats\n");
 
@@ -120,7 +120,7 @@
 		$i = !$i;
 		
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Connect'][0]) . "</td>";
-		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Connect'][0]/$stat['Uptime']) . "</td>";
+		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Connect'][0]/$stat['Uptime'],2) . "</td>";
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Connect'][1]) . "</td>";
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Connect'][2]) . "</td>";
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Connections']) . "</td>";
@@ -128,21 +128,21 @@
 		$i = !$i;
 
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Get'][0]) . "</td>";
-		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Get'][0]/$stat['Uptime']) . "</td>";
+		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Get'][0]/$stat['Uptime'],2) . "</td>";
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Get'][1]) . "</td>";
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Get'][2]) . "</td>";
 
 		$i = !$i;
 
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Get Fail'][0]) . "</td>";
-		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Get Fail'][0]/$stat['Uptime']) . "</td>";
+		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Get Fail'][0]/$stat['Uptime'],2) . "</td>";
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Get Fail'][1]) . "</td>";
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Get Fail'][2]) . "</td>";
 
 		$i = !$i;
 
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Click'][0]) . "</td>";
-		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Click'][0]/$stat['Uptime']) . "</td>";
+		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Click'][0]/$stat['Uptime'],2) . "</td>";
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Click'][1]) . "</td>";
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($stat['Click'][2]) . "</td>";
 

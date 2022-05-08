@@ -19,11 +19,15 @@ class sql_db extends sql_base { //must be saved by reference
 	public $user;
 	public $password;
 	public $dbname;
+	
+	public $down;
 
 	public $transactions;
 	public $seqtable = false;
 
 	public $needkey;
+
+	public $maxretries;
 
 	function __construct($options){
 		$this->server 		= $options['host'];
@@ -37,25 +41,43 @@ class sql_db extends sql_base { //must be saved by reference
 		$this->transactions	= (isset($options['transactions'])	? $options['transactions'] : false);
 		$this->seqtable     = (isset($options['seqtable'])	    ? $options['seqtable'] : false);
 
+		$this->maxretries   = (isset($options['maxretries'])    ? $options['maxretries'] : 10);
+
+		$this->down         = (isset($options['down']) ? $options['down'] : false);
+
 		parent::__construct($options);
 	}
 
-	function getSplitDBs()
-	{
+	function describe(){
+		return "mysql:" . $this->server . ":" . $this->dbname;
+	}
+
+	function getSplitDBs(){
 		return array($this);
 	}
 
-	function chooseSplitDBs($id)
-	{
+	function chooseSplitDBs($id){
 		return $this;
 	}
 
-	function connect(){
+	function selectdb($name){
+		if($this->dbname == $name)
+			return;
+		
+		$this->dbname = $name;
+	
+		return mysql_select_db($name);
+	}
+
+	function connect($retries = 0){
 		if($this->db_connect_id){
 			if(time() - $this->lastquerytime > 10)
 				return mysql_ping($this->db_connect_id);
 			return true;
 		}
+
+		if($this->down)
+			$this->debugerror("Database Down: $this->server:$this->dbname", "", true);
 
 		if($this->persistency){
 			$this->db_connect_id = @mysql_pconnect($this->server, $this->user, $this->password, true);
@@ -65,8 +87,14 @@ class sql_db extends sql_base { //must be saved by reference
 		}
 
 		if(!$this->db_connect_id){
-			$error = $this->error();
-			$this->debugerror("Failed to Connect to Database: " . $this->dbname, " Error Code $error[code]: $error[message]", true);
+			if($retries >= $this->maxretries){
+//				$error = $this->error();
+				$this->debugerror("Failed to Connect to Database: $this->server:$this->dbname", "", true);//" Error Code $error[code]: $error[message]", true);
+			}else{
+				usleep(($retries + 1) * rand(50000, 250000)); //wait between 50 and 250ms (going up each retry)
+				$this->connect($retries + 1); //retry
+				return;
+			}
 		}
 
 		$this->connectioncreationtime = gettime();
@@ -99,15 +127,7 @@ class sql_db extends sql_base { //must be saved by reference
 		return $result;
 	}
 
-	function query(){ //$keys = false, $query, $buffered = true, $reconnect = true
-		$arg_list = func_get_args();
-
-		$this->parseargs($arg_list);
-
-		$query = $arg_list[0];
-		$buffered = isset($arg_list[1]) ? $arg_list[1] : true;
-		$reconnect = isset($arg_list[2]) ? $arg_list[2] : true;
-
+	function query($query, $buffered = true, $reconnect = true){
 		$this->connect();
 
 		$this->clearresult();
@@ -116,8 +136,7 @@ class sql_db extends sql_base { //must be saved by reference
 		$this->lastquery = $query;
 
 		$calcfound = false;
-		if (preg_match('/^SELECT\s+(DISTINCT\s+)?SQL_CALC_FOUND_ROWS/', $query))
-		{
+		if (preg_match('/^SELECT\s+(DISTINCT\s+)?SQL_CALC_FOUND_ROWS/', $query)){
 			$buffered = true;
 			$calcfound = true;
 		}
@@ -139,8 +158,7 @@ class sql_db extends sql_base { //must be saved by reference
 
 		if($query_result){
 
-			if ($calcfound)
-			{
+			if ($calcfound){
 				$calcfound_result = mysql_query("SELECT FOUND_ROWS()", $this->db_connect_id);
 				$calcfound = mysql_result($calcfound_result, 0);
 			}
@@ -149,7 +167,6 @@ class sql_db extends sql_base { //must be saved by reference
 			$this->setresult($result);
 
 			return $result;
-
 		}else{
 			$error = $this->error();
 			if(($error['code'] == 2013 || $error['code'] == 2006) && $reconnect){ //disconnect
@@ -242,7 +259,7 @@ class sql_db extends sql_base { //must be saved by reference
 	}
 
 	function error(){
-		$result['message'] = mysql_error($this->db_connect_id);
+		$result['message'] = $this->server . ":" . $this->dbname . ": " . mysql_error($this->db_connect_id);
 		$result['code'] = mysql_errno($this->db_connect_id);
 
 		return $result;
@@ -471,7 +488,7 @@ class sql_db extends sql_base { //must be saved by reference
 		}
 	}
 
-	function analyze($status = 1){
+	function analyze($status = 1, $skip = array()){
 		set_time_limit(0);
 
 		$this->debugoutput("Starting analysis<br>\n", $status);
@@ -479,8 +496,12 @@ class sql_db extends sql_base { //must be saved by reference
 		$tables = array();
 
 		$tableresult = $this->listtables();
-		while (list($name) = $this->fetchrow($tableresult,DB_NUM))
+		while(list($name) = $this->fetchrow($tableresult,DB_NUM)){
+			foreach($skip as $val)
+				if(strpos($name, $val) !== false)
+					continue 2;
 			$tables[] = $name;
+		}
 
 		$time1 = time();
 		foreach($tables as $name){
@@ -493,7 +514,7 @@ class sql_db extends sql_base { //must be saved by reference
 		}
 	}
 
-	function optimize($status = 1){
+	function optimize($status = 1, $skip = array()){
 		set_time_limit(0);
 
 		$this->debugoutput("Starting optimization<br>\n", $status);
@@ -501,8 +522,12 @@ class sql_db extends sql_base { //must be saved by reference
 		$tables = array();
 
 		$tableresult = $this->listtables();
-		while (list($name) = $this->fetchrow($tableresult,DB_NUM))
+		while(list($name) = $this->fetchrow($tableresult,DB_NUM)){
+			foreach($skip as $val)
+				if(strpos($name, $val) !== false)
+					continue 2;
 			$tables[] = $name;
+		}
 
 		$time1 = time();
 		foreach($tables as $name){

@@ -1,0 +1,34 @@
+//start admin menu
+if($skindata['admin']){
+	echo "<tr>";
+		if(substr($skindata['menupic'],0,1)=="#")
+			echo "<td height=$skindata[menuheight] bgcolor=$skindata[menupic]>";
+		else
+			echo "<td height=$skindata[menuheight] background='$skinloc$skindata[menupic]'>";
+
+			echo "<table cellspacing=0 cellpadding=0 width=100%><tr>";
+			if(!empty($skindata['menuends']))
+				echo "<td class=menu align=left width=1><img src='$skinloc" . "left$skindata[menuends]'></td>";
+
+			echo "<td class=menu align=left>&nbsp;&nbsp;&nbsp;&nbsp;";
+
+
+			$menu = array();
+			foreach($menus['admin']->getMenu() as $item)
+				$menu[] = "<a href='$item[addr]'" . ($item['target']=='' ? "" : " target='$item[target]'" ) . ">$item[name]</a>";
+			echo implode($skindata['menudivider'],$menu);
+
+			echo "</td>";
+			if(!empty($skindata['menuends']))
+				echo "<td class=menu align=right width=1><img src='$skinloc" . "right$skindata[menuends]'></td>";
+			echo "</tr></table>";
+		echo "</td>";
+	echo "</tr>";
+	if($skindata['menuspacersize'] > 0){
+		if(substr($skindata['menuspacer'],0,1)=="#")
+			echo "<tr><td height=$skindata[menuspacersize] bgcolor=$skindata[menuspacer]></td></tr>";
+		else
+			<tr><td height=$skindata[menuspacersize] background='$skinloc$skindata[menuspacer]'></td></tr>";
+	}
+	
+	

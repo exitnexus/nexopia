@@ -1,0 +1,521 @@
+.gallery{
+	padding: 0em 4em 4em 4em;
+	text-align: left;
+	& #gallery_toggle {
+		position:relative;
+		right: 10px;
+		top: 10px;
+	}
+	& .edit_bar {
+		vertical-align: top;
+		height: 0px;
+		overflow: hidden;
+		position:absolute;
+		background-color: black;
+		color: white;
+		opacity: 0.75;
+		margin: 0px;
+		padding: 0px;
+		&.gallery_pic_bar {
+			width: 75px;
+			margin-left: 2px;
+			margin-top: 2px;
+		}
+		&.gallery_folder_bar {
+			margin-left: 5px;
+			width: 100px;
+		}
+		&.profile_pic_bar {
+			width:100px;
+		}
+		& div {
+			position:relative;
+			top: -10px;
+			& .right_menu {
+				float: right;
+				& a {
+					margin: 3px;
+					position: relative;
+					top: 4px;
+					& img {
+						border: none;
+						width: auto;
+						height: auto;
+					}
+				}
+			}
+		}
+	}
+}
+
+.gallery span{
+	font-family: $page_font_family;
+	font-size: $page_font_size;
+}
+
+.gallery .album_row div{
+	text-align: center;
+}
+
+.gallery option {
+	width: 100%;
+}
+
+.gallery select {
+	width: 100%;
+}
+
+.gallery tr {
+	height: 100px;
+}
+
+.gallery .album_row{
+	clear:both;
+	padding: 0px;
+	margin: 0px;
+	text-align: left;
+	float: left;
+	list-style:none;
+}
+
+.gallery .album_row li {
+	float: left;
+	margin:1px;
+	border:2px solid transparent;
+}
+
+.gallery .album_title {
+	margin-left: 5px;
+}
+
+.gallery .album_page {
+	float: none;
+	clear: both;
+	margin-left: 9px;
+	text-align: left;
+	overflow-x: hidden;
+	overflow-y: auto;
+	& .gallery_pics_page {
+		float:left;
+		width: 570px;
+		& li {
+			float: left;
+		}
+	}
+}
+
+.gallery .album_page ul {
+	list-style:none;
+	margin:0px;
+	padding-left:0px;
+}
+
+.gallery .disabled_link {
+	cursor:default;
+	color:$primary_text_color;
+}
+.gallery .disabled_link:hover {
+	cursor:default;
+	color:$primary_text_color;
+}
+
+
+.gallery div.image_description {
+	overflow: hidden;
+	white-space: normal; 
+	font-size: $page_font_size;
+	font-style: $page_font_style;
+	height: 15px;
+	width: 100%;
+	text-align: left;
+	padding: 1px;
+}
+
+textarea.edit_box {
+	height: 15px;
+	width: 100%;
+	border-width: 1px;
+	overflow-y: auto;
+	overflow-x: hidden;
+	font-size: $page_font_size;
+	font-style: $page_font_style;
+	display: none;
+}
+
+
+.gallery .handle {
+	cursor: move;
+	text-align: center;
+}
+
+.borderdraw{
+	line-height: 0px;
+	width: 0px;
+	height: 0px;
+	border-style: solid;
+}
+
+div.folder_photoframe {
+	width: 109px; 
+	height: 119px;
+	padding-top: 5px;
+	overflow: hidden;
+	float:none;
+	clear:both;
+	background-color: $secondary_background_color;
+	& img {
+		width: 100px;
+		height: 100px;
+	}
+}
+
+#gallery_header_tabs .folder_photoframe {
+	background-color: $primary_background_color;
+}
+
+.photoframe {
+	width: 79px; 
+	height: auto;
+	overflow: hidden;
+	margin: 2px;
+	padding: 3px;
+	border: solid 2px $secondary_background_color; 
+	text-align: center;
+	
+	& .photoframe_photo {
+		margin: 2px;
+		width: 75px;
+	}
+}
+
+#gallery_header_tabs .folder_photoframe {
+	border: solid 2px $primary_background_color; 
+}
+
+
+.album_row .right_menu {
+	position: relative;
+	top: -1px;
+}
+
+div.photoframe .upper{
+	padding-top: 3px;
+	height: 16px;
+	overflow: hidden;
+}
+
+div.photoframe .lower{
+	overflow: hidden;
+}
+
+.tab_photoframe1 {
+	float: left; 
+	margin-left: 2px;
+	border-width: 5px 5px 5px 40px; 
+	border-color: $secondary_background_color;
+}
+
+#gallery_header_tabs .tab_photoframe1 {
+	border-color: $primary_background_color;
+}
+
+.tab_photoframe2 {
+	float: left;
+	border-width:5px; 
+	border-color:$primary_background_color $primary_background_color $secondary_background_color $secondary_background_color;
+}
+
+#gallery_header_tabs .tab_photoframe2 {
+	border-color:$secondary_background_color $secondary_background_color $primary_background_color $primary_background_color;
+}
+
+h1#main_header{
+	color: $section_header_text_color;
+	font-size: 9pt;
+	padding-top: 5px;
+	padding-bottom: 8px;
+	position: relative;
+	background: $section_header_background_color $section_header_background_image;
+}
+
+.gallery div.gallery_description {
+	padding: 0px 5px;
+	height: 35px;
+	overflow: hidden;
+}
+
+.gallery div.lower div {
+	padding: 0px 5px;
+	text-align: left;
+}
+
+.gallery h3{
+	color: $primary_text_color;
+	background-color: transparent;
+	margin: 0.0em;
+	padding: 0.0em;
+	font-size: 16pt;
+	display: inline;
+}
+
+.gallery ul.action_bar {
+	list-style: none;
+	margin-left:0px;
+	margin-top:0px;
+	padding-left:0px;
+	text-align: left;
+}
+
+.gallery ul.action_bar li {
+	float: left;
+	margin-left: 7px;
+	margin-bottom: 7px;
+}
+
+.action_bar input {
+	padding-top: 1px;
+	padding-bottom: 1px;
+}
+
+.action_bar #upload_images {
+	float: right;
+	margin-right: 7px;
+}
+
+.gallery .javascript_select {
+	display: block;
+	margin:7px;
+}
+
+.gallery hr {
+	float: none;
+	clear: both;
+}
+
+.gallery br.clear {
+	float: none;
+	clear: both;
+	height: 0px;
+	width: 0px;
+}
+
+.gallery .clear {
+	float: none;
+	clear: both;
+}
+
+.photoframe .left_menu{
+	float: left;
+}
+
+.photoframe .right_menu{
+	float: right;
+}
+
+.gallery h4.header_box {
+	color: $secondary_text_color;
+	background-color: transparent;
+	margin: 0px;
+	font-size: 8pt;
+	text-align: left;
+	overflow: hidden;
+	height:14px;
+	width: 89px;
+	display:block;
+	padding-top: 1px;
+	padding-left:5px;
+}
+
+.photoframe a img {
+	border-style: none; 
+}
+
+.photoframe input {
+	border: 0px;
+}
+
+.gallery .gallery_menu {
+	float: right;
+	margin-left: 7px;
+	margin-right: 7px;
+}
+
+div.gallery_quick_view {
+	background-color: $primary_background_color;
+	padding: 0.3em;
+}
+
+img.gallery_quick_view {
+	width:  86px;
+}
+
+.gallery_quick_view img{
+	vertical-align: top;
+	margin: 0em;
+	margin-right: 0;
+	border: 0px;
+}
+
+div.gallery_quick_view_frame {
+	height: 60px;
+	margin: 0.3em;
+	float: left;
+	overflow: hidden;
+}
+
+
+
+div.error{
+	background-color: red;
+	color: black;
+	text-align: center;
+}
+
+select#selected_gallery{
+	display: inline;
+}
+div#gallery_select{
+	display: inline;
+}
+
+#gallery_header_tabs {
+	& li.selected {
+		font-weight: bold;
+		background-color: $secondary_background_color;
+	}
+	visibility: hidden;
+	position: absolute;
+	width: 572px;
+	& .yui-nav {
+		padding:0px;
+		margin:0px;
+		list-style:none;
+		& li {
+			padding-left: 6px;
+			padding-right: 6px;
+			padding-top: 2px;
+			padding-bottom: 2px;
+			float:left;
+			& a {
+				color: $link_color;
+			}
+			& a:hover {
+				color: $link_accent_color;
+			}
+			
+		}
+	}
+	& .yui-content {
+		clear:both;
+		background-color: $secondary_background_color;
+	}
+}
+
+div.galleries_profile_block{
+	& .gallerythumb{
+		border: 0px;
+		width: 53px; 
+		height: 53px;
+		margin: 1px;
+	}
+	
+	& h2 {
+		font-family: $page_font_family;
+		font-size: 14px;
+		letter-spacing: 0px;
+		float: left;
+		margin: 2px; 
+		font-size: 14px;
+	}
+	& div.right_menu{
+		float: right; 
+		line-height: 24px; 
+		vertical-align: middle;
+	}
+}
+
+div#gallery_block_edit{
+	margin: 1em;
+	margin-top: 3em;
+}
+
+div.gallery_profile_block{
+	& h2{
+		font-family: $page_font_family;
+		font-size: 14px;
+		letter-spacing: 0px;
+		margin: 2px;
+	}
+	& div.gallery_pics_frame{
+		margin: 4px;
+		background-color: $secondary_background_color;
+	} 
+	& .left_arrow {
+		padding-top: 30px; 
+		float: left; 
+		line-height: 75px; 
+		vertical-align: middle;
+	}
+	& .right_arrow {
+		padding-top: 30px; 
+		float: right; 
+		line-height: 75px; 
+		vertical-align: middle;
+	}
+	& .gallery_pics_scroller {
+		overflow: hidden;
+		width: 100%;
+		& img {
+			width: 53px;
+			height: 53px;
+		}
+	}
+}
+
+div#edit_photo_panel{
+	& .mainContainer{
+		padding: 30px;
+		text-align: center;
+		& .button_bar{
+			float: right;
+		}
+		& .info_block{
+			& h2{
+				padding: 0;
+				margin: 0;
+			}
+			width: 480px;
+			text-align: left;
+			& .instructions{
+				color: $secondary_text_color;
+			}
+		}
+		& .command_bar{
+			width: 480px;
+			padding-bottom: 1em;
+			padding-top: 1em;
+		}
+		& .crop_command_bar{
+			width: 480px;
+			padding-bottom: 1em;
+			padding-top: 1em;
+			clear: both;
+			float: none;
+			text-align: right;
+		}
+		& .scroller {
+			width: 480px;
+			padding-top: 2px;
+			padding-bottom: 2px
+		}
+		
+		& img {
+			margin:auto;
+			width: 100%;
+			height: 100%;
+		}
+		& .image-cropper{
+			margin: auto;
+		}
+	}
+}

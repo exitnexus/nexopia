@@ -1,0 +1,40 @@
+<div id="jobs_doc" class="yui-t7">
+	<div id="jobs">
+		<div id="hd">
+			Jobs
+		</div>
+		<div id="bd">
+			<div class="yui-g" id="jobs_intro">
+				<div id="jobs_page_title">
+					Returning Applicant
+				</div>
+				<div class="company_info">
+					If you've applied to Nexopia.com previously, you're information is in our database. To access your information
+					input the email address you applied with. An email will be sent out to that email address with a unique and
+					time sensitve link to your information.
+				</div>
+			</div>
+			<div class="yui-g">
+				<form name="request_applicant_view" id="request_applicant_view" method="post" action="/jobs/applicant/request/submit/">
+					<table>
+						<tbody>
+							<tr>
+								<td class="app_field_description">
+									Email address
+								</td>
+								<td class="app_input">
+									<input type="text" name="app_request_email" id="app_email"></input>
+								</td>
+							</tr>
+							<tr>
+								<td colspan="2" class="app_input_nosize">
+									<input type="submit" name="app_request_submit" id="app_request_submit"></input>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>

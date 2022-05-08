@@ -108,7 +108,7 @@
 
 
 	for($i=1;$i<=12;$i++)
-		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+		$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
 
 	incHeader();
 
@@ -118,7 +118,7 @@
 	echo "<tr><td class=header colspan=16 align=center>";
 		echo "<select class=body name='month' style=\"width:90px\"><option value=0>Month" . make_select_list_key($months,$month) . "</select>";
 		echo "<select class=body name=day style=\"width:50px\"><option value=0>Day" . make_select_list(range(1,31),$day) . "</select>";
-		echo "<select class=body name=year style=\"width:60px\"><option value=0>Year" . make_select_list(range(2005,date("Y")),$year) . "</select>";
+		echo "<select class=body name=year style=\"width:60px\"><option value=0>Year" . make_select_list(range(2005,gmdate("Y")),$year) . "</select>";
 		echo "<select class=body name=type>" . make_select_list_key($mods->modtypes,$type) . "</select>";
 	echo "<input class=body type=submit value=Go></td></tr>";
 	echo "</form>";

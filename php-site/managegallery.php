@@ -1,5 +1,5 @@
 <?
-	$login = 1;
+	$login = 0.5;
 
 	require_once("include/general.lib.php");
 
@@ -8,20 +8,20 @@
 		function __construct()
 		{
 			$this->registerSubHandler('/managegallery.php/uploaded/legacy',
-				new varsubhandler($this, array('uploadedPictures', 1), REQUIRE_LOGGEDIN,
+				new varsubhandler($this, array('uploadedPictures', 1), REQUIRE_HALFLOGGEDIN,
 					varargs('galleryid', 'integer', 'post', false, false),
 					varargs('uploadid', 'integer', 'post')
 				)
 			);
 			$this->registerSubHandler('/managegallery.php/uploaded',
-				new varsubhandler($this, array('uploadedPictures', 0), REQUIRE_LOGGEDIN,
+				new varsubhandler($this, array('uploadedPictures', 0), REQUIRE_HALFLOGGEDIN,
 					varargs('galleryid', 'integer', 'post', false, false),
 					varargs('uploadid', 'integer', 'post')
 				)
 			);
 			$this->registerSubHandler(__FILE__,
 				new varsubhandler($this, 'editGallery',
-								         array(REQUIRE_LOGGEDIN, 'editgallery'),
+								         array(REQUIRE_HALFLOGGEDIN, 'editgallery'),
 					varargs('uid', 'integer', 'post', false, false),
 					varargs('galleryid', 'integer', 'post'),
 					varargs('name', 'string', 'post'),
@@ -31,7 +31,7 @@
 				)
 			);
 			$this->registerSubHandler(__FILE__,
-				new varsubhandler($this, 'createGallery', REQUIRE_LOGGEDIN,
+				new varsubhandler($this, 'createGallery', REQUIRE_HALFLOGGEDIN,
 					varargs('name', 'string', 'post'),
 					varargs('description', 'string', 'post'),
 					varargs('permission', galleries::$regexperms, 'post'),
@@ -39,7 +39,7 @@
 				)
 			);
 			$this->registerSubHandler(__FILE__,
-				new varsubhandler($this, 'deleteGallery', array(REQUIRE_LOGGEDIN, 'editgallery'),
+				new varsubhandler($this, 'deleteGallery', array(REQUIRE_HALFLOGGEDIN, 'editgallery'),
 					varargs('uid', 'integer', 'request', false, false),
 					varargs('galleryid', 'integer', 'request'),
 					varargs('k', 'string', 'request'),
@@ -48,7 +48,7 @@
 			);
 			$this->registerSubHandler(__FILE__,
 				new varsubhandler($this, 'editPicture',
-										 array(REQUIRE_LOGGEDIN, 'editgallery'),
+										 array(REQUIRE_HALFLOGGEDIN, 'editgallery'),
 					varargs('uid', 'integer', 'post', false, false),
 					varargs('galleryid', 'integer', 'post'),
 					varargs('pictureid', 'integer', 'post'),
@@ -58,7 +58,7 @@
 			);
 			$this->registerSubHandler(__FILE__,
 				new varsubhandler($this, 'deletePicture',
-										 array(REQUIRE_LOGGEDIN, 'editgallery'),
+										 array(REQUIRE_HALFLOGGEDIN, 'editgallery'),
 					varargs('uid', 'integer', 'request', false, false),
 					varargs('galleryid', 'integer', 'request'),
 					varargs('pictureid', 'integer', 'request'),
@@ -67,7 +67,7 @@
 				)
 			);
 			$this->registerSubHandler(__FILE__,
-				new varsubhandler($this, 'priorityPicture', REQUIRE_LOGGEDIN,
+				new varsubhandler($this, 'priorityPicture', REQUIRE_HALFLOGGEDIN,
 					varargs('galleryid', 'integer', 'request'),
 					varargs('pictureid', 'integer', 'request'),
 					varargs('direction', 'integer', 'request'),
@@ -76,7 +76,7 @@
 				)
 			);
 			$this->registerSubHandler(__FILE__,
-				new varsubhandler($this, 'deletePending', array(REQUIRE_LOGGEDIN, 'editgallery'),
+				new varsubhandler($this, 'deletePending', array(REQUIRE_HALFLOGGEDIN, 'editgallery'),
 					varargs('uid', 'integer', 'post', false, false),
 					varargs('commit', array('t'), 'post'),
 					varargs('galleryid', 'integer', 'post', false, false),
@@ -85,7 +85,7 @@
 				)
 			);
 			$this->registerSubHandler(__FILE__,
-				new varsubhandler($this, 'savePending', REQUIRE_LOGGEDIN,
+				new varsubhandler($this, 'savePending', REQUIRE_HALFLOGGEDIN,
 					varargs('commit', array('t'), 'post'),
 					varargs('description', array('string'), 'post'),
 					varargs('galleryid', 'integer', 'post'),
@@ -97,28 +97,28 @@
 
 			$this->registerSubHandler(__FILE__,
 				new varsubhandler($this, 'editPictures',
-				                         array(REQUIRE_LOGGEDIN, 'editgallery'),
+				                         array(REQUIRE_HALFLOGGEDIN, 'editgallery'),
 					varargs('uid', 'integer', 'request'),
 					varargs('gallery', 'integer', 'request')
 				)
 			);
 			$this->registerSubHandler(__FILE__,
 				new varsubhandler($this, 'editGalleries',
-				                         array(REQUIRE_LOGGEDIN, 'editgallery'),
+				                         array(REQUIRE_HALFLOGGEDIN, 'editgallery'),
 					varargs('uid', 'integer', 'request', false)
 				)
 			);
 
 			$this->registerSubHandler('/manage/galleries',
 				new urisubhandler($this, 'editPicturesUsername',
-				                         array(REQUIRE_LOGGEDIN, 'editgallery'),
+				                         array(REQUIRE_HALFLOGGEDIN, 'editgallery'),
 					uriargs('username', 'string'),
 					uriargs('galleryid', 'integer')
 				)
 			);
 			$this->registerSubHandler('/manage/galleries',
 				new urisubhandler($this, 'editGalleriesUsername',
-				                         array(REQUIRE_LOGGEDIN, 'editgallery'),
+				                         array(REQUIRE_HALFLOGGEDIN, 'editgallery'),
 					uriargs('username', 'string')
 				)
 			);
@@ -152,6 +152,8 @@
 				$galleryobj->permission = $permission;
 				$galleryobj->commit();
 
+				enqueue("Gallery::Gallery", "edit", $uid, array($uid, $galleryid));
+
 				if ($userData['userid'] != $uid)
 					$mods->adminlog("edit gallery", "Edit user Gallery: userid $uid");
 			}
@@ -180,6 +182,8 @@
 				{
 					$pic->description = removeHTML($description);
 					$pic->commit();
+
+					enqueue("Gallery::Pic", "edit", $uid, array($uid, $pictureid));
 
 					if ($userData['userid'] != $uid)
 						$mods->adminlog("edit gallery picture", "Edit user Gallery: userid $uid");
@@ -299,6 +303,8 @@
 			$galleryobj->permission = $permission;
 			$galleryobj->commit();
 
+			enqueue("Gallery::Gallery", "create", $uid, array($uid, $galleryobj->id));
+
 			header("Status: 301 Redirect");
 			header("Location: /manage/galleries/$userData[username]");
 			return true;
@@ -323,6 +329,7 @@
 			$galleryaccess = $userGalleries->getAccessLevel($userData);
 			$galleryids = $userGalleries->getGalleryList($galleryaccess);
 			$galleryobjs = $userGalleries->getGalleries($galleryids);
+			gallery::fixPreviewPictures($galleryobjs);
 
 			$template->set('selectPermissions', make_select_list_key(galleries::$perms));
 

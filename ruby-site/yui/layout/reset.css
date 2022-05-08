@@ -1,0 +1,49 @@
+/*
+Copyright (c) 2007, Yahoo! Inc. All rights reserved.
+Code licensed under the BSD License:
+http://developer.yahoo.net/yui/license.txt
+version: 2.3.0
+*/
+
+/*div.ruby_content div,div.ruby_content dl,div.ruby_content dt,div.ruby_content dd,,div.ruby_content h1,div.ruby_content h2,div.ruby_content h3,div.ruby_content h4,div.ruby_content h5,div.ruby_content h6,div.ruby_content pre,div.ruby_content code,div.ruby_content form,div.ruby_content fieldset,div.ruby_content legend,div.ruby_content input,div.ruby_content textarea,div.ruby_content p,div.ruby_content blockquote,div.ruby_content th,div.ruby_content td{margin:0;padding:0;}*/
+/*div.ruby_content table{border-collapse:collapse;border-spacing:0;}*/
+/*
+div.ruby_content ul,div.ruby_content ol,div.ruby_content li{margin:0;padding:0;}
+div.ruby_content fieldset,div.ruby_content img{border:0;}
+div.ruby_content address,div.ruby_content caption,div.ruby_content cite,div.ruby_content code,div.ruby_content dfn,div.ruby_content em,div.ruby_content strong,div.ruby_content th,div.ruby_content var{font-style:normal;font-weight:normal;}
+div.ruby_content caption,div.ruby_content th {text-align:left;}
+div.ruby_content h1,div.ruby_content h2,div.ruby_content h3,div.ruby_content h4,div.ruby_content h5,div.ruby_content h6{font-size:100%;font-weight:normal;}
+div.ruby_content q:before,div.ruby_content q:after{content:'';}
+div.ruby_content abbr,div.ruby_content acronym {border:0;font-variant:normal;}
+div.ruby_content sup,div.ruby_content sub {line-height:-1px;vertical-align: text-top;}
+div.ruby_content sub {vertical-align:text-bottom;}
+div.ruby_content input,div.ruby_content textarea,div.ruby_content select{font-family:inherit;font-size:inherit;font-weight:inherit;}
+*/
+/*body {color:#000;background:#FFF;}*/
+/*body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,code,form,fieldset,legend,input,textarea,p,blockquote,th,td{margin:0;padding:0;}*/
+/*table{border-collapse:collapse;border-spacing:0;}*/
+/*fieldset,img{border:0;}*/
+/*address,caption,cite,code,dfn,em,strong,th,var{font-style:normal;font-weight:normal;}*/
+/*li {list-style:none;}*/
+/*
+caption,th {text-align:left;}
+h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal;}
+q:before,q:after{content:'';}
+abbr,acronym {border:0;font-variant:normal;}
+sup,sub {line-height:-1px;vertical-align: text-top;}
+sub {vertical-align:text-bottom;}
+input, textarea, select{font-family:inherit;font-size:inherit;font-weight:inherit;}
+*/
+	
+/*body, div,dl,dt,dd,ul,ol,li,h1,h2, h3, h4, h5, h6, pre, form,fieldset, input, textarea, p, blockquote, td.body th, td.body td{margin:0;padding:0;}*/
+/*td.body table{border-collapse:collapse;border-spacing:0;}*/
+/*fieldset, img{border:0;}*/
+/*address,caption,cite,code,dfn,em,strong,th,var{font-style:normal;font-weight:normal;}*/
+/*ol,ul {list-style:none;}*/
+/*
+caption,th {text-align:left;}
+h1,h2,h3,h4,h5,h6{font-size:100%;font-weight:normal;}
+q:before,q:after{content:'';}
+abbr,acronym {border:0;}
+*/
+div{}

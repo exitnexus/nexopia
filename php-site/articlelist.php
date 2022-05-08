@@ -4,8 +4,7 @@
 
 	require_once("include/general.lib.php");
 
-	if(!isset($cat))
-		$cat=0;
+	$cat = getREQval('cat', 'int');
 
 	$where = array();
 
@@ -52,7 +51,7 @@
 	}
 
 	for($i=1;$i<=12;$i++)
-		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+		$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
 
 
 	
@@ -69,9 +68,7 @@
 	foreach($articledata as &$line){
 		$root = $categories->makeroot($line['category']);
 		$line['cat'] = $root;
-
-		if($line['parse_bbcode'] == 'y')
-			$line['text'] = truncate(nl2br(smilies(parseHTML($line['text']))), 1000);
+		$line['text'] = truncate(nl2br(smilies(parseHTML($line['text']))), 1000);
 	}
 
 	$template->set("articledata", $articledata);

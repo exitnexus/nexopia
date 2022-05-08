@@ -1,0 +1,49 @@
+<div style="background-color:#ffffff">
+	<h1>
+		{project.name}: {sprint.name}
+	</h1>
+	<p>
+		{sprint.description}
+	</p>
+	<p>
+		<a href="{sprint.uri/burndown}">
+			View Burndown
+		</a>
+	</p>
+	<form method="post" action="{sprint.uri}/add/log">	
+		<table width="100%">
+			<th>
+				Task
+			</th>
+			<th t:id="dates" t:iter="date">
+				{date}
+			</th>
+			<th>
+				New Estimate
+			</th>
+			<t:loop t:id="tasklog_list" t:iter="task">
+				<tr>
+					<td>
+						{task.task_name} ({task.user_name})
+					</td>
+				</tr>
+				<tr t:id="task.subtask_list" t:iter="subtask">
+					<td>
+						{subtask.subtask_name}
+					</td>
+					<td t:id="subtask.log_entries" t:iter="log_entry">
+						{log_entry.estimate}
+					</td>
+					<td>
+						<input t:id="subtask.incomplete" type="text" maxlength="3" name="left{task:id}:{subtask:id}" value="{subtask.current_estimate}" />
+					</td>
+				</tr>
+			</t:loop>
+			<tr>
+				<td>
+					<input type="submit" />
+				</td>
+			</tr>
+		</table>
+	</form>
+</div>

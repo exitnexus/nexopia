@@ -65,13 +65,15 @@
 				$forumids[$line['forumid']] = $line['forumid'];
 			}
 
-			$res = $forums->db->prepare_query("SELECT * FROM forums WHERE id IN (#)", $forumids);
-
-			while($line = $res->fetchrow()){
-				$forumdata[$line['id']] = $line;
-				$forumdata[$line['id']]['view'] = $viewall || $line['public'] == 'y';
-				if(!$forumdata[$line['id']]['view'])
-					$inviteids[] = $line['id'];
+			if(count($forumids)){
+				$res = $forums->db->prepare_query("SELECT * FROM forums WHERE id IN (#)", $forumids);
+	
+				while($line = $res->fetchrow()){
+					$forumdata[$line['id']] = $line;
+					$forumdata[$line['id']]['view'] = $viewall || $line['public'] == 'y';
+					if(!$forumdata[$line['id']]['view'])
+						$inviteids[] = $line['id'];
+				}
 			}
 
 			if(count($inviteids)){
@@ -95,6 +97,7 @@
 		}
 	}
 	
+	$template->set('config', $config);
 	$template->set('delete', $delete);
 	$template->set('lastthreadid', 0);
 	$template->set('parsedPost', $parsedPost);

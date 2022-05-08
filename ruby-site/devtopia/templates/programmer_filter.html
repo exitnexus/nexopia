@@ -1,0 +1,13 @@
+<div>
+	<form>
+		Programmer Filter:&#160;
+		<select>
+			<option value="-1" onclick="ProjectManager.filter(-1);"
+				cond:selected="programmer == nil">All</option>
+			<t:loop t:id="programmers" t:iter="programmer_option">
+				<option value="{programmer_option.userid}" onclick="ProjectManager.filter({programmer_option.userid});" 
+					cond:selected="programmer == programmer_option">{programmer_option.username}</option>
+			</t:loop>
+		</select>
+	</form>
+</div>

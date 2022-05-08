@@ -1,5 +1,6 @@
 <?php
 $login = 1;
+$devutil = true;
 
 require_once "include/general.lib.php";
 

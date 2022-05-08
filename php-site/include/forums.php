@@ -71,7 +71,7 @@ class forums {
 				ABUSE_REASON_OTHER 		=> 'Other'
 					);
 
-		$this->officialmods = $cache->hdget("forums-officialmods", 60*60*12 /* 12 hour refresh time */, array(&$this, 'getOfficialModsDump'));
+		$this->officialmods = $cache->hdget("forums-officialmods", 3600, array(&$this, 'getOfficialModsDump'));
 	}
 
 	function parsePost($nmsg){ //removeHTML should have been called first, hence nmsg
@@ -163,14 +163,14 @@ class forums {
 	}
 
 	function getForumPerms($fid){
-		global $userData, $mods, $cache, $config;
+		global $userData, $mods, $cache, $config, $msgs;
 
 		static $forums = array();
 
 		if(isset($forums[$fid]))
 			return $forums[$fid];
 
-
+	//default all to off
 		$perms = array( 'view' => false,
 						'post' => false,
 						'postglobal' => false,
@@ -194,97 +194,101 @@ class forums {
 						'cols' => array()
 						);
 
+	//fail if the forum doesn't exist
 		$forumdata = $this->getForums($fid);
-		if (!$forumdata)
+		if(!$forumdata)
 			return $perms;
 
+	//cache the forumdata
 		$perms['cols'] = $forumdata;
 
-		if($forumdata['public']=='y')
-			$perms['view']=true;
+	//everyone can see a public forum
+		if($forumdata['public'] == 'y')
+			$perms['view'] = true;
 
 		if($userData['loggedIn']){
+			$perms['post'] |= ($forumdata['mute'] == 'n');
+
 			$isAdmin = $mods->isAdmin($userData['userid'],"forums");
 
-			if($isAdmin || $userData['userid']==$forumdata['ownerid']){
-				$perms['view']=true;
-				$perms['post']=true;
-				$perms['postglobal']=true;
-				$perms['postlocked']=true;
-				$perms['move']=true;
-				$perms['editownposts']=true;
-				$perms['deleteposts']=true;
-				$perms['deletethreads']=true;
-				$perms['lock']=true;
-				$perms['stick']=true;
-				$perms['mute']=true;
-				$perms['invite']=true;
-				$perms['announce']=true;
-				$perms['flag']=true;
-				$perms['modlog']=true;
-				$perms['editmods']=true;
-				$perms['admin']=true;
+			$modpowers = $this->getModPowers($userData['userid'], array(0, $fid));
 
-				if($userData['userid'] != $forumdata['ownerid']){
+		//admin and forum owner are special cases (which could be removed by adding mod entries)
+			if($isAdmin || $userData['userid'] == $forumdata['ownerid']){
+				$powers = array(
+							'userid'        => $userData['userid'],
+							'forumid'       => ($isAdmin ? 0 : $forumdata['ownerid']),
+							'view'          => 'y',
+							'post'          => 'y',
+							'postlocked'    => 'y',
+							'move'          => 'y',
+							'editposts'     => 'y',
+							'editownposts'  => 'y',
+							'deleteposts'   => 'y',
+							'deletethreads' => 'y',
+							'lock'          => 'y',
+							'stick'         => 'y',
+							'mute'          => 'y',
+							'invite'        => 'y',
+							'announce'      => 'y',
+							'flag'          => 'y',
+							'modlog'        => 'y',
+							'listmods'      => 'y',
+							'editmods'      => 'y',
+						);
 
-					$invited = $cache->get("foruminvite-$userData[userid]-$fid");
+				$perms['admin'] = true; //allowed to edit the forum
+				$perms['invited'] |= ($userData['userid'] == $forumdata['ownerid']); //owners are automatically invited
 
-					if($invited === false){
-						$res = $this->db->prepare_query("SELECT userid FROM foruminvite WHERE userid = # && forumid = #", $userData['userid'], $fid);
-						$invited = ($res->fetchrow() != false); // note, loose type comparison intentional
+				$modpowers[$powers['forumid']] = $powers;
+			}
 
-						$cache->put("foruminvite-$userData[userid]-$fid", $invited, 10800);
+		//aggregate and normalize the powers
+			if(count($modpowers)){
+				$modperms = array();
+
+			//powers can't be taken away, only added
+				foreach($modpowers as $line){
+					foreach($line as $n => $v){
+						if(!isset($modperms[$n]))
+							$modperms[$n] = $v;
+						elseif($v == 'y') // useful for adding extra permissions by forum
+							$modperms[$n] = 'y';
 					}
+				}
 
-					$perms['invited'] = $invited;
+			//certain powers are special
+				if(isset($modpowers[0])){ //are you global?
+					$perms['globalmute'] = ($modpowers[0]['mute'] == 'y');
+				}else{ //CANNOT edit everyones posts unless global
+					$modperms['editposts'] = 'n';
 				}
-				if($isAdmin){
-					$perms['globalmute'] = true;
-					$perms['editallposts'] = true;
-				}
+
+			//turn powers into permissions
+				$perms['view']          |= ($modperms['view']          == 'y');
+				$perms['post']          |= ($modperms['post']          == 'y');
+				$perms['postglobal']    |= ($modperms['post']          == 'y' && isset($modpowers[0]));
+				$perms['postlocked']    |= ($modperms['postlocked']    == 'y');
+				$perms['editownposts']  |= ($modperms['editownposts']  == 'y');
+				$perms['editallposts']  |= ($modperms['editposts']     == 'y');
+				$perms['move']          |= ($modperms['move']          == 'y');
+				$perms['deleteposts']   |= ($modperms['deleteposts']   == 'y');
+				$perms['deletethreads'] |= ($modperms['deletethreads'] == 'y');
+				$perms['lock']          |= ($modperms['lock']          == 'y');
+				$perms['stick']         |= ($modperms['stick']         == 'y');
+				$perms['mute']          |= ($modperms['mute']          == 'y');
+				$perms['invite']        |= ($modperms['invite']        == 'y');
+				$perms['announce']      |= ($modperms['announce']      == 'y');
+				$perms['flag']          |= ($modperms['flag']          == 'y');
+				$perms['modlog']        |= ($modperms['modlog']        == 'y');
+				$perms['editmods']      |= ($modperms['editmods']      == 'y');
 			}else{
+				$modperms = false;
+			}
 
-				$modpowers = $this->getModPowers($userData['userid'], array(0, $fid));
-
-				if(count($modpowers)){
-					$modperms = array();
-
-					foreach($modpowers as $line){
-						foreach($line as $n => $v){
-							if(!isset($modperms[$n]))
-								$modperms[$n] = $v;
-							elseif($v == 'y') // useful for adding extra permissions by forum
-								$modperms[$n] = 'y';
-						}
-					}
-
-					if(isset($modpowers[0])){ //are you global?
-						$perms['globalmute'] = ($modpowers[0]['mute'] == 'y');
-					}else{ //CANNOT edit everyones posts unless global
-						$modperms['editposts'] = 'n';
-					}
-
-					$perms['view'] |= 			($modperms['view']			== 'y');
-					$perms['post'] |= 			($modperms['post']			== 'y');
-					$perms['postglobal'] |=		($modperms['post']			== 'y' && isset($modpowers[0]));
-					$perms['postlocked'] |= 	($modperms['postlocked']	== 'y');
-					$perms['editownposts'] |= 	($modperms['editownposts']	== 'y');
-					$perms['editallposts'] |= 	($modperms['editposts']		== 'y');
-					$perms['move'] |= 			($modperms['move']			== 'y');
-					$perms['deleteposts'] |= 	($modperms['deleteposts']	== 'y');
-					$perms['deletethreads'] |= 	($modperms['deletethreads']	== 'y');
-					$perms['lock'] |= 			($modperms['lock']			== 'y');
-					$perms['stick'] |= 			($modperms['stick']			== 'y');
-					$perms['mute'] |= 			($modperms['mute']			== 'y');
-					$perms['invite'] |= 		($modperms['invite']		== 'y');
-					$perms['announce'] |= 		($modperms['announce']		== 'y');
-					$perms['flag'] |=			($modperms['flag']			== 'y');
-					$perms['modlog'] |= 		($modperms['modlog']		== 'y');
-					$perms['editmods'] |= 		($modperms['editmods']		== 'y');
-				}else{
-					$modperms = false;
-				}
-
+		//figure out if they're invited
+			$invited = false;
+			if(!$perms['invited']){ //owners of forums are already invited
 				$invited = $cache->get("foruminvite-$userData[userid]-$fid");
 
 				if($invited === false){
@@ -295,61 +299,77 @@ class forums {
 				}
 
 				$perms['invited'] = $invited;
+			}
 
-				if($forumdata['public']=='n')
-					$perms['view'] |= $invited; // |= so globals can see everything
+		//private forums need the user to be invited (or a global)
+			if($forumdata['public'] == 'n')
+				$perms['view'] |= $invited; // |= so globals can see everything
 
-				if((!$modperms || $perms['postglobal'] == 'n') && $forumdata['mute']=='n'){
+		//figure out if they're muted, unmute lazily
+			if(!$perms['postglobal']){
+				$forummutes = $cache->get_multi(array( 0, $fid), "forummutes-$userData[userid]-");
 
-					$forummutes = array();
-					$forummutes[$fid] = $cache->get("forummutes-$userData[userid]-$fid");
-					$forummutes[0] = $cache->get("forummutes-$userData[userid]-0");
+				if(count($forummutes) < 2){
+					$forummutes = array(0 => 1, $fid => 1);
 
-					if($forummutes[0] === false || $forummutes[$fid] === false){
-						$forummutes = array(0 => 1, $fid => 1);
+					$res = $this->db->prepare_query("SELECT forumid, unmutetime FROM forummute WHERE userid = # && forumid IN (0, #)", $userData['userid'], $fid);
 
-						$res = $this->db->prepare_query("SELECT forumid, unmutetime FROM forummute WHERE userid = # && forumid IN (0, #)", $userData['userid'], $fid);
+					while($line = $res->fetchrow())
+						$forummutes[$line['forumid']] = $line['unmutetime'];
 
-						while($line = $res->fetchrow())
-							$forummutes[$line['forumid']] = $line['unmutetime'];
-
-						$cache->put("forummutes-$userData[userid]-$fid", $forummutes[$fid], 10800);
-						$cache->put("forummutes-$userData[userid]-0", $forummutes[0], 10800);
-					}
-
-					$maxunmutetime = 1;
-					$time = time();
-
-					foreach($forummutes as $forumid => $unmutetime){
-						if($unmutetime == 1){ //not muted
-							continue;
-						}elseif($unmutetime == 0){ //muted indef
-							$maxunmutetime = 0;
-							break;
-						}elseif($unmutetime < $time){
-							$this->db->prepare_query("DELETE forummute, forummutereason FROM forummute, forummutereason WHERE forummute.id = forummutereason.id && userid = # && forumid = #", $userData['userid'], $forumid);
-
-							$this->modLog('unmute', $forumid, 0, $userData['userid'], $unmutetime, 0);
-
-							$cache->remove("forummutes-$userData[userid]-$forumid");
-							continue;
-						}
-						if($unmutetime > $maxunmutetime)
-							$maxunmutetime = $unmutetime;
-					}
-
-					$perms['post'] = ( $maxunmutetime > 0 && $maxunmutetime < $time );
+					$cache->put("forummutes-$userData[userid]-$fid", $forummutes[$fid], 10800);
+					$cache->put("forummutes-$userData[userid]-0", $forummutes[0], 10800);
 				}
 
-				$perms['editownposts'] |= ($forumdata['edit']=='y');
+				$maxunmutetime = 1;
+				$time = time();
 
-				if(!$perms['editownposts'] && $forumdata['edit'] != 'y' && $forumdata['edit'] != 'n') //time limit
-					$perms['editownposts'] = $forumdata['edit']*60;
+				foreach($forummutes as $forumid => $unmutetime){
+					if($unmutetime == 1){ //not muted
+						continue;
+					}elseif($unmutetime == 0){ //muted indef
+						$maxunmutetime = 0;
+						break;
+					}elseif($unmutetime < $time){
+						$this->db->prepare_query("DELETE forummute, forummutereason FROM forummute, forummutereason WHERE forummute.id = forummutereason.id && userid = # && forumid = #", $userData['userid'], $forumid);
+
+						$this->modLog('unmute', $forumid, 0, $userData['userid'], $unmutetime, 0);
+
+						$cache->remove("forummutes-$userData[userid]-$forumid");
+						continue;
+					}
+					if($unmutetime > $maxunmutetime)
+						$maxunmutetime = $unmutetime;
+				}
+
+				$perms['post'] &= ( $maxunmutetime > 0 && $maxunmutetime < $time );
 			}
+
+		//set some permissions based on the forum settings
+			$perms['editownposts'] |= ($forumdata['edit']=='y');
+
+			if(!$perms['editownposts'] && $forumdata['edit'] != 'y' && $forumdata['edit'] != 'n') //time limit
+				$perms['editownposts'] = $forumdata['edit']*60;
+
 			if($forumdata['official']=='n' || $forumdata['public']=='n')
 				$perms['move']=false;
+
+		//angus' proposed 'solution,' require that a day have passed between
+		//account creation and first post.
+			$oldaccount = ($userData['jointime'] < (time() - 24*60*60));
+			if(!$oldaccount)
+				$msgs->addMsg("You cannot post within 24 hours of creating a new account.");
+			$perms['post'] &= $oldaccount;
+
+		//can't edit, etc if you can't post
+			if(!$perms['post']){
+				$perms['postlocked'] = false;
+				$perms['edit'] = false;
+				$perms['editownposts'] = false;
+			}
 		}
 
+	//cache it locally
 		$forums[$fid] = $perms;
 
 		return $perms;
@@ -783,6 +803,8 @@ class forums {
 				$subject = $this->mutelength[$time];
 				$subject.= ($time ? " ban " : " banned ");
 				$subject.= ($fid ? "from $forumname" : "Globally");
+				if($globalreq && $fid)
+					$subject .= " (Global Requested)";
 
 				$message = "Forum: " . ($fid ? "[url=forumthreads.php?fid=$fid]$forumname" . "[/url]" : "Global") . "\n";
 				if($tid)
@@ -844,7 +866,7 @@ class forums {
 			$cache->remove("subforumlist-$uid");
 
 			if($userData['userid'] != $uid)
-				$messaging->deliverMsg($uid, "Forum Invite", "You have been invited to join the forum [url=forumthreads.php?fid=$fid]$forumname" . "[/url]. Click [url=forumthreads.php?fid=$fid&action=withdraw&k=" . makeKey($fid, $uid) . "]here[/url] to withdraw from the forum.", 0, false, false, false);
+				$messaging->deliverMsg($uid, "Forum Invite", "You have been invited to join the forum [url=forumthreads.php?fid=$fid]$forumname" . "[/url].\n\n[url=forumthreads.php?fid=$fid&action=withdraw&k=" . makeKey($fid, $uid) . "]Withdraw from the forum.[/url]", 0, false, false, false);
 		}
 	}
 
@@ -1266,11 +1288,22 @@ class forums {
 	}
 
 	function getOfficialModsDump() {
-		$sth = $this->db->prepare_query('SELECT forummods.userid AS userid, COUNT(*) AS modcnt FROM forummods, forums WHERE forummods.forumid=forums.id AND forums.official=? GROUP BY forummods.userid', 'y');
-
 		$officmods = array();
+
+		$sth = $this->db->prepare_query("SELECT userid FROM forummods WHERE forumid = 0");
+
 		while($line = $sth->fetchrow())
-			$officmods[$line['userid']] = $line['modcnt'];
+			$officmods[$line['userid']] = 1;
+
+
+		$sth = $this->db->prepare_query("SELECT forummods.userid AS userid, COUNT(*) AS modcnt FROM forummods, forums WHERE forummods.forumid = forums.id AND forums.official = 'y' GROUP BY forummods.userid");
+
+		while($line = $sth->fetchrow()){
+			if(isset($officmods[$line['userid']]))
+				$officmods[$line['userid']] += $line['modcnt'];
+			else
+				$officmods[$line['userid']] = $line['modcnt'];
+		}
 
 		return $officmods;
 	}

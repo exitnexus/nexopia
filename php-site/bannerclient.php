@@ -84,6 +84,11 @@
 		case "updateBanner":
 			updateBanner(getREQval('id', 'int'), getREQval('data', 'array'));
 			break;
+		
+		case "bannerpreview":
+			if($id = getREQval('id', 'int'))
+				bannerPreview($id);
+			break;
 			
 	}
 	
@@ -141,20 +146,30 @@ function listBanners($clientid){
 	exit;
 }
 
+function bannerPreview($id){
+	global $banner;
+
+	incHeader();
+	
+	echo $banner->getBannerID($id);
+	
+	incFooter();
+	exit;
+}
 
 function bannerStats($id){
 	global $banner;
 
 	$interval = 86400;
 
-	$res = $banner->db->prepare_query("SELECT time, views, clicks FROM bannerstats WHERE bannerid = ? ORDER BY time", $id);
+	$res = $banner->db->prepare_query("SELECT time, views, clicks, passbacks FROM bannerstats WHERE bannerid = ? ORDER BY time", $id);
 
 	$stats = array();
 	while($line = $res->fetchrow())
 		$stats[] = $line;
 
 	for($i=1;$i<=12;$i++)
-		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+		$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
 
 	incHeader();
 
@@ -165,19 +180,23 @@ function bannerStats($id){
 	echo "<td class=header>Views</td>";
 	echo "<td class=header>Clicks</td>";
 	echo "<td class=header>Click Thru</td>";
+	echo "<td class=header>Passbacks</td>";
 	echo "</tr>";
 
 	$totalviews = 0;
 	$totalclicks = 0;
+	$totalpassbacks = 0;
 
 	$preperiodviews = 0;
 	$preperiodclicks = 0;
+	$preperiodpassbacks = 0;
 
 	$periodstart = "";
 
 	foreach($stats as $line){
 		$totalviews = $line['views'];
 		$totalclicks = $line['clicks'];
+		$totalpassbacks = $line['passbacks'];
 
 		if(userDate("M j, Y", $line['time']) != $periodstart){
 			echo "<tr>";
@@ -185,10 +204,12 @@ function bannerStats($id){
 			echo "<td class=body align=right>" . number_format($totalviews - $preperiodviews) . "</td>";
 			echo "<td class=body align=right>" . number_format($totalclicks - $preperiodclicks) . "</td>";
 			echo "<td class=body align=right>" . ($totalviews - $preperiodviews ? number_format(100*($totalclicks - $preperiodclicks) / ($totalviews - $preperiodviews),3) . "%" : "N/A" ) ."</td>";
+			echo "<td class=body align=right>" . number_format($totalpassbacks - $preperiodpassbacks) . "</td>";
 			echo "</tr>";
 
 			$preperiodviews = $totalviews;
 			$preperiodclicks = $totalclicks;
+			$preperiodpassbacks = $totalpassbacks;
 			$periodstart = userDate("M j, Y", $line['time']);
 		}
 	}
@@ -198,6 +219,7 @@ function bannerStats($id){
 	echo "<td class=header align=right>" . number_format($totalviews) . "</td>";
 	echo "<td class=header align=right>" . number_format($totalclicks) . "</td>";
 	echo "<td class=header align=right>" . ($totalviews ? number_format(100*$totalclicks / $totalviews,3) . "%" : "N/A" ) . "</td>";
+	echo "<td class=header align=right>" . number_format($totalpassbacks) . "</td>";
 	echo "</tr>";
 
 	echo "</table>";
@@ -531,7 +553,7 @@ function editCampaign($id = 0) {
 	}
 
 	for($i=1;$i<=12;$i++)
-		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+		$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
 
 	$template = new template('bannerclient/editCampaign');
 	if (!isset($allowedTimesTable)) $allowedTimesTable = '';
@@ -914,7 +936,7 @@ function editBanner($id = 0){
 	uasort($campaigns, 'strcasecmp');
 
 	for($i=1;$i<=12;$i++)
-		$months[$i] = date("F", mktime(0,0,0,$i,1,0));
+		$months[$i] = gmdate("F", gmmktime(0,0,0,$i,1,0));
 
 	$template = new template('bannerclient/editBanner');
 

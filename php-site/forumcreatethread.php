@@ -25,8 +25,7 @@
 			$title = getPOSTval('title');
 			$msg = getPOSTval('msg');
 
-			$parse_bbcode = getPOSTval('parse_bbcode');
-			createThread($fid, $title, $msg, isset($poll), ($subscribe == 'y'), true, $parse_bbcode); //exit
+			createThread($fid, $title, $msg, isset($poll), ($subscribe == 'y'), true); //exit
 
 		case "Post":
 //			$question = "";
@@ -35,23 +34,24 @@
 //			$msg = getPOSTval('msg');
 
 		case "Add":
-			$question = getPOSTval('question', 'string', '');
-			$answers = getPOSTval('answers', 'array', array());
-			$title = getPOSTval('title', 'string', '');
-			$msg = getPOSTval('msg', 'string', '');
-			$parse_bbcode = getPOSTval('parse_bbcode', 'bool');
+			$title = getPOSTval('title');
+			$msg = getPOSTval('msg');
+
+			$poll = getPOSTval('poll');
+			$question = getPOSTval('question');
+			$answers = getPOSTval('answers', 'array');
 
 			$haveAns = false;
-			foreach ($answers as $ans)
-				if (strlen($ans))
+			foreach($answers as $ans)
+				if(strlen($ans))
 					$haveAns = true;
 
-			if ( $poll = getPOSTval('poll') || (strlen($question) && ! $haveAns) || ($haveAns && ! strlen($question)) || (strlen($question) && strlen($question) < 5) ) {
+			if($poll || (strlen($question) && !$haveAns) || ($haveAns && !strlen($question)) || (strlen($question) && strlen($question) < 5) ) {
 				$msgs->addMsg('Please enter a poll question (minimum 5 characters in length) and at least one answer, or leave the form blank to skip poll addition.');
-				createThreadPoll($fid, $title, $msg, $subscribe, $question, 4, $answers); //exit
+				createThreadPoll($fid, $title, $msg, $subscribe, $question, $answers); //exit
 			}
 
-			$tid = postThread($fid, $title, $msg, ($subscribe == 'y'), $question, $answers, $parse_bbcode);
+			$tid = postThread($fid, $title, $msg, ($subscribe == 'y'), $question, $answers);
 
 			if($userData['replyjump']=='forum')
 				header("location: forumthreads.php?fid=$fid");
@@ -60,34 +60,49 @@
 			exit;
 	}
 
-	createThread($fid, "", "", false, ($subscribe == 'y'), false, true);
+	createThread($fid, "", "", false, ($subscribe == 'y'), false);
 
 ////////////////////////////////
 
-function postThread($fid, $title, $msg, $subscribe = false, $question = "", $answers = array(), $parse_bbcode = true){
-	global $userData, $polls, $usersdb, $forums, $cache;
+function postThread($fid, $title, $msg, $subscribe = false, $question = "", $answers = array()){
+	global $userData, $polls, $usersdb, $forums, $cache, $msgs;
 
 	$msg = trim($msg);
 
 	$spam = spamfilter($msg);
 
-	$ntitle = trim($title);
+	$ntitle = str_replace("&#32;", " ", $title);
+	$ntitle = str_replace("&#32", " ", $ntitle);
+
+	$ntitle = trim($ntitle);
 	$ntitle = removeHTML($ntitle);
 
 	if(!$spam || strlen($ntitle)<=3)
-		createThread($fid, $title, $msg, ($question != ""), $subscribe, true, $parse_bbcode);
+		createThread($fid, $title, $msg, ($question != ""), $subscribe, true);
 
 //	$ntitle = censor($ntitle);
 
-	$nmsg = html_sanitizer::sanitize($msg);
+	$nmsg = removeHTML($msg);
 	$time = time();
 
+//spamming across multiple forums
+	$limit = $cache->get("forumsratelimit-$userData[userid]");
+
+	if($limit){
+		$cache->put("forumsratelimit-$userData[userid]", 1, 5); //block for another 5 seconds
+		$msgs->addMsg("You can only create one thread per second");
+		createThread($fid, $title, $msg, ($question != ""), $subscribe, true);
+	}
+
+//dupe detection
 	$res = $forums->db->prepare_query("SELECT id FROM forumthreads WHERE authorid = ? && title = ? && time >= ?", $userData['userid'], $ntitle, $time-60);
 	$thread = $res->fetchrow();
 	if($thread){	 //1 min dupe detection
 		$tid = $thread['id'];
 		return $tid;
 	}
+
+	$cache->put("forumsratelimit-$userData[userid]", 1, 2); //block spam
 
 
 	$old_user_abort = ignore_user_abort(true);
@@ -104,9 +119,8 @@ function postThread($fid, $title, $msg, $subscribe = false, $question = "", $ans
 
 	$tid = $forums->db->insertid();
 
-	$parse_bbcode = $parse_bbcode ? 'y' : 'n';
-	$forums->db->prepare_query("INSERT INTO forumposts SET threadid = ?, authorid = ?, msg = ?, time = ?,  parse_bbcode = ?",
-						$tid, $userData['userid'], $nmsg, $time, $parse_bbcode);
+	$forums->db->prepare_query("INSERT INTO forumposts SET threadid = ?, authorid = ?, msg = ?, time = ?",
+						$tid, $userData['userid'], $nmsg, $time);
 
 	$forums->db->prepare_query("INSERT INTO forumread SET threadid = ?, userid = ?, readtime = ?, time = ?, subscribe = ?",
 						$tid, $userData['userid'], $time, $time, ($subscribe ? 'y' : 'n') );
@@ -118,19 +132,16 @@ function postThread($fid, $title, $msg, $subscribe = false, $question = "", $ans
 
 	ignore_user_abort($old_user_abort);
 
+	scan_string_for_notables($nmsg);
+
 	return $tid;
 }
 
-function createThreadPoll($fid, $title, $msg, $subscribe, $question, $numAnswers, $answers){
+function createThreadPoll($fid, $title, $msg, $subscribe, $question = '', $answers = array()){
 
-	if(!isset($question))		$question = "";
-	if(empty($numAnswers))		$numAnswers=2;
-	if($numAnswers > 10)
-		$numAnswers = 10;
-	if(!isset($answers))		$answers=array();
-	$answers = array_pad($answers, $numAnswers, "");
-	if(count($answers) > $numAnswers)
-		$answers = array_slice($answers,0,$numAnswers);
+	$answers = array_pad($answers, 4, "");
+	if(count($answers) > 10)
+		$answers = array_slice($answers, 0, 10);
 
 	$template = new template('forums/forumcreatethread/createThreadPoll');
 	$template->set('fid', $fid);
@@ -142,15 +153,14 @@ function createThreadPoll($fid, $title, $msg, $subscribe, $question, $numAnswers
 	$template->display();
 
 	exit;
-
 }
 
-function createThread($fid, $title, $msg, $poll, $subscribe, $preview, $parse_bbcode){
+function createThread($fid, $title, $msg, $poll, $subscribe, $preview){
 	global $forum, $forums, $userData;
 
 	$template = new template('forums/forumcreatethread/createThread');
 
-	$template->set('forumTrail', $forums->getForumTrail($forum, "body"));
+	$template->set('forumTrail', $forums->getForumTrail($forum, "header"));
 	$template->set('preview', $preview);
 
 	if($preview){
@@ -159,37 +169,18 @@ function createThread($fid, $title, $msg, $poll, $subscribe, $preview, $parse_bb
 
 		$msg = trim($msg);
 
-		$msg = html_sanitizer::sanitize($msg);
+		$msg = removeHTML($msg);
 
-		if($parse_bbcode)
-			$nmsg3 = $forums->parsePost($msg);
-		else
-			$nmsg3 = $msg;
+		$nmsg3 = $forums->parsePost($msg);
 
 		$template->set('ntitle', $ntitle);
 		$template->set('nmsg3', $nmsg3);
-
 	}
 
 	$template->set('fid', $fid);
 	$template->set('title', $title);
-
-/*	if(!isset($parse_bbcode))
-		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $userData['parse_bbcode']));
-	else
-		$template->set("checkbox_parsebbcode", makeCheckBox('parse_bbcode', 'Parse BBcode', $parse_bbcode));
-*/
-	$template->set("checkbox_parsebbcode", '<input type="hidden" name="parse_bbcode" value="y"/>');
-
-
-
-	ob_start();
-	editBox($msg);
-	$template->set('editBox', ob_get_contents());
-	ob_end_clean();
-
+	$template->set('editBox', editBoxStr($msg));
 	$template->set('pollCheckBox', makeCheckBox('poll', "Add a Poll", $poll));
-
 	$template->set('subscribeSelected', ($subscribe ? ' selected' : ''));
 	$template->display();
 	exit;

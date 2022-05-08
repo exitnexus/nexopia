@@ -1,6 +1,7 @@
 <?
 
 	$login=0;
+	$accepttype = false;
 
 	require_once("include/general.lib.php");
 
@@ -74,49 +75,23 @@
 			);
 		}
 
-		function startPage($user, $isFriend, $userData)
-		{
-			global $weblog;
+		function startPage($user){
+			incHeader(false, array('incSortBlock','incNewestMembersBlock'));
 
-			$template = new template('pictures/gallery/startPage');
-			ob_start();
-			injectSkin($user, 'gallery');
-			$template->set('injectSkin', ob_get_clean());
+			echo injectSkin($user, 'gallery');
 
-			$cols=2;
-			if($user['enablecomments']=='y')
-				$cols++;
-			$userblog = new userblog($weblog, $user['userid']);
-			if ($userblog->isVisible($userData['loggedIn'], $isFriend))
-				$cols++;
-			if($user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend))
-				$cols++;
-
-			$width = 100.0/$cols;
-
-			$template->set('width', $width);
-			$template->set('user', $user);
-			$template->set('canViewGallery', $user['gallery']=='anyone' || ($user['gallery']=='loggedin' && $userData['loggedIn']) || ($user['gallery']=='friends' && $isFriend));
-			$template->set('canViewBlog', $userblog->isVisible($userData['loggedIn'], $isFriend));
-			$template->display();
+			echo "<table width=100%>";
+			echo "<tr><td class=header2>" . incProfileHead($user) . "</td></tr>";
+			echo "<tr><td class=body>";
 		}
 
-		function endPage()
-		{
+		function endPage(){
 			echo "</td></tr></table>";
 			incFooter();
 		}
 
 		function listCats($uid){
 			global $userData, $config, $galleries, $weblog;
-
-			$isFriend = $userData['loggedIn'] && (isFriend($userData['userid'],$uid) || $userData['userid']==$uid);
-
-			$perms = array('anyone');
-			if($userData['loggedIn'])
-				$perms[] = 'loggedin';
-			if($isFriend)
-				$perms[] = 'friends';
 
 			$user = getUserInfo($uid);
 
@@ -127,8 +102,9 @@
 			$galleryaccess = $userGalleries->getAccessLevel($userData);
 			$galleryids = $userGalleries->getGalleryList($galleryaccess);
 			$galleryobjs = $userGalleries->getGalleries($galleryids);
+			gallery::fixPreviewPictures($galleryobjs);
 
-			$this->startPage($user, $isFriend, $userData);
+			$this->startPage($user);
 
 			$template = new template('pictures/gallery/listCats');
 			$i = -1;
@@ -168,14 +144,6 @@
 		function allThumbs($uid, $cat){
 			global $userData, $db, $galleries, $config, $weblog, $reporev;
 
-			$isFriend = $userData['loggedIn'] && (isFriend($userData['userid'],$uid) || $userData['userid']==$uid);
-
-			$perms = array('anyone');
-			if($userData['loggedIn'])
-				$perms[] = 'loggedin';
-			if($isFriend)
-				$perms[] = 'friends';
-
 			$userGalleries = new usergalleries($galleries, $uid);
 			$galleryaccess = $userGalleries->getAccessLevel($userData);
 			$galleryobj = $userGalleries->getGallery("$uid:$cat");
@@ -190,7 +158,7 @@
 
 			$linkbase = "/galleries/" . urlencode($user['username']) . "/$cat/" . urlencode($galleryobj->name);
 
-			$this->startPage($user, $isFriend, $userData);
+			$this->startPage($user);
 
 			$template = new template('pictures/gallery/allThumbs');
 			$template->set('jsurl', $config['jsloc']);
@@ -239,14 +207,6 @@
 			if (!$uid)
 				return false;
 
-			$isFriend = $userData['loggedIn'] && (isFriend($userData['userid'],$uid) || $userData['userid']==$uid);
-
-			$perms = array('anyone');
-			if($userData['loggedIn'])
-				$perms[] = 'loggedin';
-			if($isFriend)
-				$perms[] = 'friends';
-
 			$userGalleries = new usergalleries($galleries, $uid);
 			$galleryaccess = $userGalleries->getAccessLevel($userData);
 			$galleryobj = $userGalleries->getGallery("$uid:$cat");
@@ -266,7 +226,7 @@
 			if($user['premiumexpiry'] < time())
 				return false;
 
-			$this->startPage($user, $isFriend, $userData);
+			$this->startPage($user);
 
 			$linkbase = "/galleries/" . urlencode($user['username']) . "/$cat/" . urlencode($galleryobj->name);
 			echo "<center><a href=\"$linkbase/$picid\">";
@@ -282,14 +242,6 @@
 		{
 			global $userData, $db, $galleries, $config, $weblog, $reporev;
 
-			$isFriend = $userData['loggedIn'] && (isFriend($userData['userid'],$uid) || $userData['userid']==$uid);
-
-			$perms = array('anyone');
-			if($userData['loggedIn'])
-				$perms[] = 'loggedin';
-			if($isFriend)
-				$perms[] = 'friends';
-
 			$userGalleries = new usergalleries($galleries, $uid);
 			$galleryaccess = $userGalleries->getAccessLevel($userData);
 			$galleryobj = $userGalleries->getGallery("$uid:$cat");
@@ -302,7 +254,7 @@
 			if(!$user)
 				die("Bad User");
 
-			$this->startPage($user, $isFriend, $userData);
+			$this->startPage($user);
 
 			$thumbcount = 5;
 			$colcount = $thumbcount + 2;
@@ -328,7 +280,7 @@
 			if (isset($line)) {
 				$template->set('line', $line);
 				$fullurl = ($user['premiumexpiry'] < time()? '' : $linkbase . "/$id/full");
-				$initialpic = "http://$_SERVER[HTTP_HOST]/imgframe.php?picid=$id&imgurl=" . $line->getImageURL() . "&fullurl=$fullurl";
+				$initialpic = "/imgframe.php?picid=$id&imgurl=" . $line->getImageURL() . "&fullurl=$fullurl";
 				$template->set('initialpic', $initialpic);
 				$template->set('jsurl', $config['jsloc']);
 				$template->set('reporev', $reporev);

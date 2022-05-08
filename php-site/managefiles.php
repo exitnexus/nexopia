@@ -227,7 +227,6 @@
 			// fetch the subfolders of the current folder
 			foreach ($userfiles->listFolders($this->root) as $key => $folderPath) {
 				$curFolders[$key] = $userfiles->getHandle($folderPath)->fileInfo;
-				$curFolders[$key]['modified'] = userDate('m/d/Y h:i A', $curFolders[$key]['modified']);
 				$curFolders[$key]['uniqueID'] = preg_replace('/[^a-zA-Z0-9]+/', '', md5($folderPath));
 				$curFolders[$key]['size'] = floor($curFolders[$key]['size'] / 1024) . " kB";
 
@@ -243,7 +242,6 @@
 			foreach ($userfiles->listFiles($this->root) as $key => $filePath) {
 				$curFiles[$key] = $userfiles->getHandle($filePath)->fileInfo;
 				$ttlsize += $curFiles[$key]['size'];
-				$curFiles[$key]['modified'] = userDate('m/d/Y h:i A', $curFiles[$key]['modified']);
 				$curFiles[$key]['size'] = floor($curFiles[$key]['size'] / 1024) . " kB";
 				$curFiles[$key]['uniqueID'] = preg_replace('/[^a-zA-Z0-9]+/', '', md5($filePath));
 			}
@@ -256,7 +254,6 @@
 			// we are not in root folder; parent folder exists
 			else {
 				$rootParent = $userfiles->getHandle($userfiles->rootParent($this->root))->fileInfo;
-				$rootParent['modified'] = userDate('m/d/Y h:i A', $rootParent['modified']);
 
 				// keep root folder private by not showing parent folder when we are one folder deep
 				if ($userfiles->vuid != $userfiles->euid && $rootParent['root'] == '/')

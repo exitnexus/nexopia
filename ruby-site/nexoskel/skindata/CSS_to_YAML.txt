@@ -1,0 +1,30 @@
+Current CSS to YAML
+
+For skin_name use a lower case name which matches the file name.
+For display_name use a string which contains the name of the skin however it may be (obviously this will later be used for display)
+
+Skin Properties
+YAML property					CSS property		CSS rule
+		
+page_background_color			color				body
+page_font_family				font-family			body (add in sans-serif for browsers which don't have access to the Arial font)
+page_font_size					font-size			body (and almost every other selector in the CSS)
+link_color						color				a.body
+link_accent_color				color				a.body:hover
+primary_text_color				color				td.body
+primary_background_color		background-color	td.body
+secondary_text_color			color				td.body2
+secondary_background_color		background-color	td.body2
+user_message_text_color			color				td.msg
+user_message_background_color	background-color	td.msg
+header_text_color				color				td.header
+header_background_color			background-color	td.header
+header_font_family				font-family			td.header
+header_font_size				font-size			td.header
+header_link_color				color				a.header
+header_link_accent_color		color				a.header:hover
+sidebar_text_color				color				td.side
+sidebar_background_color		background-color	td.side
+sidebar_header_text_color		color				td.sideheader
+sidebar_link_color				color				td.side a
+sidebar_link_accent_color		color				td.side a:hover

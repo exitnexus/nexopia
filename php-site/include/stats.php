@@ -24,7 +24,7 @@ function updateStats(){
 
 	$siteStats = $cache->hdget('stats', 20, 'getStats');
 
-	if($userData['loggedIn']){
+	if($userData['halfLoggedIn']){
 		$online = $cache->get("friendsonline-$userData[userid]");
 
 		if($online === false){
@@ -216,6 +216,7 @@ function updateUserBirthdays() {
 		while($line = $res->fetchrow()) {
 			$age = getAge($line['dob']);
 			if($age != $line['age']) {
+				enqueue( "User", "birthday", $line['userid'], array($line['userid']) );
 				if(!isset($updateages[$age]))
 					$updateages[$age] = array();
 				$updateages[$age][$line['userid']] = $line['sex'];
@@ -374,48 +375,50 @@ function updateUserIndexes(){
 	foreach($dbs as $db)
 		rebuildLocInterestStats($db, "locstats", "intereststats");
 
-	// now update the stats in the agesexgroup tables
-	// all
-	$usersdb->query("CREATE TEMPORARY TABLE tempstats1 SELECT age, sex, count(*) as count FROM usersearch GROUP BY sex, age");
-	$usersdb->query("UPDATE agesexgroups, tempstats1 SET total = count WHERE agesexgroups.age = tempstats1.age && agesexgroups.sex = tempstats1.sex");
+	foreach($dbs as $serverid => $db){
+		// now update the stats in the agesexgroup tables
+		// all
+		$db->query("CREATE TEMPORARY TABLE tempstats1 SELECT age, sex, count(*) as count FROM usersearch GROUP BY sex, age");
+		$db->query("UPDATE agesexgroups, tempstats1 SET total = count WHERE agesexgroups.age = tempstats1.age && agesexgroups.sex = tempstats1.sex");
 
-	//active
-	$usersdb->query("CREATE TEMPORARY TABLE tempstats2 SELECT age, sex, count(*) as count FROM usersearch WHERE active IN (1,2) GROUP BY sex, age");
-	$usersdb->query("UPDATE agesexgroups, tempstats2 SET active = count WHERE agesexgroups.age = tempstats2.age && agesexgroups.sex = tempstats2.sex");
+		//active
+		$db->query("CREATE TEMPORARY TABLE tempstats2 SELECT age, sex, count(*) as count FROM usersearch WHERE active IN (1,2) GROUP BY sex, age");
+		$db->query("UPDATE agesexgroups, tempstats2 SET active = count WHERE agesexgroups.age = tempstats2.age && agesexgroups.sex = tempstats2.sex");
 
-	//pics
-	$usersdb->query("CREATE TEMPORARY TABLE tempstats3 SELECT age, sex, count(*) as count FROM usersearch WHERE pic IN (1,2) GROUP BY sex, age");
-	$usersdb->query("UPDATE agesexgroups, tempstats3 SET pics = count WHERE agesexgroups.age = tempstats3.age && agesexgroups.sex = tempstats3.sex");
+		//pics
+		$db->query("CREATE TEMPORARY TABLE tempstats3 SELECT age, sex, count(*) as count FROM usersearch WHERE pic IN (1,2) GROUP BY sex, age");
+		$db->query("UPDATE agesexgroups, tempstats3 SET pics = count WHERE agesexgroups.age = tempstats3.age && agesexgroups.sex = tempstats3.sex");
 
-	//signpics
-	$usersdb->query("CREATE TEMPORARY TABLE tempstats4 SELECT age, sex, count(*) as count FROM usersearch WHERE pic = 2 GROUP BY sex, age");
-	$usersdb->query("UPDATE agesexgroups, tempstats4 SET signpics = count WHERE agesexgroups.age = tempstats4.age && agesexgroups.sex = tempstats4.sex");
+		//signpics
+		$db->query("CREATE TEMPORARY TABLE tempstats4 SELECT age, sex, count(*) as count FROM usersearch WHERE pic = 2 GROUP BY sex, age");
+		$db->query("UPDATE agesexgroups, tempstats4 SET signpics = count WHERE agesexgroups.age = tempstats4.age && agesexgroups.sex = tempstats4.sex");
 
-	//activepics
-	$usersdb->query("CREATE TEMPORARY TABLE tempstats5 SELECT age, sex, count(*) as count FROM usersearch WHERE active IN (1,2) && pic IN (1,2) GROUP BY sex, age");
-	$usersdb->query("UPDATE agesexgroups, tempstats5 SET activepics = count WHERE agesexgroups.age = tempstats5.age && agesexgroups.sex = tempstats5.sex");
+		//activepics
+		$db->query("CREATE TEMPORARY TABLE tempstats5 SELECT age, sex, count(*) as count FROM usersearch WHERE active IN (1,2) && pic IN (1,2) GROUP BY sex, age");
+		$db->query("UPDATE agesexgroups, tempstats5 SET activepics = count WHERE agesexgroups.age = tempstats5.age && agesexgroups.sex = tempstats5.sex");
 
-	//activesignpics
-	$usersdb->query("CREATE TEMPORARY TABLE tempstats6 SELECT age, sex, count(*) as count FROM usersearch WHERE active IN (1,2) && pic = 2 GROUP BY sex, age");
-	$usersdb->query("UPDATE agesexgroups, tempstats6 SET activesignpics = count WHERE agesexgroups.age = tempstats6.age && agesexgroups.sex = tempstats6.sex");
+		//activesignpics
+		$db->query("CREATE TEMPORARY TABLE tempstats6 SELECT age, sex, count(*) as count FROM usersearch WHERE active IN (1,2) && pic = 2 GROUP BY sex, age");
+		$db->query("UPDATE agesexgroups, tempstats6 SET activesignpics = count WHERE agesexgroups.age = tempstats6.age && agesexgroups.sex = tempstats6.sex");
 
-	//single
-	$usersdb->query("CREATE TEMPORARY TABLE tempstats7 SELECT age, sex, count(*) as count FROM usersearch WHERE single = 1 GROUP BY sex, age");
-	$usersdb->query("UPDATE agesexgroups, tempstats7 SET single = count WHERE agesexgroups.age = tempstats7.age && agesexgroups.sex = tempstats7.sex");
+		//single
+		$db->query("CREATE TEMPORARY TABLE tempstats7 SELECT age, sex, count(*) as count FROM usersearch WHERE single = 1 GROUP BY sex, age");
+		$db->query("UPDATE agesexgroups, tempstats7 SET single = count WHERE agesexgroups.age = tempstats7.age && agesexgroups.sex = tempstats7.sex");
 
-	//sexuality
-	$usersdb->query("CREATE TEMPORARY TABLE tempstats8 SELECT age, sex, sexuality, count(*) as count FROM usersearch GROUP BY sex, age, sexuality");
-	$usersdb->query("UPDATE agesexgroups, tempstats8 SET sexuality1 = count WHERE agesexgroups.age = tempstats8.age && agesexgroups.sex = tempstats8.sex && sexuality = 1");
-	$usersdb->query("UPDATE agesexgroups, tempstats8 SET sexuality2 = count WHERE agesexgroups.age = tempstats8.age && agesexgroups.sex = tempstats8.sex && sexuality = 2");
-	$usersdb->query("UPDATE agesexgroups, tempstats8 SET sexuality3 = count WHERE agesexgroups.age = tempstats8.age && agesexgroups.sex = tempstats8.sex && sexuality = 3");
+		//sexuality
+		$db->query("CREATE TEMPORARY TABLE tempstats8 SELECT age, sex, sexuality, count(*) as count FROM usersearch GROUP BY sex, age, sexuality");
+		$db->query("UPDATE agesexgroups, tempstats8 SET sexuality1 = count WHERE agesexgroups.age = tempstats8.age && agesexgroups.sex = tempstats8.sex && sexuality = 1");
+		$db->query("UPDATE agesexgroups, tempstats8 SET sexuality2 = count WHERE agesexgroups.age = tempstats8.age && agesexgroups.sex = tempstats8.sex && sexuality = 2");
+		$db->query("UPDATE agesexgroups, tempstats8 SET sexuality3 = count WHERE agesexgroups.age = tempstats8.age && agesexgroups.sex = tempstats8.sex && sexuality = 3");
 
-	//locs
-	$usersdb->query("CREATE TEMPORARY TABLE loccounts SELECT loc, count(*) as count FROM usersearch GROUP BY loc");
-	$usersdb->query("UPDATE locstats, loccounts SET users = count WHERE id = loc");
+		//locs
+		$db->query("CREATE TEMPORARY TABLE loccounts SELECT loc, count(*) as count FROM usersearch GROUP BY loc");
+		$db->query("UPDATE locstats, loccounts SET users = count WHERE id = loc");
 
-	//interests
-	$usersdb->query("CREATE TEMPORARY TABLE interestcounts SELECT interestid, count(*) as count FROM userinterests GROUP BY interestid");
-	$usersdb->query("UPDATE intereststats, interestcounts SET users = count WHERE id = interestid");
+		//interests
+		$db->query("CREATE TEMPORARY TABLE interestcounts SELECT interestid, count(*) as count FROM userinterests GROUP BY interestid");
+		$db->query("UPDATE intereststats, interestcounts SET users = count WHERE id = interestid");
+	}
 
 	// okay now that we have the values for each of the databases updated, we now need to update the values on the master
 	// and insure that the tables are insync with whats defined for the system configuration, and than update values
@@ -680,5 +683,57 @@ function getNumUsersByInterests($interestIds){
 	return $interestTotals;
 }
 /* END FUNCTION getNumUsersByInterests */
+
+
+function dumpActiveAccountStats(){
+	global $usersdb, $masterdb;
+
+	$activetimes = array(
+	             "day" => 86400,
+	             "3days" => 86400*3,
+	             "week" => 86400*7,
+	             "2weeks" => 86400*14,
+	             "month" => 86400*30,
+	             "2months" => 86400*60,
+	             "3months" => 86400*90,
+	             "6months" => 86400*180,
+	             "year" => 86400*365,
+	            );
+
+	$time = time();
+
+	$times = array();
+
+	$query = "INSERT INTO statsactiveaccountshist SET ";
+
+	foreach($activetimes as $name => $period){
+		$res = $usersdb->prepare_query("SELECT count(*) AS count FROM users WHERE activetime >= #", ($time - $period));
+		$count = 0;
+		while($line = $res->fetchrow())
+			$count += $line['count'];
+
+		$query .= "$name = $count, ";
+	}
+
+	$res = $usersdb->query("SELECT count(*) AS count FROM users WHERE state = 'active'");
+	$activated = 0;
+	while($line = $res->fetchrow())
+		$activated += $line['count'];
+
+	$query .= "activated = $activated, ";
+
+
+	$res = $usersdb->query("SELECT count(*) AS count FROM users");
+	$total = 0;
+	while($line = $res->fetchrow())
+		$total += $line['count'];
+
+	$query .= "total = $total, ";
+
+
+	$query .= "time = $time";
+
+	$masterdb->query($query);
+}
 
 /* END MODULE stats.php */

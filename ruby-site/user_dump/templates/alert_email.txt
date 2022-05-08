@@ -1,0 +1,8 @@
+A user dump has been initiated by {remote_user}@{remote_addr}.
+
+Target User ID:    {user_id}
+Target User:       {user_name}
+Target Date Range: {start_date} through {end_date}
+
+List of Requested Functions:
+{requested_functions}

@@ -1,0 +1,111 @@
+<div t:docid="user_skin_edit" id="skin_edit_wrapper_wrapper">
+	<div id="skin_edit_wrapper">
+		<!--[if IE]><script type="text/javascript" src="{$site.static_files_url}/profile/skin_edit/js/excanvas-compressed.js"></script><![endif]-->
+		<!-- YUI things that are needed here -->
+		<script type="text/javascript" src="{$site.static_files_url}/yui/build/utilities/utilities.js"></script>
+		<script type="text/javascript" src="{$site.static_files_url}/yui/build/slider/slider.js"></script>
+		<script type="text/javascript" src="{$site.static_files_url}/yui/build/colorpicker/colorpicker-beta.js"></script>
+		<script type="text/javascript" src="{$site.static_files_url}/yui/build/dragdrop/dragdrop.js"></script>
+		<script type="text/javascript" src="{$site.static_files_url}/yui/build/animation/animation.js"></script>
+		<script type="text/javascript" src="{$site.static_files_url}/yui/build/json/json-beta-min.js"></script>
+		
+		<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/yui/build/colorpicker/assets/skins/sam/colorpicker.css" />
+		<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/profile/skin_edit/css/accordion_overides.css" />
+		<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/profile/skin_edit/css/yui_overides.css" />
+		
+		#{user_skin_js}
+		
+		<div id="header">
+			<div id="save_done">CANCEL | DONE</div>
+			<h1>Skin Editor</h1>
+			Choose Skin to Edit:
+			<select name="user_skin_list">
+				<t:iter t:id="user_skin_list" t:iter="skin">
+					<t:if t:id="current_skin.skinid == skin[1]">
+						<option value="#{skin[1]}" selected="selected">{skin[0]}</option>
+					</t:if>
+					<t:if t:id="current_skin.skinid != skin[1]">
+						<option value="#{skin[1]}">{skin[0]}</option>
+					</t:if>
+				</t:iter>
+			</select>
+		Create New Skin | Duplicate Skin
+		</div>
+		
+		<div id="right" style="z-index: 10;">
+			<div class="light_block" style="z-index: 10; padding-bottom: 12px;">
+				<h1>Preview</h1>
+				<div style="height: 280px; width: 100px;"></div>
+				<div id="preview_shadow"><!--[if IE]><iframe frameborder="0" scrolling="no" width="100%" height="100%" style="z-index: -1; filter: mask;"></iframe><![endif]--></div>
+				<div id="preview_wrapper">
+					<iframe src ="/my/profile/skin_edit_preview:Body" id="preview" frameborder="0" scrolling="no" width="100%" height="100%"></iframe>
+					<div id="preview_handle"><br /></div>
+					<canvas id="preview_zoom_canvas" width="64" height="64"></canvas>
+					<div id="preview_zoom"></div>
+				</div>
+			</div>
+			<div class="light_block">
+				<h1>
+					Apply Skins
+				</h1>
+				<t:iter t:id="skinable_areas" t:iter="area">
+					<select name="#{area}_skin" class="right_side">
+						<option value="" cond:selected="user.skin_selected(area, 0)"></option>
+						<t:iter t:id="user_skin_list" t:iter="user_skin">
+							<option value="#{user_skin[1]" cond:selected="user.skin_selected(area, user_skin[1])">
+								{user_skin[0]}
+							</option>
+						</t:iter>
+					</select>
+					<label class="list_label">
+						{area.capitalize()}
+					</label>
+					<t:if t:id="area == 'profile'">
+						<input type="checkbox" id="skin_apply_to_all" class="right_side" style="height: 12px; margin-left: 6px;" name="skin_apply_to_all" cond:checked="user.skin_applied_to_all" />
+						<label for="skin_apply_to_all" class="list_label" style="text-align: right; width: 100%;">Apply to all</label>
+					</t:if>
+				</t:iter>
+			</div>
+		</div>
+		
+		<div id="left">
+			<div class="light_block">
+				<form method="post" action="/my/profile/skin_edit/save/">
+					<input type="hidden" value="{current_skin.skinid}" name="skin_id"></input>
+					<div class="dark_block" style="margin-bottom: 2px; padding-bottom: 0px;">
+						<input class="input_title" name="skin_name" type="text" maxlength="20" value="{current_skin.name}" />
+						<div id="yui-picker-panel"><div class="yui-picker" id="yui-picker"></div></div>
+					</div>
+					
+					<div class="accordion_view" id="skin_panes">
+						<t:iter t:id="skin_display_groups.keys()" t:iter="group_key" t:index="group_index">
+						
+							<div id="{group_key}" class="accordion_handle">
+								{group_index+1}. {(group_key.to_s()).capitalize()}
+							</div>
+							
+							<div class="accordion_body">
+								<t:iter t:id="skin_display_groups[group_key]" t:iter="attribute_properties">
+								
+									<div id="#{attribute_properties[0]}" class="color_unit" onclick="switchColorListener('#{attribute_properties[0]}');">
+										<div class="color_swatch"></div>
+										<div class="list_label">
+											<input name="#{attribute_properties[0]}" type="text" class="color_hex" maxlength="7"></input>
+											{attribute_properties[1]}
+										</div>
+									</div>
+									
+								</t:iter>
+							</div>
+							
+						</t:iter>
+					</div>
+				</form>
+			</div>
+		</div>
+		<script type="text/javascript" src="{$site.static_files_url}/profile/skin_edit/js/fancy_scrolling.js"></script>
+		<script type="text/javascript" src="{$site.static_files_url}/profile/skin_edit/js/preview_zooming.js"></script>
+		<script type="text/javascript" src="{$site.static_files_url}/profile/skin_edit/js/main.js"></script>
+		<script type="text/javascript" src="{$site.static_files_url}/profile/skin_edit/js/draw.js"></script>
+	</div>
+</div>
