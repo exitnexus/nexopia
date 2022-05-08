@@ -1,8 +1,23 @@
 <div id="gallery_block_edit">
-	Select which gallery to display in this profile block:&#160;
-	<select name="gallery_id">	
-		<t:loop t:id="PageRequest.current.user.galleries" t:iter="gallery">
-			<option value="#{gallery.id}" cond:selected="gallery.id == selected_gallery_id">#{gallery.name}</option>
-		</t:loop>
-	</select>
+
+	<!-- Check if the user has any galleries if they don't give them a message telling them where to create one. -->
+	<t:if t:id="owner_user.galleries.size == 0 && filtered_galleries.length == 0">
+		You don't have any galleries, go&#160;<a href="#{PageRequest.current.area_base_uri}/gallery">here</a>&#160;to create one.
+	</t:if>
+	
+	<t:if t:id="owner_user.galleries.size > 0 && filtered_galleries.length == 0">
+		All of your galleries already have a profile block associated with them. A gallery can only have
+		one gallery strip.
+	</t:if>
+	<!-- Let the user select from the galleries they've created. -->
+	<t:if t:id="filtered_galleries.length > 0">
+
+		Select which gallery to display in this profile block:&#160;
+		<select name="gallery_id">	
+				<t:loop t:id="filtered_galleries" t:iter="gallery">
+					<option value="#{gallery.id}" cond:selected="gallery.id == selected_gallery_id">#{gallery.name}</option>
+				</t:loop>
+		</select>
+	
+	</t:if>
 </div>

@@ -70,7 +70,7 @@ function postEdit($msgid, $msg, $postaction){
 
 
 
-	$nmsg = removeHTML($msg);
+	$nmsg = cleanHTML($msg);
 
 	$nmsg3 = $forums->parsePost($nmsg);
 

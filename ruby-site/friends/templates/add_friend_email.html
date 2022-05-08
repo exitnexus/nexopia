@@ -1,0 +1,12 @@
+<t:wrapper>
+It looks like&nbsp;<a href="{sender_profile}">{sender.username}</a>&nbsp;has made you a little more popular by adding you to {sender.possessive_pronoun} friends list.&nbsp;&nbsp;
+
+<t:if t:id="!receiver.friend?(sender)">
+Do you want to&nbsp;<a href="{login_url}%{add_url}">add them</a>&nbsp;back?<br/><br/>
+</t:if>
+
+You can&nbsp;<a href="{login_url}%{remove_url}">remove yourself</a>&nbsp;if you don't want to be on this person's list.<br/><br/>
+
+<t:template-include name="message_footer" module="orwell"/>
+
+</t:wrapper>

@@ -808,13 +808,13 @@ function addCampaign($id = 0, $data = array()) {
 	$template->set('selectAgeType', make_select_list_key($defaults, $agedefault));
 	$template->set('selectAgeRange', make_select_list_multiple(range(14,65), $age));
 
-	$locations = new category( $configdb, "locs");
+	// $locations = new category( $configdb, "locs");
 	$template->set('selectLocationType', make_select_list_key($defaults, $locdefault));
-	$template->set('selectLocations', makeCatSelect_multiple($locations->makeBranch(), $loc));
+	$template->set('selectLocations', locationAutocomplete_multiple($loc, "data[locs]"));
 	$template->set('selectPagesType', make_select_list_key($defaults, $pagedefault));
 	$template->set('page', $page);
 
-	$interestcats = new category( $usersdb, "interests");
+	$interestcats = new category( $configdb, "interests");
 	$template->set('selectInterests', makeCatSelect_multiple($interestcats->makeBranch(), $interests));
 
 	$template->set('payrate', $payrate);
@@ -1178,12 +1178,12 @@ function addBanner($bannertype, $id = 0, $data = array()){
 	$template->set('selectSex', make_select_list_multiple_key($sexes, $sex));
 	$template->set('selectAgeType', make_select_list_key($defaults, $agedefault));
 	$template->set('selectAgeRange', make_select_list_multiple(range(14,65), $age));
-	$locations = new category( $configdb, "locs");
+	// $locations = new category( $configdb, "locs");
 	$template->set('selectLocationType', make_select_list_key($defaults, $locdefault));
-	$template->set('selectLocations', makeCatSelect_multiple($locations->makeBranch(), $loc));
+	$template->set('selectLocations', locationAutocomplete_multiple($loc, "data[locs]"));
 	$template->set('selectPagesType', make_select_list_key($defaults, $pagedefault));
 	$template->set('page', $page);
-	$interestcats = new category( $usersdb, "interests");
+	$interestcats = new category( $configdb, "interests");
 	$template->set('selectInterests', makeCatSelect_multiple($interestcats->makeBranch(), $interests));
 	$template->set('allowedtimes', (isset($allowedtimes) ? $allowedtimes : ''));
 	
@@ -1375,7 +1375,6 @@ function updateBanner($id, $data){
 	$set[] = "campaignid = #"; 		$params[] = $data['campaignid'];
 
 	$params[] = $id;
-
 	$banner->db->prepare_array_query("UPDATE banners SET " . implode(", ", $set) . " WHERE id = #", $params);
 
 	uploadBanner($id, getFILEval('uploadbanner'), 'image');
@@ -1387,9 +1386,9 @@ function updateBanner($id, $data){
 }
 
 function uploadBanner($id, $file, $col, $softlimit = 50, $hardlimit = 100){
-	global $staticRoot, $config, $banner, $msgs;
+	global $config, $banner, $msgs, $mogfs;
 
-	if(empty($file) || empty($file['tmp_name']))
+	if(empty($file) || empty($file['tmp_name']) || !$file['size'])
 		return true;
 
 	if($softlimit && $softlimit*1024 < $file['size']){
@@ -1420,12 +1419,12 @@ function uploadBanner($id, $file, $col, $softlimit = 50, $hardlimit = 100){
 	do{
 		$ver++;
 		$newfilename = "$id-$ver.$fileending";
-		$target_path = $staticRoot . $config['bannerdir'] . $newfilename;
-	}while(file_exists($target_path));
+	}while($mogfs->test(FS_BANNERS, $newfilename));
 
 	$banner->db->prepare_query("UPDATE banners SET $col = ? WHERE id = #", $newfilename . $tail, $id);
-
-	if(move_uploaded_file($file['tmp_name'], $target_path))
+	
+	$data = file_get_contents($file['tmp_name']);
+	if($mogfs->add(FS_BANNERS, $newfilename, $data))
 		$msgs->addMsg('Upload successful.');
 	else
 		$msgs->addMsg("Banner upload failed, please try again or specify a banner link.");
@@ -1436,9 +1435,6 @@ function deleteBanner($id){
 
 	$banner->db->prepare_query("DELETE FROM banners WHERE id = #", $id);
 	$banner->db->prepare_query("DELETE FROM bannerstats WHERE bannerid = #", $id);
-	if (file_exists($docRoot . $config['bannerdir'] . $id . '.jpg'))
-		if (!unlink($docRoot . $config['bannerdir'] . $id . '.jpg'))
-			$msgs->add("Deletion of banner image failed.");
 
 	$banner->deleteBanner($id);
 }
@@ -1448,11 +1444,6 @@ function deleteCampaign($id){
 	global $banner, $docRoot, $config;
 	$result = $banner->db->prepare_query("SELECT id FROM banners WHERE campaignid = #", $id);
 	while ($line = $result->fetchrow()) {
-		if (file_exists($docRoot . $config['bannerdir'] . $line['id'] . '.jpg')) {
-			if (!unlink($docRoot . $config['bannerdir'] . $line['id'] . '.jpg')) {
-				$msgs->add("Deletion of banner image ".$line['id'].".jpg failed.");
-			}
-		}
 		$banner->db->prepare_query("DELETE FROM bannerstats WHERE bannerid = #", $line['id']);
 	}
 	$banner->db->prepare_query("DELETE FROM banners WHERE campaignid = #", $id);

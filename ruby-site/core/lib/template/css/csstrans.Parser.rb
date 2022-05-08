@@ -91,6 +91,9 @@ class Parser
 		elsif (StartOf(1) || nil == 'URL') then
 			while (StartOf(2) || nil == 'URL')
 				case (@t.kind)
+				when 3 then
+
+					Get()
 				when 2 then
 
 					Get()
@@ -324,16 +327,42 @@ end
 		f = [] 
 		Expect(1)
 		f << @token.val; 
+		if (@t.kind==20) then
+			Get()
+			f << ":"; 
+			Expect(1)
+			f << @token.val; 
+		end
+		while (@t.kind==14)
+			Get()
+			f << "."; 
+			Expect(1)
+			f << @token.val; 
+		end
 		if (@t.kind==21) then
 			Get()
 			f << @token.val; 
-			while (@t.kind==1)
+			if (@t.kind==1) then
 				Get()
 				f << @token.val; 
 				Expect(16)
 				f << "="; 
 				v = Value()
 				f << v; 
+				while (@t.kind==9)
+					Get()
+					f << ","; 
+					Expect(6)
+					while (@t.kind==6)
+						Get()
+					end
+					Expect(1)
+					f << @token.val; 
+					Expect(16)
+					f << "="; 
+					v = Value()
+					f << v; 
+				end
 			end
 			Expect(22)
 			f << @token.val; 
@@ -616,8 +645,8 @@ end
 
 	@@set = [
 	[T,X,X,X, X,X,X,X, X,X,X,X, X,X,X,X, X,X,X,X, X,X,X,X, X,X,X,X, X,X,X,X, X],
-	[X,T,T,X, X,X,X,X, X,X,X,X, X,X,T,X, X,X,X,X, T,X,T,X, X,T,X,X, T,X,X,X, X],
-	[X,T,T,X, X,X,X,X, X,X,X,X, X,X,T,X, X,X,X,X, T,X,X,X, X,T,X,X, T,X,X,X, X],
+	[X,T,T,T, X,X,X,X, X,X,X,X, X,X,T,X, X,X,X,X, T,X,T,X, X,T,X,X, T,X,X,X, X],
+	[X,T,T,T, X,X,X,X, X,X,X,X, X,X,T,X, X,X,X,X, T,X,X,X, X,T,X,X, T,X,X,X, X],
 	[X,T,T,T, X,X,X,T, X,T,X,X, X,T,T,X, X,X,X,X, X,X,X,X, X,X,T,X, T,T,X,X, X],
 	[X,T,X,X, X,X,X,X, X,X,X,X, T,X,X,X, X,X,X,X, X,X,X,X, T,T,T,X, X,X,X,X, X],
 	[X,X,X,X, X,X,X,X, X,X,X,X, X,T,T,T, X,X,X,X, T,X,X,X, X,X,X,X, X,X,X,X, X],

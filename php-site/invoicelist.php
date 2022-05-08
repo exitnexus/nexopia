@@ -17,10 +17,11 @@
 		$id = $userData['userid'];
 	}
 
+	$where = "";
 	if($id)
-		$res = $shoppingcart->db->prepare_query("SELECT id, userid, creationdate, total, amountpaid, paymentdate, paymentmethod, paymentcontact, completed, valid FROM invoice WHERE userid = #" . ($isAdmin ? "" : " && valid = 'y'") . " ORDER BY id DESC", $id);
-	else
-		$res = $shoppingcart->db->prepare_query("SELECT SQL_CALC_FOUND_ROWS id, userid, creationdate, total, amountpaid, paymentdate, paymentmethod, paymentcontact, completed, valid FROM invoice ORDER BY id DESC LIMIT #,#", ($page*$config['linesPerPage']), $config['linesPerPage']);
+		$where = $shoppingcart->db->prepare("WHERE userid = #" . ($isAdmin ? "" : " && valid = 'y'"), $id);
+
+	$res = $shoppingcart->db->query("SELECT * FROM invoice $where ORDER BY id DESC LIMIT " . ($page*$config['linesPerPage']) . "," . $config['linesPerPage']);
 
 	$invoices = array();
 	$uids = array();
@@ -34,12 +35,9 @@
 	foreach($invoices as $k => $v)
 		$invoices[$k]['username'] = $usernames[$v['userid']];
 
-	if($id){
-		$numpages = 0;
-	}else{
-		$numrows = $res->totalrows();
-		$numpages =  ceil($numrows / $config['linesPerPage']);
-	}
+	$res = $shoppingcart->db->query("SELECT count(*) FROM invoice $where");
+	$numrows = $res->fetchfield();
+	$numpages =  ceil($numrows / $config['linesPerPage']);
 
 
 	incHeader(true,array('incShoppingCartMenu'));
@@ -65,7 +63,7 @@
 	foreach($invoices as $invoice){
 		echo "<tr>";
 		echo "<td class=body><a class=body href=/invoice.php?id=$invoice[id]>" . number_format($invoice['id']) . "</a></td>";
-		echo "<td class=body><a class=body href=/profile.php?uid=$invoice[userid]>$invoice[username]</a></td>";
+		echo "<td class=body><a class=body href=/users/". urlencode($invoice["username"]) .">$invoice[username]</a></td>";
 		echo "<td class=body>" . userDate("M j, Y, g:i a", $invoice['creationdate']) . "</td>";
 		echo "<td class=body align=right>\$$invoice[total]</td>";
 		echo "<td class=body align=right>\$$invoice[amountpaid]</td>";
@@ -92,7 +90,7 @@
 	}
 
 	if($numpages)
-		echo "<td align=right class=header>Page: " . pageList("$_SERVER[PHP_SELF]",$page,$numpages,'header') . "</td>";
+		echo "<td align=right class=header>Page: " . pageList("$_SERVER[PHP_SELF]?uid=" . urlencode($uid),$page,$numpages,'header') . "</td>";
 
 	echo "</tr></table>";
 	echo "</td></tr>";

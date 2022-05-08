@@ -84,7 +84,7 @@ module Validation
 		
 			def validate
 				if (@value != @retype_value)
-					return Results.new(:error, "#{@field_name} and Retype #{@field_name} do not match");
+					return Results.new(:error, "Did not match the first #{@field_name}");
 				else
 					return Results.new(:valid, "");
 				end
@@ -176,6 +176,26 @@ module Validation
 		end
 		
 		
+		class CheckEqualTo < Rule
+			def initialize(value, check_value, error_msg)
+				super([value], [check_value, error_msg]);
+				
+				@value = value.value;
+				@check_value = check_value;
+				@error_msg = error_msg;
+			end
+		
+		
+			def validate
+				if (@value == @check_value)
+					return Results.new(:valid);
+				else
+					return Results.new(:error, @error_msg);
+				end
+			end
+		end
+
+
 		class CheckChecked < Rule
 			def initialize(checked)
 				super([checked], []);
@@ -185,7 +205,6 @@ module Validation
 		
 		
 			def validate
-				$log.object @checked;
 				if (@checked.nil? || @checked == false)
 					return Results.new(:error);
 				else
@@ -204,12 +223,11 @@ module Validation
 			end
 		
 			def validate
-				chars = [' ','<','>','&','%','"',"'",'`','+','=','@',127.chr,129.chr,152.chr,158.chr,160.chr,'/','\\'];
-				(0...40).each { |i| chars << i.chr };
-				(166..223).each { |i| chars << i.chr };
-				(240..255).each { |i| chars << i.chr };
-
-				r = Regexp.new("[#{chars.to_s}]");
+				r = /[^a-zA-Z0-9~\^\*\-\\|\]\}\[\{\.]/
+				# The regular expression above contains all the characters that we allow and will match any text that
+				# contains a character that we don't allow. Thus, if the match returns nil, we have found no illegal
+				# characters. Take special note of the ^ at the beginning of the character set. This is a special
+				# regexp character that negates all the characters that follow.
 				m = @text.match(r);
 				if (m.nil?)
 					return Results.new(:valid, "");
@@ -220,6 +238,26 @@ module Validation
 		end
 	
 	
+		class CheckNoSpaces < Rule
+			def initialize(text)
+				super([text]);
+				
+				@text = text.value;
+			end
+		
+		
+			def validate
+				m = @text.match(/\s/)
+			
+				if (m.nil?)
+					return Results.new(:valid, "");
+				else
+					return Results.new(:error, "No spaces allowed");
+				end
+			end
+		end
+		
+		
 		class CheckAlphaCharactersExist < Rule
 			def initialize(text)
 				super([text]);
@@ -251,6 +289,7 @@ module Validation
 
 			def validate
 				chain = Chain.new;
+				chain.add(CheckNoSpaces.new(@username_accessor));
 				chain.add(CheckIllegalCharacters.new(@username_accessor));
 				chain.add(CheckAlphaCharactersExist.new(@username_accessor));
 				chain.add(CheckNoBannedWords.new(@username_accessor));
@@ -280,7 +319,7 @@ module Validation
 		
 		
 			def validate
-				banned_words = BannedWords.find(:scan);
+				banned_words = BannedWords.all_banned_words;
 				banned_words.each { |word|
 					if (word.type == 'word' || word.type == 'name')
 						if (word.word.downcase == @text.downcase)
@@ -309,9 +348,9 @@ module Validation
 		
 			def validate
 				if (@password.length < 4)
-					return Results.new(:error, "Password must be at least 4 characters long.");
+					return Results.new(:error, "4 characters minimum");
 				elsif (@password.length > 32)
-					return Results.new(:error, "Password cannot be longer than 32 characters.");
+					return Results.new(:error, "32 characters maximum");
 				else
 					return Results.new(:valid, "");
 				end
@@ -408,7 +447,8 @@ module Validation
 		
 		
 			def validate
-				banned = BannedUsers.find(:first, @identifier);
+				banned = BannedUsers.find(:first, "#{@identifier.to_s}");
+				
 				if (banned.nil?)
 					return Results.new(:valid, "");
 				else
@@ -488,6 +528,7 @@ module Validation
 		
 		
 			def validate
+								
 				if (@year.nil? && @month.nil? && @day.nil?)
 					return Results.new(:none,"");
 				end
@@ -510,8 +551,8 @@ module Validation
 						age = age - 1;
 					end
 
-					if(age < 14)
-						return Results.new(:error, "Must be 14 or over to join");
+					if(age < 13)
+						return Results.new(:error, "Must be 13 or over to join");
 					else
 						return Results.new(:valid, "");
 					end
@@ -529,6 +570,7 @@ module Validation
 		
 		
 			def validate
+				
 				if (@location.nil?)
 					return Results.new(:none,"");
 				end
@@ -596,18 +638,16 @@ module Validation
 		
 			def validate
 				weak = false;
-				if ( (!@username.nil? && @username != "" && !@password.to_s.index(@username.to_s).nil?) ||
-							@password == "secret" ||
-							@password =~ /^[a-z]*$/ || 				# Warn if all lowercase letters
-							@password =~ /^[A-Z]*$/ ||				# Warn if all uppercase letters
-							@password =~ /^[a-zA-Z][a-z]*$/)		# Warn if only first is uppercase and the rest are lowercase
-					weak = true;
-				end
-			
-				if (weak)
-					return Results.new(:warning, "Password is not very strong");
+				if ( (!@username.nil? && @username != "" && !@password.to_s.index(@username.to_s).nil?) || @password == "secret" || @password == "password")	
+					return Results.new(:warning, "Weak");
+				elsif(
+					@password =~ /^[a-z]*$/ || 				# Warn if all lowercase letters
+					@password =~ /^[A-Z]*$/ ||				# Warn if all uppercase letters
+					@password =~ /^[a-zA-Z][a-z]*$/ ||
+					@password =~ /^\d+$/) 	# Warn if only first is uppercase and the rest are lowercase
+					return Results.new(:warning, "Medium");
 				else
-					return Results.new(:valid, "");
+					return Results.new(:valid, "Strong");
 				end
 			end
 		end

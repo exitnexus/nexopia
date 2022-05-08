@@ -207,7 +207,7 @@ function insertproduct($data){
 
 	$id = $shoppingcart->db->insertid();
 
-	$ndescription = nl2br(parseHTML(smilies($data['description'])));
+	$ndescription = parseHTML(smilies($data['description']));
 
 	$shoppingcart->db->prepare_query("UPDATE producttext SET summary = ?, description = ?, ndescription = ?, id = ?",
 								$data['summary'], $data['description'], $ndescription, $id);
@@ -222,7 +222,7 @@ function updateproduct($id, $data){
 	$shoppingcart->db->prepare_query("UPDATE products SET category = ?, name = ?, active = ? WHERE id = ?",
 			$data['category'], $data['name'], $data['active'], $id);
 
-	$ndescription = nl2br(parseHTML(smilies($data['description'])));
+	$ndescription = parseHTML(smilies($data['description']));
 
 	$shoppingcart->db->prepare_query("UPDATE producttext SET summary = ?, description = ?, ndescription = ? WHERE id = ?",
 								$data['summary'], $data['description'], $ndescription, $id);

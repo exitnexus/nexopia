@@ -1,0 +1,21 @@
+<div id="friends_layout">
+	<div class="header">
+		<div class="header_picture"><img t:id="user" t:linktype="landscapemini" class="picture" /></div>
+
+		<div class="header_content">
+			<div class="username">{user.username}'s Friends</div>
+		
+			<div class="friends_tabs">
+				<a href="#{PageRequest.current.area_base_uri}/friends/" class="first {friends}">Friends</a>
+
+				<t:if t:id="edit_mode">
+					<a href="#{PageRequest.current.area_base_uri}/friends/reverse" class="{reverse}">People Who've Added Me</a>
+					<!-- <a href="#{PageRequest.current.area_base_uri}/friends/discover" class="{discover}">Friends of Friends</a> -->
+				</t:if>
+			</div>
+		</div>
+		<div class="clearit"/>
+	</div>
+	
+	#{inner.display}
+</div>

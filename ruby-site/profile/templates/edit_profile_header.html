@@ -1,46 +1,69 @@
-<tr>
-	<td colspan="2">
-		<div class="block_container_navigation">
+<div>
+	<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/yui/build/menu/assets/skins/sam/menu.css" />
+
+	<style type="text/css">
+
+		/*
+			Position and hide the Menu instance to prevent a flash of unstyled 
+			content when the page is loading.
+		*/
+	
+		div.yuimenu {
+		
+			position: absolute;
+			visibility: hidden;
+		
+		}
+		
+	
+		/*
+			Set the "zoom" property to "normal" since it is set to "1" by the 
+			".example-container .bd" rule in yui.css and this causes a Menu
+			instance's width to expand to 100% of the browser viewport.
+		*/
+		
+		div.yuimenu .bd {
+		
+			zoom: normal;
+		
+		}
+	</style>
+	<div id="profile_header">
+		<t:json t:data="PageRequest.current.area_base_uri" t:handle="areaBaseUri"/>
+		<div class="header_content">
 			<div class="profile_nav_secondary">
-				<t:if t:id="PageRequest.current.session.user.plus?">
-					<a href="/my/profile/skin_edit/">
-						SKIN
-					</a>
-					&#160;|&#160;
-				</t:if>
-				<a href="/my/profile/">
+				<a href="{header_done_link}">
 					DONE
 				</a>
 			</div>
-			<div class="profile_navigation">
-					PROFILE
-				&#160;|&#160;
-				
-					GALLERY
-				
-				&#160;|&#160;
-				
-					BLOG
-				
-				&#160;|&#160;
-				
-					COMMENTS
-				
-				&#160;|&#160;
-				
-					FRIENDS
-				
+			<div class="editor_title">
+				Profile Editor
 			</div>
-			<br class="clear" />
-			<div>
-				<select id="new_block_selector">
-					<t:iter t:id="block_info_list" t:iter="block_info">
-						<option value="#{block_info.generate_key()}">{block_info.title}</option>
-					</t:iter>
-				</select>
-				&#160;<a href="javascript:;" onclick="YAHOO.profile.Blocks.createNewBlock();">&#062;Create</a>
-			</div>
+
+			<t:if t:id="!PageRequest.current.impersonation?()">
+				<div class="button_bar" style="float: left; margin-right: 2px">
+					<select id="new_content_menu" class="themed_select" minion_name="themed_select">
+						<option value="-1">Add New Block</option>
+						<t:iter t:id="block_info_list" t:iter="block_info">
+							<t:if t:id="block_info.removable()">
+								<option value="#{block_info.generate_key()}">
+									{block_info.title}
+								</option>
+							</t:if>
+						</t:iter>
+					</select>
+				</div>
+				<div class="button_bar" style="float: left;">
+					<span id="create_new_content_button" class="yui-button yui-button-button">
+						<span class="first-child">
+							<button type="button">
+								add
+							</button>
+						</span>
+					</span>
+				</div>
+				<div class="clearit"/>
+			</t:if>
 		</div>
-	</td>
-</tr>
-        
+	</div>
+</div>

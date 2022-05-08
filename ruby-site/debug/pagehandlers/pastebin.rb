@@ -16,7 +16,7 @@ class PasteBin < PageHandler
 
 	def make_new()
 		post = PostInfo.new(
-			params['language', /ruby/, 'ruby'],
+			params['language', Set['ruby'], 'ruby'],
 			params['description', String, ''],
 			params['tabs', Integer, 4],
 			params['text', String, '']

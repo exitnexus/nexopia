@@ -1,0 +1,72 @@
+<div id="pimp_my_profile_thumbs">
+	
+	<div class="page_wrapper1">
+	<div class="page_wrapper3">
+
+		<div class="content_container">
+			<p class="bold">
+				Okay guys, your votes are in and it's time for the last and final round of voting to begin! It's been an intensely close race so far. Everyone's profiles are amazing but these six finalists managed to squeeze through and be that much closer to winning an iMac. Can you smell it guys? Can you?
+			</p>
+		
+			<p class="bold">
+				You have till Monday, October 13th to vote for your favorite profile so take your time. We'll be posting the winners soon after.
+			</p>
+		
+			<p>&nbsp;</p>
+			<p><h2>TOP 6 PROFILES</h2></p>
+		
+			<form class="vote_form" method="post" action="/vote/submit" id="second_vote">
+		
+				<table border="0" cellpadding="0" cellspacing="0" class="profile_thumbs">
+				<tr>
+					<!-- The template system doesn't allow you to stick unclosed tags on the page so I have to split it manually. -->
+					<t:loop t:id="group1" t:iter="skin">
+					
+						<!-- We wrap every 4 images so don't add the right padding on the last image on a row. -->					
+						<td class="{((skin.skinid % 4) == 0) ? 'padding_bottom' : 'padding_right padding_bottom' }">
+							<a href="/vote/gallery/{skin.round2id}">
+								<img border="0" width="163" height="116" src="#{$site.static_files_url}/Vote/images/{skin.filename}_thumb.jpg" />
+							</a>
+							<div class="vote_button">
+								<input type="radio" class="skin_entry" name="skin_entry" value="{skin.round2id}" />
+							</div>
+							<div class="username">
+								 <a href="/users/%{skin.designername}">{skin.designername}</a>
+							</div>
+							<br class="clear" />
+						</td>
+					</t:loop>
+				</tr><tr>
+					<t:loop t:id="group2" t:iter="skin">
+					
+						<!-- We wrap every 4 images so don't add the right padding on the last image on a row. -->					
+							<td class="{((skin.skinid % 4) == 0) ? 'padding_bottom' : 'padding_right padding_bottom' }">
+								<a href="/vote/gallery/{skin.round2id}">
+									<img border="0" width="163" height="116" src="#{$site.static_files_url}/Vote/images/{skin.filename}_thumb.jpg" />
+								</a>
+								<div class="vote_button">
+									<input type="radio" class="skin_entry" name="skin_entry" value="{skin.round2id}" />
+								</div>
+								<div class="username">
+									 <a href="/users/%{skin.designername}">{skin.designername}</a>
+								</div>
+								<br class="clear" />
+							</td>
+						</t:loop>
+				</tr>
+				</table>
+
+				<p>&nbsp;</p>
+				<a href="javascript: pyp_submit2();">
+					<img border="0" src="#{$site.static_files_url}/Vote/images/vote_btn.gif"/>
+				</a>
+			</form>
+
+		</div>
+		<div class="footer">
+			<img src="#{$site.static_files_url}/Vote/images/pimp_footer.jpg" />
+		</div>
+
+	</div>
+	</div>
+</div>

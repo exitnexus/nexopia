@@ -1,0 +1,425 @@
+/* BBCode language
+*/
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <map>
+
+using namespace std;
+
+/*template<class T>
+typename vector<T>::iterator find(vector<T> vec, T element){
+	for (typename vector<T>::iterator it = vec.begin(); it != vec.end(); it++){
+		if ((*it) == element)
+			return (*it)
+	}
+	return vec.end();
+}*/
+
+COMPILER BBCode
+
+	vector<wstring> tags;
+	wstring str;
+	wstring mode;
+	bool first_list_element;
+	wstring last_list;
+	
+	void Parser::SemErr(int n){
+		fprintf(stderr, "Sem err %i \n", n);
+	}
+	
+	wstring PushTag(wstring tag, wstring attrs=L""){
+		wstring output = L"<" + tag + attrs + L">";
+		this->tags.push_back(tag);
+		return output;
+	}
+	
+	wstring PopTag(wstring tag){
+		wstring output = L"";
+		if (find(this->tags.begin(), this->tags.end(), tag) != this->tags.end()){
+	    	vector<wstring> temp_stack;
+	        //pop the tags off
+	        wstring elt;
+			while((elt = this->tags.back()) != tag){
+				this->tags.pop_back();
+				output += L"</" + elt + L">";
+				temp_stack.push_back(elt);
+			}
+			this->tags.pop_back();
+			output += L"</" + tag + L">";
+			
+			//re-open
+			for(vector<wstring>::iterator it = temp_stack.begin(); it != temp_stack.end(); it++){
+				wstring elt = (*it);
+				output += L"<" + elt + L">";
+				this->tags.push_back(elt);
+			}
+		}else{
+			return wstring(this->t->val); //Warning --- this only works because we parse only 1 token.
+								// If we wanted better, try storing the buffer begin and end
+								// pos and use the original buffer text.
+		}
+		return output;
+	}
+	
+	bool valid_url(wstring url){
+		return ((url.substr(0,7) == L"http://") || (url.substr(0,8) == L"https://") || (url.substr(0,1) == L"/"));
+	}
+	
+	template<class T>
+	basic_string<T> gsub(basic_string<T> source, const basic_string<T>& find, const basic_string<T>& replace ){
+		size_t j;
+		if (find.length() == 0)
+			return source; 
+		for (;(j = source.find( find )) != basic_string<T>::npos;){
+			source.replace( j, find.length(), replace );
+		}
+		return source;
+	}
+	
+	wstring forumcode_safeurl(wstring url){
+		map<wstring,wstring> replace;
+		replace[wstring(L"%")]  = L"%25";
+		replace[wstring(L"\"")] = L"%22";
+		replace[wstring(L"'")]  = L"%27";
+		replace[wstring(L"<")]  = L"%3C";
+		replace[wstring(L">")]  = L"%3E";
+		replace[wstring(L"#")]  = L"%23";
+
+		for(map<wstring, wstring>::iterator it = replace.begin(); it != replace.end(); it++){
+			wstring find = (*it).first;
+			wstring replacem = (*it).second;
+			url = gsub(url, find, replacem);
+		}
+
+		for(int i=1; i <= 31; i++){
+			wchar_t buf[1];
+			swprintf(buf, 1, L"%c", i);
+			url = gsub(url, wstring(buf), wstring(L""));
+		}
+	
+		for(int i=127; i <= 255; i++){
+			wchar_t buf[1];
+			swprintf(buf, 1, L"%c", i);
+			url = gsub(url, wstring(buf), wstring(L""));
+		}
+		//do{
+			//$url1 = $url;
+			//$url = preg_replace("/(?i)j(\s*)a(\s*)v(\s*)a(\s*)s(\s*)c(\s*)r(\s*)i(\s*)p(\s*)t(\s*):/","", $url); //ie javascript: with spaces between it
+			//$url = preg_replace("/(?i)v(\s*)b(\s*)s(\s*)c(\s*)r(\s*)i(\s*)p(\s*)t(\s*):/","", $url); //ie vbscript: with spaces between it
+			//$url = preg_replace("/(?i)d(\s*)a(\s*)t(\s*)a(\s*):/","", $url); //ie data: with spaces between it, used with: data:text/html;base64,.....
+		//}while($url1 != $url);
+
+		return url;
+	}
+	
+	wstring urlencode(wstring text){
+		return text;
+	}
+
+	wstring forumcode_url(wstring url){
+		url = gsub(url, wstring(L"\""), wstring(L"%22"));
+		return PushTag(L"a", wstring(L" class=\"body\" href=\"") + url + L"\" target=\"_new\"");
+	}
+	
+	wstring forumcode_user(wstring url){
+		return PushTag(L"a", wstring(L" class=body target=_new href=\"/users/") + urlencode(forumcode_safeurl(url)) + L"\"");
+	}
+	
+	wstring forumcode_email(wstring url){
+		return PushTag(L"a", wstring(L"class=body href=\"/mailto:") + forumcode_safeurl(url) + L"\"");
+	}
+
+	wstring forumcode_image(wstring url){
+		wstring tag;
+		if (valid_url(url))
+			tag = wstring(L"<img src=\"") + gsub(url, wstring(L"\""), wstring(L"%22")) + wstring(L"\" border=\"0\"/>"); //.gsub('"',"%22")
+		else if (wstring(this->t->val) == L"[/img]")
+			tag = L"[img]" + url + L"[/img]";
+		else
+			tag = L"[img]" + url;
+		return tag;
+	}
+	
+IGNORECASE
+
+CHARACTERS
+  letter   = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" .
+  digit    = "0123456789" .
+  tab      = '\t' .
+  eol      = '\r' + '\n' .
+  wstring   = ANY - "}" - "{".
+  noQuote1 = wstring - '"'.
+  noQuote2 = wstring - "'".
+  q1       = "'".
+  q2       = '"'.
+  space    = ' '.
+  word     = ANY - space - tab - eol - "\\" - "[" - "]" - "=".
+
+TOKENS
+  whitespace = (space | tab | eol).
+  word = word {word}.
+  escapedslash = "\\\\".
+  escapedbracket = "\\[".
+
+PRAGMAS
+  
+/*
+COMMENTS FROM "/*" TO "*/" NESTED
+
+IGNORE "\0"
+*/
+
+
+PRODUCTIONS
+
+/* Setup */
+  BBCode          
+									(. 
+									  	this->first_list_element = false;
+										this->str = L""; 
+										this->mode = L""; 
+										wstring tag;
+									.)
+  = {  
+      escapedbracket				(. this->str += L"["; .)
+      | BBTag<tag>					(. this->str += tag; .)
+      | ANY							(. this->str += this->t->val; .)
+    }
+  EOF                             	(. 
+                                  		//close all remaining opened tages.
+                                  		while(!this->tags.empty()){
+	                                  		wstring elt = this->tags.back();
+	                                  		this->tags.pop_back();
+                                    		this->str += L"</" + elt + L">";
+                                		}
+                                     
+                                	.)
+  .
+
+  BBTag<wstring &tag>
+  =
+    (
+	  URLTag<tag>		
+	  | ListTag<tag>	
+      | IMGtag<tag>     
+      | SimpleTag<tag>  
+      | DecorationTag<tag>  
+      | QuoteTag<tag>
+    )
+  .
+  
+  URLTag<wstring &output>			(. wstring url, open_tag, close_tag; .)
+  =
+    (
+      "[/url]"						(.	output = PopTag(L"a"); .)
+      | "[/user]" 					(.	output = PopTag(L"a"); .)
+      | "[/email]"					(.	output = PopTag(L"a"); .)
+    )
+  	|
+  	(
+(
+        "[url"				    	(. open_tag = L"url"; .)
+        | "[user" 					(. open_tag = L"user"; .)
+  	    | "[email"					(. open_tag = L"email"; .)
+)
+      (
+        ATTR<url>					
+(. 
+	if (open_tag == L"url" && valid_url(url)) {
+		output = forumcode_url(url);
+	} else if (open_tag == L"user"){ 
+		output = forumcode_user(url);
+	} else if (open_tag == L"email") {
+		output = forumcode_email(url);
+	} else {
+		output = wstring(L"[") + open_tag + L"=" + url + close_tag + L"]";
+	}
+	
+.)
+	    |
+	    (
+	      "]"						(. url = L""; .)
+	      {					
+		    ANY	          			(. url += this->t->val; .)
+		  }
+(
+		  "[/url]"					(.	close_tag = L"url";  .)
+          | "[/user]" 				(.	close_tag = L"user";  .)
+          | "[/email]"				(.	close_tag = L"email"; .)
+)
+
+(.  
+	if (open_tag == close_tag){
+		if (open_tag == L"url" && valid_url(url)) {
+			output = forumcode_url(url) + url;
+			output += PopTag(L"a"); 
+		} else if (open_tag == L"user") {
+			output = forumcode_user(url) + url;
+			output += PopTag(L"a");
+		} else if (open_tag == L"email") {
+			output = forumcode_email(url) + url;
+			output += PopTag(L"a");
+		} else {
+			output = url;
+		}
+	}else{
+		output = wstring(L"[") + open_tag + L"]" + url + L"[/" + close_tag + L"]";
+	}
+.)
+        )
+      )
+    )
+  .
+  
+  ListTag<wstring &output>		(. output = L""; 
+  									wstring type = L""; .)
+  = (							
+      "[*]"					    (. 	if (!this->tags.empty() && this->tags.back() == L"li"){
+							  			output += PopTag(L"li");
+								  		output += PushTag(L"li", L"");
+								  	}else if (this->last_list != L""){
+								  		output += PushTag(L"li", L"");
+							 		}else{
+								  	   	output += L"[*]";
+							   		} 
+							   	.)
+	)					   
+    |
+	(
+	  "[list"						(. this->first_list_element = true; .)
+      (
+        ATTR<type>					(. output += PushTag(L"ol", wstring(L" type=\"") + type + L"\""); this->last_list = L"ol"; .)
+        | "]"						(. output += PushTag(L"ul", L""); this->last_list = L"ul"; .)
+      )
+      								(. output += PushTag(L"li", L""); .)
+	  "[*]"
+	  
+    )
+    | (
+      "[/list]"						(. 	output += PopTag(L"li");
+      									if (this->last_list != L"") {
+      										output += PopTag(this->last_list); 
+      										this->last_list = L"";
+      									} 
+      								.)
+      )
+  .
+  
+  SimpleTag<wstring &output>				(. wstring a; .)
+  = 
+		("[hr]")								(. output = L"<hr/>"; .)
+	  | (
+       	  "[size" ATTR<a> 					(. output = PushTag(L"font", wstring(L" size=\"") + a + L"\""); .)
+        )
+      | (
+          ("[color"|"[colour") ATTR<a> 		(. output = PushTag(L"span", wstring(L" style=\"color:") + a + L"\""); .)
+        )
+      | (
+          "[font" ATTR<a> 					(. output = PushTag(L"font", wstring(L" face=\"") + a + L"\""); .)
+        )
+      | "[/font]"							(.output = PopTag(L"font"); .)
+      | "[/size]"							(.output = PopTag(L"font"); .)
+      | "[/colour]" | "[/color]"			(.output = PopTag(L"span"); .)
+  . 
+
+  DecorationTag<wstring &tag>
+  = (
+      "[b]"						(. tag = PushTag(L"b"); .)
+      | "[i]"					(. tag = PushTag(L"i"); .)
+      | "[u]"					(. tag = PushTag(L"u"); .)
+      | "[code]"				(. tag = PushTag(L"pre"); .)
+      | "[center]"				(. tag = PushTag(L"center"); .)
+      | "[left]"				(. tag = PushTag(L"div", L" style=\"text-align:left\""); .)
+      | "[right]"				(. tag = PushTag(L"div", L" style=\"text-align:right\""); .)
+      | "[justify]"				(. tag = PushTag(L"div", L" style=\"text-align:justify\""); .)
+      | "[sub]"					(. tag = PushTag(L"sub"); .)
+      | "[sup]"					(. tag = PushTag(L"sup"); .)
+      | "[strike]"				(. tag = PushTag(L"strike"); .)
+      | "[/sub]"				(. tag = PopTag(L"sub"); .)
+      | "[/sup]"				(. tag = PopTag(L"sup"); .)
+      | "[/strike]"				(. tag = PopTag(L"strike"); .)
+      | "[/b]"					(. tag = PopTag(L"b"); .)
+      | "[/i]"					(. tag = PopTag(L"i"); .)
+      | "[/u]"					(. tag = PopTag(L"u"); .)
+      | "[/code]"				(. tag = PopTag(L"pre"); .)
+      | "[/left]"				(. tag = PopTag(L"div"); .)
+      | "[/right]"				(. tag = PopTag(L"div"); .)
+      | "[/justify]"			(. tag = PopTag(L"div"); .)
+      | "[/center]"				(. tag = PopTag(L"center"); .)
+    )
+  .
+  
+  IMGtag<wstring &tag>			(. wstring url; bool closed = false; .)
+  = 
+  	"[img" 						
+    (
+      (
+  	  "]"						(.	url = L""; .)
+      [word						(.	url += this->t->val; .)
+      ["[/img]"					(.	closed = true; .)]]
+
+	(. 	if (closed){
+			if (valid_url(url)) 
+				tag = forumcode_image(url);
+			else
+				tag = wstring(L"[img]") + url + L"[/img]";
+		} else {
+			tag = wstring(L"[img]") + url + L"";
+		}
+	.)
+            
+    )
+    |
+      ATTR<url>					
+	    (. 	if (valid_url(url)) 
+				tag = forumcode_image(url);
+			else
+				tag = wstring(L"[img=") + url + L"]";
+			
+		.)
+    )							
+  .
+  
+  QuoteTag<wstring &tag>		(.	wstring source; .)
+  =
+  	"[/quote]"					(.	tag = PopTag(L"div"); 
+  	  								tag += PopTag(L"div");
+							  	.)
+  	|
+  	(
+  	"[quote"					(.	tag = L"<br/>";
+									tag += PushTag(L"div", L" class=\"quote\""); .)
+  	(
+  	  ATTR<source>				(.  
+  	  								tag += PushTag(L"div");
+  	  								tag += PushTag(L"i");
+  	  								tag += L"Originally posted by: ";
+  	  								tag += PushTag(L"b");
+  	  								tag += source;
+  	  								tag += PopTag(L"b");
+  	  								tag += PopTag(L"i"); 
+  	  								tag += PopTag(L"div");
+  	  								
+  	  								tag += PushTag(L"div");
+  	  							.)
+  	  |
+  	  "]"						(. tag += PushTag(L"div"); .)
+  	  
+  	)
+  	)
+  .
+  
+  ATTR<wstring &tag>
+  = "="                          (. tag = L""; .)
+    {
+      ANY                        (. tag += gsub(wstring(this->t->val), wstring(L"\""), wstring(L"%22")); //.gsub('"',"%22"); 
+      								.)
+    }
+    "]"							
+  .
+
+
+END BBCode.
+
+

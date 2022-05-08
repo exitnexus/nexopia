@@ -1,0 +1,6 @@
+--- !ruby/object:JavascriptConfig 
+module_require: 
+- core
+yui_require:
+- container
+- button

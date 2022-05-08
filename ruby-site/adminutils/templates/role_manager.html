@@ -28,7 +28,7 @@
 	<form action="/admin/privileges/create" method="post">
 		Create a new privilege for site_module
 		<select name="site_module">
-			<option t:id="site_modules" t:iter="site_module" value="{site_module.typeid}">
+			<option t:id="nex_site_modules" t:iter="site_module" value="{site_module.typeid}">
 				{site_module.typename}
 			</option>
 		</select>

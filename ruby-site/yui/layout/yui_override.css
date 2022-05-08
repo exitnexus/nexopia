@@ -1,0 +1,49 @@
+body {
+	
+	& .custom_button
+	{
+		background-color: #d7d7d7;
+		color: #000;
+		font-size: 11px;
+		font-family: Verdana,Arial,Helvetica,sans-serif;
+		
+		& button
+		{
+			font-size: 11px;
+			font-family: Verdana,Arial,Helvetica,sans-serif;
+			color: #000;
+			font-weight: bold;
+			cursor: pointer;
+			background-color: #d7d7d7;
+			border: 1px solid #949494;
+			padding: 1px 6px 2px 6px;
+		}
+		
+		& button:hover
+		{
+			background-color: #bcbcbc;
+		}
+	}
+	
+	& .yui-button-spacer
+	{
+		margin-left: 2px;
+	}
+	
+	& .yui-button-disabled {
+		background:#ecece3;
+	
+		filter:none;
+		
+	}
+	
+	& .yui-button-disabled .first-child {
+	}
+	
+	& .yui-button-disabled button, 
+	.yui-button-disabled a {
+		color:#b9b9b9;
+		cursor:default;
+	}
+
+}

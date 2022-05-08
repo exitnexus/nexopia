@@ -17,7 +17,7 @@
 }
 
 div.quote {
-	border-left: 2px solid $header_background_color;
+	border-left: 2px solid $primary_text_color;
 	margin: 10px;
 	padding: 5px;
 	

@@ -25,7 +25,7 @@
 	}
 
 	if (!$uid)
-		die("Bad user");
+		die("Bad user userid didn't come through");
 
 
 	$page = getREQval('page', 'int');
@@ -56,7 +56,7 @@
 			if ($gone)
 			{
 				incHeader();
-				echo "Bad user";
+				echo "Bad user you can't see me!";
 				incFooter();
 				exit;
 			} else {
@@ -176,9 +176,10 @@
 
 				scan_string_for_notables($entry->msg->getText());
 
+				// This commented out on the live site because the Observation module is not loaded.
 				if ($uid == $userData['userid']){
 					if ((!$id) && ($entry->scope != WEBLOG_PRIVATE)){
-						enqueue( "Blog", "create", $uid, array($uid, $entry->entryid) );
+					//	enqueue( "Blog", "create", $uid, array($uid, $entry->entryid) );
 					} //else {
 					//	enqueue( "Blog", "edit", $uid, array($uid, $id) );
 					//}
@@ -254,20 +255,43 @@
 			$weblog->invalidateNewReplies($userData['userid'], $id);
 	}
 
-
 	$template->set("skin", injectSkin($user, 'blog'));
-	$template->set("profilehead", incProfileHead($user));
-
-    $template->set("uid", $uid);
+	
+	//This is to include the ruby user area header. It only works with RAP so if the passthrough is used, the old header will appear.
+	if(isset($ruby_site_obj) && isset($rap_pagehandler)) 
+	{
+		//We need to change the working directory so template, lib_requires, etc in the ruby-site have the correct path, the PHP path
+			// is restored at the end of the function.
+//		$curr_work_dir = getcwd();
+//		chdir($ruby_site_obj->config()->site_base_dir());
+	
+		$ruby_output = $rap_pagehandler->subrequest(null, "GetRequest", "/Nexoskel/user/header/users/".urlencode($user['username'])."/blog", null, "Skeleton");
+		$template->set("profilehead", $ruby_output->get_reply_output());
+//		chdir($curr_work_dir);
+		if($user['blogskin'] > 0)
+		{
+			$template->set('rubyskin', "<link href=\"/users/". urlencode($user['username']) ."/style/0/". urlencode($user['blogskin']) .".css\" rel=\"stylesheet\"></link> ");
+		}
+		else
+		{
+			$template->set('rubyskin', "");
+		}
+	}
+	else
+	{
+		$template->set("profilehead", incProfileHead($user));
+	}
+	
+	$template->set("uid", $uid);
 
 	$linkbar = array();
 	if ($uid == $userData['userid'])
-		$links[] = array("Post New Entry", "weblog.php?uid=$uid&action=New");
+		$links[] = array("Post New Entry", "/users/". urlencode($user['username'])."/blog?uid=$uid&action=New");
 	$myblogname = "My";
 	if ($uid != $userData['userid'])
 		$myblogname = $user['username'] . "'s";
-	$links[] = array("$myblogname Calendar", ($id || !$calendarview? "weblog.php?uid=$uid&calendarview=1" : ""));
-	$links[] = array("$myblogname Blog Entries", ($id || $friendsview || $calendarview? "weblog.php?uid=$uid&friendsview=0" : ""));
+	$links[] = array("$myblogname Calendar", ($id || !$calendarview? "/users/". urlencode($user['username'])."/blog?uid=$uid&calendarview=1" : ""));
+	$links[] = array("$myblogname Blog Entries", ($id || $friendsview || $calendarview? "/users/". urlencode($user['username'])."/blog?uid=$uid&friendsview=0" : ""));
 
 	$numnew = "";
 	if (!$friendsview && $uid == $userData['userid'])
@@ -276,7 +300,7 @@
 		if ($lastupdated['postcount'])
 			$numnew = " ($lastupdated[postcount] New)";
 	}
-	$links[] = array("$myblogname Friends' Entries$numnew", ($id || !$friendsview? "weblog.php?uid=$uid&friendsview=1" : ""));
+	$links[] = array("$myblogname Friends' Entries$numnew", ($id || !$friendsview? "/users/". urlencode($user['username'])."/blog?uid=$uid&friendsview=1" : ""));
     $template->set("linkbar", makeLinkBar($links, 'header2'));
 
 	$commententrystyle = "";
@@ -511,7 +535,7 @@ function getUserColumn($userid, &$authors, &$usernames, $showbloglink = false)
 	$result = "<td class=body valign=top nowrap>";
 
 	if(isset($authors[$userid])){
-		$result .= "<a class=body href=/profile.php?uid={$userid}><b>" . $authors[$userid]['username'] . "</b></a>";
+		$result .= "<a class=body href=/users/". urlencode($authors[$userid]['username']) ."><b>" . $authors[$userid]['username'] . "</b></a>";
 		if ($showbloglink)
 			$result .= "<br/><a class=body href=/weblog.php?uid={$userid}>View Blog</a>";
 		$author = $authors[$userid];
@@ -526,8 +550,9 @@ function getUserColumn($userid, &$authors, &$usernames, $showbloglink = false)
 		$result .= "- Online -<br>";
 
 	if($userid && $author['firstpic'])
-		$result .= "<a class=header href=/profile.php?uid={$userid}><img src=" . $config['thumbloc'] . floor($author['userid']/1000) . "/" . weirdmap($author['userid']) . "/$author[firstpic].jpg border=0></a><br>";
-
+	{
+		$result .= "<a class=header href=/users/". urlencode($authors[$userid]['username']) ."><img src=" . $config['thumbloc'] . floor($author['userid']/1000) . "/" . weirdmap($author['userid']) . "/$author[firstpic].jpg border=0></a><br>";
+	}
 	if($userid)
 		$result .= "<br>Age <i>$author[age]</i>, $author[sex]<br>";
 

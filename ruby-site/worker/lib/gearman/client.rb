@@ -74,6 +74,10 @@ class Client
   #
   # If we don't know about the socket, we just close it.
   #
+	# If we do know about it close it. If we don't it fills all
+	# of the available connections to the gearman daemon causing
+	# many problems.
+	#
   # @param sock  Socket
   def return_socket(sock)
     hostport = get_hostport_for_socket(sock)
@@ -84,7 +88,8 @@ class Client
       sock.close
       return
     end
-    (@sockets[hostport] ||= []) << sock
+    #(@sockets[hostport] ||= []) << sock
+		close_socket(sock);
   end
 
   def close_socket(sock)

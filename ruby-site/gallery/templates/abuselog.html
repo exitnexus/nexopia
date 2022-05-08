@@ -1,0 +1,27 @@
+<t:if t:id="PageRequest.current.impersonation?">
+	<div id="gallery_abuse_section" minion_name="gallery_abuse_section">
+		<form id="abuse_log_form" method="post" action="none">
+			<input type="hidden" name="gallery_abuse_url" value="#{PageRequest.current.area_base_uri}/gallery/submit_abuse_log/#{gallery.id}"/>
+			<div class="abuse_section">
+				<div id="abuse_message">
+					This "submit" button only affects the abuse log form, it does not change
+					anything else on the page.  Delete images, then fill out the form and submit it.
+				</div>
+				<div class="reason_selector">
+					<span class="field_name">Reason: </span>
+					<t:handler-include path="/profile/selector/mod_reason/{reason}" area="Admin">
+						<t:var t:name="'reason_ref'" t:val="'abuse_log_reason'" />
+					</t:handler-include>
+				</div>
+				<div>
+					<input type="text" name="abuse_log_subject" id="abuse_log_subject"></input>
+				</div>
+				<div class="message_entry">
+					<span class="field_name">Abuse Log Entry: </span><br/>
+					<textarea name="abuse_log_entry" id="abuse_log_entry"></textarea>
+				</div>
+			</div>
+			<input id="submit_abuse_log" type="submit"/>
+		</form>
+	</div>
+</t:if>

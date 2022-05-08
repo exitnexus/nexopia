@@ -1,0 +1,28 @@
+<div>
+	<div class="month_grid">
+		<table class="month_table" cellspacing="0">
+			<tr>
+				<td colspan="7" class="month_title">{month_title}</td>
+			</tr>
+			<tr class="day_header_row">
+				<td><div class="cell_spacer">Sun</div></td>
+				<td><div class="cell_spacer">Mon</div></td>
+				<td><div class="cell_spacer">Tue</div></td>
+				<td><div class="cell_spacer">Wed</div></td>
+				<td><div class="cell_spacer">Thu</div></td>
+				<td><div class="cell_spacer">Fri</div></td>
+				<td><div class="cell_spacer">Sat</div></td>
+			</tr>
+			<tr class="week_row" t:id="week_rows" t:iter="week_row">
+				<td minion_name="blog:calendar_post_link"
+					class="day {'empty' if day.nil?} {'posts' if !date_map.posts_on(year,month,day.to_i,visibility_level).empty?}" 
+					t:id="week_row" t:iter="day">
+					<t:if t:id="date_map.posts_on(year,month,day.to_i,visibility_level).empty?">{day}</t:if>
+					<t:if t:id="!date_map.posts_on(year,month,day.to_i,visibility_level).empty?">
+						<a href="/users/%{blog_user.username}/blog/view/entries?id={date_map.post_ids_on(year,month,day.to_i,visibility_level) * ','}">{day}</a>
+					</t:if>
+				</td>
+			</tr>
+		</table>
+	</div>
+</div>

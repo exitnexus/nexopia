@@ -1,0 +1,16 @@
+<div id="user_gallery_normal_view" class="primary_block">
+	<div class="gallery_display_container">
+		<div class="clearit"/>
+		<div class="gallery_thumbs" t:id="gallery.pics" t:iter="pic" t:index="index">
+			<t:statement>
+				row_length = 6
+				first = (index%row_length == 0) ? 'first' : ''
+				last = (index%row_length == row_length-1) ? 'last' : ''
+			</t:statement>
+			<a t:id="pic" class="{first} {last}">
+				<img class="normal_view_thumb" minion_name="normal_view_thumb" url="#{pic.img_info('square')[1]}"/>
+			</a>
+		</div>
+		<div class="clearit" />
+	</div>
+</div>

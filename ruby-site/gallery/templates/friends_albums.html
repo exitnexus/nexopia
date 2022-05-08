@@ -1,0 +1,61 @@
+<div id="friends_albums">
+	<div class="tabbed_gallery_header"> 
+		<a t:id="user" class="user_thumbnail"><img t:id="user" t:linktype="landscapemini"/></a>
+		<div class="gallery_header">
+			<div class="username">
+				{user.username}'s Gallery
+			</div>
+			<div class="gallery_tabs">
+				<a href="/users/%{user.username}/gallery" class="first_tab">Albums</a>
+				<a href="/users/%{user.username}/gallery/friends/updates" class="selected">Friends' Albums</a>
+			</div>
+		</div>
+		<div style="clear: both;"></div>
+	</div>
+	
+	<t:if t:id="stories.empty?">
+		<div class="no_galleries">
+			<div class="title">
+				No new friends' albums found.
+			</div>
+			Find and add your friends to see some.
+			<br />
+			<form method="get" action="/my/friends/find">
+				<span class="custom_button yui-button yui-button-button empty_friends_gallery_button">
+					<span class="first-child">
+						<button type="submit">
+							+ Add Friends
+						</button>
+					</span>
+				</span>
+			</form>
+		</div>
+	</t:if>
+	<t:if t:id="!stories.empty?">
+		<div class="album_container" t:id="stories" t:iter="story">
+			<a t:id="story.reporter" class="album_thumbnail">
+				<img t:linktype="square" t:id="story.reporter"/>
+			</a>
+			<div class="album_info">
+				<span class="name">
+					<a t:id="story.reporter"></a>&#160;({story.reporter.meta.count})
+				</span><br />
+				<span class="date_author">
+					By&#160;<a t:id="story.reporter.owner"></a>&#160;|&#160;<a href="/users/%{story.reporter.owner.username}/gallery">Gallery</a>&#160;|&#160;
+					<t:nice-time t:time="story.reporter.created" t:format="date" t:result="date">Created {date}</t:nice-time>
+				</span>
+				<div class="description">
+					{story.reporter.description}
+				</div>
+			</div>
+			<div class="preview_thumbs">
+				<t:if t:id="story.reporter.meta.preview_pics" t:iter="pic">
+					<a t:id="pic" class="thumbnail">
+						<img t:id="pic" t:linktype="squaremini"/>
+					</a>
+				</t:if>
+			</div>
+			<br class="clear" />
+		</div>
+	</t:if>
+</div>

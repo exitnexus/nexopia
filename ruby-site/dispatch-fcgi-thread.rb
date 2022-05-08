@@ -28,9 +28,14 @@ def create_thread()
 				Thread.current['handling_request'] = true;
 
 				$log.reassert_stderr();
-				PageRequest.new_from_cgi($cgi) {|req|
-					PageHandler.execute(req);
-				}
+				begin
+					PageRequest.new_from_cgi($cgi) {|req|
+						PageHandler.execute(req);
+					}
+				rescue
+					$log.error
+					raise
+				end
 
 				Thread.current['handling_request'] = false;
 

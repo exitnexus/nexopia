@@ -1,0 +1,25 @@
+<div class="userpoll_view" id="userpoll">
+	<div class="poll_right_column">
+		<div class="block_title">
+			POLL
+		</div>
+		<div class="question secondary_block block_regular">
+			{question}
+		</div>
+		
+		<div class="results_container">
+			<t:loop t:id="answers" t:iter="answer">
+			<div id="answer">{answer[1]}</div>
+			<div id="result_bar" style="width: {answer[3]}px;"></div>
+			<div class="vote_number">{answer[2]}</div>
+			<br class="clear" />
+			</t:loop>
+		</div>
+		
+		<div class="number_of_votes">
+			({votes})
+		</div>
+		<a href="/reportabuse.php?type={Profile::UserAbuseQueue.queue_number}&id={user.userid}" class="report">Report</a>
+		<br class="clear" />
+	</div>
+</div>

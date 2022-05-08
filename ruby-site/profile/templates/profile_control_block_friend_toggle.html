@@ -1,0 +1,42 @@
+<tr minion_name="profile:ie6_hover_hack" id="profile_control_block_friend_toggle_{user.userid}">
+	<t:if t:id="!viewer.friend?(user)">
+		<td>
+			<a href="/users/{viewer.username_escaped}/friends/add/{user.userid}?form_key[]=#{SecureForm.encrypt(viewer, '/User/friends/add')}" 
+				class="friend_toggle_text_link"
+				id="profile_control_block_friend_toggle_text_{user.userid}"
+				dialog_question="Add this user as a friend?"
+				onclick="YAHOO.profile.ControlBlock.toggleFriend(this, '{user.username_escaped}'); return false;">
+				ADD AS FRIEND
+			</a>
+		</td>
+		<td class="profile_function_icon">
+			<a href="/users/{viewer.username_escaped}/friends/add/{user.userid}?form_key[]=#{SecureForm.encrypt(viewer, '/User/friends/add')}"
+				id="profile_control_block_friend_toggle_icon_{user.userid}"
+				dialog_question="Add this user as a friend?"
+				onclick="YAHOO.profile.ControlBlock.toggleFriend(this, '{user.username_escaped}'); return false;">
+				<img class="friend_toggle_icon" 
+					border="0" src="{$site.colored_img_url(user.profile_skin[:utility_block_icon_color])/:profile/:images/'icon_add_friend.gif'}" width="10" height="8" />
+			</a>
+		</td>
+	</t:if>
+	<t:if t:id="viewer.friend?(user)">
+		<td>
+			<a href="/users/{viewer.username_escaped}/friends/remove/{user.userid}?form_key[]=#{SecureForm.encrypt(viewer, '/User/friends/remove')}" 
+				class="friend_toggle_text_link"
+				id="profile_control_block_friend_toggle_text_{user.userid}"
+				dialog_question="Remove this user from your friends list?"
+				onclick="YAHOO.profile.ControlBlock.toggleFriend(this, '{user.username_escaped}'); return false;">
+				REMOVE FROM FRIENDS
+			</a>
+		</td>
+		<td class="profile_function_icon">
+			<a href="/users/{viewer.username_escaped}/friends/remove/{user.userid}?form_key[]=#{SecureForm.encrypt(viewer, '/User/friends/remove')}"
+				id="profile_control_block_friend_toggle_icon_{user.userid}"
+				dialog_question="Remove this user from your friends list?"
+				onclick="YAHOO.profile.ControlBlock.toggleFriend(this, '{user.username_escaped}'); return false;">
+				<img class="friend_toggle_icon" 
+					border="0" src="{$site.colored_img_url(user.profile_skin[:utility_block_icon_color])/:profile/:images/'icon_friend_true.gif'}" width="10" height="8" />
+			</a>
+		</td>
+	</t:if>
+</tr>

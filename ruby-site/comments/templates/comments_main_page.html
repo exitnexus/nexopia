@@ -1,0 +1,29 @@
+<div class="comments_section">
+	<div class="block_container">
+		<div class="title_bar">
+			
+			<!-- Add admin links if the person has the proper privileges -->
+			
+
+			<div class="block_title" style="float: none">
+				#{title}
+			</div>
+			<div class="clearit"/>
+		</div>
+
+		<t:template-include name="comments_editor" module="comments" />
+
+		<t:json t:data="num_pages" t:handle="numPages"/>
+		<t:json t:data="page" t:handle="startingPage"/>
+		<t:json t:data="page_url" t:handle="commentListUrl"/>
+		<t:if t:id="comments"></t:if>
+		<div class="comments_pager" minion_name="comments:pager">
+			<div class="page">
+				<t:handler-include t:path="/#{page_path}" t:area="user" t:user="PageRequest.current.user">
+					<t:var t:name="'page'" t:val="page||0"/>
+					<t:var t:name="'comments'" t:val="comments"/>
+				</t:handler-include>
+			</div>
+		</div>
+	</div>
+</div>

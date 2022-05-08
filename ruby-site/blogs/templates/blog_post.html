@@ -1,0 +1,81 @@
+<!-- BLOG POST -->
+<div id="blog_post_#{blog_post.userid}:#{blog_post.id}" class="blog_post_container">
+	<div class="blog_post_header">
+		<t:if t:id="!single_post">
+			<div class="blog_collapse_post">
+				<a minion_name="blog:show_details_toggle" href="">[<span class="toggle">-</span>]</a>
+			</div>
+		</t:if>
+		<t:if t:id="(owner_view || admin_view) && !single_post">
+			<input name="blog_post_select[#{blog_post.id}]" id="blog_post_select[#{blog_post.id}]" 
+				minion_name="blog:post_select" type="checkbox" class="blog_post_select" />
+		</t:if>
+		<div>
+			<div class="post_title">
+				<a href="/users/%{blog_post.user.username}/blog/{blog_post.id}-{blog_post.title_slug}">
+					{blog_post.title}
+				</a>
+			</div>
+			<div class="collapsed_user_functions" style="float:right;">
+				<t:if t:id="blog_post.allowcomments">
+					<a href="/users/%{blog_post.user.username}/blog/{blog_post.id}-{blog_post.title_slug}#comments_top">
+						Comments&#160;<span class="comments_count">({blog_post.comments_count})</span>
+					</a>
+				</t:if>
+			</div>
+			<div class="post_date">
+				<t:nice-time t:time="blog_post.time" t:format="date_and_time"/>
+				&#160;|&#160;{blog_post.visibility_display()}
+			</div>
+			<div class="clearit"/>
+		</div>
+	</div>	
+	<t:if t:id="!blog_post.extra_content.nil?">#{blog_post.extra_content.display(request)}</t:if>
+	<div class="blog_post">
+		@{blog_post.msg}
+	</div>
+	<div class="user_functions">
+		<t:if t:id="!viewing_user.anonymous?() && !blog_user.ignored?(viewing_user) && blog_post.allowcomments">
+			<t:if t:id="!single_post">
+				<a href="/users/%{blog_post.user.username}/blog/{blog_post.id}#blog_post_reply">
+					Reply
+				</a>
+				&#160;|&#160;
+			</t:if>
+		</t:if>
+		<t:if t:id="blog_post.allowcomments">
+			<t:if t:id="!single_post">
+				<a href="/users/%{blog_post.user.username}/blog/{blog_post.id}#comments_top">
+					Comments ({blog_post.comments_count})
+				</a>
+			</t:if>
+			<t:if t:id="single_post">
+				<a href="#blog_post_reply">
+					Comments ({blog_post.comments_count})
+				</a>
+			</t:if>
+			&#160;|&#160;
+		</t:if>
+		<t:if t:id="owner_view && !((blog_post.typeid == Blogs::PollBlog.typeid) || (blog_post.typeid == Blogs::BattleBlog.typeid))">
+			<a href="/my/blog/edit/{blog_post.id}?page={current_page}&single_post={single_post}">
+				Edit
+			</a>
+			&#160;|&#160;
+		</t:if>
+		<t:if t:id="admin_view && !owner_view">
+			<a href="/admin/self/%{blog_user.username}/blog/edit/{blog_post.id}?page={current_page}&single_post={single_post}">
+				Edit
+			</a>
+			&#160;|&#160;
+		</t:if>
+		<a href="/reportabuse.php?type=31&id={blog_user.userid}&link={$site.www_url}{blog_post.uri_info[1]}&section=offensiveblog">
+			Report
+		</a>
+		&#160;|&#160;
+		<a href="#blog_top">
+			Top
+		</a>
+		<br class="clear" />
+	</div>
+	<div class="separator"/>
+</div>

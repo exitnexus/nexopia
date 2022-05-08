@@ -9,7 +9,7 @@
 
 	echo '<html><head><title>Moneris vs. Nexopia Batches</title><style type="text/css">.invoice { color: #000; }</style></head>';
 
-	$submit = isset($_REQUEST['submit']);
+	$submit = isset($_POST['submit']);
 
 	if (! $submit) {
 		echo <<<ENDIT

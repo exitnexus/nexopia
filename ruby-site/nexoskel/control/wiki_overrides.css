@@ -1,0 +1,111 @@
+#wiki_view {
+	margin-left: auto;
+	margin-right: auto;
+	width: 726px;
+	padding: 12px;
+	font-family: Verdana, Helvetica, Arial, sans-serif;
+	font-size: 11px;
+	background-color: $primary_background_color;
+	color: $primary_text_color;
+	
+	& table,
+	td {
+		font-family: Verdana, Helvetica, Arial, sans-serif;
+		font-size: 11px;
+	}
+	
+	& a {
+		font-size: 11px;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		color: $link_color;
+		
+		&:hover {
+			color: $link_accent_color;
+		}
+	}
+	
+	& .important_text {
+		color: $link_color;
+	}
+	
+	& .primary_container {
+		color: $primary_text_color;
+		background-color: $primary_background_color;
+		
+		& a {
+			color: $link_color;
+			
+			&:hover {
+				color: $link_accent_color;
+			}
+		}
+		
+		& .important_text {
+			color: $link_color;
+		}
+	}
+	
+	& a.primary_container {
+		color: $link_color;
+		
+		&:hover {
+			color: $link_accent_color;
+		}
+	}
+	
+	& .secondary_container {
+		color: $secondary_text_color;
+		background-color: $secondary_background_color;
+		
+		& a {
+			color: $link_accent_color;
+			
+			&:hover {
+				color: $link_color;
+			}
+		}
+		
+		& .important_text {
+			color: $link_accent_color;
+		}
+	}
+	
+	& a.secondary_container {
+		color: $link_accent_color;
+		
+		&:hover {
+			color: $link_color;
+		}
+	}
+	
+	& .header_container {
+		color: $header_text_color;
+		background-color: $header_background_color;
+		
+		& a {
+			color: $header_link_accent_color;
+			
+			&:hover {
+				color: $header_link_color;
+			}
+		}
+	}
+	
+	& a.header_container {
+		color: $header_link_accent_color;
+		
+		&:hover {
+			color: $header_link_color;
+		}
+	}
+	
+	& .header_title {
+		color: $header_background_color;
+	}
+	
+	& .tertiary_container {
+		color: $user_msg_text_color;
+		background-color: $user_message_background_color;
+	}
+	
+}

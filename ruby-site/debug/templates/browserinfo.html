@@ -1,0 +1,92 @@
+<html>
+	<head>
+		<title>
+			Browser info
+		</title>
+		<style>
+			tr.head1  th { background-color: #F8B623; font-weight: bold; }
+			tr.head2  th { background-color: #F8B623 }
+			tr.body1 td { background-color: #F0F0F0; }
+			tr.body2 td { background-color: #DDDDDD; }
+		</style>
+	</head>
+	<body>
+
+		<table>
+			<tr class="head1">
+				<th colspan="2">Headers</th>
+			</tr>
+			<tr class="head2">
+				<th>Key</th>
+				<th>Value</th>
+			</tr>
+			<tr t:id="headers" t:iter="header">
+				<td>{header[0]}</td>
+				<td>{header[1]}</td>
+			</tr>
+			<tr>
+				<td>Flash</td>
+				<td><div id="flash_version">undetermined</div>
+					<script>
+						initialize_flashplugin_version();
+					</script>
+				</td>
+			</tr>
+			
+			<tr class="head1">
+				<th colspan="2">User info</th>
+			</tr>
+			<tr class="head2">
+				<th>Key</th>
+				<th>Value</th>
+			</tr>
+
+			<tr>
+				<td>User name</td>
+				<td>{username}</td>
+			</tr>
+			<tr>
+				<td>User id</td>
+				<td>{userid}</td>
+			</tr>
+			<tr>
+				<td>Skin</td>
+				<td>{userskin}</td>
+			</tr>
+			<tr>
+				<td>Skin type</td>
+				<td>{userskintype}</td>
+			</tr>
+			<tr>
+				<td>State</td>
+				<td>{userstate}</td>
+			</tr>
+			<tr>
+				<td>Firstpic</td>
+				<td>{userfirstpic}</td>
+			</tr>
+			<tr>
+				<td>Signpic</td>
+				<td>{usersignpic}</td>
+			</tr>
+
+			<tr class="head1">
+				<th colspan="2">Session info</th>
+			</tr>
+			<tr class="head2">
+				<th>Key</th>
+				<th>Value</th>
+			</tr>
+
+			<tr>
+				<td>Cookie session key</td>
+				<td>{cookiesessionkey}</td>
+			</tr>
+			<tr>
+				<td>session info</td>
+				<td>{session}</td>
+			</tr>
+		</table>
+		
+	</body>
+</html>

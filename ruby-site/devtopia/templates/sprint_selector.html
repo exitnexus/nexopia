@@ -1,6 +1,0 @@
-<select id="sprint_aggregate_id" name="sprint_aggregate_id">
-	<t:if t:id="selected_sprint" />
-	<t:loop t:id="sprints" t:iter="sprint">
-		<option value="{sprint.projectid}_{sprint.id}" cond:selected="(sprint == selected_sprint)">{sprint.project_name}: {sprint.name}</option>
-	</t:loop>
-</select>

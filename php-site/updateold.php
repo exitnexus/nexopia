@@ -38,7 +38,36 @@ exit;
 
 
 
+//Find out how big the biggest galleries are.
+	$users = array();
+	$galleries = array();
+	$pics = array();
+	
+	
+	$res = $usersdb->query("SELECT count(*) as count FROM gallerypics GROUP BY userid ORDER BY count DESC LIMIT 5");
+	while($line = $res->fetchrow())
+		$users[] = $line['count'];
+	
+	$res = $usersdb->query("SELECT count(*) as count FROM gallerypics GROUP BY userid, galleryid ORDER BY count DESC LIMIT 5");
+	while($line = $res->fetchrow())
+		$pics[] = $line['count'];
 
+	$res = $usersdb->query("SELECT count(*) as count FROM gallery GROUP BY ownerid ORDER BY count DESC LIMIT 5");
+	while($line = $res->fetchrow())
+		$galleries[] = $line['count'];
+	
+	sort($users);
+	sort($galleries);
+	sort($pics);
+	
+	echo "Users:<br>";
+	echo implode(", ", $users);
+	echo "<br><br>";
+	echo "Gallery:<br>";
+	echo implode(", ", $galleries);
+	echo "<br><br>";
+	echo "pics:<br>";
+	echo implode(", ", $pics);
 
 // clear out the questionable queue by re-voting for things that made it there that shouldn't have.
 // really, only works if the person running this has level 6+
@@ -2363,7 +2392,7 @@ form { display: inline; margin: 0; }
 
 
 		echo "<td class=body valign=top style=\"background-color: $bgcolor\">";
-		echo "<a class=body href=profile.php?uid=$line[userid] target=_new>$line[username]</a><br>";
+		echo "<a class=body href=/users/". urlencode($line['username']) ." target=_new>$line[username]</a><br>";
 		echo "Age: $line[age]<br>";
 		echo "Sex: <b>$line[sex]</b><br><br>";
 
@@ -2388,7 +2417,7 @@ form { display: inline; margin: 0; }
 			echo "<table border=0 width=100%>";
 			foreach($abuses[$line['id']] as $abuse){
 				echo "<tr><td class=body2 valign=top width=100>";
-				echo "<a class=body href=profile.php?uid=$abuse[userid]>$abuse[username]</a><br>";
+				echo "<a class=body href=/users/". urlencode($abuse['username']) .">$abuse[username]</a><br>";
 				if($abuse['firstpic'])
 					echo "<img src=$config[thumbloc]" . floor($abuse['firstpic']/1000) . "/$abuse[firstpic].jpg><br>";
 				echo "Age $abuse[age] - $abuse[sex]<br>";
@@ -4023,7 +4052,7 @@ $time1 = time();
 		$line = mysql_fetch_assoc($result2);
 
 
-		$message="To activate your account at http://$wwwdomain click on the following link or copy it into your webbrowser: http://$wwwdomain/activate.php?username=" . urlencode($line['username']) . "&actkey=$key";
+		$message="To activate your account at http://$wwwdomain click on the following link or copy it into your webbrowser: http://$wwwdomain/account/activate?username=" . urlencode($line['username']) . "&key=$key";
 		$subject="Activate your account at $wwwdomain.";
 
 
@@ -4058,9 +4087,9 @@ $time1 = time();
 
 	while($line = mysql_fetch_assoc($result)){
 		$nsig = nl2br(wrap(parseHTML(smilies($line['signiture']))));
-		$nabout = nl2br(wrap(parseHTML(smilies(removeHTML(censor($line['about']))))));
-		$nlikes = nl2br(wrap(parseHTML(smilies(removeHTML(censor($line['likes']))))));
-		$ndislikes = nl2br(wrap(parseHTML(smilies(removeHTML(censor($line['dislikes']))))));
+		$nabout = nl2br(wrap(parseHTML(smilies(cleanHTML(censor($line['about']))))));
+		$nlikes = nl2br(wrap(parseHTML(smilies(cleanHTML(censor($line['likes']))))));
+		$ndislikes = nl2br(wrap(parseHTML(smilies(cleanHTML(censor($line['dislikes']))))));
 
 		sqlSafe(&$nsig,&$nabout,&$nlikes,&$ndislikes);
 
@@ -4073,9 +4102,9 @@ $time1 = time();
 
 	while($line = mysql_fetch_assoc($result)){
 		$nsig = nl2br(wrap(parseHTML(smilies($line['signiture']))));
-		$nabout = nl2br(wrap(parseHTML(smilies(removeHTML(censor($line['about']))))));
-		$nlikes = nl2br(wrap(parseHTML(smilies(removeHTML(censor($line['likes']))))));
-		$ndislikes = nl2br(wrap(parseHTML(smilies(removeHTML(censor($line['dislikes']))))));
+		$nabout = nl2br(wrap(parseHTML(smilies(cleanHTML(censor($line['about']))))));
+		$nlikes = nl2br(wrap(parseHTML(smilies(cleanHTML(censor($line['likes']))))));
+		$ndislikes = nl2br(wrap(parseHTML(smilies(cleanHTML(censor($line['dislikes']))))));
 
 		sqlSafe(&$nsig,&$nabout,&$nlikes,&$ndislikes);
 

@@ -1,0 +1,65 @@
+<div class="account_content_container">
+	<div class="content">
+		<div id="invite_friends">
+			<div class="header_box"><div class="header"><div class="header_text">JOIN NEXOPIA.COM - Find Friends</div></div></div>
+			<div class="section">
+				<t:template-include name="arrow_bar" module="account"/>
+				
+				<form method="post" action="/my/account/find/invite">
+					<t:if t:id="!existing_friends.empty?">
+						<p>
+							The following friends are already on the site:
+						</p>
+						<div class="existing_friends_block">
+							<div t:id="existing_friends" t:iter="existing_friend" t:index="index">
+								<div class="existing_friend">
+									<div class="existing_friend_image">#{existing_friend.thumbnail_tag}</div>
+									<div class="existing_friend_info_block">
+										<div class="existing_friend_username">{existing_friend.username} ({existing_friend.name})</div>
+										<div class="existing_friend_email">email: {existing_friend.email}</div>
+										<div class="existing_friend_link">#{existing_friend.profile_link}</div>
+										<div class="existing_friend_add">
+											<input id="existing_friend_add[{index}]" name="existing_friend_add[{index}]" 
+												type="checkbox" checked="checked">Add as friend</input>
+										</div>
+										<input type="hidden" id="existing_friend_name[{index}]" name="existing_friend_name[{index}]" value="{existing_friend.name}"/>
+										<input type="hidden" id="existing_friend_email[{index}]" name="existing_friend_email[{index}]" value="{existing_friend.email}"/>
+									</div>
+								</div>
+							</div>
+							<div class="clearit"/>
+						</div>
+					</t:if>
+				
+					<t:if t:id="!invite_friends.empty?">
+						<p>
+							The following friends do not have an account on the site:
+						</p>
+						<div class="invite_friends_block">
+							<div t:id="invite_friends" t:iter="invite_friend" t:index="index">
+								<div class="invite_friend">
+									<div class="invite_friend_name">{invite_friend.name} ({invite_friend.email})</div>
+									<div class="invite_friend_send">
+										<input id="invite_friend_send[{index}]" name="invite_friend_send[{index}]" 
+											type="checkbox" checked="checked">Send invitation</input>
+									</div>
+									<input type="hidden" id="invite_friend_name[{index}]" name="invite_friend_name[{index}]" value="{invite_friend.name}"/>
+									<input type="hidden" id="invite_friend_email[{index}]" name="invite_friend_email[{index}]" value="{invite_friend.email}"/>
+								</div>
+							</div>
+						</div>
+						
+						<b>Personal Message:</b><br/>
+						<textarea id="personal_message" name="personal_message"></textarea>
+					</t:if>
+	
+					<input type="hidden" id="my_name" name="my_name" value="{my_name}"/>
+
+					<div>
+						<input type="submit" class="button" name="action" value="Done" />
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>

@@ -1,17 +1,43 @@
-<div class="gallery_creation" id="gallery_creation">
-	<form id="gallery_create_form" action="/my/gallery/submit_create" method="post">
-		Gallery Name:<br/>
-		<input class="body" type="text" name="name" id="create_gallery_name" maxlength="32"/><br/>
-		Description:<br/>
-		<textarea class="body" type="text" name="description" maxlength="255"></textarea><br/>
-		Permissions:<br/>
-		<select class="body" name="permission">
-			<option value="anyone"> Visible to Anyone</option>
-			<option value="loggedin"> Logged In Users Only</option>
-			<option value="friends"> Friends Only</option>
-		</select>
-		<br/>
-		<br/>
-		<input class="body submit" type="submit" name="action" value="Create Gallery" id="gallery_create_submit"/><br/>
+<div id="create_gallery_page">
+	<h1 class="page_title">Create Album</h1>
+	
+	<form id="create_album_form" name="create_album_form" action="#{PageRequest.current.area_base_uri}/gallery/submit_create_gallery" method="post">
+	<table border="0" cellspacing="0" cellpadding="0" class="create_album_table">
+	<tr>
+		<td class="section">
+			Album Name:*
+		</td>
+		<td>
+			<input class="body" type="text" name="name" id="gallery_name" maxlength="32"/>
+		</td>
+	</tr><tr>
+		<td class="section">
+			Description:
+		</td>
+		<td>
+			<textarea class="body" type="text" name="description" maxlength="255"></textarea>
+		</td>
+	</tr><tr>
+		<td class="section">
+			Permissions:
+		</td>
+		<td>
+			<select class="body" name="permission">
+				<option value="anyone"> Visible to Anyone</option>
+				<option value="loggedin"> Logged In Users Only</option>
+				<option value="friends"> Friends Only</option>
+				<option value="none"> Not Visible</option>
+			</select>
+			<div class="checkbox_container">
+            	<input class="checkbox" type="checkbox" checked="yes" name="allow_comments"/> Allow Comments
+            </div>
+			
+			<div>
+				<img src="{$site.static_files_url}/nexoskel/images/spinner.gif" id="spinner" class="spinner"/>
+				<t:button type="submit" minion_name="album_create:continue">Continue</t:button>&#160;|&#160;<a href="#{PageRequest.current.area_base_uri}/gallery/" class="tertiary_button">Cancel</a>
+			</div>
+		</td>
+	</tr>
+	</table>
 	</form>
 </div>

@@ -106,8 +106,9 @@
 
 	// redirects and content-types other than *html* are passed through to the user
 	if ($response['code'] == 301 || $response['code'] == 302 ||
-		($response['headers']['Content-type'][0] && strpos($response['headers']['Content-type'][0], 'html') === false ) ||
-		preg_match('/:Body$/', $_SERVER['REQUEST_URI'])) {
+		(isset($response['headers']['Content-type']) && strpos($response['headers']['Content-type'][0], 'html') === false ) ||
+		preg_match('/:Body($|\?)/', $_SERVER['REQUEST_URI']) ||
+		(isset($response['headers']['X-no-header']))) {
 
 		if (isset($response['headers']['X-status']) && $response['headers']['X-status'][0] != '')
 			header("HTTP/1.1 {$response['headers']['X-status'][0]}");
@@ -144,11 +145,7 @@
 			$skeleton = false;
 		}
 		if (isset($response['headers']['X-user-skin'][0])) {
-			$skininfo = split('/', $response['headers']['X-user-skin'][0]);
-			$skinuser = $skininfo[0];
-			$skinrev = $skininfo[1];
-			$skinname = $skininfo[2];
-			$userskinpath = "/users/$skinuser/style/$reporev/$skinrev/$skinname.css";
+			$userskinpath = $response['headers']['X-user-skin'][0];
 		} else {
 			$userskinpath = false;
 		}

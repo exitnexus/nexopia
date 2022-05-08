@@ -292,7 +292,7 @@ class useraccounts {
 
 		$username = getUserName($userid);
 
-		$message="To activate your account at $config[title] click on the following link or copy it into your webbrowser: http://$wwwdomain/activate.php?username=$username&actkey=$key";
+		$message="To activate your account at $config[title] click on the following link or copy it into your webbrowser: http://$wwwdomain/account/activate?username=$username&key=$key";
 		$subject="Change email for your account at $wwwdomain.";
 
 		smtpmail("$email", $subject, $message, "From: $config[title] <no-reply@$emaildomain>") or die("Error sending email");
@@ -304,7 +304,7 @@ class useraccounts {
 	{
 		global $cache;
 
-		$email = $cache->get("useremail-$userid");
+		$email = $cache->get("useremail-$userid/true");
 		if ($email)
 			return $email;
 
@@ -314,7 +314,7 @@ class useraccounts {
 		if ($row)
 		{
 			$email = $row['email'];
-			$cache->put("useremail-$userid", $email, 24*60*60);
+			$cache->put("useremail-$userid/true", $email, 24*60*60);
 		}
 
 		return $email;
@@ -357,7 +357,7 @@ class useraccounts {
 
 		$cache->remove("userprefs-$userid");
 		$cache->remove("userinfo-$userid");
-		$cache->remove("useremail-$userid");
+		$cache->remove("useremail-$userid/true");
 
 
 
@@ -606,227 +606,260 @@ class authentication {
 	}
 
 	function auth($userid, $key, $kill = true, $simple = false){
-		global $config, $cookiedomain, $cache, $debuginfousers, $msgs;
+		global $config, $cookiedomain, $cache, $debuginfousers, $msgs, $ruby_site_obj, $rap_pagehandler, $_RUBY;
+		
+		// If RAP is enabled use the session data that has already been authenticated by the Ruby site.
+		// Otherwise go through the old process.
+		if(isset($ruby_site_obj) && isset($rap_pagehandler)) 
+		{
+			$userData = $_RUBY["auth"];
+			return $userData;
+		}
+		else
+		{
+			settype($userid, 'int');
+			settype($key, 'string');
 
-		settype($userid, 'int');
-		settype($key, 'string');
+			$REQUEST_URI = getSERVERval('REQUEST_URI');
 
-		$REQUEST_URI = getSERVERval('REQUEST_URI');
+			$time = time();
+			$ip = ip2int(getip());
 
-		$time = time();
-		$ip = ip2int(getip());
+			$userData['loggedIn'] = false;
+			$userData['halfLoggedIn'] = false;
+			$userData['timeoffset']=$config['timezone'];
+			$userData['limitads'] = false;
+			$userData['premium'] = false;
+			$userData['debug'] = false;
 
-		$userData['loggedIn'] = false;
-		$userData['halfLoggedIn'] = false;
-		$userData['timeoffset']=$config['timezone'];
-		$userData['limitads'] = false;
-		$userData['premium'] = false;
-		$userData['debug'] = false;
+		//new user or logged out user
+		//don't bother keeping anything in db, as nothing useful would be stored anyway
+		//use memcache to keep the state and stats
+			if(empty($userid) || empty($key) || !ereg('^[a-z0-9]{32}$', $key) ){
+				if($kill)
+					$this->loginRedirect();
 
-	//new user or logged out user
-	//don't bother keeping anything in db, as nothing useful would be stored anyway
-	//use memcache to keep the state and stats
-		if(empty($userid) || empty($key) || !ereg('^[a-z0-9]{32}$', $key) ){
-			if($kill)
-				$this->loginRedirect();
+				$session = $cache->get("anon-session-$ip");
 
-			$session = $cache->get("anon-session-$ip");
+				if(!$session){
+					$cache->put("anon-session-$ip", 1, $config['activetimeout']);
+					if(!$cache->incr("guest-count-" . floor($time/($config['activetimeout']/$this->guestbuckets))))
+						$cache->put("guest-count-" . floor($time/($config['activetimeout']/$this->guestbuckets)), 1, $config['activetimeout']);
+				}
+
+				$userData['userid'] = 0 - abs($ip);
+
+				return $userData;
+			}
+
+		//potentially logged in user
+			$session = $cache->get("session-$userid-$key");
+
+			$sessionmemcacheput = false;
 
 			if(!$session){
-				$cache->put("anon-session-$ip", 1, $config['activetimeout']);
-				if(!$cache->incr("guest-count-" . floor($time/($config['activetimeout']/$this->guestbuckets))))
-					$cache->put("guest-count-" . floor($time/($config['activetimeout']/$this->guestbuckets)), 1, $config['activetimeout']);
+				$res = $this->usersdb->prepare_query("SELECT activetime, cachedlogin, ip, lockip, jstimezone FROM sessions WHERE userid = % && sessionid = ?", $userid, $key);
+				$session = $res->fetchrow();
+
+				if($session){
+					$session['dbtime'] = $session['activetime'];
+					$sessionmemcacheput = true;
+				}
 			}
 
-			$userData['userid'] = 0 - abs($ip);
+		//bad session
+			if(!$session){
+				$this->destroySession($userid, $key);
+				$userData['userid'] = 0 - abs($ip);
 
-			return $userData;
-		}
+				if($kill)
+					$this->loginRedirect();
 
-	//potentially logged in user
-		$session = $cache->get("session-$userid-$key");
+				return $userData;
+			}
 
-		$sessionmemcacheput = false;
+		//expired or bad session
+			if(	($session['cachedlogin'] == 'n' && $session['activetime'] < ($time-$config['sessiontimeout'])) || //timed out?
+				($session['lockip'] == 'y' && ($ip & 0xFFFFFF00) != ($session['ip'] & 0xFFFFFF00))){ //same subnet?
+				$this->destroySession($userid, $key);
 
-		if(!$session){
-			$res = $this->usersdb->prepare_query("SELECT activetime, cachedlogin, ip, lockip, jstimezone FROM sessions WHERE userid = % && sessionid = ?", $userid, $key);
-			$session = $res->fetchrow();
+				$userData['userid'] = 0 - abs($ip);
 
-			if($session){
-				$session['dbtime'] = $session['activetime'];
+				if($kill)
+					$this->loginRedirect();
+
+				return $userData;
+			}
+
+		//logged in
+			if($session['ip'] != $ip || !isset($session['dbtime']) || $session['dbtime'] < ($time-$config['activetimeout'])){
+				$this->usersdb->prepare_query("UPDATE sessions SET activetime = #, ip = # WHERE userid = % && sessionid = ?", $time, $ip, $userid, $key);
+				$session['dbtime'] = $time;
+				$session['ip'] = $ip;
 				$sessionmemcacheput = true;
 			}
-		}
 
-	//bad session
-		if(!$session){
-			$this->destroySession($userid, $key);
-			$userData['userid'] = 0 - abs($ip);
+			//update memcached more often than the db
+			if($session['activetime'] < $time - 120 || $sessionmemcacheput){
+				$session['activetime'] = $time;
+				$session['username'] = getUserName($userid);
+				$cache->put("session-$userid-$key", $session, $config['sessiontimeout']);
+			}
 
-			if($kill)
-				$this->loginRedirect();
+
+
+
+		//simple version where only the prefs are cached so that simple pages (ie pages without the messages/comments) can pull the prefs from the cache
+
+
+			if($simple)
+				$prefs = $cache->get("userprefs-$userid");
+			else
+				$prefs = false;
+
+			if($prefs === false){
+				$res = $this->usersdb->prepare_query("SELECT * FROM users WHERE userid = %", $userid);
+				$prefs = $res->fetchrow();
+
+				if(!$prefs)
+					die("That account doesn't exist");
+
+				$prefs['username'] = $username = $session['username']; //getUserName($userid);
+
+				$temp = $prefs;
+				$temp['online'] = 'y';
+
+				$cache->put("userprefs-$userid", $temp, $config['activetimeout']);
+				if($prefs['state'] == 'active')
+					$cache->put("useractive-$userid", time(), 86400*7);
+			}
+
+			$activated = false;
+			switch($prefs['state']){
+				case "active":  $activated = true; break;
+				case "new":     break;//die("You have to activate your account?"); //how do you get here if it's in state=new?
+				case "frozen":
+					$this->destroySession($userid, $key);
+					die("Your account is frozen. If it was a timed freeze, try logging in again");
+				case "deleted": die("Your account is deleted");
+				default:        die("Error: unknown account state for account $userid");
+			}
+
+		//update online status if needed
+			if($prefs['online'] == 'n' || $prefs['activetime'] < $time - 1800){
+				$this->usersdb->prepare_query("UPDATE users SET online = 'y', activetime = #, ip = # WHERE userid = %", $time, $ip, $userid);
+				$this->usersdb->prepare_query("UPDATE usersearch SET active = 2 WHERE userid = %", $userid);
+			}
+
+		//get interests
+			$interests = $cache->get("userinterests-$userid");
+
+			if($interests === false){
+				$res = $this->usersdb->prepare_query("SELECT interestid FROM userinterests WHERE userid = %", $userid);
+
+				$interests = array();
+				while($line = $res->fetchrow())
+					$interests[] = $line['interestid'];
+
+				$interests = implode(',', $interests); //could be blank
+
+				$cache->put("userinterests-$userid", $interests, 86400);
+			}
+
+		//set $userData with default of prefs
+			$userData = $prefs;
+
+		//set the more complex stuff that isn't in prefs, or that needs manipulation
+			$userData['loggedIn'] = $activated? true : false;
+			$userData['halfLoggedIn'] = true;
+			$userData['sessionkey'] = $key; //logout on password change
+			$userData['sessionlockip'] = ($session['lockip']=='y'); //disallow admin powers unless locked ip
+			$userData['interests'] = $interests;   //for banners
+			$userData['premium'] = $userData['loggedIn'] && ($prefs['premiumexpiry'] > $time);
+			$userData['limitads'] = ($prefs['limitads'] == 'y' && $userData['premium']);
+			$userData['debug'] = in_array($userid, $debuginfousers);
+			$userData['trustjstimezone'] = ($prefs['trustjstimezone'] == 'y' ? true : false);
+
+			// fix up timezone info, first from the session table if set
+			if(isset($session['jstimezone']))
+				$userData['jstimezone'] = $session['jstimezone'];
+
+			// now fix it up again if we've got one in from the user and it differs
+			if($newtz = $this->checktimezone()){
+				$userData['jstimezone'] = $newtz;
+				// update the session table to reflect the new one.
+				$this->usersdb->prepare_query("UPDATE sessions SET jstimezone = # WHERE userid = % && sessionid = ?", $newtz, $userid, $key);
+				$cache->remove("session-$userid-$key");
+			}
+
+			$this->statsHeaders($userData);
+
+			if ($userData['halfLoggedIn'] && !$userData['loggedIn'])
+				$msgs->addMsg("Your account has not been activated yet.<br>You can use some features of the site until then, but you will not be able to log back in until you have activated.");
 
 			return $userData;
 		}
-
-	//expired or bad session
-		if(	($session['cachedlogin'] == 'n' && $session['activetime'] < ($time-$config['sessiontimeout'])) || //timed out?
-			($session['lockip'] == 'y' && ($ip & 0xFFFFFF00) != ($session['ip'] & 0xFFFFFF00))){ //same subnet?
-			$this->destroySession($userid, $key);
-
-			$userData['userid'] = 0 - abs($ip);
-
-			if($kill)
-				$this->loginRedirect();
-
-			return $userData;
-		}
-
-	//logged in
-		if($session['ip'] != $ip || !isset($session['dbtime']) || $session['dbtime'] < ($time-$config['activetimeout'])){
-			$this->usersdb->prepare_query("UPDATE sessions SET activetime = #, ip = # WHERE userid = % && sessionid = ?", $time, $ip, $userid, $key);
-			$session['dbtime'] = $time;
-			$session['ip'] = $ip;
-			$sessionmemcacheput = true;
-		}
-
-		//update memcached more often than the db
-		if($session['activetime'] < $time - 120 || $sessionmemcacheput){
-			$session['activetime'] = $time;
-			$session['username'] = getUserName($userid);
-			$cache->put("session-$userid-$key", $session, $config['sessiontimeout']);
-		}
-
-
-
-
-	//simple version where only the prefs are cached so that simple pages (ie pages without the messages/comments) can pull the prefs from the cache
-
-
-		if($simple)
-			$prefs = $cache->get("userprefs-$userid");
-		else
-			$prefs = false;
-
-		if($prefs === false){
-			$res = $this->usersdb->prepare_query("SELECT * FROM users WHERE userid = %", $userid);
-			$prefs = $res->fetchrow();
-
-			if(!$prefs)
-				die("That account doesn't exist");
-
-			$prefs['username'] = $username = $session['username']; //getUserName($userid);
-
-			$temp = $prefs;
-			$temp['online'] = 'y';
-
-			$cache->put("userprefs-$userid", $temp, $config['activetimeout']);
-			if($prefs['state'] == 'active')
-				$cache->put("useractive-$userid", time(), 86400*7);
-		}
-
-		$activated = false;
-		switch($prefs['state']){
-			case "active":  $activated = true; break;
-			case "new":     break;//die("You have to activate your account?"); //how do you get here if it's in state=new?
-			case "frozen":
-				$this->destroySession($userid, $key);
-				die("Your account is frozen. If it was a timed freeze, try logging in again");
-			case "deleted": die("Your account is deleted");
-			default:        die("Error: unknown account state for account $userid");
-		}
-
-	//update online status if needed
-		if($prefs['online'] == 'n' || $prefs['activetime'] < $time - 1800){
-			$this->usersdb->prepare_query("UPDATE users SET online = 'y', activetime = #, ip = # WHERE userid = %", $time, $ip, $userid);
-			$this->usersdb->prepare_query("UPDATE usersearch SET active = 2 WHERE userid = %", $userid);
-		}
-
-	//get interests
-		$interests = $cache->get("userinterests-$userid");
-
-		if($interests === false){
-			$res = $this->usersdb->prepare_query("SELECT interestid FROM userinterests WHERE userid = %", $userid);
-
-			$interests = array();
-			while($line = $res->fetchrow())
-				$interests[] = $line['interestid'];
-
-			$interests = implode(',', $interests); //could be blank
-
-			$cache->put("userinterests-$userid", $interests, 86400);
-		}
-
-	//set $userData with default of prefs
-		$userData = $prefs;
-
-	//set the more complex stuff that isn't in prefs, or that needs manipulation
-		$userData['loggedIn'] = $activated? true : false;
-		$userData['halfLoggedIn'] = true;
-		$userData['sessionkey'] = $key; //logout on password change
-		$userData['sessionlockip'] = ($session['lockip']=='y'); //disallow admin powers unless locked ip
-		$userData['interests'] = $interests;   //for banners
-		$userData['premium'] = $userData['loggedIn'] && ($prefs['premiumexpiry'] > $time);
-		$userData['limitads'] = ($prefs['limitads'] == 'y' && $userData['premium']);
-		$userData['debug'] = in_array($userid, $debuginfousers);
-		$userData['trustjstimezone'] = ($prefs['trustjstimezone'] == 'y' ? true : false);
-
-		// fix up timezone info, first from the session table if set
-		if(isset($session['jstimezone']))
-			$userData['jstimezone'] = $session['jstimezone'];
-
-		// now fix it up again if we've got one in from the user and it differs
-		if($newtz = $this->checktimezone()){
-			$userData['jstimezone'] = $newtz;
-			// update the session table to reflect the new one.
-			$this->usersdb->prepare_query("UPDATE sessions SET jstimezone = # WHERE userid = % && sessionid = ?", $newtz, $userid, $key);
-			$cache->remove("session-$userid-$key");
-		}
-
-		$this->statsHeaders($userData);
-
-		if ($userData['halfLoggedIn'] && !$userData['loggedIn'])
-			$msgs->addMsg("Your account has not been activated yet.<br>You can use some features of the site until then, but you will not be able to log back in until you have activated.");
-
-		return $userData;
 	}
 
 
 	function createSession($userid, $cachedlogin=false, $lockip=false){
-		global $cookiedomain, $config;
-
-		$ip = ip2int(getip());
-		$time = time();
-		$key = $this->makeRandkey();
-
-		$cachedlogin = ($cachedlogin ? 'y' : 'n');
-		$lockip = ($lockip ? 'y' : 'n');
-
-		if ($newtz = $this->checktimezone())
-			$this->usersdb->prepare_query("INSERT INTO sessions SET ip = #, userid = %, activetime = #, sessionid = ?, cachedlogin = ?, lockip = ?, jstimezone = #", $ip, $userid, $time, $key, $cachedlogin, $lockip, $newtz);
+		global $cookiedomain, $config, $ruby_site_obj, $rap_pagehandler;
+		
+		if(isset($ruby_site_obj) && isset($rap_pagehandler))
+		{
+			$rap_pagehandler->build_session($userid, $cachedlogin, $lockip);
+		}
 		else
-			$this->usersdb->prepare_query("INSERT INTO sessions SET ip = #, userid = %, activetime = #, sessionid = ?, cachedlogin = ?, lockip = ?", $ip, $userid, $time, $key, $cachedlogin, $lockip);
+		{
+			$ip = ip2int(getip());
+			$time = time();
+			$key = $this->makeRandkey();
 
-		$expire = ($cachedlogin == 'y' ? $time + $config['longsessiontimeout'] : 0);  //cache for 1 month
+			$cachedlogin = ($cachedlogin ? 'y' : 'n');
+			$lockip = ($lockip ? 'y' : 'n');
 
-	//use a set cookie wrapper, so on php 5.2+ the http only flag works, but doesn't fail on earlier versions.
-		set_cookie('userid', $userid, $expire, '/', $cookiedomain, false, true);
-		set_cookie('key',    $key,    $expire, '/', $cookiedomain, false, true);
+			if ($newtz = $this->checktimezone())
+				$this->usersdb->prepare_query("INSERT INTO sessions SET ip = #, userid = %, activetime = #, sessionid = ?, cachedlogin = ?, lockip = ?, jstimezone = #", $ip, $userid, $time, $key, $cachedlogin, $lockip, $newtz);
+			else
+				$this->usersdb->prepare_query("INSERT INTO sessions SET ip = #, userid = %, activetime = #, sessionid = ?, cachedlogin = ?, lockip = ?", $ip, $userid, $time, $key, $cachedlogin, $lockip);
 
+			$expire = ($cachedlogin == 'y' ? $time + $config['longsessiontimeout'] : 0);  //cache for 1 month
+
+		//use a set cookie wrapper, so on php 5.2+ the http only flag works, but doesn't fail on earlier versions.
+			set_cookie('userid', $userid, $expire, '/', $cookiedomain, false, true);
+			set_cookie('key',    $key,    $expire, '/', $cookiedomain, false, true);
+		}
+		
 		return $userid;
 	}
 
 	function destroySession($userid, $key){
-		global $cookiedomain, $cache;
+		global $cookiedomain, $cache, $ruby_site_obj, $rap_pagehandler;
 
-		$this->usersdb->prepare_query("DELETE FROM sessions WHERE userid = % && sessionid = ?", $userid, $key);
+		$expire = mktime(12,0,0,1, 1, 1970);
+		if(isset($ruby_site_obj) && isset($rap_pagehandler))
+		{
+			if(getCOOKIEval('userid'))
+			{
+				set_cookie("userid", $userid, $expire, '/', $cookiedomain, false, true);
+			}
+			
+			if(getCOOKIEval('key'))
+			{
+				set_cookie("key",    $key,    $expire, '/', $cookiedomain, false, true);
+			}
+			$rap_pagehandler->destroy_session($userid, $key);
+		}
+		else
+		{
+			$this->usersdb->prepare_query("DELETE FROM sessions WHERE userid = % && sessionid = ?", $userid, $key);
 
-		$cache->remove("session-$userid-$key");
+			$cache->remove("session-$userid-$key");
 
-		$expire = time()-10000000;
-
-		set_cookie("userid", $userid, $expire, '/', $cookiedomain, false, true);
-		set_cookie("key",    $key,    $expire, '/', $cookiedomain, false, true);
+			set_cookie("userid", $userid, $expire, '/', $cookiedomain, false, true);
+			set_cookie("key",    $key,    $expire, '/', $cookiedomain, false, true);
+			set_cookie('sessionkey', "$key:$userid", $expire, '/', $cookiedomain, false, true);
+		}
 	}
 
 	function checktimezone()

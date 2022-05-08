@@ -11,7 +11,8 @@ WWW: http://www.octazen.com
 Email: support@octazen.com
 V: 1.0
 ********************************************************************************/
-include_once("abimporter.php");
+//include_once(dirname(__FILE__).'/abimporter.php');
+if (!defined('__ABI')) die('Please include abi.php to use this importer!');
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //LycosImporter
@@ -43,6 +44,7 @@ class LycosImporter extends WebRequestor {
         $form->addField("countryCode", "us");
         $form->addField("x", "13");
         $form->addField("y", "4");
+		$form->addField("_authtrkcde", "{#TRKCDE#}");
         $postData = $form->buildPostData();
     	$html = $this->httpPost($postUrl, $postData);
     	

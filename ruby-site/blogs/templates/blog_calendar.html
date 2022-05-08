@@ -1,0 +1,33 @@
+<div id="blog">
+<div class="mockup_container blog_container">
+  
+	<t:template-include t:module="blogs" t:name="blog_header"/>      
+
+	<div class="year">
+		Year:
+		<select class="select" minion_name="blog:year_selector">
+			<option t:id="years" t:iter="year" value="/users/%{blog_user.username}/blog/calendar/{year}" 
+				cond:selected="year == selected_year">{year}</option>
+		</select>
+	</div>
+	
+	<div class="block_container">
+		<div class="blog_calendar">
+			<t:iter t:id="months" t:iter="month" t:index="count">
+				<div class="calendar_column {'calendar_column_left' if (count + 1) % 3 == 1} {'calendar_column_right' if (count + 1) % 3 == 0}">
+					<div class="calendar_month_block {'calendar_month_block_left' if (count + 1) % 3 == 1} {'calendar_month_block_right' if (count + 1) % 3 == 0}">
+						<t:handler-include path="/blog/calendar/{selected_year}/{month}" area="User">
+							<t:var t:name="'date_map'" t:val="date_map"/>
+							<t:var t:name="'visibility_level'" t:val="visibility_level"/>
+						</t:handler-include>
+					</div>
+				</div>
+				<div class="clearit" t:id="(count + 1) % 3 == 0"/>
+			</t:iter>
+			<div class="clearit"/>
+		</div>
+	</div>
+	<!-- BLOG ENTRY SECTION END -->
+
+</div>
+</div>

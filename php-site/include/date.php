@@ -66,7 +66,7 @@ function tz_checkdate($date, $dst) {
 		$day = $dst[3];
 	}
 
-	$day = (($day * 24) + $dst[2]) * 60 + $dst[1] * 60;
+	$day = (($day * 24 + $dst[2]) * 60 + $dst[1]) * 60 + $dst[0];
 	$daytime = (($date[3] * 24 + $date[2]) * 60 + $date[1]) * 60 + $date[0];
 
 	if($daytime < $day) return -1;

@@ -1,6 +1,7 @@
 <?
 
 function makeMenus(){
+	global $staticbasedomain;
 	$menus = array();
 
 	$menus['main'] = new menu();
@@ -11,15 +12,16 @@ function makeMenus(){
 //	$menus['main']->addItem("Schedule",		"/schedule.php",				0);
 //	$menus['main']->addItem("Sponsors",		"/sponsors.php",				0);
 //	$menus['main']->addItem("Personal",		"/manageprofile.php",			1);
-	$menus['main']->addItem("Invite a Friend",	'/my/friends/find',			1);
+	$menus['main']->addItem("<img border='0' src='http://$staticbasedomain/files/legacy/icons/new_icon.gif'/>Find Friends",	'/friends/find',			0);
 	$menus['main']->addItem("Music",		'/music',						0);
-	$menus['main']->addItem("Video",		'/videos',						0);
+//	$menus['main']->addItem("Store", 		'http://store.nexopia.com',		0);
+//	$menus['main']->addItem("Video",		'/videos',						0);
 	$menus['main']->addItem("Plus",			'/plus',					0);
 //	$menus['main']->addItem("Store",		'http://shop.nexopia.com',		0);
 	$menus['main']->addItem("Logout",		"/logout.php?k=",				0.5,	false,	'_top',	true);
-	$menus['main']->addItem("Login",		"/login.php",					-1);
+	$menus['main']->addItem("Login",		"/account/login",					-1);
 	$menus['main']->addItem("Help",			'/help/',						0);
-	$menus['main']->addItem("Join",			"/accountcreate",					-1);
+	$menus['main']->addItem("Join",			"/account",					-1);
 
 	$menus['personal'] = new menu();
 //	$menus['personal']->addItem("Messages",		"/messages.php",				1);
@@ -29,9 +31,9 @@ function makeMenus(){
 	$menus['personal']->addItem("Subscriptions","/managesubscriptions.php",		1);
 	$menus['personal']->addItem("Files",		"/managefiles.php",				2);
 	$menus['personal']->addItem("Gallery",		"/my/gallery",					0.5);
-	$menus['personal']->addItem("Pictures",		"/managepicture.php",			0.5);
-	$menus['personal']->addItem("Profile",		"/manageprofile.php",			0.5);
-	$menus['personal']->addItem("Feed",			"/my/friends_updates",			0.5);
+	$menus['personal']->addItem("Profile Pictures",		"/my/pictures",			0.5);
+	$menus['personal']->addItem("Edit Profile",		"/my/profile/edit",			0.5);
+//	$menus['personal']->addItem("Feed",			"/my/friends_updates",			0.5);
 //	$menus['personal']->addItem("Blog",			"/weblog.php",					1);
 	$menus['personal']->addItem("Recent Visitors","/profileviews.php",			2);
 	$menus['personal']->addItem("My Page",		"/my/profile",					0.5);

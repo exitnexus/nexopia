@@ -1,6 +1,18 @@
-<div class="profile_main">
-	<table class="page_container_tbl" cellspacing="0" cellpadding="0">
-		<t:template-include t:module="profile" t:name="profile_header"></t:template-include>
+<div id="profile" class="profile_main" minion_name="profile">
+	<input type="hidden" id="disable_script_manager" name="disable_script_manager" value="true"/>
+	<table class="profile_container" cellspacing="0" cellpadding="0">
 		<t:template-include t:module="profile" t:name="profile_body"></t:template-include>
 	</table>
+	
+	<t:if t:id="request_profile_view_info">
+		<form id="request_profile_view" name="request_profile_view" minion_name="request_profile_view" method="post" action="/users/%{user.username}/profile/views/update">
+			<input type="hidden" name="userid" value="{request_profile_view_info['userid']}"></input>
+			<input type="hidden" name="anon" value="{request_profile_view_info['anon']}"></input>
+			<input type="hidden" name="key" value="{request_profile_view_info['key']}"></input>
+			<input type="hidden" name="time" value="{request_profile_view_info['time']}"></input>
+		</form>
+	</t:if>
+	<!-- Form keys needed for secure form for various actions that might take place while viewing a profile -->
+	<input type="hidden" name="add_friend_form_key" id="add_friend_form_key" value="{add_friend_form_key}"/>
+	<input type="hidden" name="remove_friend_form_key" id="remove_friend_form_key" value="{remove_friend_form_key}"/>	
 </div>

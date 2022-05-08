@@ -152,9 +152,9 @@ function listAbuse($action = 0, $reason = 0, $uid = "", $type = 'User'){
 
 	foreach($rows as $row){
 		echo "<tr>";
-		echo "<td class=body nowrap><a class=body href=/profile.php?uid=$row[userid]>" . $usernames[$row['userid']] . "</a></td>";
-		echo "<td class=body nowrap>" . ($row['reportuserid'] ? "<a class=body href=/profile.php?uid=$row[reportuserid]>" . $usernames[$row['reportuserid']] . "</a>" : "" ) . "</td>";
-		echo "<td class=body nowrap>" . ($row['modid'] ? "<a class=body href=/profile.php?uid=$row[modid]>" . $usernames[$row['modid']] . "</a>" : "" ) . "</td>";
+		echo "<td class=body nowrap><a class=body href=/users/" . urlencode($usernames[$row['userid']]) . ">" . $usernames[$row['userid']] . "</a></td>";
+		echo "<td class=body nowrap>" . ($row['reportuserid'] ? "<a class=body href=/users/" . urlencode($usernames[$row['reportuserid']]) . ">" . $usernames[$row['reportuserid']] . "</a>" : "" ) . "</td>";
+		echo "<td class=body nowrap>" . ($row['modid'] ? "<a class=body href=/users/". urlencode($usernames[$row['modid']]) .">" . $usernames[$row['modid']] . "</a>" : "" ) . "</td>";
 		echo "<td class=body nowrap>" . (isset($abuselog->actions[$row['action']]) ? $abuselog->actions[$row['action']] : 'N/A') . "</td>";
 		echo "<td class=body nowrap>" . (isset($abuselog->reasons[$row['reason']]) ? $abuselog->reasons[$row['reason']] : 'N/A') . "</td>";
 		echo "<td class=body><a class=body href=$_SERVER[PHP_SELF]?action=view&id=$row[id]>" . (isset($comments[$row['id']]) ? ($row['msg'] ? "<b><u>$row[subject]</u></b>" : "<u>$row[subject]</u>") : ($row['msg'] ? "<b>$row[subject]</b>" : (strlen($row['subject']) ? $row['subject'] : 'N/A'))) . "</a></td>";
@@ -192,14 +192,16 @@ function viewAbuse($id){
 	
 	incHeader();
 
+	echo "<form action=\"$_SERVER[PHP_SELF]\" method=post name=editbox>";
+	echo "<input type=hidden name=id value=$id>";
 	echo "<table align=center>";
 
 	echo "<tr><td class=body colspan=2><a class=body href=$_SERVER[PHP_SELF]>Abuse Log</a></td></tr>";
-	echo "<tr><td class=header>User:</td><td class=header><a class=header href=/profile.php?uid=$abuse[userid]>$abuse[username]</a></td></tr>";
+	echo "<tr><td class=header>User:</td><td class=header><a class=header href=/users/" . urlencode($abuse['username']) . ">$abuse[username]</a></td></tr>";
 	if($abuse['reportuserid'])
-		echo "<tr><td class=header>Report User:</td><td class=header><a class=header href=/profile.php?uid=$abuse[reportuserid]>$abuse[reportname]</a></td></tr>";
+		echo "<tr><td class=header>Report User:</td><td class=header><a class=header href=/users/" . urlencode($abuse['reportname']) .">$abuse[reportname]</a></td></tr>";
 	if($abuse['modid'])
-		echo "<tr><td class=header>Mod:</td><td class=header><a class=header href=/profile.php?uid=$abuse[modid]>$abuse[modname]</a></td></tr>";
+		echo "<tr><td class=header>Mod:</td><td class=header><a class=header href=/users/" . urlencode($abuse["modname"]) .">$abuse[modname]</a></td></tr>";
 	echo "<tr><td class=header>Action:</td><td class=header>" . (isset($abuselog->actions[$abuse['action']]) ? $abuselog->actions[$abuse['action']] : 'N/A') . "</td></tr>";
 	echo "<tr><td class=header>Reason:</td><td class=header>" . (isset($abuselog->reasons[$abuse['reason']]) ? $abuselog->reasons[$abuse['reason']] : 'N/A') . "</td></tr>";
 	echo "<tr><td class=header>Time:</td><td class=header>" . userDate("F j, Y, g:i a", $abuse['time']) . "</td></tr>";
@@ -209,7 +211,7 @@ function viewAbuse($id){
 	foreach($comments as $line){
 		echo "<tr><td class=header>By: ";
 
-		if($line['userid'])	echo "<a class=header href=/profile.php?uid=$line[userid]>$line[username]</a>";
+		if($line['userid'])	echo "<a class=header href=/users/". urlencode($line["username"]) .">$line[username]</a>";
 		else				echo "$line[username]";
 
 		echo "</td><td class=header>Date: " . userdate("F j, Y, g:i a",$line['time']) . "</td>";
@@ -222,8 +224,6 @@ function viewAbuse($id){
 		echo "</td></tr>";
 	}
 
-	echo "<form action=\"$_SERVER[PHP_SELF]\" method=post name=editbox>";
-	echo "<input type=hidden name=id value=$id>";
 
 	echo "<tr><td class=header align=center colspan=2>Add a Comment</td></tr>";
 	echo "<tr><td class=body align=center colspan=2>";
@@ -232,9 +232,9 @@ function viewAbuse($id){
 
 	echo "</td></tr>";
 	echo "<tr><td class=body align=center colspan=2><input class=body type=submit name=action value=Preview> <input class=body type=submit name=action accesskey='s' value=Post></td></tr>";
-	echo "</form>";
 
 	echo "</table>";
+	echo "</form>";
 
 	incFooter();
 	exit;
@@ -243,11 +243,13 @@ function viewAbuse($id){
 function addAbuseComment($id, $msg, $preview){
 	incHeader();
 
+	echo "<form action=\"$_SERVER[PHP_SELF]\" method=post name=editbox>\n";
+	echo "<input type=hidden name='id' value='$id'>\n";
 	echo "<table align=center cellspacing=0>";
 
 	if($preview){
 		$msg = trim($msg);
-		$nmsg = removeHTML($msg);
+		$nmsg = cleanHTML($msg);
 		$nmsg2 = parseHTML($nmsg);
 		$nmsg3 = smilies($nmsg2);
 		$nmsg3 = wrap($nmsg3);
@@ -256,15 +258,13 @@ function addAbuseComment($id, $msg, $preview){
 
 		echo "Here is a preview of what the post will look like:";
 
-		echo "<blockquote>" . nl2br($nmsg3) . "</blockquote>";
+		echo "<blockquote>" . $nmsg3 . "</blockquote>";
 
 		echo "<hr>";
 		echo "</td></tr>";
 	}
 
 
-	echo "<form action=\"$_SERVER[PHP_SELF]\" method=post name=editbox>\n";
-	echo "<input type=hidden name='id' value='$id'>\n";
 
 	echo "<tr><td class=body>";
 
@@ -272,9 +272,9 @@ function addAbuseComment($id, $msg, $preview){
 
 	echo "</td></tr>\n";
 	echo "<tr><td class=body align=center><input class=body type=submit name=action value=Preview> <input class=body type=submit name=action accesskey='s' value=Post></td></tr>\n";
-	echo "</form>";
 
 	echo "</table>";
+	echo "</form>";
 
 	incFooter();
 	exit;
@@ -285,11 +285,12 @@ function addAbuse($uid = "", $action = 0, $reason = 0, $subject = "", $msg = "",
 
 	incHeader();
 
+	echo "<form action=\"$_SERVER[PHP_SELF]\" method=post name=editbox>\n";
 	echo "<table align=center cellspacing=0>";
 
 	if($preview){
 		$msg = trim($msg);
-		$nmsg = removeHTML($msg);
+		$nmsg = cleanHTML($msg);
 		$nmsg2 = parseHTML($nmsg);
 		$nmsg3 = smilies($nmsg2);
 		$nmsg3 = wrap($nmsg3);
@@ -298,13 +299,12 @@ function addAbuse($uid = "", $action = 0, $reason = 0, $subject = "", $msg = "",
 
 		echo "Here is a preview of what the entry will look like:";
 
-		echo "<blockquote>" . nl2br($nmsg3) . "</blockquote>";
+		echo "<blockquote>" . $nmsg3 . "</blockquote>";
 
 		echo "<hr>";
 		echo "</td></tr>";
 	}
 
-	echo "<form action=\"$_SERVER[PHP_SELF]\" method=post name=editbox>\n";
 
 	echo "<tr><td class=body>User: </td><td class=body><input class=body type=text name=uid value=\"$uid\" style=\"width:97\"> ";
 	echo "<select class=body name=abuseaction style=\"width:100\"><option value=0>Action" . make_select_list_key($allowedActions, $action) . "</select>"; // $abuselog->manualactions
@@ -318,9 +318,9 @@ function addAbuse($uid = "", $action = 0, $reason = 0, $subject = "", $msg = "",
 
 	echo "</td></tr>\n";
 	echo "<tr><td class=body align=center colspan=2><input class=body type=submit name=action accesskey='s' value='Post Abuse'><input class=body type=submit name=action value='Cancel'></td></tr>\n";
-	echo "</form>";
 
 	echo "</table>";
+	echo "</form>";
 
 	incFooter();
 	exit;

@@ -25,7 +25,7 @@ td.header		{ background-color: #c6c6c6; color: #000; font-family: arial, sans-se
 a.header  	{ color: #000; text-decoration:none;  }
 a.header:hover	{ color: #dddddd; }
 
-td.headerfront	{ color:#000; background: #fff url(http://static.nexopia.com/skins/schematic/fronthead.png); height:30px; padding-bottom:8px; }
+td.headerfront	{ color:#000; background: #fff url(http://static.nexopia.com/1/files/Legacy/skins/schematic/fronthead.png); height:30px; padding-bottom:8px; }
 
 
 td.header2			{ color: #000; font-family: arial, sans-serif; font-size: 8pt}
@@ -35,7 +35,7 @@ a.header2:hover, a.header2:active		{ color: #ddd; }
 td.body			{ background-color: #fff; color: #323237; font-family: arial, sans-serif; font-size: 8pt}
 td.body2		{ background-color: #e1e1e1; color: #000; font-family: arial, sans-serif; font-size: 8pt}
 a.body { color: #7c7c7c; }
-a.body:hover	{ color: #000; }
+a.body:hover	{ color: #4F4F4F; }
 body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; color: #000; border:1px solid #d4d6d7;}
 body textarea { font-size: 9pt; }
 

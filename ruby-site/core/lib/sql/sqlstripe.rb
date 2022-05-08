@@ -1,5 +1,4 @@
 
-require 'lazy/future'
 lib_require :Core, 'collect_hash'
 
 #Sql class for balancing queries to distributed servers
@@ -35,7 +34,7 @@ class SqlDBStripe < SqlBase
 	def map_servers_hash(ids, writeop)
 		serverids = @dbs.keys.sort;
 		return ids.map {|id|
-			serverids[id.to_i % serverids.length];
+			serverids[id.first.to_i % serverids.length];
 		}
 	end
 
@@ -98,7 +97,7 @@ class SqlDBStripe < SqlBase
 
 		#map keys to servers
 		if(!keys) #do for all
-			if(prepared[0,6].upcase == "INSERT" && prepared.match("SELECT")) #allow select, insert ... select, update, delete, analyze, optomize, alter table, etc, but not single row changing ops
+			if(prepared[0,6].upcase == "INSERT" && !prepared.match("SELECT")) #allow select, insert ... select, update, delete, analyze, optomize, alter table, etc, but not single row changing ops
 				raise QueryError, "Cannot INSERT to all dbs: #{prepared}";
 			end
 
@@ -116,53 +115,19 @@ class SqlDBStripe < SqlBase
 		results = [];
 
 		if(ids.length == 0)
-			$log.info("Query doesn't map to a server: #{prepared}", :debug);
+			$log.info("Query doesn't map to a server: #{prepared}", :warning);
 		end
-	futures = true;
-if (!futures)
-		threads = [];
-		require 'thread'
-		semaphore = Mutex.new();
 
-		ids.each{ |serverid|
-			db = @dbs[serverid];
-			if (!db)
-				$log.info("Query attempted to use split server ##{serverid} on #{self}, which doesn't exist.", :warning);
-				nil
-			else
-				if (ids.length > 1)
-					threads << Thread.new(serverid){|id|
-						result = @dbs[id].query(prepared);
-						semaphore.synchronize {
-							results.push(result);
-						}
-					}
-				else
-					results << @dbs[serverid].query(prepared);				
-				end
-			end
-		}
-
-		threads.each { |thread|
-			thread.join();
-		}
-
-else
 		#run the queries
 		results = ids.collect { |id|
-			db = @dbs[id];
-			if (!db)
+			if(!@dbs[id])
 				$log.info("Query attempted to use split server ##{id} on #{self}, which doesn't exist.", :warning);
 				nil
 			else
-				if (false && ids.length > 1)
-					future { @dbs[id].query(prepared); }
-				else
-					@dbs[id].query(prepared, &block);
-				end
+				@dbs[id].query(prepared, &block);
 			end
 		}
-end
+
 		return StripeDBResult.new(results);
 	end
 
@@ -237,6 +202,12 @@ end
 	class StripeDBResult
 		def initialize(results)
 			@results = results;
+		end
+
+		def free
+			@results.each { |result|
+				result.free()
+			}
 		end
 		
 		def empty?

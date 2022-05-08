@@ -206,7 +206,7 @@ function displayAdvSearch (
 	$accountFlags	// I: user account flags passed from processRequest
 ) {
 	// INIT global variables
-	global $initOutput, $requestType, $requestParams;
+	global $initOutput, $requestType, $requestParams, $rap_pagehandler;
 
 	// check to insure the user has plus
 	if ($accountFlags['plus'] !== true) {
@@ -226,7 +226,10 @@ function displayAdvSearch (
 	$template->set('minage', $menuOptions->searchMinAge);
 	$template->set('maxage', $menuOptions->searchMaxAge);
 	$template->set('selectSex', $menuOptions->sexSelect);
-	$template->set('selectLocation', $menuOptions->locationSelect);
+	
+	$locationAutocomplete = $rap_pagehandler->subrequest(null, "GetRequest", "/autocomplete/location", array("location_id_field_id"=>"requestParams[location]"), "Public");
+	
+	$template->set('selectLocation', $locationAutocomplete->get_reply_output());
 	$template->set('selectInterests', $menuOptions->interestSelect);
 	$template->set('selectActivity', $menuOptions->activitySelect);
 	$template->set('selectPictures', $menuOptions->pictureSelect);
@@ -576,11 +579,19 @@ function formatDebugOutput (
 /* END FUNCTION formatDebugOutput */
 
 function displayUser($uid, $picid = 0){ // either userid and picnum, or userid or picid
-	global $config, $sort, $userData, $db, $usersdb, $usersdb, $cache, $mods, $locations, $weblog, $useraccounts;
+	global $config, $sort, $userData, $db, $usersdb, $usersdb, $cache, $mods, $locations, $weblog, $useraccounts, $wwwdomain;
 
 	if($uid == 0)
 		return false;
-
+	
+	//http redirect to the new profile in ruby-site
+	$user = getUserInfo($uid);
+	
+	header("HTTP/1.1 301 Moved Permanently");
+	header("Location: http://". $wwwdomain . "/users/". urlencode($user["username"]));
+	exit;
+	
+	//this code is no longer run as the profile display is taken care of by ruby-site
 	$picnum = 0;
 
 	if($picid != 0){ //gives picid
@@ -693,7 +704,7 @@ function displayUser($uid, $picid = 0){ // either userid and picnum, or userid o
 
 			foreach ($profBlocks as $index => $profBlock) {
 				$profBlocks[$index]['nBlocktitle'] = removeHTML(trim($profBlock['blocktitle']));
-				$profBlocks[$index]['nBlockcontent'] = nl2br(wrap(parseHTML(smilies(removeHTML($profBlock['blockcontent'])))));
+				$profBlocks[$index]['nBlockcontent'] = wrap(parseHTML(smilies(cleanHTML($profBlock['blockcontent']))));
 				unset($profBlocks[$index]['blockcontent']);
 				unset($profBlocks[$index]['blocktitle']);
 			}
@@ -903,7 +914,7 @@ echo 					"<td class=body align=center>";
 
 			echo "<div id=userpicdiv name=userpicdiv style=\"align: center\">";
 			echo "<span id=hidediv style=\"position: absolute; width: 0px; height: 0px;\"><img src='$config[imageloc]empty.png' width=100% height=100%></span>";
-			echo "<img name=userpic id=userpic src='" . $config['picloc'] . floor($user['userid']/1000) . "/" . weirdmap($user['userid']) . "/" . $pics[$picnum]['id'] . ".jpg'>";
+			echo "<img name=userpic id=userpic src='" . $config['picloc'] . floor($user['userid']/1000) . "/" . weirdmap($user['userid']) . "/" . $pics[$picnum]['gallerypicid'] . ".jpg'>";
 			echo "</div>";
 
 			echo "<div id=picdesc name=picdesc>" . ($pics[$picnum]['description'] ? "<br>" . $pics[$picnum]['description'] : '' ) . "</div>";
@@ -996,14 +1007,14 @@ echo 					"<td class=body valign=top>\n";
 	echo "<tr><td class=" . $classes[$i = !$i] . "><b>Sex:</b></td><td class=" . $classes[$i] . ">$user[sex]</td></tr>\n";
 //	echo "<tr><td class=" . $classes[$i = !$i] . "><b>Location:</b></td><td class=" . $classes[$i] . ">" . $locations->getCatName($user['loc']) . "</td></tr>\n";
 
-	$locs = $locations->makeroot($user['loc']);
+	// $locs = $locations->makeroot($user['loc']);
 
-	$locnames = array();
-	foreach($locs as $loc)
-		$locnames[] = $loc['name'];
-	array_shift($locnames); //get rid of Home
+	// $locnames = array();
+	// foreach($locs as $loc)
+		// $locnames[] = $loc['name'];
+	// array_shift($locnames); //get rid of Home
 
-	echo "<tr><td class=" . $classes[$i = !$i] . "><b>Location:</b></td><td class=" . $classes[$i] . ">" . implode(" > ", $locnames) . "</td></tr>\n";
+	// echo "<tr><td class=" . $classes[$i = !$i] . "><b>Location:</b></td><td class=" . $classes[$i] . ">" . implode(" > ", $locnames) . "</td></tr>\n";
 
 	if($userData['loggedIn'] && $userData['premium'] && $userData['userid'] != $uid)
 		echo "<tr><td class=" . $classes[$i = !$i] . "><b>Friends in Common:</b></td><td class=" . $classes[$i] . ">$friendsInCommon</td></tr>\n";
@@ -1119,16 +1130,16 @@ echo 					"<td class=body valign=top>\n";
 				$displayGroupType = $userGroup->groupTypeName();
 			}
 	
-			$groupLocation = $locations->makeroot($userGroup->groupLocation());
+			// $groupLocation = $locations->makeroot($userGroup->groupLocation());
 
-			$groupLocNames = array();
-			foreach($groupLocation as $loc)
-				$groupLocNames[] = $loc['name'];
-			array_shift($groupLocNames); //get rid of Home
+			// $groupLocNames = array();
+			// 			foreach($groupLocation as $loc)
+			// 				$groupLocNames[] = $loc['name'];
+			// 			array_shift($groupLocNames); //get rid of Home
 	
-			echo "<tr valign='top'><td class=" . $classes[$i = !$i] . "><b>".$displayGroupType."</b></td><td class=" . $classes[$i] . ">".$userGroup->groupName()."<br />".
-				implode(", ", array_reverse($groupLocNames))."&#160;&#160;&#160;<i>".$userGroup->fromDate()." - ".$userGroup->toDate()."</i></td></tr>\n";
-			$displayGroupType = "";
+			// echo "<tr valign='top'><td class=" . $classes[$i = !$i] . "><b>".$displayGroupType."</b></td><td class=" . $classes[$i] . ">".$userGroup->groupName()."<br />".
+			// 	implode(", ", array_reverse($groupLocNames))."&#160;&#160;&#160;<i>".$userGroup->fromDate()." - ".$userGroup->toDate()."</i></td></tr>\n";
+			// $displayGroupType = "";
 		}
 	}
 

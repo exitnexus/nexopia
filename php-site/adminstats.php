@@ -25,6 +25,8 @@
 		
 		$selectable['plusBuyHistory'] = "Plus Buying History - slow";
 		$selectable['plusHabits'] = "Plus Habits - slow";
+		$selectable['plusBuyStats'] = "Plus Buying Stats (Last 1000 Purchases)";
+		$selectable['plusExpireStats'] = "Plus Expiry Stats (250 Users)";
 	}
 
 	$selects = array();
@@ -44,7 +46,7 @@
 
 	echo "<form action=$_SERVER[PHP_SELF] method=post>";
 
-	echo "<tr><td class=header colspan=2 align=center>";
+	echo "<tr><td class=header colspan=3 align=center>";
 	echo "<select class=body name=select[]>";// size=5 multiple=multiple>";
 	foreach($selectable as $k => $v){
 		echo "<option value='$k'";
@@ -58,13 +60,11 @@
 	echo "</form>\n";
 
 
-
 	foreach($selects as $func)
 		$func();
 
-
-echo "<tr><td colspan=2 class=header align=center>General</td></tr>";
-	echo "<tr><td class=body>Uptime</td><td class=body>" . exec("uptime") . "</td></tr>";
+#echo "<tr><td colspan=2 class=header align=center>General</td></tr>";
+#	echo "<tr><td class=body>Uptime</td><td class=body>" . exec("uptime") . "</td></tr>";
 
 	echo "</table>\n";
 
@@ -299,7 +299,7 @@ function skinstats(){
 	}
 
 //active
-	$res = $usersdb->prepare_query("SELECT skin, count(*) as count FROM users WHERE activetime > # GROUP BY skin", time() - 86400*7);
+	$res = $usersdb->prepare_query("SELECT skin, count(*) as count FROM users LEFT JOIN useractivetime ON users.userid = useractivetime.userid WHERE useractivetime.activetime > # GROUP BY skin", (time() - 86400*7));
 
 	while($line = $res->fetchrow()){
 		$skin = $line['skin'];
@@ -588,7 +588,7 @@ function activeusersbyage(){
 	}
 
 //total accounts active in the past week
-	$res = $usersdb->prepare_query("SELECT age, sex, count(*) as count FROM users WHERE activetime > # GROUP BY age, sex", time() - 7*86400);
+	$res = $usersdb->prepare_query("SELECT age, sex, count(*) as count FROM users LEFT JOIN useractivetime ON users.userid = useractivetime.userid WHERE useractivetime.activetime > # GROUP BY age, sex", (time() - 86400*7));
 
 	while($line = $res->fetchrow()){
 		$rows[$line['age']][$line['sex']]['activeusers'] += $line['count'];
@@ -734,7 +734,7 @@ function activeUsersByLocRecur(){
 	}
 
 //get active users by location
-	$res = $usersdb->prepare_query("SELECT loc, count(*) as count FROM users WHERE activetime > # GROUP BY loc ORDER BY count DESC", time() - 86400*7);
+	$res = $usersdb->prepare_query("SELECT loc, count(*) as count FROM users LEFT JOIN useractivetime ON users.userid = useractivetime.userid WHERE useractivetime.activetime > # GROUP BY loc ORDER BY count DESC", (time() - 86400*7));
 
 	while($line = $res->fetchrow())
 		$locs[$line['loc']]['activeusers'] += $line['count'];
@@ -842,6 +842,7 @@ function plusBuyHistory(){
 		'expire' => 0,
 
 		'buyweek' => 0,
+		'buyfortnight' => 0,
 		'buyone' => 0,
 		'buytwo' => 0,
 		'buythree' => 0,
@@ -899,12 +900,13 @@ function plusBuyHistory(){
 		$odd = false;
 
 		switch($line['duration']){
-			case 86400*7:     $curmonth['buyweek']++;  break; //one week
-			case 86400*31:    $curmonth['buyone']++;   break; //one month
-			case 86400*31*2:  $curmonth['buytwo']++;   break; //two months
-			case 86400*31*3:  $curmonth['buythree']++; break; //three months
-			case 86400*31*6:  $curmonth['buysix']++;   break; //six months
-			case 86400*31*12: $curmonth['buyyear']++;  break; //year
+			case 86400*7:     $curmonth['buyweek']++;   break; //one week
+			case 86400*14:    $curmonth['fortnight']++; break; //two weeks
+			case 86400*31:    $curmonth['buyone']++;    break; //one month
+			case 86400*31*2:  $curmonth['buytwo']++;    break; //two months
+			case 86400*31*3:  $curmonth['buythree']++;  break; //three months
+			case 86400*31*6:  $curmonth['buysix']++;    break; //six months
+			case 86400*31*12: $curmonth['buyyear']++;   break; //year
 			default:          $curmonth['odd']++; $odd = true;  break; //some odd amount, probably transfer
 		}
 
@@ -967,6 +969,7 @@ function plusBuyHistory(){
 	echo "<td class=header align=center nowrap>Expire</td>";
 
 	echo "<td class=header align=center nowrap>Week</td>";
+	echo "<td class=header align=center nowrap>2 Weeks</td>";
 	echo "<td class=header align=center nowrap>Month</td>";
 	echo "<td class=header align=center nowrap>2 Months</td>";
 	echo "<td class=header align=center nowrap>3 Months</td>";
@@ -1004,6 +1007,7 @@ function plusBuyHistory(){
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($month['expire']) . "</td>";
 
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($month['buyweek']) . "</td>";
+		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($month['buyfortnight']) . "</td>";
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($month['buyone']) . "</td>";
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($month['buytwo']) . "</td>";
 		echo "<td class=" . $classes[$i] . " align=right nowrap>" . number_format($month['buythree']) . "</td>";
@@ -1050,6 +1054,7 @@ function plusBuyHistory(){
 	echo "<td class=header align=center nowrap>Expire</td>";
 
 	echo "<td class=header align=center nowrap>Week</td>";
+	echo "<td class=header align=center nowrap>2 Weeks</td>";
 	echo "<td class=header align=center nowrap>Month</td>";
 	echo "<td class=header align=center nowrap>2 Months</td>";
 	echo "<td class=header align=center nowrap>3 Months</td>";
@@ -1297,3 +1302,334 @@ function plusHabits(){
 	echo "<tr><td class=" . $classes[$i = !$i] . " align=right>" . number_format($stats['trymore']) . "</td><td class=$classes[$i]>buy one month, maybe more than once, then buy more than a month (ie tried a month, then bought more)</td></tr>";
 
 }
+
+function plusBuyStats(){
+	global $usersdb, $shoppingcart;
+
+	# Pull in a list of user ids for the last 1000 plus purchases
+	$users = array();
+	$res = $shoppingcart->db->prepare_query("SELECT DISTINCT userid FROM invoice WHERE EXISTS (SELECT * FROM invoiceitems LEFT JOIN products ON invoiceitems.productid = products.id WHERE invoice.id = invoiceitems.invoiceid AND products.name = 'Nexopia Plus') AND invoice.completed = 'y' ORDER BY creationdate DESC LIMIT 1000");
+	while($line = $res->fetchrow())
+		$users[] = $line['userid'];
+
+	$jointimes = array();
+	$ages = array();
+	$sexes = array("Male" => 0, "Female" => 0);
+	$locs = array();
+	$info = getlocinfo();
+	$res = $usersdb->prepare_query("SELECT jointime, age, sex, loc FROM users WHERE userid IN (%)", array_values($users));
+	while ($line = $res->fetchrow()) {
+		$joindate = date('Y-m-d', $line['jointime']);
+		if (array_key_exists($joindate, $jointimes)) {
+			$jointimes[$joindate] += 1;
+		} else {
+			$jointimes[$joindate] = 1;
+		}
+		if (array_key_exists($line['age'], $ages)) {
+			$ages[$line['age']] += 1;
+		} else {
+			$ages[$line['age']] = 1;
+		}
+		if (array_key_exists($line['sex'], $sexes)) {
+			$sexes[$line['sex']] += 1;
+		} else {
+			$sexes[$line['sex']] = 1;
+		}
+		if (array_key_exists($line['loc'], $locs)) {
+			$locs[$line['loc']] += 1;
+		} else {
+			$locs[$line['loc']] = 1;
+		}
+	}
+	ksort($jointimes);
+	ksort($ages);
+	arsort($locs);
+	
+	echo "<tr><td colspan=2 align=center class=header>Join Dates</td></tr>";
+	echo "<tr><td class=header>Date</td><td class=header>Count</td></tr>";
+	foreach ($jointimes as $jointime => $count) {
+		echo "<tr><td class=body>$jointime</td><td class=body>" . $count . "</td></tr>";
+	}
+	
+	echo "<tr><td colspan=2 align=center class=header>Ages</td></tr>";
+	echo "<tr><td class=header>Age</td><td class=header>Count</td></tr>";
+	foreach ($ages as $age => $count) {
+		echo "<tr><td class=body>" . $age . "</td><td class=body>" . $count . "</td></tr>";
+	}
+	
+	echo "<tr><td colspan=2 align=center class=header>Genders</td></tr>";
+	echo "<tr><td class=header>Gender</td><td class=header>Count</td></tr>";
+	foreach ($sexes as $sex => $count) {
+		echo "<tr><td class=body>" . $sex . "</td><td class=body>" . $count . "</td></tr>";
+	}
+	
+	echo "<tr><td colspan=2 align=center class=header>Locations</td></tr>";
+	echo "<tr><td class=header>Location</td><td class=header>Count</td></tr>";
+	foreach ($locs as $loc => $count) {
+		echo "<tr><td class=body>" . $info[$loc]['name'] . "</td><td class=body>" . $count . "</td></tr>";
+	}
+}
+
+function plusExpireStats(){
+	global $usersdb, $shoppingcart, $forums;
+
+	# Pull in a list of user ids for the last 250 plus purchases
+	$purchasers = array();
+	$res = $shoppingcart->db->prepare_query("SELECT DISTINCT userid FROM invoice WHERE EXISTS (SELECT * FROM invoiceitems LEFT JOIN products ON invoiceitems.productid = products.id WHERE invoice.id = invoiceitems.invoiceid AND products.name = 'Nexopia Plus') AND invoice.completed = 'y' ORDER BY creationdate DESC LIMIT 250");
+	while($line = $res->fetchrow())
+		$purchasers[] = $line['userid'];
+		
+	# Pull in a list of user ids for the last 250 users who have let
+	# their plus expire more than two weeks ago
+	$expirers = array();
+	$res = $usersdb->prepare_query("SELECT userid, premiumexpiry FROM users WHERE premiumexpiry != 0 AND premiumexpiry < # ORDER BY premiumexpiry DESC LIMIT 250", (time() - 86400 * 14));
+	# Data is sharded, unshard and handle the limit
+	$expirerstmp = array();
+	while ($line = $res->fetchrow()) {
+		$expirerstmp[$line['userid']] = $line['premiumexpiry'];
+	}
+	arsort($expirerstmp);
+	$expirerstmp = array_slice($expirerstmp, 0, 250, true);
+	foreach($expirerstmp as $k => $v)
+		$expirers[] = $k;
+
+	$jointimes = array();
+	$profileupdatetimes = array();
+	$activetimes = array();
+	$ages = array();
+	$sexes = array();
+	$locs = array();
+	$hitlist = array();
+	$tomsgslist = array();
+	$frommsgslist = array();
+	$postlist = array();
+	
+	$info = getlocinfo();
+	
+	function ensureInArray($key, &$a) {
+		if (!array_key_exists($key, $a)) {
+			$a[$key] = array("purchaser" => 0, "expired" => 0);
+		}
+	}
+	
+	# First, pull in the data for the last 250 plus purchases
+	$res = $usersdb->prepare_query("SELECT jointime, activetime, age, sex, loc FROM users WHERE userid IN (%)", array_values($purchasers));
+	while ($line = $res->fetchrow()) {
+		$jointime = date('Y-m-d', $line['jointime']);
+		ensureInArray($jointime, $jointimes);
+		$jointimes[$jointime]["purchaser"] += 1;
+		
+		$activetime = date('Y-m-d', $line['activetime']);
+		ensureInArray($activetime, $activetimes);
+		$activetimes[$activetime]["purchaser"] += 1;
+		
+		ensureInArray($line['age'], $ages);
+		$ages[$line['age']]["purchaser"] += 1;
+
+		ensureInArray($line['sex'], $sexes);
+		$sexes[$line['sex']]["purchaser"] += 1;
+
+		ensureInArray($line['loc'], $locs);
+		$locs[$line['loc']]["purchaser"] += 1;
+	}
+	$res = $usersdb->prepare_query("SELECT profileupdatetime, views FROM profile WHERE userid IN (%)", array_values($purchasers));
+	while ($line = $res->fetchrow()) {
+		$profileupdatetime = date('Y-m-d', $line['profileupdatetime']);
+		ensureInArray($profileupdatetime, $profileupdatetimes);
+		$profileupdatetimes[$profileupdatetime]["purchaser"] += 1;
+		
+		ensureInArray($line['views'], $hitlist);
+		$hitlist[$line['views']]["purchaser"] += 1;
+	}
+	$res = $usersdb->prepare_query("SELECT userid, COUNT(*) AS tocount FROM msgs WHERE date > # AND folder = 1 AND userid IN (%) GROUP BY userid", (time() - 86400*30), array_values($purchasers)); 
+	while ($line = $res->fetchrow()) {
+		ensureInArray($line['tocount'], $tomsgslist);
+		$tomsgslist[$line['tocount']]["purchaser"] += 1;
+	}
+	$res = $usersdb->prepare_query("SELECT userid, COUNT(*) AS fromcount FROM msgs WHERE date > # AND folder = 2 AND userid IN (%) GROUP BY userid", (time() - 86400*30), array_values($purchasers)); 
+	while ($line = $res->fetchrow()) {
+		ensureInArray($line['fromcount'], $frommsgslist);
+		$frommsgslist[$line['fromcount']]["purchaser"] += 1;
+	}
+	$res = $forums->db->prepare_query("SELECT authorid, COUNT(*) AS postcount FROM forumposts WHERE time > # AND authorid IN (%) GROUP BY authorid", (time() - 86400*30), array_values($purchasers));
+	# Data is sharded, unshard the group-by
+	$postcountunsharded = array();
+	while ($line = $res->fetchrow()) {
+		if (!array_key_exists($line['authorid'], $postcountunsharded))
+			$postcountunsharded[$line['authorid']] = 0;
+		$postcountunsharded[$line['authorid']] += $line['postcount'];
+	}
+	foreach($postcountunsharded as $line) {
+		ensureInArray($line, $postlist);
+		$postlist[$line]["purchaser"] += 1;
+	}
+
+	# Now, pull in the data for the people who let plus expire
+	$res = $usersdb->prepare_query("SELECT jointime, activetime, age, sex, loc FROM users WHERE userid IN (%)", array_values($expirers));
+	while ($line = $res->fetchrow()) {
+		$jointime = date('Y-m-d', $line['jointime']);
+		ensureInArray($jointime, $jointimes);
+		$jointimes[$jointime]["expired"] += 1;
+		
+		$activetime = date('Y-m-d', $line['activetime']);
+		ensureInArray($activetime, $activetimes);
+		$activetimes[$activetime]["expired"] += 1;
+		
+		ensureInArray($line['age'], $ages);
+		$ages[$line['age']]["expired"] += 1;
+
+		ensureInArray($line['sex'], $sexes);
+		$sexes[$line['sex']]["expired"] += 1;
+
+		ensureInArray($line['loc'], $locs);
+		$locs[$line['loc']]["expired"] += 1;
+	}
+	$res = $usersdb->prepare_query("SELECT profileupdatetime, views FROM profile WHERE userid IN (%)", array_values($expirers));
+	while ($line = $res->fetchrow()) {
+		$profileupdatetime = date('Y-m-d', $line['profileupdatetime']);
+		ensureInArray($profileupdatetime, $profileupdatetimes);
+		$profileupdatetimes[$profileupdatetime]["expired"] += 1;
+		
+		ensureInArray($line['views'], $hitlist);
+		$hitlist[$line['views']]["expired"] += 1;
+	}
+	$res = $usersdb->prepare_query("SELECT userid, COUNT(*) AS tocount FROM msgs WHERE date > # AND folder = 1 AND userid IN (%) GROUP BY userid", (time() - 86400*30), array_values($expirers)); 
+	while ($line = $res->fetchrow()) {
+		ensureInArray($line['tocount'], $tomsgslist);
+		$tomsgslist[$line['tocount']]["expired"] += 1;
+	}
+	$res = $usersdb->prepare_query("SELECT userid, COUNT(*) AS fromcount FROM msgs WHERE date > # AND folder = 2 AND userid IN (%) GROUP BY userid", (time() - 86400*30), array_values($expirers)); 
+	while ($line = $res->fetchrow()) {
+		ensureInArray($line['fromcount'], $frommsgslist);
+		$frommsgslist[$line['fromcount']]["expired"] += 1;
+	}
+	$res = $forums->db->prepare_query("SELECT authorid, COUNT(*) AS postcount FROM forumposts WHERE time > # AND authorid IN (%) GROUP BY authorid", (time() - 86400*30), array_values($expirers));
+	# Data is sharded, unshard the group-by
+	$postcountunsharded = array();
+	while ($line = $res->fetchrow()) {
+		if (!array_key_exists($line['authorid'], $postcountunsharded))
+			$postcountunsharded[$line['authorid']] = 0;
+		$postcountunsharded[$line['authorid']] += $line['postcount'];
+	}
+	foreach($postcountunsharded as $line) {
+		ensureInArray($line, $postlist);
+		$postlist[$line]["expired"] += 1;
+	}
+	
+	# Sort everything nicely so our output makes sense
+	ksort($jointimes);
+	ksort($profileupdatetimes);
+	ksort($activetimes);
+	ksort($ages);
+	arsort($locs);
+	ksort($hitlist);
+	ksort($tomsgslist);
+	ksort($frommsgslist);
+	ksort($postlist);
+
+	# Now, we have far too much data in some of our arrays.  We want
+	# to reduce these down to ten rows (if we have more than 15).  We
+	# take the easy way out and just do it by keys instead of by values.
+	function reduceRows($a) {
+		if (count($a) <= 15) {
+			return $a;
+		}
+		
+		$bucket = (int)((count($a) + 9) / 10);
+		$totals = array();
+		for ($i = 0; $i < 10; ++$i) {
+			$slice = array_slice($a, $i * $bucket, $bucket, true);
+			$total = array("purchaser" => 0, "expired" => 0);
+			foreach ($slice as $key => $val) {
+				$total["purchaser"] += $val["purchaser"];
+				$total["expired"] += $val["expired"];
+			}
+			if ($total["purchaser"] == 0 && $total["expired"] == 0)
+				continue;
+			$keys = array_keys($slice);
+			$totals[array_shift($keys) . " - " . array_pop($keys)] = $total;
+		}
+		return $totals;
+	}
+	
+	$jointimes = reduceRows($jointimes);
+	$profileupdatetimes = reduceRows($profileupdatetimes);
+	$activetimes = reduceRows($activetimes);
+	$hitlist = reduceRows($hitlist);
+	$tomsgslist = reduceRows($tomsgslist);
+	$frommsgslist = reduceRows($frommsgslist);
+	$postlist = reduceRows($postlist);
+
+	# Finally, we have all our data.  Let's dump it out.
+	echo "<tr><td colspan=3 class=body>";
+	echo "<i>Recently purchased</i> is information about the 250 ";
+	echo "most recent people to purchase plus.<br>";
+	echo "<i>Expired</i> is information about the 250 most recent ";
+	echo "users whose plus expired more than two weeks ago.";
+	echo "</td></tr>";
+	echo "<tr><td colspan=3 align=center class=header>Join Dates</td></tr>";
+	echo "<tr><td class=header>Date</td><td class=header>Recently purchased</td><td class=header>Expired</td></tr>";
+	foreach ($jointimes as $jointime => $count) {
+		echo "<tr><td class=body>$jointime</td><td class=body>" . $count["purchaser"] . "</td><td class=body>" . $count["expired"] . "</td></tr>";
+	}
+	
+	echo "<tr><td colspan=3 align=center class=header>Profile Last Updated Dates</td></tr>";
+	echo "<tr><td class=header>Date</td><td class=header>Recently purchased</td><td class=header>Expired</td></tr>";
+	foreach ($profileupdatetimes as $updatetime => $count) {
+		echo "<tr><td class=body>$updatetime</td><td class=body>" . $count["purchaser"] . "</td><td class=body>" . $count["expired"] . "</td></tr>";
+	}
+	
+	echo "<tr><td colspan=3 align=center class=header>Last Active Dates</td></tr>";
+	echo "<tr><td class=header>Date</td><td class=header>Recently purchased</td><td class=header>Expired</td></tr>";
+	foreach ($activetimes as $activetime => $count) {
+		echo "<tr><td class=body>$activetime</td><td class=body>" . $count["purchaser"] . "</td><td class=body>" . $count["expired"] . "</td></tr>";
+	}
+	
+	echo "<tr><td colspan=3 align=center class=header>Ages</td></tr>";
+	echo "<tr><td class=header>Age</td><td class=header>Recently purchased</td><td class=header>Expired</td></tr>";
+	foreach ($ages as $age => $count) {
+		echo "<tr><td class=body>$age</td><td class=body>" . $count["purchaser"] . "</td><td>" . $count["expired"] . "</td></tr>";
+	}
+	
+	echo "<tr><td colspan=3 align=center class=header>Genders</td></tr>";
+	echo "<tr><td class=header>Gender</td><td class=header>Recently purchased</td><td class=header>Expired</td></tr>";
+	foreach ($sexes as $sex => $count) {
+		echo "<tr><td class=body>$sex</td><td class=body>" . $count["purchaser"] . "</td><td>" . $count["expired"] . "</td></tr>";
+	}
+	
+	echo "<tr><td colspan=3 align=center class=header>Locations</td></tr>";
+	echo "<tr><td class=header>Location</td><td class=header>Recently purchased</td><td class=header>Expired</td></tr>";
+	foreach ($locs as $loc => $count) {
+		if (array_key_exists($loc, $info)) {
+			$location = $info[$loc]['name'];
+		} else {
+			$location = "unknown";
+		}
+		echo "<tr><td class=body>" . $location . "</td><td class=body>" . $count["purchaser"] . "</td><td class=body>" . $count["expired"] . "</td></tr>";
+	}
+
+	echo "<tr><td colspan=3 align=center class=header>Total Hits</td></tr>";
+	echo "<tr><td class=header>Hits</td><td class=header>Recently purchased</td><td class=header>Expired</td></tr>";
+	foreach ($hitlist as $hit => $count) {
+		echo "<tr><td class=body>$hit</td><td class=body>" . $count["purchaser"] . "</td><td>" . $count["expired"] . "</td></tr>";
+	}
+	
+	echo "<tr><td colspan=3 align=center class=header>Messages Sent (Past 30 days)</td></tr>";
+	echo "<tr><td class=header>Messages Sent</td><td class=header>Recently purchased</td><td class=header>Expired</td></tr>";
+	foreach ($frommsgslist as $msgs => $count) {
+		echo "<tr><td class=body>$msgs</td><td class=body>" . $count["purchaser"] . "</td><td>" . $count["expired"] . "</td></tr>";
+	}
+	
+	echo "<tr><td colspan=3 align=center class=header>Messages Received (Past 30 days)</td></tr>";
+	echo "<tr><td class=header>Messages Received</td><td class=header>Recently purchased</td><td class=header>Expired</td></tr>";
+	foreach ($tomsgslist as $msgs => $count) {
+		echo "<tr><td class=body>$msgs</td><td class=body>" . $count["purchaser"] . "</td><td>" . $count["expired"] . "</td></tr>";
+	}
+	
+	echo "<tr><td colspan=3 align=center class=header>Forum Posts (Past 30 days)</td></tr>";
+	echo "<tr><td class=header>Forum Posts</td><td class=header>Recently purchased</td><td class=header>Expired</td></tr>";
+	foreach ($postlist as $posts => $count) {
+		echo "<tr><td class=body>$posts</td><td class=body>" . $count["purchaser"] . "</td><td>" . $count["expired"] . "</td></tr>";
+	}
+}
+

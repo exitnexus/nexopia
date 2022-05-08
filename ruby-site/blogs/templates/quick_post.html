@@ -1,0 +1,34 @@
+<div class="button_container" id="quick_post">
+	<t:if t:id="quick_post">
+		<div class="triangle"></div>
+		<div class="add_something">
+			Add something new to your blog:
+		</div>	
+		<div class="clear"></div>
+		<div id="buttons">
+			<a href="/my/blog/new/freeform" class="freeform">
+				Freeform
+			</a>
+			<a href="/my/blog/new/photo" class="photo">
+				Photo
+			</a>
+			<a href="/my/blog/new/video" class="video">
+				Video
+			</a>
+			<a href="/my/blog/new/battle" class="battle">
+				Battle
+			</a>
+			<a href="/my/blog/new/poll" class="poll no_border">
+				Poll
+			</a>
+		</div>
+		<div t:id="post_count <= 0" class="buttons_writeup">
+			<div class="arrow">
+				>
+			</div>
+			<div class="writeup">
+				It's quick and easy to add stuff to your blog.  Just click on of the buttons on the left to get started.
+			</div>
+		</div>
+	</t:if>
+</div>

@@ -1,0 +1,45 @@
+<div id="friend_finder_user_results">
+	<div class="skip">
+		<a href="/my/friends/find/results/invite">
+			Skip
+		</a>
+	</div>
+	<h1>
+		Add Friends
+	</h1>
+	<h4>
+		Success! These people are on Nexopia. Click to add them as friends
+	</h4>
+	<div class="result_container">
+		<form name="user_result_form" id="user_result_form" method="post" action="{submit_url}">
+			<input name="search_type" id="search_type" type="hidden" value="{search_type}" />
+			<div class="controls">
+				<div class="submit_friends">
+					<t:button type="submit">
+						Add Friends
+					</t:button>
+				</div>
+				<div class="selection_controls">
+					Select:&#160;<a href="#" minion_name="friend_finder:select_all">All</a>,&#160;<a href="#" minion_name="friend_finder:select_none">None</a>
+				</div>
+				<br class="clear"/>
+			</div>
+			<div class="add_friends_results">
+				<t:iter t:id="user_results" t:iter="user_contact">
+					<t:template-include t:module="friend_finder" t:name="user_friend_result"/>
+				</t:iter>
+			</div>
+			<div class="controls">
+				<div class="submit_friends">
+					<t:button type="submit">
+						Add Friends
+					</t:button>
+				</div>
+				<div class="selection_controls">
+					Select:&#160;<a href="#" minion_name="friend_finder:select_all">All</a>,&#160;<a href="#" minion_name="friend_finder:select_none">None</a>
+				</div>
+				<br class="clear"/>
+			</div>
+		</form>
+	</div>
+</div>

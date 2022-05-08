@@ -1,0 +1,6 @@
+#interstitial_display_mask, #interstitial_display_head_mask
+{
+	opacity:0.80;
+	*filter:alpha(opacity=80);
+	background-color: #252525;
+}

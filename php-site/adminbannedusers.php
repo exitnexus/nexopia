@@ -50,7 +50,7 @@
 		echo "<td class=" . $classes[$i = !$i] . "><input type=checkbox name=check[] value=\"$line[banned]\"></td>";
 		echo "<td class=" . $classes[$i] . ">" . (is_numeric($line['banned']) ? long2ip($line['banned']) : $line['banned'] ) . "</a></td>";
 		echo "<td class=" . $classes[$i] . " align=right>" . ($line['userid'] ? $line['userid'] : '' ) . "</a></td>";
-		echo "<td class=" . $classes[$i] . " align=right>" . ($line['modid'] ? "<a class=body href=/profile.php?uid=$line[modid]>" . $users[$line['modid']] . "</a>" : '' ) . "</a></td>";
+		echo "<td class=" . $classes[$i] . " align=right>" . ($line['modid'] ? "<a class=body href=/users/". urlencode($users[$line["modid"]]) .">" . $users[$line['modid']] . "</a>" : '' ) . "</a></td>";
 		echo "<td class=" . $classes[$i] . ">" . ($line['date'] ? userDate("M j, y, G:i", $line['date']) : '') . "</td>";
 		echo "</tr>";
 	}

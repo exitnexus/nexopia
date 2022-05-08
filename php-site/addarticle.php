@@ -53,10 +53,9 @@
 		$ntitle = removeHTML($title);
 
 
-		$narticle = removeHTML($msg);
+		$narticle = cleanHTML($msg);
 		$narticle2 = parseHTML($narticle);
 		$narticle3 = smilies($narticle2);
-		$narticle3 = nl2br($narticle3);
 
 		if($action == 'Preview') {
 			$template = new template('articles/addarticle/preview');

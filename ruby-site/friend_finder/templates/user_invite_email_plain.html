@@ -1,0 +1,9 @@
+<t:wrapper>
+Hey,#{"\n"}
+{invite_user.username} wants you to become {invite_user.possessive_pronoun} friend on {$site.config.site_name}
+#{"\n"}
+To become {invite_user.username}'s friend use this link:#{"\n"}
+{$site.www_url}/account/join?email_addr=%{invite_email_address}&friend_id={invite_user.userid}
+#{"\n\n"}
+To opt out of receiving emails like this in the future, go to {$site.www_url}/account/optout?email_addr=%{invite_email_address}.
+</t:wrapper>

@@ -1,23 +1,16 @@
-<div class="groups_profile_block_edit" t:docid="edit_groups">
+<div class="groups_profile_block_edit">
 
-	<div class="groups_title">GROUPS</div>
-	
-	<t:if t:id="!PageRequest.current.impersonation?">
-		<div class="create_group_button_div">
-			<input onclick="GroupsProfileBlock.createNew(); return false;" id="group_create_new_button" type="submit" class="submit" 
-				value="Create New Group"></input>
-		</div>
-	</t:if>
+	<div class="groups_title">CONNECTIONS</div>
 	
 	<div class="edit_body">
-		
-		<t:template-include name="list_groups" module="groups"/>
-
 		<div class="details" id="details">
 			<t:handler-include path="/profile_blocks/Groups/create_group" area="Self"/>
 		</div>
+				
+		<t:template-include name="list_groups" module="groups"/>
 	
 		<div class="clearit"/>
 	</div>
+		
 	<div class="clearit"/>
 </div>

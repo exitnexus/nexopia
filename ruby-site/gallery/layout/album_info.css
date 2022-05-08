@@ -1,0 +1,102 @@
+#album_info {
+	background-color: $secondary_background_color;
+	color: $secondary_text_color;
+	width: 714px;
+	padding: 6px;
+	margin-bottom: 20px;
+	& img.album_cover {
+		float: left;
+	}
+	& div.details {
+		float: left;
+		margin-left: 6px;
+		& div.summary {
+			position: relative;
+			height: 75px;
+			width: 430px;
+			color: $secondary_text_color;
+			& h2.album_name {
+				display: inline;
+				height: 21px;
+				width: 350px;
+				font-size: 16px;
+				font-weight: bold;
+			}			
+			& div.album_description {
+				height: 42px;
+				width: 430px;
+				overflow: hidden;
+			}
+			& .show_edit_album {
+				position: absolute;
+				bottom: 0px;
+				
+				& a.edit_album_details_link:link,
+				a.edit_album_details_link:visited {
+					color: $link_accent_color;
+					font-weight: bold;
+				}
+				
+				& a.edit_album_details_link:hover {
+					color: $link_color;
+				}
+				
+				& span.edit_album_details {
+					text-decoration: underline;
+				}
+			}
+		}
+		& div.edit {
+			display: none;
+			
+			& input.album_name {
+				width: 350px;
+				font-size: 18px;
+				font-weight: bold;
+			}
+			
+			& textarea {
+				width: 400px;
+				height: 72px;
+			}
+			
+			& select {
+				width: 250px;
+			}
+			
+			& .checkbox {
+				margin-left: 0px;
+				padding-left: 0px;
+			}
+			
+			& .form_controls {
+				margin-top: 12px;
+				
+				& .tertiary_button:link,
+				 .tertiary_button:visited {
+					color: $link_accent_color;
+					font-weight: bold;
+					text-decoration: underline;
+				}
+				
+				& .tertiary_button:hover {
+					color: $link_color;
+				}
+				
+			}
+			& img.spinner {
+				margin-left: 6px;
+				display: none;
+			}
+		}
+	}
+	& div.functions {
+		float: right;
+		display: inline;
+		width: 200px;
+		& .button {
+			float: right;
+			margin-left: 6px;
+		}
+	}
+}

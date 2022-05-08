@@ -1,0 +1,106 @@
+<div class="promotions_container" id="contest_form_container">
+
+	<div class="block_container padded_block_container">
+        <div class="page_title">
+            Congratulations {PageRequest.current.session.user.username}!
+        </div>
+		<div class="intro01">
+			You've been selected as a winner for a Nexopia promotion.<br />
+			But before we can send you your prize, we need to know some stuff about you.
+		</div>
+		<div class="intro02">
+			This information is being collected solely for the purpose of promotion administration, it will not be put to any proprietary use.
+		</div>
+		
+		<form method="POST" action="/promotions/send_waiver">
+		<table class="contest_form_inputs" border="0" cellspacing="0" cellpadding="0">
+		<tr>
+			<td class="category">Name of Promotion:</td>
+			<td><input type="text" class="text" name="contest" value="{contest}"/></td>
+			<td class="validation_container">#{contest_vi} #{contest_vm}</td>
+		</tr><tr>
+			<td class="category section_padding">First Name:</td>
+			<td class="section_padding"><input type="text" class="text" name="firstname" value="{firstname}"/></td>
+			<td class="section_padding validation_container">#{firstname_vi} #{firstname_vm}</td>
+		</tr><tr>
+			<td class="category">Last Name:</td>
+			<td><input type="text" class="text" name="lastname" value="{lastname}"/></td>
+			<td class="validation_container">#{lastname_vi} #{lastname_vm}</td>
+		</tr><tr>
+			<td class="category section_padding">Email Address:</td>
+			<td class="section_padding"><input type="text" class="text" name="email" value="{email}"/></td>
+			<td class="section_padding validation_container">#{email_vi} #{email_vm}</td>
+		</tr><tr>
+			<td class="category section_padding">Phone Number:</td>
+			<td class="section_padding">
+				<input type="text" class="small_text" maxlength="3" name="phone[0]" value="{phone[0] if phone}"/>
+				<input type="text" class="small_text" maxlength="3" name="phone[1]" value="{phone[1] if phone}"/>
+				<input type="text" class="small_text" maxlength="4" name="phone[2]" value="{phone[2] if phone}"/>
+			</td>
+			<td class="section_padding validation_container">#{phone_vi} #{phone_vm}</td>
+		</tr><tr>
+			<td class="category section_padding">Street Address:</td>
+			<td class="section_padding"><input type="text" class="text" name="street" value="{street}"/></td>
+			<td class="section_padding validation_container">#{street_vi} #{street_vm}</td>
+		</tr><tr>
+			<td class="category">City:</td>
+			<td><input type="text" class="text" name="city" value="{city}"/></td>
+			<td class="validation_container">#{city_vi} #{city_vm}</td>
+		</tr><tr>
+			<td class="category">Province/Territory:</td>
+			<td>
+				<select name="province">
+					<option value="-1">&nbsp;</option>
+					<option value="Alberta" cond:selected="province == 'Alberta'">Alberta</option>
+					<option value="British Columbia" cond:selected="province == 'British Columbia'">British Columbia</option>
+					<option value="Manitoba" cond:selected="province == 'Manitoba'">Manitoba</option>
+					<option value="New Brunswick" cond:selected="province == 'New Brunswick'">New Brunswick</option>
+					<option value="Newfoundland" cond:selected="province == 'Newfoundland'">Newfoundland</option>
+					<option value="Northwest Territories" cond:selected="province == 'Northwest Territories'">Northwest Territories</option>
+					<option value="Nova Scotia" cond:selected="province == 'Nova Scotia'">Nova Scotia</option>
+					<option value="Nunavut" cond:selected="province == 'Nunavut'">Nunavut</option>
+					<option value="Ontario" cond:selected="province == 'Ontario'">Ontario</option>
+					<option value="Prince Edward Island" cond:selected="province == 'Prince Edward Island'">Prince Edward Island</option>
+					<option value="Quebec" cond:selected="province == 'Quebec'">Quebec</option>
+					<option value="Saskatchewan" cond:selected="province == 'Saskatchewan'">Saskatchewan</option>
+					<option value="Yukon" cond:selected="province == 'Yukon'">Yukon</option>
+				</select>
+			</td>
+			<td class="validation_container">#{province_vi} #{province_vm}</td>
+		</tr><tr>
+			<td class="category">Postal Code:</td>
+			<td>
+				<input type="text" class="small_text text" maxlength="3" name="postalcode[0]" value="{postalcode[0] if postalcode}"/>
+				<input type="text" class="small_text" maxlength="3" name="postalcode[1]" value="{postalcode[1] if postalcode}"/>
+			</td>
+			<td class="validation_container">#{postalcode_vi} #{postalcode_vm}</td>
+		</tr><tr>
+			<td class="category skill_testing">Skill Testing Question:</td>
+			<td>&nbsp;</td>
+		</tr><tr>
+			<td class="category"><span class="math_question">15 x 2 / 3 + 25 - 5 =</span></td>
+			<td><input type="text" class="text" name="answer" value="{answer}"/></td>
+			<td class="validation_container">#{answer_vi} #{answer_vm}</td>
+		</tr>
+		</table>
+		
+		<table border="0" cellspacing="0" cellpadding="0">
+		<tr>
+			<td><input type="radio" class="checkbox" name="agree" value="I, the user, am of the age of majority in my province of residence and agree to the promotion Waiver and Release conditions (#{$site.www_url}/promotions/terms)."
+				cond:checked="!agree.nil? && agree.match('I, the user, am of the age of majority in my province of residence and agree to the promotion Waiver and Release conditions')"/></td>
+			<td>I, the user, am of the age of majority in my province of residence and agree to the promotion&#160;<a href="/promotions/terms">Waiver and Release</a>&#160;conditions, or</td>
+		</tr><tr>
+			<td><input type="radio" class="checkbox" name="agree" value="I, the user, am a minor in my province of residence and am over the age of 13; and I have the consent of my parent or legal guardian who is of the age of majority in his or her province of residence and agrees to the promotion Waiver and Release conditions (#{$site.www_url}/promotions/terms)."
+				cond:checked="!agree.nil? && agree.match('I, the user, am a minor in my province of residence and am over the age of 13; and I have the consent of my parent or legal guardian who is of the age of majority in his or her province of residence and agrees to the promotion Waiver and Release conditions')"/></td>
+			<td>I, the user, am a minor in my province of residence and am over the age of 13; and I have the consent of my parent or legal guardian who is of the age of majority in his or her province of residence and agrees to the promotion&#160;<a href="/promotions/terms">Waiver and Release</a>&#160;conditions.
+				<input type="hidden" name="agree" value="" /></td>
+		</tr><tr>
+			<td colspan="3">#{agree_vi} #{agree_vm}</td>
+		</tr>
+		</table>
+
+		<input type="submit" class="contest_submit" value="Submit" />
+		</form>
+	</div>
+	
+</div>

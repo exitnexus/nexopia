@@ -1,0 +1,11 @@
+<t:wrapper>
+Looks like {sender.username} has removed you from {sender.possessive_pronoun} friends list.
+
+<t:if t:id="receiver.friend?(sender)">
+Do you want to return the favor by removing #{sender.objective_pronoun} from yours?  Go here:
+{login_url}%{remove_url}
+</t:if>
+
+<t:template-include name="message_footer_plain" module="orwell"/>
+
+</t:wrapper>

@@ -2,9 +2,7 @@ table {text-align: left;}
 tr {vertical-align: top;}
 
 BODY 		{	SCROLLBAR-FACE-COLOR: black; FONT-SIZE: 8pt; MARGIN: 0px; SCROLLBAR-HIGHLIGHT-COLOR: #cccccc; SCROLLBAR-SHADOW-COLOR: #cccccc; SCROLLBAR-3DLIGHT-COLOR: #cccccc; SCROLLBAR-ARROW-COLOR: #cccccc; SCROLLBAR-TRACK-COLOR: #cccccc; FONT-FAMILY: arial, sans-serif; SCROLLBAR-DARKSHADOW-COLOR: #cccccc; BACKGROUND-COLOR: #444444}
-INPUT 		{	FONT: 10pt arial, sans-serif; COLOR: #000000}
-SELECT 		{	FONT: 10pt arial, sans-serif; COLOR: #000000}
-TEXTAREA 	{	FONT: 10pt arial, sans-serif; COLOR: #000000}
+body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; color: #000; border:1px solid #d4d6d7;}
 
 A:active 	{	FONT-SIZE: 8pt; COLOR: #000000; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}
 A:link 		{	FONT-SIZE: 8pt; COLOR: #000000; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}
@@ -47,7 +45,7 @@ TD.header2 			{	FONT-SIZE: 8pt;	COLOR: White;	FONT-FAMILY: arial, sans-serif;}
 A.body:active 	{	FONT-SIZE: 8pt;	COLOR: #FF1493;	FONT-FAMILY: arial, sans-serif;	TEXT-DECORATION: none}
 A.body:link 	{	FONT-SIZE: 8pt;	COLOR: #FF1493;	FONT-FAMILY: arial, sans-serif;	TEXT-DECORATION: none}
 A.body:visited 	{	FONT-SIZE: 8pt;	COLOR: #FF1493;	FONT-FAMILY: arial, sans-serif;	TEXT-DECORATION: none}
-A.body:hover 	{	FONT-SIZE: 8pt; COLOR: #000000; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}
+A.body:hover 	{	FONT-SIZE: 8pt; COLOR: #CF4D95; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}
 TD.body 		{	FONT-SIZE: 8pt; COLOR: #000000; FONT-FAMILY: arial, sans-serif; BACKGROUND-COLOR:#dfded9}
 INPUT.body 		{	FONT: 8pt arial, sans-serif; COLOR: #000000}
 SELECT.body 	{	FONT: 8pt arial, sans-serif; COLOR: #000000}

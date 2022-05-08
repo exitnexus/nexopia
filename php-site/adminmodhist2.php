@@ -166,7 +166,7 @@
 		$class = $classes[$i = !$i];
 	
 		echo "<tr>";
-		echo "<td class=$class><a class=body href=/profile.php?uid=$line[userid]>$line[username]</a></td>";
+		echo "<td class=$class><a class=body href=/users/". urlencode($line["username"]) .">$line[username]</a></td>";
 
 		echo "<td class=$class>";
 		if($isAdmin){

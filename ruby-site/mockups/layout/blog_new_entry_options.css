@@ -1,0 +1,48 @@
+#blog_mockup_container {
+
+	& .blog_new_entry_options {
+		padding: 6px 6px 12px 6px;
+		background-color: @secondary_block_background_color;
+		color: @secondary_block_text_color;
+		
+		& .clear {
+			clear: both;
+		}
+		
+		& .bold {
+			font-weight: bold;
+		}
+		
+		& input,
+		textarea,
+		select {
+			font-family: Verdana, Arial, Helvetica, sans-serif;
+			font-size: 11px;
+		}
+		
+		& a.expand {
+			background: url('$static_files_url/mockups/blog_placeholders/arrow_up.gif') no-repeat left center;
+			color: @secondary_block_link_color;
+			padding-left: 18px;
+			display: block;
+			
+			&:hover {
+				color: @secondary_block_link_hover_color;
+			}
+		}
+		
+		& .option_section {
+			margin-top: 20px;
+			
+			& select.visibility {
+				margin-top: 3px;
+			}
+			
+			& input.checkbox,
+			input.radio {
+				margin: 0px 6px 0px 0px;
+			}
+		}
+		
+	}
+}

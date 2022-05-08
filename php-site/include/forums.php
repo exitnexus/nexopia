@@ -78,7 +78,6 @@ class forums {
 		$nmsg2 = parseHTML($nmsg);
 		$nmsg3 = smilies($nmsg2);
 		$nmsg3 = wrap($nmsg3);
-		$nmsg3 = nl2br($nmsg3);
 
 		return $nmsg3;
 	}
@@ -386,7 +385,7 @@ class forums {
 		if($perms['deletethreads']){
 			$this->modLog('deletethread',$thread['forumid'],$tid,$thread['authorid'], $thread['lastauthorid']);
 
-			$this->db->prepare_query("UPDATE forums SET posts = posts - # - 1, threads=threads-1 WHERE id = #", $thread['posts'], $thread['forumid']);
+			$this->db->prepare_query("UPDATE forums SET posts = IF(posts > #, posts - # - 1, 0), threads=threads-1 WHERE id = #", $thread['posts'], $thread['posts'], $thread['forumid']);
 
 //*
 //lower users post count
@@ -401,7 +400,7 @@ class forums {
 			}
 
 			foreach($counts as $count => $authors)
-				$usersdb->prepare_query("UPDATE users SET posts = posts - # WHERE userid IN (%)", $count, $authors);
+				$usersdb->prepare_query("UPDATE users SET posts = IF(posts <= #, 0, posts - #) WHERE userid IN (%)", $count, $count, $authors);
 //*/
 
 			$this->db->prepare_query("INSERT INTO forumthreadsdel SELECT * FROM forumthreads WHERE id = #", $tid);
@@ -410,6 +409,8 @@ class forums {
 			$this->db->prepare_query("DELETE FROM forumthreads WHERE id = #", $tid);
 			$this->db->prepare_query("DELETE FROM forumposts WHERE threadid = #", $tid);
 			$this->db->prepare_query("DELETE FROM forumread WHERE threadid = #", $tid);
+			
+			$cache->remove("forumthread-$tid");
 
 			$msgs->addMsg("Thread deleted");
 			return true;
@@ -418,41 +419,57 @@ class forums {
 		return false;
 	}
 
-	function deletePost($pid){
+	function deletePost($pids, $tid, $fid){
 		global $msgs, $usersdb, $cache, $userData;
 
-		$res = $this->db->prepare_query("SELECT forumid,threadid,forumposts.authorid FROM forumthreads,forumposts WHERE forumposts.id = # && forumthreads.id=forumposts.threadid", $pid);
-		$post = $res->fetchrow();
+		$res = $this->db->prepare_query("SELECT id, authorid FROM forumposts WHERE id IN (#) && threadid = #", $pids, $tid);
+		$posts = $res->fetchfields('id');
 
-		$perms = $this->getForumPerms($post['forumid']);
+		if(!$posts)
+			return false;
 
-		if($perms['deleteposts']){
-			$this->modLog('deletepost',$post['forumid'],$post['threadid'],$pid,$post['authorid']);
+		$perms = $this->getForumPerms($fid);
 
-			$this->db->prepare_query("INSERT INTO forumpostsdel SELECT * FROM forumposts WHERE id = #", $pid);
-
-			$this->db->prepare_query("DELETE FROM forumposts WHERE id = #", $pid);
-
-			$res = $this->db->prepare_query("SELECT time, authorid FROM forumposts WHERE threadid = # ORDER BY time DESC LIMIT 1", $post['threadid']);
-			$line = $res->fetchrow();
-
-			if($line)
-				$this->db->prepare_query("UPDATE forumthreads SET posts = posts - 1, time = #, lastauthorid = # WHERE id = #", $line['time'], $line['authorid'], $post['threadid']);
-
-			$this->db->prepare_query("UPDATE forums SET posts=posts-1 WHERE id = #", $post['forumid']);
-
-			if($post['authorid']){
-				$usersdb->prepare_query("UPDATE users SET posts = posts - 1 WHERE userid = %", $post['authorid']);
-				$cache->decr("forumuserposts-$userData[userid]");
-			}
-
-			$cache->remove("forumthread-$post[threadid]");
-
-			$msgs->addMsg("Post deleted");
-			return true;
+		if(!$perms['deleteposts']){
+			$msgs->addMsg("You don't have permission to mod this forum");
+			return false;
 		}
-		$msgs->addMsg("You don't have permission to mod this forum");
-		return false;
+
+		$pids = array_keys($posts);
+
+		foreach($posts as $pid => $authorid)
+			$this->modLog('deletepost', $fid, $tid, $pid, $authorid);
+
+		$this->db->prepare_query("INSERT INTO forumpostsdel SELECT * FROM forumposts WHERE id IN (#)", $pids);
+
+		$this->db->prepare_query("DELETE FROM forumposts WHERE id IN (#)", $pids);
+
+		$res = $this->db->prepare_query("SELECT time, authorid FROM forumposts WHERE threadid = # ORDER BY time DESC LIMIT 1", $tid);
+		$line = $res->fetchrow();
+
+		if($line)
+			$this->db->prepare_query("UPDATE forumthreads SET posts = IF(posts <= #, 0, posts - #), time = #, lastauthorid = # WHERE id = #", count($pids), count($pids), $line['time'], $line['authorid'], $tid);
+
+		$this->db->prepare_query("UPDATE forums SET posts = IF(posts <= #, 0, posts - #) WHERE id = #", count($pids), count($pids), $fid);
+
+		$authors = array();
+		foreach($posts as $pid => $uid){
+			if(!isset($authors[$uid]))
+				$authors[$uid] = 0;
+			$authors[$uid]++;
+		}
+
+		if($authors){
+			foreach($authors as $uid => $num){
+				$usersdb->prepare_query("UPDATE users SET posts = IF(posts <= #, 0, posts - #) WHERE userid = %", $num, $num, $uid);
+				$cache->decr("forumuserposts-$uid", $num);
+			}
+		}
+
+		$cache->remove("forumthread-$tid");
+
+		$msgs->addMsg("Post deleted");
+		return true;
 	}
 
 	function lockThread($tid){
@@ -651,12 +668,12 @@ class forums {
 		$this->modLog('move',$thread['forumid'],$tid,$thread['forumid'],$dest);
 		$this->modLog('move',$dest,$tid,$thread['forumid'],$dest);
 
-		$this->db->prepare_query("UPDATE forums SET posts = posts - # - 1, threads=threads-1 WHERE id = #", $thread['posts'], $thread['forumid']);
+		$this->db->prepare_query("UPDATE forums SET posts = IF(posts > #, posts - # - 1, 0), threads=threads-1 WHERE id = #", $thread['posts'], $thread['posts'], $thread['forumid']);
 
 		$this->db->prepare_query("UPDATE forums SET posts = posts + # + 1, threads=threads+1, time = GREATEST(time, #) WHERE id = #", $thread['posts'], $thread['time'], $dest);
 
-		$this->db->prepare_query("INSERT INTO forumthreads (forumid, moved, announcement, title, authorid, reads, posts, `time`, lastauthorid, sticky, locked, pollid) " .
-								"SELECT forumid, #, 'n', title, authorid, reads, posts, time, lastauthorid, 'n', locked, pollid FROM forumthreads WHERE id = #", $tid, $tid);
+		$this->db->prepare_query("INSERT INTO forumthreads (forumid, moved, announcement, title, authorid, `reads`, posts, `time`, lastauthorid, sticky, locked, pollid) " .
+								"SELECT forumid, #, 'n', title, authorid, `reads`, posts, time, lastauthorid, 'n', locked, pollid FROM forumthreads WHERE id = #", $tid, $tid);
 
 		$this->db->prepare_query("UPDATE forumthreads SET forumid = # WHERE id = #", $dest, $tid);
 
@@ -759,7 +776,7 @@ class forums {
 	}
 
 	function forumMuteUser($uid, $fid, $tid, $time, $reasonid, $reason, $globalreq = false, $forumname = "", $moditem = true){
-		global $userData, $msgs, $mods, $cache, $messaging, $abuselog;
+		global $userData, $msgs, $mods, $cache, $messaging, $abuselog, $wwwdomain;
 
 		if($time==0)
 			$unmutetime = 0;
@@ -786,9 +803,9 @@ class forums {
 
 
 			if($fid == 0)	$msg .= "from all of our forums";
-			else			$msg .= "from '[url=forumthreads.php?fid=$fid]" . $forumname . "[/url]'";
+			else			$msg .= "from '[url=http://" . $wwwdomain . "/forumthreads.php?fid=$fid]" . $forumname . "[/url]'";
 
-			if($tid)		$msg .= " for your actions in [url=forumviewthread.php?tid=$tid]this thread[/url]";
+			if($tid)		$msg .= " for your actions in [url=http://" . $wwwdomain . "/forumviewthread.php?tid=$tid]this thread[/url]";
 
 			$msg .= " with the reason '$reason'.\n\n";
 			$msg .= "If you wish to dispute this action, feel free to reply.\n\n";
@@ -806,9 +823,9 @@ class forums {
 				if($globalreq && $fid)
 					$subject .= " (Global Requested)";
 
-				$message = "Forum: " . ($fid ? "[url=forumthreads.php?fid=$fid]$forumname" . "[/url]" : "Global") . "\n";
+				$message = "Forum: " . ($fid ? "[url=http://" . $wwwdomain . "/forumthreads.php?fid=$fid]$forumname" . "[/url]" : "Global") . "\n";
 				if($tid)
-					$message .= "Thread: [url=forumviewthread.php?tid=$tid]link[/url]\n";
+					$message .= "Thread: [url=http://" . $wwwdomain . "/forumviewthread.php?tid=$tid]link[/url]\n";
 				$message.= "Reason: $reason\n";
 				$message.= "Length: " . $this->mutelength[$time] . "\n";
 
@@ -843,7 +860,7 @@ class forums {
 	}
 
 	function invite($uids, $fid, $catid = 0){
-		global $cache, $messaging, $userData;
+		global $cache, $messaging, $userData, $wwwdomain;
 
 		if(!is_array($uids))
 			$uids = array($uids);
@@ -866,7 +883,7 @@ class forums {
 			$cache->remove("subforumlist-$uid");
 
 			if($userData['userid'] != $uid)
-				$messaging->deliverMsg($uid, "Forum Invite", "You have been invited to join the forum [url=forumthreads.php?fid=$fid]$forumname" . "[/url].\n\n[url=forumthreads.php?fid=$fid&action=withdraw&k=" . makeKey($fid, $uid) . "]Withdraw from the forum.[/url]", 0, false, false, false);
+				$messaging->deliverMsg($uid, "Forum Invite", "You've been invited to a forum called [url=http://" . $wwwdomain . "/forumthreads.php?fid=$fid]$forumname" . "[/url].\n\nNot interested?  Click [url=http://" . $wwwdomain . "/forumthreads.php?fid=$fid&action=withdraw&k=" . makeKey($fid, $uid) . "]here[/url] to withdraw from the forum.", 0, false, false, false);
 		}
 	}
 

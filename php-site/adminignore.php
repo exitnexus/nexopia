@@ -34,7 +34,7 @@
 	echo "<tr><td class=header>Username</td><td class=header></td></tr>";
 
 	while($line = $res->fetchrow()){
-		echo "<tr><td class=body><a class=body href='/profile.php?uid=$line[ignoreid]'>$line[username]</a></td>";
+		echo "<tr><td class=body><a class=body href='/users/". $line["username"] ."'>$line[username]</a></td>";
 		echo "<td class=body><a class=body href=$PHP_SELF?action=unignore&id=$line[ignoreid]><img src=$config[imageloc]/delete.gif border=0></a></td></tr>";
 	}
 	echo "</table><br>";

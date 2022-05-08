@@ -1,0 +1,17 @@
+<div id="new_user_header_block">
+	<a href="" class="close" minion_name="profile:new_user_task_block_close">Close</a>
+	Welcome to your new profile.
+	<ul>
+		<t:iter t:id="display_list" t:iter="item">
+			<t:if t:id="item[1]">
+				<li>#{item[0].description}</li>
+			</t:if>
+			<t:if t:id="!item[1]">
+				<li class="completed">#{item[0].description}</li>
+			</t:if>
+		</t:iter>
+	</ul>
+	<form name="user_task_close" id="user_task_block_close" method="post" action="/users/%{display_user.username}/new/tasks/close">
+		<input type="hidden" name="user_id" value="{display_user.userid}"/>
+	</form>
+</div>

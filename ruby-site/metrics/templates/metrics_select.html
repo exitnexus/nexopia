@@ -1,0 +1,72 @@
+<div class="metrics" id="metrics">
+	<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.6.0/build/calendar/assets/skins/sam/calendar.css" />
+	<t:json t:data="metrics_by_category" t:handle="metricsByCategory" />
+
+	<form id="metrics_select_form" method="POST" action="/metrics">
+
+	<div class="header">
+		METRICS
+	</div>
+	Please select which metrics you'd like to view:
+	
+	<div class="secondary_block">
+	
+		<table class="selection_container" cellpadding="0" cellspacing="0">
+		<tr>
+			<td class="title left">
+				<div>1. Choose Category:</div>
+				Make only one selection
+			</td>
+			<td>
+				<select class="category" size="10"
+				 id="metric_category" name="category"
+				 minion_name="metrics:metrics_select:categories">
+					<t:loop t:id="categories" t:iter="category">
+						<option value="{category[0]}">{category[1]}</option>
+					</t:loop>
+				</select>
+			</td>
+			<td class="title right">
+				<div>2. Available Stats:</div>
+				Multiple selections can be made at a time for viewing.
+			</td>
+			<td>
+				<select class="metrics" size="10" multiple="multiple"
+				 id="metric_options" name="metric[]">
+				</select>
+			</td>
+		</tr>
+		</table>
+		
+	</div>
+	
+		<div class="extra_options">
+		<div class="date_viewing_container">
+			<div class="date" class="yui-skin-sam">
+				<input type="hidden" id="date_from" name="date_from" />
+				<input type="hidden" id="date_to" name="date_to" />
+				<div id="calendar_from" minion_name="metrics:metrics_select:from"></div>
+				<div id="calendar_to" minion_name="metrics:metrics_select:to"></div>
+			</div>
+			<br class="clear" />
+			<div class="viewing">
+				<t:if t:id="debuginfouser">
+				<input type="radio" name="view" id="view_general" value="general"/> General task<br />
+				<input type="radio" name="view" id="view_populate" value="populate"/> Populate<br />
+				<input type="radio" name="view" id="view_ml" value="view_ml"/> Repopulate metriclookup table<br />
+				</t:if>
+				<input type="radio" name="view" id="view_html" checked="checked" value="html"/> View as HTML<br />
+				<input type="radio" name="view" id="view_csv" value="csv"/> Download CSV file<br />
+			</div>
+		</div>
+		<div class="submit">
+			<t:button minion_name="metrics:metrics_select:submit">Submit</t:button>
+		</div>
+		<br class="clear" />
+	</div>
+	
+	</form>
+	
+</div>
+
+<div class="metrics" id="metrics_output"></div>

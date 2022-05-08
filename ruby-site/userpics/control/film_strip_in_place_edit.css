@@ -1,0 +1,54 @@
+#film_strip_profile_edit_view
+{
+	width: 510px;
+	height: 240px;
+	
+	background-color: #262626;
+	color: white;
+	
+	& .extra_wrapper
+	{
+		padding-top: 45px;
+		padding-bottom: 45px;
+		
+		width: 345px;
+		margin-left: auto;
+		margin-right: auto;
+		
+		& .user_picture
+		{
+			width: 120px;
+			float: left;
+		}
+	}
+	
+	& .edit_content
+	{
+		opacity: 1;
+		width: 180px;
+		
+		float: left;
+		
+		& .film_strip_edit_buttons
+		{	
+			padding-bottom: 50px;
+		}
+		
+		& .button_bar
+		{
+			margin-left: auto;
+			margin-right: auto;
+			width: 180px;
+			padding-bottom: 10px;
+		}
+		
+		& .film_strip_view_choice
+		{
+			& select
+			{
+				margin-top: 4px;
+				width: 174px;
+			}
+		}
+	}
+}

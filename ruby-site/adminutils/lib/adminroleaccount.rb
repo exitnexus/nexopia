@@ -17,6 +17,32 @@ class AdminRoleAccount < Storable
 	relation_multi(:privileges, "id", Privilege::Storage::GlobalGrant);
 	relation_multi(:admins_map, "id", AccountMap, :primaryid);
 
+	def AdminRoleAccount.admin_title_dump
+		return @admin_dump if @admin_dump
+		@admin_dump = $site.memcache.get("ruby-admintitles");
+		if (@admin_dump.nil?)
+			@admin_dump = Hash.new;
+			
+			roles = AdminRoleAccount.find(:scan, :all);
+			roles.each { |role|
+				role.admins_map
+			}
+			roles.each { |role|
+				role.admins_map.each { |member| 
+					@admin_dump[member.accountid] = Array.new if @admin_dump[member.accountid].nil?;
+					@admin_dump[member.accountid] << role.title;
+				};
+			};
+			
+			$site.memcache.set("ruby-admintitles", @admin_dump, 60*60*24);
+			
+			return @admin_dump;
+		end
+		
+		return @admin_dump;
+	end
+
+
 	def self.create_role(name)
 		if (accountid = create_account())
 			adminrole = AdminRoleAccount.new();
@@ -36,5 +62,24 @@ class AdminRoleAccount < Storable
 	
 	def uri_info(type = nil)
 		return [rolename, url / :admin / :roles / id];
+	end
+end
+
+class User < Cacheable
+	def admin_tags
+		tags = AdminRoleAccount.admin_title_dump[self.userid] || Array.new;
+		
+		return tags;
+	end
+	
+	
+	def admin?(mod=CoreModule, type="")
+		if (type != "")
+			return @privileges.has?(mod, type);
+		end
+
+		admin_roles = AdminRoleAccount.admin_title_dump[self.userid];
+
+		return !admin_roles.nil? && !admin_roles.empty?;
 	end
 end

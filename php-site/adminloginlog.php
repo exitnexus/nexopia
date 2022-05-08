@@ -81,7 +81,7 @@
 		$class = (in_array($row['result'], array('success','changepass','changeemail')) ? 'body' : 'body2');
 
 		echo "<tr>";
-		echo "<td class=$class><a class=body href=/profile.php?uid=$row[userid]>" . $uids[$row['userid']] . "</a></td>";
+		echo "<td class=$class><a class=body href=/users/". urlencode($uids[$row["userid"]]) .">" . $uids[$row['userid']] . "</a></td>";
 		echo "<td class=$class>" . userDate("F j, Y, g:i a", $row['time']) . "</td>";
 		$ip = long2ip($row['ip']);
 		echo "<td class=$class><a class=body href=/adminuser.php?search=$ip&type=ip&k=" . makeKey($ip) . ">$ip</a></td>";

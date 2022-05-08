@@ -1,0 +1,107 @@
+div.add_new_content_container {
+	position: relative;
+	margin: 12px 0px 12px 0px;
+	
+	& .clear {
+		clear: both;
+	}
+	
+	& .button_container {
+		margin-left: 19px;
+		width: 361px;
+		color: @primary_block_text_color;
+		
+		& .triangle {
+			float: left;
+			width: 20px;
+			height: 0px;
+			border-left: 20px solid @secondary_block_background_color;
+			border-top: 20px solid transparent;
+			margin-left: 13px;
+		}
+		
+		& .add_something {
+			float: left;
+		}
+		
+		& #buttons {
+			height: 73px;
+			background-image: url('$static_files_url/blogs/shadow_bg.png');
+			background-repeat: repeat-x;
+			background-position: bottom;
+			background-color: @secondary_block_background_color;
+			color: @secondary_block_text_color;
+			
+			& a {
+				color: @secondary_block_link_color;
+				background-repeat: no-repeat;
+				background-position: center 10px;
+				float: left;
+				text-align: center;
+				width: 71px;
+				height: 22px;
+				margin: 6px 0px 6px 0px;
+				padding-top: 39px;
+				border-right: 1px dotted @secondary_block_text_color;
+				
+				&:hover {
+					color: @secondary_block_link_hover_color;
+				}
+				
+				&.freeform {
+					background-image: url('$static_files_url/blogs/freeform.gif');
+				}
+				
+				&.photo {
+					background-image: url('$static_files_url/blogs/photo.gif');
+				}
+				
+				&.video {
+					background-image: url('$static_files_url/blogs/video.gif');
+				}
+				
+				&.battle {
+					background-image: url('$static_files_url/blogs/battle.gif');
+				}
+				
+				&.poll {
+					background-image: url('$static_files_url/blogs/poll.gif');
+				}
+				
+				&.no_border {
+					border: none;
+				}
+			} 
+		}		
+	}
+	
+	& .show_dropdown_container {
+		position: absolute;
+		right: 0px;
+		bottom: 0px;
+		
+		& select {
+			width: 120px;
+		}
+	}
+	
+	& .buttons_writeup {
+		position: absolute;
+		top: 27px;
+		left: 410px;
+		font-weight: bold;
+		font-size: 12px;
+		
+		& .arrow {
+			float: left;
+		}
+		
+		& .writeup {
+			float: left;
+			width: 285px;
+			padding-left: 10px;
+		}
+	}
+	
+}
+

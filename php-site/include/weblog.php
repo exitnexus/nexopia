@@ -21,7 +21,7 @@ class weblog {
 
 		$this->entriesPerPage = 25;
 	}
-
+	
 	function invalidateNewReplies($uid, $ids)
 	{
 		global $cache;
@@ -480,6 +480,7 @@ class blogpost
 			$this->userblog->invalidatePages($this->scope, $this->time);
 			$this->userblog->postCountChange(1, $this->scope);
 			
+			$this->updateMenuAccess();
 
 		} else { // update
 			$blogsets = array();
@@ -503,9 +504,42 @@ class blogpost
 		}
 		$this->originalscope = $this->scope;
 		$google->updateHash($this->uid);
+		
+		$this->updateMenuAccess();
+		
 		return $affected;
 	}
+	
+	function updateMenuAccess()
+	{	
+		global $db, $cache;
+		
+		$user = getUserInfo($this->uid);
+		if($user["blogsmenuaccess"] < $this->rubyVisibilityMapping($this->scope))
+		{
+			$this->db->prepare_query("UPDATE users SET blogsmenuaccess = # WHERE userid = %", $this->rubyVisibilityMapping($this->scope), $this->uid);
+			
+			$res = $db->prepare_query("SELECT rubykey from keymap WHERE phpkey = #", "userinfo");
+			$row = $res->fetchrow();
+			$cache->remove("userinfo-{$this->uid}");
+			if($row != null)
+			{
+				$cache->remove("{$row['rubykey']}-{$this->uid}");
+			}
+		}
+	}
 
+	function rubyVisibilityMapping($value)
+	{
+		if($value == 1)
+			return 4;
+		else if($value == 2)
+			return 3;
+		else if($value == 3)
+			return 1;
+		else
+			return 0;
+	}
 	// deleting a post does not need to be commited, it happens
     // immediately and a further commit will actually cause it to be
     // readded. If this were to become a problem, it should be flagged and throw
@@ -763,8 +797,8 @@ class userblog
 		{
 			$postlist = array();
 
-			$result = $this->db->prepare_query("SELECT id, time FROM blog WHERE userid = % AND scope IN (#) ORDER BY time DESC LIMIT #,#",
-				$this->uid, range(1, $maxscope), $pagenum * $this->weblog->entriesPerPage, $this->weblog->entriesPerPage);
+			$result = $this->db->prepare_query("SELECT id, time FROM blog WHERE userid = % AND visibility IN (#) ORDER BY time DESC LIMIT #,#",
+				$this->uid, range($this->rubyVisibilityMapping($maxscope), 4), $pagenum * $this->weblog->entriesPerPage, $this->weblog->entriesPerPage);
 			while ($entry = $result->fetchrow())
 			{
 				$postlist["{$this->uid}:$entry[id]"] = $entry['time'];
@@ -986,13 +1020,25 @@ class userblog
 		$count = $cache->get("weblog-entries-count-{$this->uid}-$scope");
 		if (!is_numeric($count))
 		{
-			$res = $this->db->prepare_query("SELECT COUNT(*) FROM blog WHERE userid = % AND scope IN (#)", $this->uid, range(1, $scope));
+			$res = $this->db->prepare_query("SELECT COUNT(*) FROM blog WHERE userid = % AND visibility IN (#)", $this->uid, range($this->rubyVisibilityMapping($scope), 4));
 			$count = $res->fetchfield();
 			$cache->put("weblog-entries-count-{$this->uid}-$scope", $count, 7*24*60*60);
 		}
 		return $count;
 	}
-
+	
+	function rubyVisibilityMapping($value)
+	{
+		if($value == 1)
+			return 4;
+		else if($value == 2)
+			return 3;
+		else if($value == 3)
+			return 1;
+		else
+			return 0;
+	}
+	
 	// returns an array('readtime' => $lastreadtime, 'postcount' => $postssince) indicating when this user
     // last read their friends list, and how many posts have been made to it since
     // then.

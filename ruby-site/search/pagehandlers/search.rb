@@ -15,7 +15,6 @@ module Search
 
 class Search < PageHandler
 
-	PROFILE_URL="/profile.php?uid=";
 	SEARCH_PAGE_SIZE=10;
 
 	declare_handlers("search") {
@@ -26,8 +25,28 @@ class Search < PageHandler
 		page :GetRequest, :Full, :search_simple_results, "simple", "results"
 		page :GetRequest, :Full, :search_advanced_results, "advanced", "results"
 #		page :GetRequest, :Full, :search_contacts_results, "contacts", "results"
-		
+
+		handle :GetRequest, :open_search_description, "open_search_description"
 	}
+
+	def open_search_description
+		request.reply.headers['Content-Type'] = "application/opensearchdescription+xml"
+
+		# A description of how this should be implemented is here:
+		# http://snippets.dzone.com/tag/opensearchdescription
+		# Youtube is an example website that implements this.
+
+		puts <<EOS
+<?xml version="1.0"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+	<ShortName>Nexopia Search</ShortName>
+	<LongName>Nexopia.com User Search</LongName>
+	<Description>Nexopia.com User Search</Description>
+	<Image height="16" width="16" type="image/x-icon">http://www.nexopia.com/favicon.ico</Image>
+	<Url type="text/html" method="get" template="http://www.nexopia.com/search/simple/results?value={searchTerms}"/>
+</OpenSearchDescription>
+EOS
+	end
 
 	def get_defaults
 		opts = {
@@ -129,7 +148,7 @@ class Search < PageHandler
 
 			search(t.display);
 		else
-			site_redirect("#{PROFILE_URL}#{user.username}");
+			site_redirect(url / user.username, :User);
 		end
 	end
 

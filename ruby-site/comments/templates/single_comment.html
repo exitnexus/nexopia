@@ -1,0 +1,93 @@
+<div id="user_comment_#{comment.id}" class="comment_view_container secondary_block #{(comment.deleted ? 'deleted':'')}">
+	<table width="100%" cellpadding="0" cellspacing="0" class="single_comment_table">
+		<t:if t:id="show_comments_user_details">
+			<tr>
+				<td>
+					&#160;
+				</td>
+				<td>
+					Posted on:&#160;<a t:id="comment.user" />
+				</td>
+			</tr>
+		</t:if>
+		<tr>
+			<td>
+				<div class="comment_user_img">
+					<a t:id="comment.author">
+						<img t:id="comment.author" t:linktype="{thumbnail_image_type}" />
+					</a>
+				</div>
+			</td>
+			<td>
+				<div class="comment_content">
+					<t:if t:id="comment.quick_delete?(viewing_user)">
+						<div class="comment_quick_delete_btn">
+							<a href="#{comments_quick_delete_url}/#{comment.id}?page=#{current_page}&key={viewing_user.gen_auth_key()}" class="comment_quick_delete" id="comment_quick_delete_#{comment.id}" minion_name="comments:quick_delete">
+								<img  src="#{$site.colored_img_url(profile_user.comments_skin[:secondary_block_icon_color])/:comments/:images/'icon_delete_comment.gif'}"/>
+							</a>
+						</div>
+					</t:if> 
+					<div class="comment_date">
+						<t:nice-time t:time="comment.time" t:format="date_and_time"/>
+					</div>
+					<div class="comment_username">
+						<t:if t:id="comment.deleted">
+							DELETED COMMENT:&nbsp;
+						</t:if>
+						<a t:id="comment.author"/>
+					</div>
+					<t:if t:id="!comment.deleted || admin_viewer">
+						<div class="comment_body">
+							@{comment.nmsg}
+						</div>
+					</t:if>
+				</div>
+			</td>
+		</tr>
+		<tr>
+			<td valign="bottom">
+				<t:if t:id="show_delete_controls && !comment.deleted"> 
+					<div class="comment_delete">
+						<input class="comment_delete_input" id="comment_delete_#{comment.userid}:#{comment.id}" name="comment_delete_#{comment.userid}:#{comment.id}" type="checkbox" />
+					</div>
+				</t:if>
+			</td>
+			<td valign="bottom">
+				<div class="comment_function_links">
+					<span>
+						<t:if t:id="comment.author.userid != viewing_user.userid && !hide_conversation">
+							<a href="/users/%{profile_user.username}/comments/conversation/%{comment.author.username}">
+								Conversation
+							</a>
+							&nbsp;|&nbsp;
+						</t:if>
+						<t:if t:id="comment.author.kind_of?(User) && comment.author.userid != viewing_user.userid">
+							<a href="/users/%{comment.author.username}/comments">
+								Reply
+							</a>
+							&nbsp;|&nbsp;
+							<a href="/messages.php?action=write&to=#{comment.authorid}">
+								Message
+							</a>
+							&nbsp;|&nbsp;
+							<t:if t:id="profile_user.userid == viewing_user.userid">
+								<a href="/messages.php?
+								action=#{(viewing_user.ignored?(comment.author) ? 'unignore' : 'ignore')}
+								&id={comment.author.userid}
+								&k={comment.author.gen_auth_key}"
+									class="comments_ignore_author" minion_name="comments:ignore_user">
+									#{(viewing_user.ignored?(comment.author) ? 'Unignore User' : 'Ignore User')}
+								</a>
+								&nbsp;|&nbsp;
+							</t:if>
+						</t:if>
+						<a href="#comments_top">
+							Top
+						</a>
+					</span>
+				</div>
+			</td>
+		</tr>
+	</table>
+</div>
+

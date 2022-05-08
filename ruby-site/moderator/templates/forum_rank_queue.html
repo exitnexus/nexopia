@@ -1,0 +1,19 @@
+<table cellpadding="3">
+	<t:for t:id="queue_items" t:iter="item" t:index="index">
+		<tr><td class="body"><a class="body" target="_new" name="item{index}" t:id="item.user"></a></td></tr>
+		<tr><td class="body">{item.user.forumrank}</td></tr>
+		<tr>
+			<td class="body">
+				<input name="check[{item.id}]" id="checkidy{item.id}" value="y" onfocus="this.checked=true;setTimeout('jump({index+1})',50);" type="radio"/>
+					<label for="checkidy{item.id}" class="side">
+						<b>Accept</b>
+					</label><br/>
+				<input name="check[{item.id}]" id="checkidn{item.id}" value="n" onfocus="this.checked=true;setTimeout('jump({index+1})',50);" type="radio"/>
+					<label for="checkidn{item.id}" class="side">
+						<b>Deny</b>
+					</label>
+			</td>
+		</tr>
+		<tr><td>&nbsp;<br/>&nbsp;</td></tr>
+	</t:for>
+</table>

@@ -1,4 +1,11 @@
 <div class="freeform_text">
-	<div class="title">{title.upcase}</div>
-	<div class="content">@{content}</div>
+	<div class="block_title">
+		{title.upcase_html}
+		<t:if t:id="edit_mode && title.length < 1">
+			&#160;
+		</t:if>
+	</div>
+	<div class="content">
+		@{content}
+	</div>
 </div>

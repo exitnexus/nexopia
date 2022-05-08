@@ -6,259 +6,308 @@
 	text-align: left;
 	width: 537px;
 	position: relative;
-}
-
-
-.groups_profile_block_edit .list
-{
-	width: 200px;
-	height: 320px;
-	overflow-y: scroll;
-	overflow-x: hidden;
-	float: left;
-	border: 2px solid #CDCDCD;
-	margin-bottom: 10px;
-}
-/*
-.group_edit_row_operations a
-{
-	color:black;
-}
-*/
-
-.groups_profile_block_edit .list_row .row_edit_overlay
-{
-	z-index: 25;
-	position: absolute;
-	top: 8px;
-	right: 0px;
-	padding-right: 8px;
-	background-color: #CDCDCD;
 	
-	& a
+	
+	& input.submit
+	{
+		border: solid $secondary_background_color 1px;
+		color: $primary_text_color;
+		background-color: $primary_background_color;
+		margin-right: 6px;
+		margin-left: 0px;
+	}
+	
+	
+	& .list
+	{
+		width: 200px;
+		height: 320px;
+		overflow-y: scroll;
+		overflow-x: hidden;
+		border: 2px solid $secondary_background_color;
+	}
+	
+	
+	& .list_container
+	{
+		width: 204px;
+		float: right;
+		margin-bottom: 10px;
+	}
+	
+	
+	& .list_row
+	{
+		position:relative;
+		padding-top: 3px;
+		padding-bottom: 3px;
+		padding-left: 3px;
+		padding-right: 3px;
+		width: 180px;
+	}
+	
+	
+	& .row_edit_overlay
+	{
+		z-index: 25;
+		position: absolute;
+		top: 0px;
+		right: 0px;
+		padding-right: 4px;
+		padding-left: 4px;
+		padding-top: 8px;
+		padding-bottom: 8px;
+		background-color: $secondary_background_color;
+		visibility: hidden;
+
+		& a
+		{
+			color: $secondary_text_color;
+		}
+	}
+	
+	
+	& .list_row_hover
+	{
+		color: $secondary_text_color;
+		background-color: $secondary_background_color;
+	}
+	
+	
+	& .list_row_selected
+	{
+		color: $secondary_text_color;
+		background-color: $secondary_background_color;
+	}
+	
+	
+	& .details
+	{
+		width: 318px;
+		float: left;
+		
+		& .edit_form
+		{
+			padding: 6px;
+			color: $secondary_text_color;
+			background-color: $secondary_background_color;
+		}
+	}
+	
+	
+	& .edit_button_bar
+	{
+		float: left;
+		margin-top: 6px;
+	}
+	
+	
+	& .edit_group_operation_spinner
+	{
+		text-align: left;
+		margin-top: 1px;
+		padding-top: 1px;
+		display: none;
+	}
+	
+	
+	& .title 
+	{
+		font-weight: bold;
+	}
+	
+	
+	& .create_group_button_div 
+	{
+		width: 204px;
+		text-align: left;
+		margin-top: 6px;
+		margin-bottom: 4px;
+	}
+	
+	
+	&  .delete 
+	{
+		margin-left: 6px;
+		margin-top: 2px;
+	}
+
+	& .checkbox 
+	{
+		margin-left: 0px;
+	}
+	
+	
+	& div.validation_error_text
+	{
+		color: #ff0000;
+	}
+
+
+	& div.validation_valid_text
+	{
+		color: #00ff00;
+	}
+
+
+	& div.validation_warning_text
+	{
+		color: #ff8000;
+	}
+
+
+	& div.validation_none_text
 	{
 		color: #000000;
 	}
-}
 
 
-.groups_profile_block_edit .list_row
-{
-	position:relative;
-	padding-top: 3px;
-	padding-bottom: 3px;
-	padding-left: 3px;
-	padding-right: 3px;
-	width: 180px;
-}
-
-.groups_profile_block_edit .details
-{
-	width: 318px;
-	float: right;
-}
-
-.groups_profile_block_edit .edit_button_bar
-{
-	float: left;
-	margin-top: 6px;
-}
-
-.groups_profile_block_edit .edit_group_operation_spinner
-{
-	text-align: left;
-	margin-top: 1px;
-	padding-top: 1px;
-	display: none;
-}
-
-.groups_profile_block_edit .details .edit_form
-{
-	padding: 6px;
-	background-color: #CDCDCD;
-}
-
-.groups_profile_block_edit table, .groups_profile_block_edit td {
-	vertical-align: top;
-	color: $primary_text_color;
-/*	background-color: $primary_background_color;*/
-}
-
-.groups_profile_block_edit .tblContainer {
-	width: 750px;
-	color: $primary_text_color;
-/*	background-color: $primary_background_color;*/
-	border: 1px solid #000;
-}
-
-.groups_profile_block_edit .tdContainer {
-	padding: 6px 86px 6px 86px;
-	text-align: center;
-}
-
-.groups_profile_block_edit div.navigation {
-	margin-bottom: 5px;
-}
-
-.groups_profile_block_edit div.navigation a:link, .groups_profile_block_edit div.navigation a:visited {
-	font-weight: bold;
-	color: $link_color;
-	text-decoration: none;
-}
-
-.groups_profile_block_edit div.navigation a:hover {
-	color: $link_accent_color;
-	text-decoration: none;
-}
-
-.groups_profile_block_edit div.navigation .selected {
-	font-weight: bold;
-}
-
-.groups_profile_block_edit div.header {
-	background-color: $header_background_color;
-	color: $header_text_color;
-	text-align: center;
-	margin-bottom: 5px;
-	padding: 1px;
-}
-
-.groups_profile_block_edit .tblContent {
-/*	margin-bottom: 17px;*/
-	text-align: left;
-	width: 100%;
-}
-
-.groups_profile_block_edit .tblContent a:link, .groups_profile_block_edit .tblContent a:visited {
-	color: $link_color;
-	text-decoration: none;
-}
-
-.groups_profile_block_edit .tblContent a:hover {
-	color: $link_accent_color;
-	text-decoration: none;
-}
-
-.groups_profile_block_edit .location {
-	color: $minor_font_color;
-}
-
-.groups_profile_block_edit .secondary_info {
-	color: $minor_font_color;
-}
-
-.groups_profile_block_edit select, .groups_profile_block_edit input, .groups_profile_block_edit textarea {
-	font-family: arial, sans-serif;
-	font-size: 8pt;
-}
-
-.groups_profile_block_edit .title {
-	font-weight: bold;
-}
-
-.groups_profile_block_edit .create_group_button_div {
-	text-align: right;
-	margin-top: 24px;
-	margin-bottom: 4px;
-}
-
-.groups_profile_block_edit .edit_body
-{
-	margin-top: 6px;
-}
-
-.groups_profile_block_edit input.submit {
-	height: 20px;
-	border-color: darkGray;
-	font-size: 11px;
-	background-color: #FFFFFF;
-}
-
-.groups_profile_block_edit .groups_title {
-	font-weight: bold;
-	text-align: left;
-	font-family: $header_font_family;
-	font-size: 14px;
-	letter-spacing: 0px;
-}
-
-.groups_profile_block_edit .tdTitle {
-	width: 230px;
-	color: $primary_text_color;
-}
-
-.groups_profile_block_edit .tdInfo {
-	width: 180px;
-	color: $primary_text_color;
-}
-
-.groups_profile_block_edit .tdInfo select {
-	width: 100%;
-}
-
-.groups_profile_block_edit .tdInfo input {
-	width: 99%;
-}
-
-.groups_profile_block_edit .tdPrivacy {
-	padding-left: 4px;
-}
-
-.groups_profile_block_edit .delete {
-	margin-left: 6px;
-	margin-top: 2px;
-}
-
-.groups_profile_block_edit .checkbox {
-	margin-left: 0px;
-}
-
-.groups_profile_block_edit .submit {
-	background-color: #ece9d8;
-}
-
-.groups_profile_block_edit tr.row_spacer {
-	height: 8px;
-}
+	& .validate_valid_image
+	{
+		margin-left: 4px;
+		width: 15px;
+		height: 15px;
+	}
 
 
-.groups_profile_block_edit div.validation_error_text
-{
-	color: #ff0000;
-}
+	& .validate_error_image
+	{
+		margin-left: 4px;
+		width: 15px;
+		height: 15px;
+	}
 
-.groups_profile_block_edit div.validation_valid_text
-{
-	color: #00ff00;
-}
 
-.groups_profile_block_edit div.validation_warning_text
-{
-	color: #ff8000;
-}
+	& .validate_warning_image
+	{
+		margin-left: 4px;
+		width: 15px;
+		height: 15px;
+	}
+	
+	
+	& .edit_body
+	{
+		margin-top: 20px;
+	}
 
-.groups_profile_block_edit div.validation_none_text
-{
-	color: #000000;
-}
 
-.groups_profile_block_edit .validate_valid_image
-{
-	margin-left: 4px;
-	width: 15px;
-	height: 15px;
-}
+	& input.submit 
+	{
+		height: 20px;
+		border-color: $secondary_background_color;
+		font-size: 11px;
+		background-color: $primary_background_color;
+		color: $primary_text_color;
+	}
 
-.groups_profile_block_edit .validate_error_image
-{
-	margin-left: 4px;
-	width: 15px;
-	height: 15px;
-}
 
-.groups_profile_block_edit .validate_warning_image
-{
-	margin-left: 4px;
-	width: 15px;
-	height: 15px;
+	& .groups_title 
+	{
+		font-weight: bold;
+		text-align: left;
+		font-family: $header_font_family;
+		font-size: 14px;
+		letter-spacing: 0px;
+	}
+
+	& .groups_subtitle 
+	{
+		font-weight: bold;
+		text-align: left;
+		font-family: $header_font_family;
+		font-size: 12px;
+		letter-spacing: 0px;
+	}
+	
+	
+	& .admin_edit
+	{
+		& .list
+		{
+			width: 100%;
+			height: 180px;
+			overflow-y: scroll;
+			overflow-x: hidden;
+			border: 2px solid $secondary_background_color;
+		}
+
+
+		& .list_container
+		{
+			margin-top: 20px;
+			width: 350px;
+			margin-bottom: 10px;
+			float: none;
+		}
+
+
+		& .list_row
+		{
+			position:relative;
+			padding-top: 3px;
+			padding-bottom: 3px;
+			padding-left: 3px;
+			padding-right: 3px;
+			width: 100%;
+		}
+		
+		
+		& .group_marked_for_delete
+		{
+			background-color: #F08080;
+		}
+		
+		
+		& .member_marked_for_delete
+		{
+			background-color: #F0E68C;
+		}
+		
+		
+		& .admin_group_info_column
+		{
+			width: 100%;
+		}
+	}
+	
+	
+	& div.header 
+	{
+		background-color: $header_background_color;
+		color: $header_text_color;
+		text-align: center;
+		margin-bottom: 5px;
+		padding: 1px;
+	}
+	
+	
+	& table, td 
+	{
+		vertical-align: top;
+		color: $primary_text_color;
+	}
+	
+	
+	& a:visited, a:link
+	{
+		color: $link_color;
+		text-decoration: none;
+	}
+
+
+	& a:hover 
+	{
+		color: $link_accent_color;
+		text-decoration: none;
+	}
+
+	& div.navigation .selected {
+		font-weight: bold;
+	}
+
+
+	& .location {
+		color: $minor_font_color;
+	}
 }

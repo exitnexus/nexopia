@@ -570,9 +570,9 @@ function editCampaign($id = 0) {
 	$template->set('selectAgeType', make_select_list_key($defaults, $agedefault));
 	$template->set('selectAgeRange', make_select_list_multiple(range(14,65), $age));
 
-	$locations = new category( $configdb, "locs");
+	// $locations = new category( $configdb, "locs");
 	$template->set('selectLocationType', make_select_list_key($defaults, $locdefault));
-	$template->set('selectLocations', makeCatSelect_multiple($locations->makeBranch(), $loc));
+	$template->set('selectLocations', locationAutocomplete_multiple($loc, "data[locs]"));
 	$template->set('selectPagesType', make_select_list_key($defaults, $pagedefault));
 	$template->set('page', $page);
 
@@ -963,9 +963,9 @@ function editBanner($id = 0){
 	$template->set('selectSex', make_select_list_multiple_key($sexes, $sex));
 	$template->set('selectAgeType', make_select_list_key($defaults, $agedefault));
 	$template->set('selectAgeRange', make_select_list_multiple(range(14,65), $age));
-	$locations = new category( $configdb, "locs");
+	// $locations = new category( $configdb, "locs");
 	$template->set('selectLocationType', make_select_list_key($defaults, $locdefault));
-	$template->set('selectLocations', makeCatSelect_multiple($locations->makeBranch(), $loc));
+	$template->set('selectLocations', "here");//locationAutocomplete_multiple($loc, "data[locs]"));
 	$template->set('selectPagesType', make_select_list_key($defaults, $pagedefault));
 	$template->set('page', $page);
 	$interestcats = new category( $usersdb, "interests");

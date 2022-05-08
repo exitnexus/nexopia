@@ -1,0 +1,10 @@
+/* For Aaron's tutorial pages only.*/
+#tutorial {
+	background-color: white;
+	& td.num {
+		text-align: right;
+	}
+	& .sort {
+		font-style: italic;
+	}
+}

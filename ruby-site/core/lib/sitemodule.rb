@@ -1,4 +1,6 @@
+require 'yaml'
 require 'core/lib/attrs/class_attr'
+require 'core/lib/javascript_config'
 # This file defines some tools for requiring module libraries. This also allows
 # you to simply 'want' a module instead of require it, and know whether or not
 # it was actually included.
@@ -10,7 +12,8 @@ class ModuleError < SiteError
 end
 
 class SiteModuleBase
-	attr :name;
+	attr :name
+	attr :javascript_config, true
 	
 	class ModuleDependsOn < SiteError
 		attr :modname
@@ -35,6 +38,7 @@ class SiteModuleBase
 
 	def initialize(name)
 		@name = name.to_s;
+		@javascript_config = JavascriptConfig.new
 	end
 
 	# returns true if the system is in the process of loading modules.
@@ -70,9 +74,15 @@ class SiteModuleBase
 	def javascript_dependencies()
 		self.class.javascript_dependencies()
 	end
+	def script_values()
+		return {}
+	end
+	def script_function_string()
+		return "";
+	end
 	
 	def self.set_javascript_dependencies(mods)
-		@javascript_dependencies = [*mods];
+		@javascript_dependencies = [*mods.compact];
 	end
 	def self.javascript_dependencies()
 		all_dependencies = [];
@@ -80,6 +90,11 @@ class SiteModuleBase
 			all_dependencies.concat(mod.javascript_dependencies + [mod]);
 		} if @javascript_dependencies
 		return all_dependencies.uniq
+	end
+	
+	# This is called for each module after all modules have loaded. Overload
+	# it to do things like auto-require libraries and the like.
+	def after_load()
 	end
 	
 	def script_path()
@@ -96,6 +111,16 @@ class SiteModuleBase
 	end
 	def skin_data_path()
 		return "#{directory_name}/skindata";
+	end
+	def template_path()
+		return "#{directory_name}/templates";
+	end
+	def run_path()
+		return "#{directory_name}/run"
+	end
+	
+	def tests_path()
+		return "#{directory_name}/tests";
 	end
 
 	def skeleton?
@@ -131,7 +156,7 @@ class SiteModuleBase
 		libs = Dir["#{directory_name}/lib/*.rb"].collect.sort
 		libs.each {|file|
 			fname = file.split("/").last
-			$log.info "Auto-requiring #{fname}"
+			$log.info("Auto-requiring #{fname}", :spam, :site_module);
 			lib_require :"#{name}", fname;
 		}
 	end
@@ -139,7 +164,11 @@ class SiteModuleBase
 	def SiteModuleBase.initialize_modules()
 		@initializing = true
 		if ($site.config.modules_include.nil?)
-			mods = [*Dir["*"]];
+			mods = [*Dir["*"]].select{|name|
+				name =~ /^[a-zA-Z][a-zA-Z0-9_]+$/
+			}.map{|name|
+				SiteModuleBase.module_name(name)
+			};
 		else
 			mods = $site.config.modules_include;
 			if (!mods.include?(:Core))
@@ -195,12 +224,12 @@ class SiteModuleBase
 			rescue ModuleDependsOn => info
 				modname = info.modname.to_s
 
-				$log.info("Module #{name} wants #{modname} loaded first. Changing load order", :debug)
+				$log.info("Module #{name} wants #{modname} loaded first. Changing load order", :debug, :site_module)
 				# for now, just dump it to the back of the list of modules
 				# to load.
 				if (!mods.include?(modname) && info.required)
 					@@mods_to_load.push(modname)
-					$log.info("WARNING: #{name} requires #{info.modname}, which is not loaded by default. Make sure this is correct.", :warning)
+					$log.info("WARNING: #{name} requires #{info.modname}, which is not loaded by default. Make sure this is correct.", :warning, :site_module)
 				end
 				@@mods_to_load.push(name_sym)
 				next
@@ -213,7 +242,7 @@ class SiteModuleBase
 				mod_class = Object.const_set("#{name_sym}Module", Class.new(SiteModuleBase));
 			end
 
-			# Initialize an instance of that and add a typeid to it.
+			# Initialize an instance of that and add a typeid and javascript config to it
 			mod_obj = mod_class.new(name_sym);
 			if (mod_obj)
 				@@module_objects[name_sym] = mod_obj;
@@ -227,9 +256,26 @@ class SiteModuleBase
 						@@module_objects[name_sym] = mod_obj
 					end
 				end
+				# Build a javascript dependency tree for the module if scripts/config.yaml exists
+				begin
+					yaml_file = "#{name}/script/config.yaml"
+					if (File.file?(yaml_file))
+						mod_obj.javascript_config = YAML::load(File.open(yaml_file))
+						mod_obj.javascript_config.config_module = name
+					end
+				rescue
+					$log.info "Unable to load js config file: #{yaml_file}: #{$!}", :error
+				end
+				mod_obj.javascript_config.config_module = name
 			end
+			
+			
 		}
 		@initializing = false
+		
+		self.loaded {|mod|
+			mod.after_load()
+		}
 
 		return nil;
 	end
@@ -278,9 +324,9 @@ module Kernel
 	# Fails loudly (throws ModuleError) if the module can't be loaded.
 	# type is passed on to modobj.lib_path to help locate the file.
 	def lib_require_type(type, mod, *libs)
-		$require_depth = $require_depth || 0;
+		$require_depth ||= 0;
 		$require_depth += 1;
-		$log.info("#{' '*$require_depth}Requiring #{mod}::#{libs.join(',')}", :debug, :site_module);
+		$log.info("#{' '*$require_depth}Requiring #{mod}::#{libs.join(',')}", :spam, :site_module);
 		if (!lib_want_internal(mod, *libs))
 			if (SiteModuleBase.initializing?)
 				mod_require(mod)
@@ -288,7 +334,7 @@ module Kernel
 				raise ModuleError, "Required module #{mod} was not available.";
 			end
 		end
-		$log.info("#{' '*$require_depth}Done.", :debug, :site_module);
+		$log.info("#{' '*$require_depth}Done.", :spam, :site_module);
 		$require_depth -= 1;
 	end
 
@@ -340,7 +386,11 @@ module Kernel
 	end
 
 	def site_module_get(name)
-		if(!/^[A-Z]/.match(name.to_s))
+		if (name.kind_of? Class)
+			SiteModuleBase.loaded() {|mod|
+				return mod if mod.class == name
+			}
+		elsif(!/^[A-Z]/.match(name.to_s))
 			name = SiteModuleBase.module_name(name.to_s);
 		end
 		return SiteModuleBase.get(name);

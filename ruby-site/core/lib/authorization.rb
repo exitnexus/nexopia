@@ -21,22 +21,27 @@ class Authorization
 
 
 	def reset(user, force=false)
-		email = UserEmail.find(:first, user.userid);
-
-		if (email.active && !force)
-			return nil;
+		active_email = UserEmail.find(:first, user.userid, true)
+		nonactive_email = UserEmail.find(:first, user.userid, false)
+		
+		if (nonactive_email.nil? && !force)
+			return nil
 		end
 
-		key = makeRandomActivationKey;
+		email = active_email.nil? ? nonactive_email : active_email
 
-		new_email = UserEmail.new;
-		new_email.userid = email.userid;
-		new_email.email = email.email;
-		new_email.active = false;
-		new_email.key = key;
-		new_email.time = Time.now.to_i;
+		key = makeRandomActivationKey
 
-		email.delete;
+		new_email = UserEmail.new
+		new_email.userid = email.userid
+		new_email.email = email.email
+		new_email.active = false
+		new_email.key = key
+		new_email.time = Time.now.to_i
+
+		active_email.delete if !active_email.nil?
+		nonactive_email.delete if !nonactive_email.nil?
+
 		new_email.store;
 
 		return key;
@@ -45,90 +50,46 @@ class Authorization
 
 	def activate(user, key)
 		if (user.nil?)
-			return "Invalid username.";
+			return "Invalid username."
 		end
 		
-		email = UserEmail.find(:first, user.userid, :conditions => ["active = 'n'"]);
+		email = UserEmail.find(:first, user.userid, :conditions => ["active = 'n'"])
 		
 		if (email.nil?)
-			return "This account has already been activated.";
+			return "This account has already been activated."
 		end
 		
-		if (email.key == key)
+		if (email.key == key.strip)
 			if (email.time < (Time.now.to_i - WEEK_SECONDS))
-				return "That activation key has expired. Have one resent.";
+				return "That activation key has expired. Have one resent."
 			else
-				new_email = UserEmail.new;
-				new_email.userid = email.userid;
-				new_email.email = email.email;
-				new_email.active = true;
-				new_email.key = email.key;
-				new_email.time = Time.now.to_i;
+				# If there's an active email at this point, we need to remove it.
+				old_active_email = UserEmail.find(:first, user.userid, true)
+				if (old_active_email)
+					old_active_email.delete
+				end
+				
+				new_email = UserEmail.new
+				new_email.userid = email.userid
+				new_email.email = email.email
+				new_email.active = true
+				new_email.key = makeRandomActivationKey
+				new_email.time = Time.now.to_i
 
-				email.delete;
-				new_email.store;
+				email.delete
+				new_email.store
 
-				user.state = 'active';
-				user.account.make_active!;
-				user.store;
+				user.state = 'active'
+				user.account.make_active!
+				user.store
 
-				return nil;
+				return nil
 			end
 		else
-			return "The activation key did not match.";
+			$log.info "User #{user.userid} supplied activation key '#{key}', which did not match stored key of '#{email.key}'.", :warning
+			return "The activation key did not match."
 		end
 	end
-
-
-	def auto_login(user=nil, session_ip=nil)
-		userid = user.userid;
-		
-		# The domain needs to match the domain from which the cookie is being set. It also specifies
-		# the domains the cookie will operate under. For example, if we set the cookie under "php.name",
-		# the cookie will properly set when the page is accessed via "www.php.name" and will work under
-		# "php.name" and all of its sub-domains. However, it would not work under a sub-domain of "name"
-		# that is not really a sub-domain of "php.name". As well,
-		cookiedomain = "." + $site.config.cookie_domain;
-
-		# An expiration time of 1 month (in seconds)
-		expire = Time.now + (60 * 60 * 24 * 30);
-
-		key = makeRandomActivationKey();
-		
-		# Create the cookies needed by the PHP site.
-		userid_cookie = CGI::Cookie.new(
-			'name' => "userid",
-			'value' => "#{userid}" ,
-			'expires' => expire,
-			'path' => '/',
-			'domain' => cookiedomain);
-		key_cookie = CGI::Cookie.new(
-			'name' => "key",
-			'value' => "#{key}" ,
-			'expires' => expire,
-			'path' => '/',
-			'domain' => cookiedomain);
-		
-		# Create a new session. Along with the key contained in the cookie, this will authenticate the user 
-		# in the PHP site.
-		session = Session.new();
-		session.ip = session_ip;
-		session.userid = userid;
-		session.activetime = Time.now.to_i;
-		session.sessionid = key;
-		session.lockip = false;
-		session.jstimezone = -360;
-		session.store();
-
-		# We need to get the top PageRequest object to set the cookies on because the
-		# sub-requests will not process headers in the same way (you can still set
-		# direct header information, but the cookies will not get mixed in).
-		PageRequest.top.reply.set_cookie(userid_cookie);
-		PageRequest.top.reply.set_cookie(key_cookie);
-
-		PageRequest.top.reply.send_cookies();
-	end
-
 
 	def check_key(id, key, myuserid = 0)
 		return (key == make_key(id,myuserid));
@@ -136,6 +97,8 @@ class Authorization
 
 
 	def make_key(id, myuserid = 0)
+		myuserid = PageRequest.current.session.user.userid if myuserid == 0;
+		
 		result = Digest::MD5.hexdigest("#{myuserid}:blah:#{id}")[0,10].upcase;
 
 		return result;

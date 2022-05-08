@@ -25,30 +25,18 @@ define("MOD_POLL",				61);
 
 define("MOD_VIDEO",				71);
 
+define("SIGNPIC_UNMODERATED", 0);
+define("SIGNPIC_PENDING",  1);
+define("SIGNPIC_ACCEPTED", 2);
+define("SIGNPIC_FAILED", 3);
+
+define("USERPIC_UNMODERATED", 0);
+define("USERPIC_PENDING",  1);
+define("USERPIC_ACCEPTED", 2);
+define("USERPIC_FAILED", 3);
+
 class moderator{
-	public $modtypes = array( 	1	=> "Pics", //can't use defines due to bug in php
-							2	=> "Sign Pics",
-							3	=> "Pic Abuse",
-							4	=> "Questionable",
-
-							11	=> "Forum Post",
-							12	=> "Forum Rank",
-							13	=> "Forum Ban",
-
-							21	=> "Gallery",
-							22	=> "Gallery Abuse",
-
-							31	=> "User Abuse",
-							32	=> "Confirmed Abuse",
-
-							41	=> "Banner",
-
-							51	=> "Article",
-
-							61	=> "Polls",
-
-							71  => "Video",
-						);
+	public $modtypes;
 
 	public $db;
 /*
@@ -109,7 +97,9 @@ function modpolls($polls, $votes)
 	public $modprefs;
 
 	function __construct( & $db ){
-		global $cache;
+		global $cache, $Ruby;
+		$this->modtypes = $Ruby->send('Moderator::QueueBase.queues.collect_hash {|num, q| [num, q.pretty_name] }');
+		ksort($this->modtypes);
 
 		$this->modprefs = array();
 
@@ -239,22 +229,24 @@ function modpolls($polls, $votes)
 	//ignore the case where permissions are set directly on a user for now
 		$admins = array();
 		foreach($roles as $roleid => $role){
-			foreach($rolemembers[$roleid] as $member){
-				$uid = $member[0];
-				$visible = $member[1];
-				if(!isset($admins[$uid]))
-					$admins[$uid] = array('title' => array(), 'roles' => array(), 'visible' => false);
+			if (isset($rolemembers[$roleid])) {
+				foreach($rolemembers[$roleid] as $member){
+					$uid = $member[0];
+					$visible = $member[1];
+					if(!isset($admins[$uid]))
+						$admins[$uid] = array('title' => array(), 'roles' => array(), 'visible' => false);
 
-				if($visible)
-					$admins[$uid]['visible'] = true;
-				if($role['title'])
-					$admins[$uid]['title'][] = $role['title'];
-				$admins[$uid]['roles'][] = $role['rolename'];
+					if($visible)
+						$admins[$uid]['visible'] = true;
+					if($role['title'])
+						$admins[$uid]['title'][] = $role['title'];
+					$admins[$uid]['roles'][] = $role['rolename'];
 
 
-				if(isset($rolepermissions[$roleid]))
-					foreach($rolepermissions[$roleid] as $permissionid)
-						$admins[$uid][$privilegenames[$permissionid]] = true;
+					if(isset($rolepermissions[$roleid]))
+						foreach($rolepermissions[$roleid] as $permissionid)
+							$admins[$uid][$privilegenames[$permissionid]] = true;
+				}
 			}
 		}
 
@@ -322,12 +314,12 @@ function modpolls($polls, $votes)
 		foreach ($items as $uid => $item){
 			if(is_array($item))
 				foreach($item as $itemid)
-					$entries[] = $this->db->prepare("(#,#,#,?)", $type, $uid, $itemid, ($priority ? 'y' : 'n'));
+					$entries[] = $this->db->prepare("(#,#,#,?,#)", $type, $uid, $itemid, ($priority ? 'y' : 'n'), time());
 			else
-				$entries[] = $this->db->prepare("(#,#,#,?)", $type, $uid, $item, ($priority ? 'y' : 'n'));
+				$entries[] = $this->db->prepare("(#,#,#,?,#)", $type, $uid, $item, ($priority ? 'y' : 'n'), time());
 		}
 
-		$this->db->prepare_query("INSERT IGNORE INTO moditems (type, splitid, itemid, priority) VALUES " . implode(", ", $entries));
+		$this->db->prepare_query("INSERT IGNORE INTO moditems (type, splitid, itemid, priority, created) VALUES " . implode(", ", $entries));
 //		$this->db->prepare_query("INSERT IGNORE INTO moditems SET type = #, itemid = #, priority = ?", $type, $itemid, ($priority ? 'y' : 'n'));
 	}
 
@@ -401,7 +393,7 @@ function modpolls($polls, $votes)
 		$items = $cache->get("moditems");
 
 		if($items === false){
-			$res = $this->db->prepare_query("SELECT type, count(*) as count FROM moditems WHERE `lock` <= # GROUP BY type", time());
+			$res = $this->db->prepare_query("SELECT type, count(*) AS count FROM moditems FORCE INDEX (`type`) WHERE `lock` <= # GROUP BY type", time());
 
 			while($line = $res->fetchrow())
 				$items[$line['type']] = $line['count'];
@@ -681,8 +673,8 @@ function modpolls($polls, $votes)
 
 		set_time_limit(0);
 
-//		$this->db->query("LOCK TABLES modvotes WRITE, moditems WRITE, mods WRITE");
-		$this->db->begin();
+		$this->db->query("LOCK TABLES modvotes WRITE, moditems WRITE, mods WRITE");
+//		$this->db->begin();
 
 		foreach ($votes as $votekey => $voteval) break; // get the first key out.
 
@@ -706,8 +698,8 @@ function modpolls($polls, $votes)
 
 	//none left to vote for
 		if(!$voteids){
-			$this->db->rollback();
-//			$this->db->query("UNLOCK TABLES");
+//			$this->db->rollback();
+			$this->db->query("UNLOCK TABLES");
 			return false;
 		}
 
@@ -715,14 +707,18 @@ function modpolls($polls, $votes)
 		$query = "INSERT INTO modvotes (moditemid, type, modid, vote, points) VALUES ";
 		$parts = array();
 		foreach($voteids as $id => $itemid)
+		{
 			$parts[] = $this->db->prepare("(#,#,#,?,#)", $id, $type, $userData['userid'], $votes[$itemid], $lvl);
+		}
 		$query .= implode(",", $parts);
 		$this->db->query($query);
 
 	//can't change any points, done
 		if($lvl == 0){
-			$this->db->commit();
-//			$this->db->query("UNLOCK TABLES");
+			$this->db->prepare_query("UPDATE moditems SET `lock` = 0 WHERE id IN (#)", array_keys($voteids));
+
+//			$this->db->commit();
+			$this->db->query("UNLOCK TABLES");
 			return;
 		}
 
@@ -752,8 +748,8 @@ function modpolls($polls, $votes)
 
 	//done
 		if(count($moditemids) == 0){
-			$this->db->commit();
-//			$this->db->query("UNLOCK TABLES");
+//			$this->db->commit();
+			$this->db->query("UNLOCK TABLES");
 			return;
 		}
 
@@ -817,8 +813,8 @@ function modpolls($polls, $votes)
 		$this->db->prepare_query("DELETE FROM moditems WHERE id IN (#)", $moditemids);
 		$this->db->prepare_query("DELETE FROM modvotes WHERE moditemid IN (#)", $moditemids);
 
-//		$this->db->query("UNLOCK TABLES");
-		$this->db->commit();
+		$this->db->query("UNLOCK TABLES");
+//		$this->db->commit();
 
 
 	/*
@@ -886,7 +882,7 @@ function modpolls($polls, $votes)
 
 /////////////////////////////////////
 	function modpics($pics, $votes, $type){
-		global $usersdb, $moddb, $userData, $google;
+		global $usersdb, $moddb, $userData, $google, $RAP, $Ruby;
 
 		$time = time();
 
@@ -917,6 +913,8 @@ function modpolls($polls, $votes)
 				unset($pics['n'][$missingid]);
 			unset($votes[$missingid]);
 		}
+		if (!$votes)
+			return; // No valid pics in this queue.
 
 		if($type == MOD_PICS){
 		//log the votes
@@ -944,9 +942,11 @@ function modpolls($polls, $votes)
 						$questionable = $vote;
 					}elseif($questionable != $vote){
 						list($picuid, $picitem) = explode(':', $picid);
-						if(!isset($questionables[$priority[$picid]][$picuid]))
-							$questionables[$priority[$picid]][$picuid] = array();
-						$questionables[$priority[$picid]][$picuid][] = $picitem;
+						$pic_priority = $priority[$picid] ? 'y' : 'n';
+
+						if(!isset($questionables[$pic_priority][$picuid]))
+							$questionables[$pic_priority][$picuid] = array();
+						$questionables[$pic_priority][$picuid][] = $picitem;
 
 						if(isset($pics['y'][$picid]))
 							unset($pics['y'][$picid]);
@@ -1075,7 +1075,24 @@ function modpolls($polls, $votes)
 
 			$keys = array('userid' => '%', 'gallerypicid' => '#');
 			$usersdb->prepare_query("DELETE FROM pics WHERE ^", $usersdb->prepare_multikey($keys, $pics['n']));
+			global $cache;
+			foreach($pics['n'] as $pic){
+				list($uid, $id) = explode(":", $pic);
+				$cache->remove("pics-$uid");
+			}
 			//$google->updateHash(array_keys($users));
+
+			// Update gallery pic table to indicate that a picture has failed the queue.
+			$keys = array('userid' => '%', 'id' => '#');
+			$usersdb->prepare_query("UPDATE gallerypics SET userpic = # WHERE ^", USERPIC_FAILED, $usersdb->prepare_multikey($keys, $pics['n']));
+
+			// Update the users table if they were using this image as
+			// their sign pic or thumb pic
+			foreach($pics['n'] as $pic) {
+				list($uid, $id) = explode(":", $pic);
+				$Ruby->Pics->update_user_info($uid);
+				$cache->remove("userinfo-$uid");
+			}
 
 			//removePicPending($pics['n'], false);
 		}
@@ -1126,9 +1143,10 @@ function modpolls($polls, $votes)
 					$usersdb->prepare_multikey($bankeys, $unbans));
 			}
 
+			// Update gallery pic table to indicate that a picture has failed the queue.
+			$keys = array('userid' => '%', 'id' => '#');
+			$usersdb->prepare_query("UPDATE gallerypics SET userpic = # WHERE ^", USERPIC_ACCEPTED, $usersdb->prepare_multikey($keys, $pics['y']));
 
-			reorderPicPriorities($users, $numpics);
-			
 			setFirstPic($uids);
 
 			if(count($signpics))
@@ -1148,71 +1166,50 @@ function modpolls($polls, $votes)
 		$keys = array('userid' => '%', 'id' => '#');
 
 		if(count($pics['n']))
-			$usersdb->prepare_query("UPDATE pics SET signpic = 'n' WHERE ^",
+			$usersdb->prepare_query("UPDATE gallerypics SET signpic = # WHERE ^", SIGNPIC_FAILED,
 				$usersdb->prepare_multikey($keys, $pics['n']));
 
-		if(count($pics['y']))
-			$usersdb->prepare_query("UPDATE pics SET signpic = 'y' WHERE ^",
+		if(count($pics['y'])){
+			$usersdb->prepare_query("UPDATE gallerypics SET signpic = # WHERE ^", SIGNPIC_ACCEPTED,
 				$usersdb->prepare_multikey($keys, $pics['y']));
 
-	//get all userids
-		$users = array();
-		foreach (array_merge($pics['y'], $pics['n']) as $id)
-		{
-			list($userid, $picid) = explode(':', $id);
-			$users[$userid] = 'n';
-		}
 
-	//get those that now have a sign pic (may have been from before)
-		$res = $usersdb->prepare_query("SELECT DISTINCT userid FROM pics WHERE userid IN (%) && signpic = 'y'", array_keys($users));
+			$change = array();
 
-		while($line = $res->fetchrow())
-			$users[$line['userid']] = 'y';
+			$keys = array('userid' => '%', 'gallerypicid' => '#');
+			$res = $usersdb->prepare_query("SELECT userid, count(*) as count FROM pics WHERE ^ GROUP BY userid",
+				$usersdb->prepare_multikey($keys, $pics['y']));
+			while($line = $res->fetchrow())
+				if ($line['count'] > 0)
+					$change[]= $line['userid'];
 
-	//find out which have changed
-		$result = $usersdb->prepare_query("SELECT userid, signpic FROM users WHERE userid IN (%)", array_keys($users));
 
-		$change = array();
-		while($line = $result->fetchrow()){
-			if($line['signpic'] != $users[$line['userid']]){
-				$change[$users[$line['userid']]][] = $line['userid'];
-				$cache->remove("userinfo-$line[userid]");
+			if (count($change) > 0)
+				$usersdb->prepare_query("UPDATE users SET signpic = 'y' WHERE userid IN (%)", $change);
+
+			foreach($change as $uid) {
+				$cache->remove("userinfo-$uid");
 			}
-		}
-
-	//change them
-		if(isset($change['n']) && count($change['n'])){
-			$usersdb->prepare_query("UPDATE users SET signpic = 'n' WHERE userid IN (%)", $change['n']);
-			foreach($change['n'] as $uid)
-				$cache->remove("userinfo-$uid");
-		}
-
-		if(isset($change['y']) && count($change['y'])){
-			$usersdb->prepare_query("UPDATE users SET signpic = 'y' WHERE userid IN (%)", $change['y']);
-			foreach($change['y'] as $uid)
-				$cache->remove("userinfo-$uid");
+			foreach ($pics['y'] as $key) {
+				$cache_id = implode('/', explode(':', $key));
+				$cache->remove("Gallery::Pic-$cache_id");
+			}
 		}
 	}
 
 	function modgallery($pics, $votes){
-		global $usersdb, $galleries;
+		global $usersdb, $galleries, $rap_pagehandler;
 
-		if(isset($pics['n']) && count($pics['n'])){
-			$usergallery = new usergalleries($galleries, null);
-			$picobjs = $usergallery->getGalleryPics(null, $pics['n']);
-			gallerypic::deleteMulti($usersdb, $picobjs);
-		}
+		$rap_pagehandler->delete_gallery_pics($pics['n']);
 	}
 
 	function modgalleryabuse($pics, $votes){
-		global $db, $usersdb, $galleries;
+		global $db, $usersdb, $rap_pagehandler;
 
 		$db->prepare_query("DELETE FROM abuse WHERE type = # && itemid IN (#)", MOD_GALLERYABUSE, array_merge($pics['y'], $pics['n']));
 
 		if(isset($pics['n']) && count($pics['n'])){
-			$usergallery = new usergalleries($galleries, null);
-			$pics = $usergallery->getGalleryPics(null, $pics['n']);
-			gallerypic::deleteMulti($usersdb, $pics);
+			$rap_pagehandler->delete_gallery_pics($pics['n']);
 		}
 	}
 
@@ -1282,7 +1279,7 @@ function modpolls($polls, $votes)
 			$result = $articlesdb->prepare_query("SELECT authorid, title FROM articles WHERE id IN (#)", $pics['y']);
 
 			while($line = $result->fetchrow())
-				$messaging->deliverMsg($line['authorid'],"Article Accepted", "Your article '$line[title]' has been accepted.", 0, "Nexopia", 0);
+				$messaging->deliverMsg($line['authorid'],"Article Accepted", "Congrats! Your article '$line[title]' has been accepted and is now being featured in Nexopia's article section./n/nCheers,/n-- The Nex Team", 0, "Nexopia", 0);
 
 			$articlesdb->prepare_query("UPDATE articles SET moded='y', time = # WHERE id IN (#)", time(), $pics['y']);
 		}
@@ -1291,7 +1288,7 @@ function modpolls($polls, $votes)
 			$result = $articlesdb->prepare_query("SELECT authorid, title FROM articles WHERE id IN (#)", $pics['n']);
 
 			while($line = $result->fetchrow())
-				$messaging->deliverMsg($line['authorid'],"Article Rejected", "Your article '$line[title]' has been rejected. Some of the reasons why articles are rejected are listed [url=/faq.php?q=31]here[/url].", 0, "Nexopia", 0);
+				$messaging->deliverMsg($line['authorid'],"Article Denied", "Your article '$line[title]' has been rejected. Some of the reasons why articles are rejected are listed [url=/faq.php?q=31]here[/url].", 0, "Nexopia", 0);
 
 			$articlesdb->prepare_query("DELETE FROM articles WHERE id IN (#)", $pics['n']);
 		}
@@ -1324,5 +1321,3 @@ function modpolls($polls, $votes)
 			$polls->deletePoll($modpolls['n']);
 	}
 }
-
-

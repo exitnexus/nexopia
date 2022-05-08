@@ -366,6 +366,7 @@ class wiki {
 		if($pageid == 0){
 			$page = array(
 					'id' => 0,
+					'revision' => 0,
 					'name' => '',
 					'parentaddr' => '',
 					'permdisplay' => WIKI_LEVEL_PUBLIC,
@@ -423,10 +424,7 @@ class wiki {
 		
 		if($page['parsebbcode'] == 'y')
 			$page['output'] = parseHTML($page['output']);
-	
-		if($page['autonewlines'] == 'y')
-			$page['output'] = nl2br($page['output']);
-		
+			
 		return $page;
 	}
 	

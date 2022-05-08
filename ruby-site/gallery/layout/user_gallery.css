@@ -1,0 +1,92 @@
+/* This file contains css that applies to multiple pages in the user gallery section */
+#user_gallery {
+	z-index: 100;
+	width: 750px;
+	margin-left: auto;
+	margin-right: auto;
+	background-color: @section_background_color;
+	padding: 6px;
+	& img {
+		border: 0px;
+	}
+	& .current_gallery_header {
+		background-color: @secondary_block_background_color;
+		float: left;
+		width: 738px;
+		& div.gallery_view {
+			& ul {
+				margin: 0px 6px 0px 12px;
+				padding: 0px;
+				list-style: none;
+				& li {
+					float: left;
+					margin-right: 0px;
+					& a {
+						position: relative;
+						top: 5px;
+					}
+					& canvas:hover, img:hover {
+						border: 1px solid @secondary_block_link_hover_color;
+						padding: 2px;
+					}
+					&.selected img {
+						border: 1px solid @secondary_block_icon_color;
+						padding: 2px;
+					}
+					&.selected canvas {
+						border: 1px solid @secondary_block_icon_color;
+						padding: 2px;
+					}
+					& img, canvas {
+						color: @secondary_block_icon_color;
+						padding: 3px;
+						margin: 2px;
+					}
+				}
+			}
+			float: right;
+			font-size: 10px;
+		}
+		& .gallery_name {
+			float: left;
+			color: @secondary_block_text_color;
+			margin: 6px;
+			& .gallery_name_text {
+				font-size: 16px;
+				font-weight: bold;
+				height: 21px;
+			}
+			& .uploaded {
+				font-size: 10px;
+				font-weight: normal;
+				height: 14px;
+			}
+		}
+	}
+	& .page_container {
+		width: 750px;
+		margin: auto;
+		& .primary_block {
+			width: 738px;
+			padding: 0px 6px;
+			float: left;
+			color: @primary_block_text_color;
+			background-color: @primary_block_background_color;
+			& .comment_view_container, #recent_galleries {
+				& a {
+					color: @secondary_block_link_color;
+					&:hover {
+						color: @secondary_block_link_hover_color;
+					}
+				}
+			}
+			& a {
+				text-decoration: none;
+				color: @primary_block_link_color;
+				&:hover {
+					color: @primary_block_link_hover_color;
+				}
+			}
+		}
+	}
+}

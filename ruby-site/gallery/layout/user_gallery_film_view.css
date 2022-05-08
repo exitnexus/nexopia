@@ -1,0 +1,208 @@
+/*Nested_CSS*/
+
+#user_gallery {
+	& #user_gallery_film_view {
+		& div.gallery_display_container {
+			position: relative;
+			float:left;
+			background-color: @secondary_block_background_color;
+			color: @secondary_block_text_color;
+			padding: 0px 6px 6px;
+			width: 726px;
+			& a {
+				color: @secondary_block_link_color;
+				text-decoration: none;
+				&:hover {
+					color: @secondary_block_link_hover_color;
+				}
+			}
+			& div.photo_number {
+				clear: right;
+				float: right;
+				position: relative;
+				top: -10px;
+				left: -4px;
+				font-size: 10px;
+			}
+			
+			& #picture_wrapper
+			{
+				position: relative;
+				height: 100%;
+				margin-left: auto;
+				margin-right: auto;
+			}
+			
+			& #photo_full_view
+			{
+				position: relative;
+				margin: 12px auto 0px auto;
+				text-align: center;
+				clear: both;
+			}
+			
+			& .hover {
+				& .arrow_panel {
+					background-color: @primary_block_background_color;
+				}
+			}
+			& #right_arrow_panel {
+				cursor: pointer;
+				width: 360px;
+				height: 480px;
+				left: 320px;
+				top: 0px;
+				position: absolute;
+				& .arrow_panel {
+					top: 0px;
+					width: 14px;
+					height: 100%;
+					position: relative;
+					left: 346px;
+					display: block;
+					& img {
+						position: relative;
+						left: 4px;
+						top: 240px;
+					}
+				}
+			}
+			& #left_arrow_panel {
+				cursor: pointer;
+				width: 360px;
+				height: 480px;
+				left: -40px;
+				top: 0px;
+				position: absolute;
+				& .arrow_panel {
+					width: 14px;
+					height: 100%;
+					position: relative;
+					display: block;
+					& img {
+						position: relative;
+						left: 4px;
+						top: 240px;
+					}
+				}
+			}
+
+			& div.photo_info {
+				margin-top: 12px;
+				width: 726px;
+				float: left;
+				background-color: @secondary_block_background_color;
+				& .info_right {
+					float: right;
+					border-top: 1px dotted @secondary_block_link_color;
+					font-weight: bold;
+					& .profile_function {
+						padding: 1px 2px;
+						& a {
+							font-size: 11px;
+							font-family: Verdana, Arial, Helvetica, sans-serif;
+							width: 160px;
+						}
+						& input {
+							width: 134px;
+							display: none;
+						}
+					}
+				}
+			}
+		}
+		& div.gallery_nav_container {
+			background-color: @secondary_block_background_color;
+			padding: 6px 6px 0px;
+			& .control_bar {
+				margin: auto;
+			}
+			& .arrow {
+				& a img {
+					color: @secondary_block_icon_color;
+				}
+				float: left;
+				padding: 34px 0px 0px 0px;
+				height: 41px;
+			}
+			& .left {
+				margin-right: 5px;
+			}
+			& .right {
+				margin-left: 5px;
+			}
+			& .paginator {
+				float: left;
+			}
+			& .pages {
+				float: left;
+				& .thumb {
+			 		float: left;
+					width: 78px;
+					height: 77px;
+					& img {
+						padding: 1px;
+						margin-left: 1px;
+						width: 75px;
+						height: 75px;
+						&:hover {
+							border: 1px solid @secondary_block_link_hover_color;
+							padding: 0px;
+						}
+						&.current {
+							border: 1px solid @secondary_block_link_hover_color;
+							padding: 0px;
+						}
+					}
+				}
+			}
+		}
+		& .clearit {
+			height: 6px;
+		}
+	}
+
+	& #gallery_bottom_container{
+		width: 750px;
+		clear: both;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		
+		& .block_title
+		{
+			color: @primary_block_header_text_color;	
+			font-weight: bold;
+			font-family: $header_font_family;
+			font-size: 14px;
+			letter-spacing: 0px;
+			padding-bottom: 6px;
+		}
+		
+		& .header_accessory
+		{
+			display: inline;
+			float: right;
+			margin-top: 2px;
+			
+			& a {
+				font-size: 10px;
+			}
+		}
+		
+		& #gallery_view_left_column{
+			width: 236px;
+			float: left;
+			padding: 6px;
+			margin: 6px 6px 6px 0px;
+		}
+		& #gallery_view_right_column{
+			width: 484px;
+			margin-top: 6px;
+			padding: 6px;
+			float: left;
+		}
+	}
+}
+
+*html #user_gallery #gallery_bottom_container #gallery_view_left_column {
+	width: 235px !important;
+}

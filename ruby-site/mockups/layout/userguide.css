@@ -1,0 +1,56 @@
+#userguide
+{
+	& .page_title {
+		margin-bottom: 6px;
+	}
+	
+	& .topics {
+		margin-left: 80px;
+		width: 300px;
+	}
+	
+	& .topics a:link,
+	.topics a:visited {
+		font-weight: bold;
+		color: #ec008c;
+	}
+	
+	& .topics a:hover {
+		font-weight: bold;
+		color: #000;
+		text-decoration: underline;
+	}
+	
+	& .topics_left {
+		float: left;
+	}
+	
+	& .topics_right {
+		float: right;
+	}
+	
+	& .block_title {
+		margin: 20px 0px 6px 0px;
+		border-bottom: 1px solid #dfdfdf;
+		padding-bottom: 2px;
+	}
+	
+	& li {
+		margin-left: 24px;
+		margin-bottom: 4px;
+	}
+	
+	& span.bullet {
+		font-weight: bold;
+	}
+	
+	& a:link,
+	a:visited {
+		color: #ec008c;
+	}
+	
+	& a:hover {
+		color: #000;
+		text-decoration: underline;
+	}
+}

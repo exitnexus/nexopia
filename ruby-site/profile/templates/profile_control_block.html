@@ -1,62 +1,119 @@
 <!-- PROFILE FUNCTION SECTION START -->
-<div>
-	<div class="online_status">
-		<img border="0" src="{$site.static_files_url}/profile/images/icon_online.gif" width="7" height="7" />
-	</div>
-	<div class="user_page_info">
-		<div class="username" id="h1_1">
-			<a t:id="user"/>
+<div id="profile_control_block" minion_name="profile:control_block">
+	<div class="user_info">
+		<t:if t:id="user.plus? && (user.profile.showpremium || PageRequest.current.session.admin?)">
+			<div class="plus_icon">
+				<a href="/plus"><img src="{$site.colored_img_url(user.profile_skin[:utility_block_icon_color])/:profile/:images/'plus_icon.gif'}" width="14" height="14" /></a>
+			</div>
+		</t:if>
+		<div>
+			<span class="user_name">
+				{user.username}
+			</span><br/>
+			<span class="vitals">
+				{user.age}, {user.sex}, {user.location}
+			</span>
+			<br/>
+			<br/>
+			
 		</div>
-		{user.profile.views} Hits<br />
-		
-		<t:if t:id="user.plus?">
-			Plus Member <img class="icon_plus" border="0" src="{$site.static_files_url}/profile/images/icon_plus.gif" width="7" height="7" />
+		<t:if t:id="user.logged_in?">
+			<span class="user_status user_status_online">
+				Online
+			</span>
+		</t:if>
+		<t:if t:id="!user.logged_in?">
+			<span class="user_status user_status_offline">
+				Offline
+			</span>
+		</t:if>
+		<t:if t:id="!user.plus? || !user.hidehits || PageRequest.current.session.admin?">
+			<br />
+			<span class="profile_hits">
+				{profile_views} Hits
+			</span>
+			<br />
+		</t:if>
+
+		<t:if t:id="user.plus? && (user.profile.showpremium || PageRequest.current.session.admin?)">
+			<div class="user_tags">Plus Member</div>
+		</t:if>
+		<t:if t:id="user.verified?">
+			<div class="user_tags">Verified User</div>
+		</t:if>
+		<t:if t:id="!user.admin_tags.empty?">
+			<t:loop t:id="user.admin_tags" t:iter="admin_tag">
+				<div class="user_tags">{admin_tag}</div>
+			</t:loop>
+		</t:if>
+		<t:if t:id="(PageRequest.current.session.admin? && user.pic_mod?) || (PageRequest.current.session.user.pic_mod? && user.pic_mod?)">
+			<div class="user_tags">Pic Mod</div>
 		</t:if>
 	</div>
 	<br class="clear" />
 
-	<table border="0" class="profile_function_table" cellspacing="0" cellpadding="0">
-		<tr>
-			<td><a href="#">ADD AS FRIEND</a></td>
-			<td class="profile_function_icon">
-				<a href="#"><img border="0" src="{$site.static_files_url}/profile/images/icon_add_friend.gif" width="10" height="8" /></a>
-			</td>
-		</tr>
-		<tr>
-			<td>
-				<a href="#">SEND MESSAGE</a>
-			</td>
-			<td class="profile_function_icon">
-				<a href="#"><img border="0" src="{$site.static_files_url}/profile/images/icon_send_msg.gif" width="10" height="8" /></a>
-			</td>
-		</tr>
-		<tr>
-			<td><a href="#">COMMENT</a></td>
-			<td class="profile_function_icon">
-				<a href="#"><img border="0" src="{$site.static_files_url}/profile/images/icon_comment.gif" width="10" height="8" /></a>
-			</td>
-		</tr>
-		<tr>
-			<td>
-				<a href="#">SUBSCRIBE</a>
-			</td>
-			<td class="profile_function_icon">
-				<a href="#"><img border="0" src="{$site.static_files_url}/profile/images/icon_subscribe.gif" width="10" height="8" /></a>
-			</td>
-		</tr>
-	</table>
-
-	<table border="0" class="profile_function_table" cellspacing="0" cellpadding="0">
-		<tr>
-			<td><a href="#">IGNORE USER</a></td>
-			<td class="profile_function_icon">
-				<a href="#"><img border="0" src="{$site.static_files_url}/profile/images/icon_ignore_user.gif" width="8" height="8" /></a>
-			</td>
-		</tr><tr>
-			<td><a href="#">REPORT ABUSE</a></td>
-			<td class="profile_function_icon">
-				<a href="#"><img border="0" src="{$site.static_files_url}/profile/images/icon_report_abuse.gif" width="8" height="8" /></a>
-			</td>
-		</tr>
-	</table>
+	<t:if t:id="!PageRequest.current.session.anonymous?">
+		<table border="0" class="profile_function_table hover" cellspacing="0" cellpadding="0">
+			<t:handler-include path="/profile_blocks/Profile/control/friend_toggle" area="User">
+				<t:var t:name="'viewer'" t:val="viewer" />
+				<t:var t:name="'user'" t:val="user" />
+			</t:handler-include>
+			<tr minion_name="profile:ie6_hover_hack">
+				<td>
+					<a href="/messages.php?action=write&to={user.userid}">SEND MESSAGE</a>
+				</td>
+				<td class="profile_function_icon">
+					<a href="#"><img border="0" src="{$site.colored_img_url(user.profile_skin[:utility_block_icon_color])/:profile/:images/'icon_send_msg.gif'}" width="10" height="8" /></a>
+				</td>
+			</tr>
+			<tr t:id="comments_visible" minion_name="profile:ie6_hover_hack">
+				<td><a href="/users/{user.username}/comments" class="comment_control_block_link">COMMENT</a></td>
+				<td class="profile_function_icon">
+					<a href="/users/{user.username}/comments" class="comment_control_block_link"><img border="0" src="{$site.colored_img_url(user.profile_skin[:utility_block_icon_color])/:profile/:images/'icon_comment.gif'}" width="10" height="8" /></a>
+				</td>
+			</tr>
+		</table>
+		
+		<table border="0" class="profile_function_table hover" cellspacing="0" cellpadding="0">
+			<tr minion_name="profile:ie6_hover_hack">			
+				<t:if t:id="!viewer.ignored?(user)">
+					<td>
+						<a href="/messages.php?action=ignore&id={user.userid}&k={user.gen_auth_key}"
+							class="ignore_toggle_text_link"
+							onclick="YAHOO.profile.ControlBlock.toggleIgnore({user.userid}, '{user.gen_auth_key}', this); return false;">IGNORE USER</a>
+					</td>
+					<td class="profile_function_icon">
+						<a href="/messages.php?action=ignore&id={user.userid}&k={user.gen_auth_key}"
+							onclick="YAHOO.profile.ControlBlock.toggleIgnore({user.userid}, '{user.gen_auth_key}', this); return false;">
+							<img border="0" 
+								src="{$site.colored_img_url(user.profile_skin[:utility_block_icon_color])/:profile/:images/'icon_ignore_user.gif'}" width="10" height="8" />
+						</a>
+					</td>	
+				</t:if>
+				<t:if t:id="viewer.ignored?(user)">
+					<td>
+						<a href="/messages.php?action=unignore&id={user.userid}&k={user.gen_auth_key}"
+							class="ignore_toggle_text_link"
+							onclick="YAHOO.profile.ControlBlock.toggleIgnore({user.userid}, '{user.gen_auth_key}', this); return false;">UNIGNORE USER</a>
+					</td>
+					<td class="profile_function_icon">
+						<a href="/messages.php?action=unignore&id={user.userid}&k={user.gen_auth_key}"
+							onclick="YAHOO.profile.ControlBlock.toggleIgnore({user.userid}, '{user.gen_auth_key}', this); return false;">
+							<img border="0" 
+								src="{$site.colored_img_url(user.profile_skin[:utility_block_icon_color])/:profile/:images/'icon_ignore_user.gif'}" width="10" height="8" />
+						</a>
+					</td>
+				</t:if>			
+			</tr>
+			<tr minion_name="profile:ie6_hover_hack">
+				<td><a href="/reportabuse.php?type={Profile::UserAbuseQueue.queue_number}&id={user.userid}">REPORT ABUSE</a></td>
+				<td class="profile_function_icon">
+					<a href="/reportabuse.php?type={Profile::UserAbuseQueue.queue_number}&id={user.userid}"><img border="0" src="{$site.colored_img_url(user.profile_skin[:utility_block_icon_color])/:profile/:images/'icon_report_abuse.gif'}" width="10" height="8" /></a>
+				</td>
+			</tr>
+		</table>
+	</t:if>
+	<t:if t:id="PageRequest.current.session.anonymous?">
+		<div class="control_block_function_filler"></div>
+	</t:if>	
 </div>

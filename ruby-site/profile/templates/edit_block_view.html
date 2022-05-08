@@ -1,3 +1,30 @@
 <form method="POST" action="" id="block_edit_form" name="block_edit_form">
 	<t:handler-include t:path="#{block.edit_uri()}" t:area="self"></t:handler-include>
+	
+	<t:if t:id="PageRequest.current.impersonation?">
+		<div class="abuse_section">
+			<t:if t:id="abuse_log_id">
+				<div style="color: red; margin-bottom: 6px">
+					This is a continued abuse log entry.<br/>
+					DO NOT CLEAR THE EXISTING TEXT UNLESS YOU WANT TO START OVER AGAIN!
+				</div>
+			</t:if>
+			<div class="reason_selector">
+				<span class="field_name">Reason: </span>
+				<t:handler-include path="/profile/selector/mod_reason/{abuse_log_reason}" area="Admin">
+					<t:var t:name="'reason_ref'" t:val="'abuse_log_reason'" />
+				</t:handler-include>
+			</div>
+			<div>
+				<input type="text" name="abuse_log_subject" id="abuse_log_subject" value="{abuse_log_subject}"></input>
+			</div>
+			<div class="message_entry">
+				<span class="field_name">Abuse Log Entry: </span><br/>
+				<textarea name="abuse_log_entry" id="abuse_log_entry">{abuse_log_entry}</textarea>
+			</div>
+		</div>
+		<t:if t:id="abuse_log_id">
+			<input type="hidden" name="abuse_log_id" value="{abuse_log_id}"/>
+		</t:if>
+	</t:if>
 </form>

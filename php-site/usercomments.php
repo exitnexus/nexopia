@@ -4,7 +4,7 @@
 
 	require_once("include/general.lib.php");
 	$uid = getREQval('id', 'int', ($userData['loggedIn'] ? $userData['userid'] : die("Bad User")));
-
+	
 	$isAdmin = false;
 	if($userData['loggedIn']){
 		if($userData['userid'] == $uid)
@@ -21,7 +21,7 @@
 	}
 
 	if($data['enablecomments']=='n' && $isAdmin != 2){
-		header("location: /profile.php?uid=$uid");
+		header("location: /users/".urlencode(getUserName($uid)));
 		exit;
 	}
 
@@ -99,8 +99,11 @@
 
 
 function listComments($page){
-	global $usercomments, $userData, $data, $uid, $config, $isAdmin, $cache, $weblog;
-
+	global $usercomments, $userData, $data, $uid, $config, $isAdmin, $cache, $weblog, $wwwdomain;
+	
+	header("HTTP/1.1 301 Moved Permanently");
+	header("Location: http://". $wwwdomain . "/users/". urlencode($data["username"]) . "/comments");
+	exit;
 
 	$template =  new template("usercomments/listcomments");
 	$comments = array();
@@ -198,12 +201,12 @@ function addUserComment($uid, $msg, $preview){
 	if($preview){
 		$msg = trim($msg);
 
-		$nmsg = removeHTML($msg);
+		$nmsg = cleanHTML($msg);
 		$nmsg2 = parseHTML($nmsg);
 		$nmsg3 = smilies($nmsg2);
 		$nmsg3 = wrap($nmsg3);
 
-		$template->set("msg", nl2br($nmsg3));
+		$template->set("msg", $nmsg3);
 	}
 
 	$template->set("uid", $uid);

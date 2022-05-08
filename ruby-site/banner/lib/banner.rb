@@ -1,3 +1,5 @@
+lib_require :FileServing, "type"
+
 class Banner < Storable
 	set_enums(:bannersize => {
 		:none => 0,
@@ -67,4 +69,21 @@ class Banner < Storable
 		return SIZES[self.bannersize][:width]
 	end
 		
+end
+
+class BannerFileType < FileServing::Type
+	register "banner"
+	register "banners"
+	
+	# This pulls from the legacy mogile instance if it's set up 
+	# by pulling from the mogile paths that the old site used in order.
+	def not_found(out_file)
+		if (legacy = $site.mogile_connection(:legacy))				
+			if (data = legacy.get_file_data([self.class.typeid, *self.path].join('/')))
+				out_file.write(data)
+				return true
+			end
+		end
+		return super(out_file) # let it throw a 404
+	end
 end

@@ -1,0 +1,95 @@
+#nexopia_panel #blog_preview {
+	background-color: transparent;
+	width: 750px;
+	
+	& .blog_post_container {
+		padding: 6px 6px 12px 6px;
+		background-color: @primary_block_background_color;
+		color: @primary_block_text_color;
+		text-align: left;
+		
+		& * {
+			font-family: Verdana, Arial, Helvetica, sans-serif;
+			font-size: 11px;
+		}
+		
+		& .battle_item {
+			position: relative;
+			width: 354px;
+			padding: 6px 6px 12px 6px;
+			background-color: @secondary_block_background_color;
+			color: @secondary_block_text_color;
+
+			& .item {
+				text-align: center;
+				margin-bottom: 24px;
+				
+				& img {
+					max-width: 354px;
+					overflow: none;
+				}
+			}
+		}
+
+		& .blog_post_header {
+			padding: 6px;
+			background-color: @secondary_block_background_color;
+			color: @secondary_block_text_color;
+			
+			& .post_title {
+				overflow: hidden;
+				background-color: @secondary_block_background_color;
+				color: @secondary_block_text_color;
+				
+				& a {
+					font-size: 14px;
+					font-weight: bold;
+					color: @secondary_block_link_color;
+					
+					&:hover {
+						color: @secondary_block_link_hover_color;
+					}
+				}
+			}
+			
+			& .post_date {
+				font-size: 10px;
+				padding-top: 2px;
+				background-color: @secondary_block_background_color;
+				color: @secondary_block_text_color;
+			}
+		}
+		
+		& .extra_content {
+			background-color: @primary_block_background_color;
+			color: @primary_block_text_color;
+			padding-bottom: 6px;
+		}
+		
+		& .blog_post {
+			background-color: @primary_block_background_color;
+			color: @primary_block_text_color;
+		}
+		
+	}
+	
+	& .preview_links {
+		text-align: right;
+		color: #CCCCCC;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+		background-color: transparent;
+		padding: 6px 0px 6px 0px;
+		
+		& a {
+			font-weight: bold;
+			font-family: Verdana, Arial, Helvetica, sans-serif;
+			font-size: 11px;
+			color: #fff;
+			
+			&:hover {
+				color: #516068;
+			}
+		}
+	}
+}

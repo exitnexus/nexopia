@@ -221,12 +221,14 @@
 		
 			$entry = $wiki->getPage(array($addr, $rev));
 		
-			incHeader();
-		
-			$this->wikimenu($addr, $perms);
-		
+			incHeader(false);
+			echo "<div id=\"wiki_view\">";
+			if($perms['edit'] || $perms['permdelete'] || $perms['permcreate'])
+			{
+				$this->wikimenu($addr, $perms);
+			}
 			echo $entry['output'];
-			
+			echo "</div>";
 			incFooter();
 			exit;
 		}

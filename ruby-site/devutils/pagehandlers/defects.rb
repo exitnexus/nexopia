@@ -49,7 +49,7 @@ class Defects < PageHandler
 	
 	
 	def list_defects
-		defects = Defect.find(:all);
+		defects = Defect.find(:all, :scan);
 		t = Template::instance('devutils', 'list_defects');
 		t.defects = defects;
 		
@@ -165,7 +165,7 @@ class Defects < PageHandler
 		
 		# Tags are comma-separated, so split on commas, removing any surrounding
 		# space in the process.
-		tag_array = tags.split(%r{\s*,\s*});
+		tag_array = []#tags.split(%r{\s*,\s*});
 		
 		user_emails_to_notify = Array.new;
 		
@@ -197,8 +197,8 @@ class Defects < PageHandler
 		message_text = RMail::Serialize.write("", message);
 
 		# Send it out
-		Net::SMTP.start($site.config.mail_server, $site.config.mail_port) {|smtp|
-			smtp.send_message(message_text, user.email, user_emails_to_notify)};
+		# Net::SMTP.start($site.config.mail_server, $site.config.mail_port) {|smtp|
+		# 	smtp.send_message(message_text, user.email, user_emails_to_notify)};
 	end
 	
 end

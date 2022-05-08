@@ -1,6 +1,7 @@
 <t:template>
 	temp = new ProfileDisplayBlock();
 	temp.html_id = "#{html_id}";\n
+	temp.content_error = #{display_block.content_error};\n
 	<t:iter t:id="display_block.columns.keys" t:iter="column">
 		<t:varsub t:new="column_value" t:old="display_block.send(column.to_sym())"></t:varsub>
 		<t:if t:id="!display_block.enums[column.to_sym()].nil?()">

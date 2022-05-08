@@ -7,6 +7,7 @@ class FourOhFour < PageHandler
 
 		page :GetRequest, :Full, :not_found, "404", remain
 		page :GetRequest, :Full, :access_denied, "403", remain
+		handle :GetRequest, :not_changed, "304", remain
 		page :GetRequest, :Full, :error_not_found, remain
 	}
 
@@ -24,7 +25,7 @@ class FourOhFour < PageHandler
 			if (area == :Internal && remain[1] == 'webrequest')
 				referer = url("http:/")/remain[2..remain.length] # this probably doesn't belong here...
 			else
-				referer = $site.area_to_url(area)/remain[1..remain.length]
+				referer = $site.area_to_url([area, exception.request_user])/remain[1..remain.length]
 			end
 			external_redirect(exception.url_to_fix&{:referer => referer}, false)
 		end
@@ -32,10 +33,15 @@ class FourOhFour < PageHandler
 		msg = params["message", String, "Unknown Error"];
 		puts(%Q{<div class="bgwhite"><h1>403 Forbidden</h1> #{msg}</div>});
 	end
+	
+	def not_changed(remain)
+		self.status = "304"
+	end
 
 	def error_not_found(remain)
 		self.status = remain[0];
 		msg = params["message", String, "Unknown Error"];
-		puts(%Q{<div class="bgwhite"><h1>#{remain[0]} #{msg}</h1> #{msg}</div>});
+		token = Time.now.strftime("%H:%M:%S:%Y-%m-%d") + ":" + PageRequest.top.token
+		puts(%Q{<div class="bgwhite"><h1>#{remain[0]} #{msg}</h1> <p>#{msg}</p><p><b>When reporting this error, please include the following token: #{token}</b></p></div>});
 	end
 end

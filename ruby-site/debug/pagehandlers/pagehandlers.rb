@@ -1,5 +1,6 @@
 class PageHandlers < PageHandler
 	declare_handlers("pagehandlers") {
+		access_level :DebugInfo
 		handle :GetRequest, :list, "list"
 	}
 
@@ -55,7 +56,7 @@ class PageHandlers < PageHandler
 			end
 		}
 
-		t = Template.instance("devutils", "pagehandlers");
+		t = Template.instance("debug", "pagehandlers");
 		t.nodes = nodelist;
 		print t.display();
 

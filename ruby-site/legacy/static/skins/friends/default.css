@@ -18,13 +18,13 @@ td.side input, select, textarea { font-family: arial, sans-serif; font-size: 8pt
 
 td.border		{ background-color:#fff; }
 
-td.sideheader		{ color:#000; font-family: arial, sans-serif; font-size: 8pt; padding:3px; padding-top:10px;  }
+td.sideheader		{ color:#000; font-family: arial, sans-serif; font-size: 8pt; padding:3px; padding-top:13px;  }
 
 td.header		{ background-color: #e04444; color: #fff; font-family: arial, sans-serif; font-size: 8pt}
 a.header  	{ color: #fff; text-decoration:none;  }
 a.header:hover	{ color: #d4d6d7; }
 
-td.headerfront	{ color:#000; background: #12a80f url(http://static.nexopia.com/skins/friends/fronthead.png); height:30px; padding-left:10px; }
+td.headerfront	{ color:#000; background: #12a80f url(http://static.nexopia.com/1/files/Legacy/skins/friends/fronthead.png); height:30px; padding-left:10px; }
 
 
 td.header2			{ color: #fff; font-family: arial, sans-serif; font-size: 8pt}

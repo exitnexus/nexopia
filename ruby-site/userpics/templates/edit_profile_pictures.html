@@ -1,0 +1,33 @@
+<div id="edit_profile_pictures">
+	<input type="hidden" id="form_key" name="form_key" value="{form_key}"/>
+    <div class="gallery_menu">
+		<a href="#add" minion_name="async_panel" path="/my/pictures/add">
+			ADD A PICTURE
+		</a>
+	</div>
+	<h1 class="gallery_header">EDIT PROFILE PICTURES</h1>
+    <div class="back_link">
+    	<a href="#{PageRequest.current.area_base_uri}/profile">&#60;&#60; Back to Profile</a>
+     </div>
+     
+	<div class="extra_width_container">
+        <ul>
+            <li class="profile_pic" t:id="pics" t:iter="pic" minion_name="{pic.empty? ? '' : 'epp:profile_picture'}"  t:json="pic">
+                <img t:id="pic" t:linktype="landscapethumb"/>
+                <div class="description">
+                    <div class="functions">
+						&nbsp;
+                        <t:if t:id="!pic.empty?">
+							<a href="#{request.area_base_uri}/pictures/remove/{pic.gallerypicid}?form_key[]={form_key}" minion_name="epp:remove_link">
+	                            Remove
+	                        </a>&nbsp;|&nbsp;
+                        	<a href="#edit" minion_name="edit_picture:edit_link" t:json="[pic.gallerypicid, 'profile_picture']">Edit</a>
+						</t:if>
+                    </div>
+                    &nbsp;
+                </div>
+            </li>
+        </ul>
+    </div>
+	<div class="clearit"></div>
+</div>

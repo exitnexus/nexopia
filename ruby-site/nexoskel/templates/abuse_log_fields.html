@@ -1,0 +1,20 @@
+<div class="abuse_section">
+	<t:if t:id="abuse_error">
+		<div id="abuse_error">
+			#{abuse_error}
+		</div>
+	</t:if>
+	<div class="reason_selector">
+		<span class="field_name">Reason: </span>
+		<t:handler-include path="/profile/selector/mod_reason/{reason}" area="Admin">
+			<t:var t:name="'reason_ref'" t:val="'abuse_log_reason'" />
+		</t:handler-include>
+	</div>
+	<div>
+		<input type="text" name="abuse_log_subject" id="abuse_log_subject" value="{subject}"></input>
+	</div>
+	<div class="message_entry">
+		<span class="field_name">Abuse Log Entry: </span><br/>
+		<textarea name="abuse_log_entry" id="abuse_log_entry">{entry}</textarea>
+	</div>
+</div>

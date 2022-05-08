@@ -1,0 +1,72 @@
+#find_friends_mockup {
+	width: 726px;
+	padding: 18px 12px 12px 12px;
+	margin: 0px auto 0px auto;
+	background-color: $primary_background_color;
+	color: $primary_text_color;
+	
+	& * {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+	}
+	
+	& br.clear {
+		clear: both;
+	}
+	
+	& .header {
+		font-weight: bold;
+		color: $header_background_color;
+		font-size: 18px;
+		padding-bottom: 30px;
+		float: left;
+	}
+	
+	& a.skip_link {
+		float: right;
+	}
+	
+	& .content {
+		width: 475px;
+	
+		& .bold {
+			font-weight: bold;
+		}
+	}
+	
+	& .email_providers {
+		float: left;
+		margin-top: 30px;
+		margin-right: 24px;
+	}
+	
+	& table {
+		float: left;
+		margin-top: 30px;
+	
+		& td {
+			padding-bottom: 6px;
+		}
+		
+		& .label {
+			font-weight: bold;
+			width: 102px;
+		}
+		
+		& .field {
+		
+			 & .text {
+				width: 160px;
+			}
+		}
+		
+		& .will_not_store {
+			color: $subdued_text_color;
+			
+			& .btn {
+				padding-top: 12px;
+			}
+		}
+	}
+	
+}

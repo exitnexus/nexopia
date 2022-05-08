@@ -1,0 +1,52 @@
+.userpoll_create {
+	width: 556px;
+	padding: 12px 12px 40px 12px;
+	margin: 0px auto 0px auto;
+	
+	& .header {
+		float: left;
+		font-size: 14px;
+		font-weight: bold;
+		margin-bottom: 20px;
+	}
+	
+	& .yui-button {
+		float: right;
+	}
+	
+	& .label {
+		font-weight: bold;
+		width: 105px;
+	}
+	
+	& input {
+		width: 275px;
+		margin-bottom: 4px;
+	}
+	
+	& .show {
+		display: block;
+	}
+	
+	& .hide {
+		display: none;
+	}
+	
+	& .question {
+		padding-bottom: 15px;
+	}
+	
+	& .question input {
+		width: 350px;
+	}
+	
+	& a.add_row {
+		font-weight: bold;
+		color: $primary_block_link_color;
+	}
+	
+	& .warning {
+		color: #737373;
+	}
+	
+}

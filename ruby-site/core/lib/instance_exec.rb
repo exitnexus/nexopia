@@ -1,8 +1,10 @@
 class Proc #:nodoc:
   def bind(object)
-    block, time = self, Time.now
+  	$proc_bind_counter ||= 0
+  	$proc_bind_counter += 1
+    block = self
     (class << object; self end).class_eval do
-      method_name = "__bind_#{time.to_i}_#{time.usec}"
+      method_name = "__bind_#{$proc_bind_counter}"
       define_method(method_name, &block)
       method = instance_method(method_name)
       remove_method(method_name)

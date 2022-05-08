@@ -25,7 +25,7 @@ td.header		{ background-color: #5d5e61; color: #fff; font-family: arial, sans-se
 a.header  	{ color: #fff; text-decoration:none;  }
 a.header:hover	{ color: #dddddd; }
 
-td.headerfront	{ color:#000; background: #fff url(http://static.nexopia.com/skins/somber/fronthead.png); height:30px; padding-bottom:8px; }
+td.headerfront	{ color:#000; background: #fff url(http://static.nexopia.com/1/files/Legacy/skins/somber/fronthead.png); height:26px; padding-bottom:8px; }
 
 
 td.header2			{ color: #323237; font-family: arial, sans-serif; font-size: 8pt}

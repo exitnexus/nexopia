@@ -1,0 +1,154 @@
+
+.enhanced_text_box_wrapper
+{
+	position: relative;
+	width: 500px;
+
+	& .tab_bar
+	{
+		
+		& .tab_handles
+		{
+			position: relative;
+			height: 17px;
+			
+			border-left: solid 1px #b8b8b8;
+			
+			& .tab_handle
+			{
+				float: left;
+				
+				padding: 2px;
+				padding-left: 6px;
+				padding-right: 6px;
+				
+				border: solid 1px #b8b8b8;
+				border-bottom-width: 0px;
+				border-left: none;
+				background-color: #fff;
+				
+				cursor: pointer;
+			}
+		}
+		
+		& .tab_bodies
+		{
+			position: relative;
+			
+			background-color: transparent;
+			border: solid 1px #b8b8b8;
+			border-bottom: none;
+			text-align: left;
+			
+			& .tab_body
+			{
+				padding: 2px;
+				color: #000;
+				background-color: #fff;
+				
+				& .yui-button
+				{
+/* 					display: block; */
+					
+					height: 18px;
+					
+/* 					float: left; */
+					
+					border-width: 0px;
+					background-color: #474747;
+					color: #333;
+					font-size: 10px;
+					
+					margin: 0px;
+/* 					margin-top: 2px; */
+/* 					margin-bottom: 2px; */
+					margin-right: 2px;
+					
+					outline: none;
+				}
+				& .smilies {
+					height: 36px;
+					
+					& img, canvas
+					{
+						position: relative;
+						margin-top: 14px;
+						float: left;
+						cursor: pointer;
+					}
+					& div
+					{
+						position: relative;
+						margin: 0px 2px;
+						overflow: hidden;
+						& img {
+							float:none;
+							margin-top: 0px;
+							margin-right: 3px;
+							margin-left: 3px;
+						}
+						float: left;
+						& div {
+							position:relative;
+							top: -2px;
+							height: 36px;
+							width: 2135px;
+						}
+					}
+				}
+			}
+			& .sub_menu
+			{
+				& ul
+				{
+					padding: 0px;
+					padding-bottom: 4px;
+					padding-top: 4px;
+				
+					margin: 0px;
+				
+					border: solid 1px #474747;
+					background-color: #fff;
+					font-size: 10px;
+					outline: none;
+					list-style-type: none;
+				
+					& li
+					{
+						color: #333;
+						padding: 2px;
+						padding-left: 6px;
+						padding-right: 12px;
+						cursor: pointer;
+					}
+					& li:hover
+					{
+						text-decoration: underline;
+					}
+				}
+			}
+		}
+	}
+
+	& textarea
+	{
+		padding: 0px;
+		margin: 0px;
+	
+/* 		border: none; */
+		border: solid 1px #b8b8b8;
+		background-color: #fff;
+		color: #000;
+	}
+}
+
+
+/* Following two rules specifically target tabs on enchanced text editor which makes sure they are readable on any color skinned background */
+
+.enhanced_text_box_wrapper .tab_bar .tab_handles .tab_handle {
+	color: #474747;
+}
+
+.enhanced_text_box_wrapper .tab_bar .tab_handles {
+	background-color: inherit;
+}

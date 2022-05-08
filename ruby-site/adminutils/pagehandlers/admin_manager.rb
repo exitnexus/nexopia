@@ -11,7 +11,7 @@ class AdminManager < PageHandler
 		page :GetRequest, :Full, :list_admins
 		page :GetRequest, :Full, :edit_admin, "admins", input(Integer)
 		
-		handle :PostRequest, :update_admin, "admins", "update"
+		handle :PostRequest, :update_admin, "admins", "update_admin"
 		handle :PostRequest, :create_admin, "admins", "create"
 	}
 	

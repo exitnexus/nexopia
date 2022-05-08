@@ -1,0 +1,130 @@
+<div id="blog">
+	<div class="blog_container">
+		<t:template-include t:module="blogs" t:name="blog_header" />
+		
+		<t:template-include t:module="blogs" t:name="blog_post"/>
+		
+		<div class="blog_comments_container">
+			<a name="comments_top"/>
+			#{paging_string}
+			<div class="blog_comments_header">
+				NEW REPLIES
+			</div>
+			<t:if t:id="post_error" >
+				<div id="comments_post_error">
+					#{post_error}
+				</div>
+			</t:if>
+			<form name="blog_comments_delete_form" id="blog_comments_delete_form" 
+				method="post" action="/users/%{blog_post.user.username}/blog/{blog_post.id}/comments/delete">
+				<t:if t:id="reply_form_key">
+					<input type="hidden" name="form_key[]" value="{reply_form_key}" />
+				</t:if>
+				<t:varsub t:new="first_level_comment" t:old="'root_comment'" />
+				<t:iter t:id="blog_post.root_comments" t:iter="blog_comment">
+					<t:template-include t:module="blogs" t:name="blog_comment" />
+				</t:iter>
+
+				<t:if t:id="show_delete_controls">
+					<div minion_name="blog_comments:comment_functions" class="comment_functions">
+						<div class="select_links">
+							Select:&#160;<a href="#" minion_name="blog_comments:select_all">All</a>,&#160;
+							<a href="#" minion_name="blog_comments:select_none">None</a>&#160;
+						</div>
+						<t:if t:id="!admin_viewer">
+							<t:button minion_name="div_panel" 
+								div_id="blog_delete_entries_panel"
+								exit_path="/users/%{blog_post.user.username}/blog/{blog_post.id}/comments/delete"
+								form_id="blog_comments_delete_form"
+								ajax_exit="false"
+								id="delete_btn">Delete</t:button>
+						</t:if>
+						<t:if t:id="admin_viewer">
+							<t:button minion_name="div_panel" 
+								div_id="blog_delete_entries_panel"
+								exit_path="/users/%{blog_post.user.username}/blog/admin/{blog_post.id}/comments/delete"
+								form_id="blog_comments_delete_form"
+								ajax_exit="false"
+								id="delete_btn">Delete</t:button>
+						</t:if>
+					</div>
+					<!-- <input id="comments_delete_button" type="submit" value="Delete" class="submit" /> -->
+				</t:if>
+			</form>
+			
+			<t:if t:id="viewing_user.anonymous? || blog_user.ignored?(viewing_user)">
+				<br class="clear"/>
+			</t:if>
+			
+			<t:if t:id="!viewing_user.anonymous?() && !blog_user.ignored?(viewing_user)">
+				<a name="blog_post_reply" />
+				<div id="static_blog_comment_editor">
+					<div class="blog_comments_reply_header">
+						Comment on {blog_post.title}
+					</div>
+					<table>
+						<tbody>
+							<tr>
+								<td class="viewing_user_pic">
+									<a t:id="viewing_user">
+										<img t:id="viewing_user" t:linktype="landscapethumb" />
+									</a>
+								</td>
+								<td>
+									<form method="post" id="static_blog_comment_form" name="static_blog_comment_form" action="/users/%{blog_user.username}/blog/{blog_post.id}/comment/submit">
+										<t:if t:id="reply_form_key">
+											<input type="hidden" name="form_key[]" value="{reply_form_key}" />
+										</t:if>
+										<textarea name="blog_comment_content" id="static_blog_comment_content" minion_name="enhanced_text_input"/>
+										<span class="custom_button yui-button yui-button-button">
+											<span class="first-child">
+													<button type="submit">
+														Post
+													</button>
+												</span>
+											</span>
+									</form>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</t:if>
+			<t:if t:id="!viewing_user.anonymous?() && !blog_user.ignored?(viewing_user)">
+				<div id="blog_comment_editor" minion_name="blog_comments:dynamic_comment_reply_editor">
+					<table>
+						<tbody>
+							<tr>
+								<td class="viewing_user_pic">
+									<a t:id="viewing_user">
+										<img t:id="viewing_user" t:linktype="landscapethumb" />
+									</a>
+								</td>
+								<td>
+									<form id="dynamic_blog_comment_form" name="dynamic_blog_comment_form" method="post" action="/users/%{blog_user.username}/blog/{blog_post.id}/comment/submit">
+										<input type="hidden" id="blog_base_comment_url" name="blog_base_comment_url" value="/users/%{blog_user.username}/blog/{blog_post.id}/comment" />
+										<t:if t:id="reply_form_key">
+											<input type="hidden" name="form_key[]" value="{reply_form_key}" />
+										</t:if>
+										<textarea name="blog_comment_content" id="blog_comment_content" minion_name="enhanced_text_input"/>
+										<span class="custom_button yui-button yui-button-button">
+											<span class="first-child">
+													<button type="submit">
+														Post
+													</button>
+												</span>
+											</span>
+									</form>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</t:if>
+			#{paging_string}
+		</div>
+	</div>
+	<t:if t:id="blog_user.userid == viewing_user.userid || admin_viewer">
+		<t:handler-include path="/blog/panel/delete" area="Public"/>
+	</t:if>
+</div>

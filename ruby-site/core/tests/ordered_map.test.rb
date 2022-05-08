@@ -3,7 +3,7 @@ lib_require :Devutils, 'quiz'
 
 class TestOrderedMap < Quiz
 	def test_basic
-		map = OrderedMap.new(:zero, "00", :one, "01");
+		map = OrderedMap.new({:zero => "00", :one => "01"});
 		assert_equal(map.index(:zero), 0);
 		assert_equal(map.at(0), "00");
 		assert_equal(map[:zero], "00");
@@ -26,7 +26,7 @@ class TestOrderedMap < Quiz
 			assert_equal("01", value) if (i == 1);
 			i += 1;
 		}
-		map2 = OrderedMap.new(:jack, :jill);
+		map2 = OrderedMap.new({:jack => :jill});
 		assert_equal(map2.at(0), :jill);
 		map.merge(map2);
 		assert_equal(map.at(2), :jill);

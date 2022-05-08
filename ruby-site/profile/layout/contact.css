@@ -1,0 +1,13 @@
+.contact_edit 
+{
+	& .edit_content
+	{
+		margin-top: 20px;
+		margin-bottom: 40px
+	}
+	
+	& input {
+		width: 210px;
+		padding: 1px 4px 1px 4px;
+	}
+}

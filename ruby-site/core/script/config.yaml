@@ -1,0 +1,9 @@
+--- !ruby/object:JavascriptConfig 
+yui_require: 
+- yahoo
+- dom
+- event
+- connection
+- get
+- datasource
+- autocomplete

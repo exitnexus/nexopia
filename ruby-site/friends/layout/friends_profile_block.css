@@ -1,95 +1,293 @@
-div#friends_profile_block {
-	& .friends_title {
-		color: $link_color;
-		font-weight: bold;
-		font-family: $header_font_family;
-		font-size: 14px;
-		letter-spacing: 0px;
+#profile div#friends_profile_block {
+	& .hidden {
+		display:none;
 	}
-	& .view_all {
-		float: right;
-		margin-top: 2px;
-	}
-	& a {
-		color: $link_color;
-		&:hover {
-			color: $link_accent_color;
-		}
-	}
-	& ul {
-		/* todo: height: expression( this.scrollHeight > 449 ? "450px" : "auto" );  sets max-height for IE */
-		max-height: 450px;
-		overflow: hidden;
-		list-style: none;
-		padding: 0px;
-		margin: 0px;
-		& img {
-			border:none;
-			width:52px;
-			height:43px;
-		}
 	
-		& li.user_container {
-			background-color: $secondary_background_color;
-			margin-top: 2px;
-			width: 100%;
-			height: 43px;
-			&:hover {
-				background-color: $primary_background_color;
-			}
+	& #friends_toolbar {
+		width: 222px;
+		height: 22px;
+		& .search {
+			position: relative;
+			left: 3px;
 		}
-
-		& div.user_thumb {
-			float: left;
-		}
-
-		& div.user_info {
-			float: left;
-			padding: 3px 5px 3px 5px;
-			font-size: 10px;
-		}
-
-		& div.user_functions {
+		& .change_view {
+			position: relative;
+			top: 5px;
+			right: 1px;
 			float: right;
-			padding: 3px 5px 3px 0px;
-			text-align: center;
-	 		& a {
-				display: block;
+			&.selected {
+				display: none;
 			}
 		}
+		& #friends_search {
+			width: 150px;
+			height: 15px;
+			font-size: 11px;
+			padding: 0px;
+		}
+		
+		& #friends_results {
+			& div {
+				position: absolute;
+				z-index: 100;
+				*background-color: transparent;
+				*height: 500px;
+				*overflow: auto;
+				color: @secondary_block_background_color;
+				opacity: 0.94;
+				width: 187px;
+				font-size: 11px;
+				& ul {
+					background-color: @secondary_block_link_color;
+					list-style:none;
+					margin: 0px;
+					padding: 0px;
+					& li {
+						border: 2px solid @secondary_block_link_color;
+						padding: 6px 3px;
+					}
+				}
+				& .yui-ac-highlight {
+					background-color: @secondary_block_background_color;
+					color: @secondary_block_link_color;
+				}	
+			}
+		}
+	}
+	
+	& #list_view {
+		& .pages {
+			height: 438px;
+			overflow: hidden;
+			position: relative;
+			padding-bottom: 1px;
+			& .page {
+				height: 438px;
+			}
+		}
+		& .short_friend {
+			background-color: @secondary_block_background_color;
+			color: @secondary_block_text_color;
+			margin: 0px 0px 2px 0px;
+			height: 16px;
+			padding: 2px 6px;
+			&:hover {
+				background-color: @secondary_block_background_hover_color;
+				& .functions {
+					background-color: @secondary_block_background_hover_color;
+				}
+				& .hover {
+					visibility: visible;
+				}
+			}
+			& .name {
+				/* ie6 and ie7 have float:left applied here, see end of file for the hacks */
+				clear: both;
+				font-weight: bold;
+			}
+			& .functions {
+				position: relative;
+				right: -3px;
+				& .hover {
+					visibility: hidden;
+				}
+				float: right;
+			}
+			& a {
+				color: @secondary_block_link_color;
+				&:hover {
+					color: @secondary_block_link_hover_color;
+				}
+			}
+			& img, canvas {
+				margin: 3px;
+				color: @secondary_block_icon_color;
+				text-align: right;
+			}
+		}
+	}
 
-		& img.icon {
-			margin-bottom: 6px;
-			width: 10px;
-			height: 8px;
-			&.last {
-				margin-bottom: 0px;
+	& #friends_pages {
+		& .pages {
+			height: 438px;
+		}
+		& ul {
+			overflow: hidden;
+			list-style: none;
+			padding: 0px;
+			margin: 0px;
+			& img {
+				border:none;
+				width:50px;
+				height:42px;
+			
+				/* IE 6, in its infinite glory, needs this :-( */
+				vertical-align: top;
+				display: block;
+				/* End IE 6 headaches */
+			}
+		
+			& li.block_regular
+			{
+				background-color: @secondary_block_background_color;
+			}
+		
+			& li.block_hover
+			{
+				background-color: @secondary_block_background_hover_color;
+			}
+
+			& li.user_container {
+				margin-bottom: 2px;
+				width: 222px;
+				height: 42px;
+				color: @secondary_block_text_color;
+			
+				/* IE 6, in its infinite glory, needs this :-( */
+				overflow: hidden;
+				/* End IE 6 headaches */
+			}
+
+			& div.user_thumb {
+				float: left;
+			
+				/* IE 6, in its infinite glory, needs this :-( */
+				height: 43px; 
+				overflow: hidden;
+				/* End IE 6 headaches */
+			}
+
+			& div.online_offline {
+				float: left;
+				margin-left: 3px;
+				margin-top: 7px;
+				
+				& img.online
+				{
+					display: block;
+					vertical-align: text-bottom;
+					height: 8px;
+					width: 10px;
+				}				
+			}
+
+			& div.user_info {
+				float: left;
+				padding: 3px 5px 3px 3px;
+				font-size: 10px;
+				
+				/* 
+					In case the user has overridden the font size to something huge. Granted, it will mess up
+					other areas of the site too, but it shouldn't push the friends icons over like it does
+					when this is not set. 
+				*/
+				overflow: hidden;
+				width: 133px;
+				
+				& a
+				{
+					font-family: Verdana, Arial, Helvetica, sans-serif;
+					font-size: 11px;
+					font-weight: bold;
+				}
+			}
+
+			& div.user_functions {
+				float: right;
+				padding: 3px 5px 3px 0px;
+				text-align: center;
+			
+				/* IE 6, in its infinite glory, needs this :-( */
+				overflow: hidden; 
+				height: 39px;
+				/* End IE 6 headaches */
+			
+				& a {
+				
+					color: @secondary_block_link_color;
+					display: block;
+				
+					&:hover {
+						color: @secondary_block_link_hover_color;
+					}
+				
+					/* IE 6, in its infinite glory, needs this :-( */
+					height: 8px; 
+					width: 10px;
+					overflow: hidden;
+					/* End IE 6 headaches */
+				}
+			
+				& div
+				{
+					height: 8px;
+					width: 10px;
+					overflow: hidden;
+					margin-bottom: 6px;
+					padding: 0px;
+				}
+			}
+
+			& .color_icon {
+				margin-bottom: 6px;
+				width: 10px;
+				height: 8px;
+				&.last {
+					margin-bottom: 0px;
+				}
 			}
 		}
 	}
 	& div.friends_arrow_btns {
 		position: relative;
+		top: 2px;
 		width: 100%;
+	
 		& a {
-			float: right;
-			margin-top: 4px;
+			float: left;			
 			&.friends_btns {
-				width: 82px;
+				width: 110px;
 				height: 11px;
-				margin-bottom: 6px;
 				border: none;
 				background-position: center center;
 				background-repeat: no-repeat;
-				background-color: $secondary_background_color;
+				background-color: @secondary_block_background_color;
+				padding-top: 1px;
+				padding-bottom: 1px;
+				overflow: hidden;
+			}
+			& img, canvas
+			{
+				padding-top: 1px;
+				padding-bottom: 1px;
+				vertical-align: top;
 			}
 			&#arrow_down {
 				margin-left: 1px;
-				background-image: url("/static/1200077378/files/Friends/images/icon_arrow_down.gif");
+				text-align: center;
 			}
 			&#arrow_up {
 				margin-right: 1px;
-				background-image: url("/static/1200077378/files/Friends/images/icon_arrow_up.gif");
+				text-align: center;
+			}
+			& .custom_color_icon
+			{
+				color: @secondary_block_icon_color;
+			}
+			& .color_icon
+			{
+				color: @secondary_block_icon_color;
 			}
 		}
 	}
+}
+
+/* ie6 hack to float names left in the short friends list */
+*html #friends_profile_block #list_view .name {
+	float: left;
+}
+
+/* ie7 hack to float names left in the short friends list */
+*:first-child+html #friends_profile_block #list_view .name {
+	float: left;
 }

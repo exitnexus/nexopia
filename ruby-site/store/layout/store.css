@@ -1,0 +1,23 @@
+#store_wrapper {
+	text-align: center;
+	
+	& .shift_over {
+		padding-left: 6px;
+	}
+	
+	& .header {
+		text-align: center;
+		background-color: #141414;
+		width: 833px;
+		margin: 0px auto 0px auto;
+	}
+	
+	& iframe {
+		margin: 0px;
+		padding: 0px;
+		width: 100%;
+		height: 2200px;
+		border: none;
+	}
+
+}

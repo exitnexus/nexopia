@@ -1,12 +1,27 @@
 Validation = {
-	init: function()
+	/*
+		fields: Optional. If these are passed in, we'll initialize Validation.states with "none" for
+	 			each so that when Validation.allStatesAreValid() is called, it will return false by
+				default, even if the user hasn't clicked inside any of the fields.
+	*/
+	init: function(fields)
 	{
-		
+		for(var i = 0; i < fields.length; i++)
+		{
+			Validation.states[fields[i]] = "none";
+		}
 	},
 	
-	
-	displayValidation: function(field_id, state, message)
+	// silent: optional - only update the Validation.states entry
+	displayValidation: function(field_id, state, message, silent)
 	{
+		Validation.states[field_id] = state;
+	
+		if(silent != null && silent == true)	
+		{
+			return;
+		}
+		
 		array_regexp = /(.*)\[(.*)\]/;
 		field_index = "";
 		if (field_id.match(array_regexp))
@@ -26,33 +41,33 @@ Validation = {
 		
 		if (state == "error")
 		{
-			warning_icon.style.display = "none";
-			error_icon.style.display = "block";
-			valid_icon.style.display = "none";
+			if (warning_icon) warning_icon.style.display = "none";
+			if (error_icon) error_icon.style.display = "block";
+			if (valid_icon) valid_icon.style.display = "none";
 			
 			active_icon = error_icon;
 		}
 		else if (state == "valid")
 		{
-			warning_icon.style.display = "none";
-			error_icon.style.display = "none";
-			valid_icon.style.display = "block";
+			if (warning_icon) warning_icon.style.display = "none";
+			if (error_icon) error_icon.style.display = "none";
+			if (valid_icon) valid_icon.style.display = "block";
 			
 			active_icon = valid_icon;
 		}
 		else if (state == "warning")
 		{
-			warning_icon.style.display = "block";
-			error_icon.style.display = "none";
-			valid_icon.style.display = "none";
+			if (warning_icon) warning_icon.style.display = "block";
+			if (error_icon) error_icon.style.display = "none";
+			if (valid_icon) valid_icon.style.display = "none";
 			
 			active_icon = warning_icon;
 		}
 		else
 		{
-			warning_icon.style.display = "none";
-			error_icon.style.display = "none";
-			valid_icon.style.display = "none";
+			if (warning_icon) warning_icon.style.display = "none";
+			if (error_icon) error_icon.style.display = "none";
+			if (valid_icon) valid_icon.style.display = "none";
 		}
 		
 		message_div = document.getElementById(field_id + "_vm" + field_index);
@@ -76,9 +91,9 @@ Validation = {
 	},
 	
 	
-	ajaxValidate: function(field_id, url)
+	ajaxValidate: function(field_id, url, silent)
 	{
-		Validation.displayValidation(field_id, "none", "Checking...");
+		Validation.displayValidation(field_id, "none", "Checking...", silent);
 		
 		callback = {
 			success: function(o) {
@@ -89,25 +104,43 @@ Validation = {
 				messageText = messageTag.firstChild == null ? "" : messageTag.firstChild.nodeValue;
 				escapedMessageText = messageText.replace(/</, "&lt;").replace(/>/, "&gt;");
 				
-				Validation.displayValidation(field_id, stateText, escapedMessageText);
+				Validation.displayValidation(field_id, stateText, escapedMessageText, silent);
 			}
 		};
 		
-		form_key = document.getElementsByName("form_key")[0];
+		form_key = document.getElementsByName("form_key[]")[0];
 		
 		value_field = document.getElementById(field_id);
-		value = escape(value_field.value.replace("+", "%2b"));
+		value = Nexopia.Utilities.escapeURI(value_field.value);
 		
-		if (url[url.length - 1] != '/')
+		YAHOO.util.Connect.asyncRequest('POST', url, callback, "form_key[]=" + form_key.value + "&value=" + value);
+	},
+	
+	
+	/*
+		When Validation.displayValidation() (or Validation.ajaxValidate()) is called for any field, we
+		update Validation.states, which reflect the overall validity of the page. This function returns
+		true if all of the fields that have been validated (or initialized) are in a valid (or warning)
+		state and false if they are not.
+		
+		It's best to initialize the Validation.states first by passing an array of field names into
+		Validation.init().
+	*/
+	allStatesAreValid: function()
+	{
+		for(var key in Validation.states)
 		{
-			url = url + '/';
+			var value = Validation.states[key];
+			if (!(value == "valid" || value == "warning"))
+			{
+				return false;
+			}
 		}
 		
-		YAHOO.util.Connect.asyncRequest('POST', url + value, callback, "form_key=" + form_key.value);		
+		return true;
 	}
 }
-
-Validation.init();
+Validation.states = [];
 
 
 function ValidationResults(state, message)
@@ -209,7 +242,7 @@ ValidationChain.prototype =
 		if (this.server_chain.length > 0)
 		{
 			// TODO: Change to the validation handler in Core!!!
-			ruleString = "/accountcreate"
+			ruleString = "/account"
 			for (var i = 0; i < this.server_chain.length; i++)
 			{
 				rule = this.server_chain[i];
@@ -288,4 +321,4 @@ ValidationValueAccessor.prototype =
 
 		return field.value;
 	}
-}
+};

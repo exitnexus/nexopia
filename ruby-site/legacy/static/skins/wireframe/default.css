@@ -19,7 +19,7 @@ td.header		{ background-color: #272727; color: #e6d600; font-family: arial, sans
 a.header  	{ color: #e6d600; text-decoration:none;  }
 a.header:hover	{ color: #FFF; }
 
-td.headerfront	{ color:#BCBEC0; background: url(http://static.nexopia.com/skins/wireframe/blockhead.png); font-size: 12pt; height:30px; text-indent:10px;}
+td.headerfront	{ color:#BCBEC0; background: url(http://static.nexopia.com/1/files/Legacy/skins/wireframe/blockhead.png); font-size: 12pt; height:30px; text-indent:10px;}
 
 td.header2			{ color: #baad00; font-family: arial, sans-serif; font-size: 8pt}
 a.header2     	{ color: #baad00; text-decoration:none; }
@@ -28,8 +28,8 @@ a.header2:hover		{ color: #fff; }
 td.body			{ background-color: #403f40; color: #BCBEC0; font-family: arial, sans-serif; font-size: 8pt}
 td.body2		{ background-color: #383738; color: #BCBEC0; font-family: arial, sans-serif; font-size: 8pt}
 a.body { color: #d5ce72; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
-a.body:hover	{ color: #FFFFFF; }
-body input, select, option, textarea	{ font-family: arial, sans-serif; font-size: 8pt; border:1px solid #BCBEC0; margin: 1 0 0 0;}
+a.body:hover	{ color: #BFB547; }
+body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; color: #000; border:1px solid #d4d6d7;}
 body option {border:0px;}
 body textarea { font-size: 9pt; }
 

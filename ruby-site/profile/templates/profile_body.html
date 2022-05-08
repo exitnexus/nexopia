@@ -3,11 +3,20 @@
 	<td class="profile_left_column">
 		<div id="drag_drop_wrapper_1">
 			<t:iter t:id="column_data['0']" t:iter="display_block" t:index="block_index">
-				<div class="block_container" id="block0_#{display_block.blockid}">
-					<div id="data_#{display_block.blockid}">
-						#{display_block.rendered_content.string}
+				<t:if t:id="display_block.visible_wrapper">
+					<div class="block_container #{display_block.control_block()}" id="block0_#{display_block.blockid}">
+						<div id="data_#{display_block.blockid}">
+							#{display_block.rendered_content.string}
+						</div>
 					</div>
-				</div>
+				</t:if>
+				<t:if t:id="!display_block.visible_wrapper">
+					<div class="block_container" id="block0_#{display_block.blockid}">
+						<div id="data_#{display_block.blockid}">
+							#{display_block.rendered_content.string}
+						</div>
+					</div>
+				</t:if>
 			</t:iter>
 			<div class="column_bottom_marker" id="column_bottom_marker_0"></div>
 		</div>
@@ -18,11 +27,20 @@
 	<td class="profile_right_column">
 		<div id="drag_drop_wrapper_2">
 			<t:iter t:id="column_data['1']" t:iter="display_block" t:index="block_index">
-				<div class="block_container" id="block1_#{display_block.blockid}">
-					<div id="data_#{display_block.blockid}">
-						#{display_block.rendered_content.string}
+				<t:if t:id="display_block.visible_wrapper">
+					<div class="primary_block block_container" id="block1_#{display_block.blockid}">
+						<div id="data_#{display_block.blockid}">
+							#{display_block.rendered_content.string}
+						</div>
 					</div>
-				</div>
+				</t:if>
+				<t:if t:id="!display_block.visible_wrapper">
+					<div class="block_container primary_block_no_wrapper" id="block1_#{display_block.blockid}">
+						<div id="data_#{display_block.blockid}">
+							#{display_block.rendered_content.string}
+						</div>
+					</div>
+				</t:if>
 			</t:iter>
 			<div class="column_bottom_marker" id="column_bottom_marker_1"></div>
 		</div>

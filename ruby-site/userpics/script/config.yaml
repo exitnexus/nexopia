@@ -1,0 +1,9 @@
+--- !ruby/object:JavascriptConfig 
+module_require: 
+- core
+- gallery
+yui_require:
+- dragdrop
+- element-beta
+- resize
+- imagecropper-beta

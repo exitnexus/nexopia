@@ -1,4 +1,7 @@
 module Template
+	# A 'Processor' handles all the tags and attributes under a namespace.
+	# If you want to make a new namespace, you need to make a new Processor.
+	# See DefaultView.rb and LiteralView.rb
 	class Processor
 		def self.inherited(othermod)
 			@@processor_classes ||= []

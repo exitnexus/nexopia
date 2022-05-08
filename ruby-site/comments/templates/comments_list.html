@@ -1,0 +1,20 @@
+<t:doc>
+	<t:loop t:id="comments.compact" t:iter="comment">
+		<t:template-include t:module="comments" t:name="single_comment"/>
+	</t:loop>
+	<t:json t:data="num_comments" t:handle="numComments"/>
+	<t:if t:id="delete_link">
+		<div id="comment_footer" minion_name="comments:footer">
+			<form id="delete_comments_form">
+				<input type="hidden" name="ajax_delete_url" value="{ajax_delete_url}"/>
+				<input type="hidden" name="form_key[]" value="{post_form_key}" />
+				
+				<t:if t:id="!profile_block">
+					<input type="checkbox" id="select_all_comments"/>
+					<!--<t:template-include t:module="comments" t:name="abuselog"/> -->
+					<input id="comments_delete_button" type="submit" value="Delete" class="submit" />
+				</t:if>
+			</form>
+		</div>
+	</t:if>
+</t:doc>

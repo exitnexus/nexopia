@@ -1,0 +1,107 @@
+#picmod_quiz_mockup {
+	width: 738px;
+	padding: 6px 6px 12px 6px;
+	margin: 0px auto 0px auto;
+	background-color: $primary_background_color;
+	color: $primary_text_color;
+	
+	& * {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 8pt;
+	}
+	
+	& .clear {
+		clear: both;
+	}
+	
+	& .header {
+		font-weight: bold;
+		color: $header_background_color;
+		font-size: 14px;
+		padding-bottom: 12px;
+	}
+	
+	& .large_button {
+		text-align: center;
+				
+		& .custom_button button {
+			font-size: 18px;
+			text-decoration: underline;
+			padding: 4px 35px 6px 35px;
+		}
+	}
+	
+	& .error_container {
+		display: none;
+		padding: 12px;
+		margin-bottom: 12px;
+		background-color: #faebc6;
+		color: #000;
+		border: 1px solid #a84145;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		
+		& * {
+			font-family: Verdana, Arial, Helvetica, sans-serif;
+			font-size: 11px;
+		}
+		
+		& .primary_text {
+			font-size: 15px;
+			font-weight: bold;
+		}
+		
+		& .secondary_text {
+			margin-top: 2px;
+		}
+	}
+	
+	& .picture_container {
+		background-color: $secondary_background_color;
+		color: $secondary_text_color;
+		padding: 6px;
+		text-align: center;
+	}
+	
+	& .answer_buttons {
+		display: inherit;
+		margin: 12px auto 0px auto;
+		width: 130px;
+		
+		& .approve {
+			float: left;
+		}
+		
+		& .deny {
+			float: right;
+		}
+	}
+	
+	& .continue_button {
+		display: none;
+		text-align: center;
+		margin-top: 12px;
+	}
+	
+	& .total_score {
+		font-weight: bold;
+		text-align: center;
+		font-size: 15px;
+		font-family: Helvetica, Arial, sans-serif;
+		
+		& span {
+			font-size: 28px;
+			font-family: Helvetica, Arial, sans-serif;
+		}
+	}
+	
+	& .link_container {
+		padding-left: 30px;
+		padding-top: 24px;
+		
+		& a {
+			display: block;
+			margin-bottom: 4px;
+		}
+	}
+	
+}

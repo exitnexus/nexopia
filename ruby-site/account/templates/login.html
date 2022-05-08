@@ -1,0 +1,79 @@
+<div class="account_content_container" id="login_page_container">
+	<div class="post_response {post_response.state == :error ? 'error' : 'valid'}" t:id="post_response">
+		<div class="primary_text">
+			#{post_response.primary_text}
+		</div>
+		<div class="secondary_text">
+			#{post_response.secondary_text}
+		</div>
+	</div>
+	<div id="login_page">
+
+		<div class="join_now">
+			Not a Member?&nbsp;<a href="/account/join" minion_name="login:show_join">Join Nexopia</a>
+		</div>
+
+		<div class="left_column">
+			<div class="header">
+				Login
+			</div>
+			<form method="POST" action="/account/login/post" target="_top" name="loginform" id="loginform">
+				<table cellspacing="0" cellpadding="0">
+				<tr>
+					<td class="label">Username</td>
+					<td class="field">
+						<input name="login_username" type="text" class="text" value="{username}"/>
+					</td>
+				</tr><tr>
+					<td class="label">Password</td>
+					<td class="field">
+						<input name="login_password" type="password" class="text" />
+					</td>
+				</tr><tr>
+					<td class="label"></td>
+					<td class="field">
+						<input name="cachedlogin" type="checkbox" /> Remember Me
+						<input name="lockip" value="on" type="hidden"/>
+					</td>
+				</tr><tr>
+					<td class="label"></td>
+					<td class="field">
+						<div class="login_btn">
+							<t:button type="submit">LOGIN</t:button>
+						</div>
+					</td>
+				</tr>
+				</table>
+				<input type="hidden" name="referer" value="{referer}" t:id="referer"/>
+			</form>
+			<table cellspacing="0" cellpadding="0">
+			<tr>
+				<td class="label"></td>
+				<td class="field extra_space">
+					<a href="#" minion_name="login:lost_toggle">Lost Username or Password</a>
+				</td>
+			</tr>
+			</table>
+			<form method="POST" action="/account/reset_password">
+				<table cellspacing="0" cellpadding="0" id="get_password_panel" style="{show_lost_password ? 'display:block' : 'display:none'}">
+				<tr class="lost_password">
+					<td class="label">Email Address</td>
+					<td class="field">
+						<input name="reset_email" type="text" class="text" />
+						<div>
+							<t:button type="submit">Reset Password</t:button>
+						</div>
+					</td>
+				</tr>
+				</table>
+			</form>
+		</div>
+	
+		<br class="clear" />
+	</div>
+	<div id="inline_join_container" t:id="!inline" style='display:none'>
+		<t:handler-include path="/account/join" area="Public">
+			<t:var t:name="'inline'" t:val="true"/>
+		</t:handler-include>
+	</div>
+</div>

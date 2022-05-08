@@ -14,7 +14,6 @@ module Legacy
 			rewrite(:GetRequest, 'careers', remain) {|remain| url/"careers.php"/remain }
 			rewrite(:GetRequest, 'about', remain) {|remain| url/"aboutus.php"/remain }
 			rewrite(:GetRequest, 'advertis(e|ing)', remain) {|remain| url/"advertise.php"/remain }
-			rewrite(:GetRequest, 'plus', remain) {|remain| url/"plus.php"/remain }
 		
 			#rewrite(:GetRequest, 'video', remain) {|remain| url/"ruby_passthru.php"/remain }
 			#rewrite(:GetRequest, 'test_stuff', remain) {|remain| url/"ruby_passthru.php"/remain }
@@ -22,7 +21,7 @@ module Legacy
 			#rewrite(:GetRequest, 'music', remain) {|remain| url/"ruby_passthru.php"/remain }
 			#rewrite(:GetRequest, 'content', remain) {|remain| url/"ruby_passthru.php"/remain }
 			#rewrite(:GetRequest, 'admin', remain) {|remain| url/"ruby_passthru.php"/remain }
-			#rewrite(:GetRequest, 'accountcreate', remain) {|remain| url/"ruby_passthru.php"/remain }
+			#rewrite(:GetRequest, 'account', remain) {|remain| url/"ruby_passthru.php"/remain }
 			#rewrite(:GetRequest, 'my', remain) {|remain| url/"ruby_passthru.php"/remain }
 			rewrite(:GetRequest, 'terms', remain) {|remain| url/"terms.php"/remain }
 			rewrite(:GetRequest, 'googleprofile', remain) {|remain| url/"googleprofile.php"/remain }

@@ -1,0 +1,77 @@
+<div id="blog_new_entry_container">
+
+	<t:template-include t:module="blogs" t:name="blog_new_entry_header" />
+
+	<form method="post" id="new_blog" action="#{PageRequest.current.area_base_uri}/blog/#{action}/submit">
+		<input type="hidden" name="typeid" value="{Blogs::PollBlog.typeid}"/>
+
+		<input type="hidden" name="blog_post_content" id="blog_post_content" 
+		value="" />
+
+		<div class="left_column">
+			<div class="post_title">
+				Poll Question or Title
+			</div>
+			<input type="text" class="text" id="blog_post_title" maxlength="128"
+			name="blog_post_title" />
+
+			<div id="add_photo_button" class="shown">
+				<a href="#add_photo" minion_name="blogs:poll_create:add_photo"
+				class="add_row">+ Add a Photo</a>&nbsp;(optional)
+			</div>
+
+			<div id="add_photo_container" class="hidden">
+			<t:template-include t:module="blogs" t:name="add_photo" />
+			</div>
+
+			<div id="remove_photo_button" class="hidden">
+				<a href="#remove_photo"
+				 minion_name="blogs:poll_create:remove_photo"
+				class="add_row">Remove Photo</a>
+			</div>
+
+			<div class="section_title">
+				Answers
+			</div>
+			<input type="text" id="ans_1" name="answers[]" class="answer" />
+			<input type="text" id="ans_2" name="answers[]" class="answer" />
+			<input type="text" id="ans_3" name="answers[]" class="answer" />
+			<input type="text" id="ans_4" name="answers[]" class="hide" />
+			<input type="text" id="ans_5" name="answers[]" class="hide" />
+			<input type="text" id="ans_6" name="answers[]" class="hide" />
+			<input type="text" id="ans_7" name="answers[]" class="hide" />
+			<input type="text" id="ans_8" name="answers[]" class="hide" />
+			<input type="text" id="ans_9" name="answers[]" class="hide" />
+			<input type="text" id="ans_10" name="answers[]" class="hide" />
+			<a href="#add_row" id="add_row" minion_name="blogs:poll_create:add_row"
+			class="add_row">+ Add a Row</a>
+
+			<div class="post_submit_btns">
+				<t:if t:id="admin">
+					<t:handler-include path="/current/abuse/{AbuseLog::ABUSE_ACTION_BLOG_EDIT}" area="Skeleton" />
+				</t:if>
+				<div class="post">
+					<t:button type="submit" minion_name="blogs:poll_create:post">POST</t:button>
+				</div>
+				<div class="cancel">
+					| <a href="#{PageRequest.current.area_base_uri}/blog">Cancel</a>
+				</div>
+				<div class="preview">
+					<a href="#preview"
+					 minion_name="async_panel blogs:poll:preview"
+					 load_form="new_blog" path="/my/blog/new/preview"
+					 id="blogs_poll_preview">
+					Preview</a>
+				</div>
+				<div class="clear"></div>
+			</div>
+		</div>
+
+		<div class="right_column" minion_name="blogs:poll:photo_options">
+			<t:template-include t:module="blogs" t:name="blog_new_entry_options_photo" />
+			<t:template-include t:module="blogs" t:name="blog_tip_poll" />
+		</div>
+		<div class="clear"></div>
+
+	</form>
+</div>

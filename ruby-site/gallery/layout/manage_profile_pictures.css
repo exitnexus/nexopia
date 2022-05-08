@@ -7,6 +7,10 @@
 			float: left;
 			margin: 2px;
 		}
+		/* XXX: this rule breaks ie but is needed by safari, ie ignores the first-of-type pseudo selector so this works */
+		& .profile_pic_frame div:first-of-type {
+			position: relative;
+		}
 		& .profile_pic_frame {
 			background-color: $primary_background_color;
 			height: 113px;
@@ -30,5 +34,29 @@
 				height:83px;
 			}
 		}
+	}
+}
+
+.profile_pic_drag_element {
+	background-color: $primary_background_color;
+	height: 113px;
+	width: 106px;
+	border: 2px solid $primary_background_color;
+	overflow: hidden;
+	& .description {
+		height: 20px;
+		margin: 2px;
+		text-align: left;
+	}
+	& .profile_pic {
+		background-repeat: no-repeat;
+		background-position: center center;
+		cursor: move;
+		&.empty_image {
+			cursor: default;
+		}
+		width:100px;
+		margin: 3px;
+		height:83px;
 	}
 }

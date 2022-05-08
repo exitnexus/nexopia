@@ -13,8 +13,9 @@ YAHOO.profile.Blocks = {
 		YAHOO.profile.block_info_list = [];
 		YAHOO.profile.display_block_list = [];
 
-		PROFILE.init_display_blocks();
 		PROFILE.init_block_query_info_list();
+		PROFILE.init_display_blocks();
+		PROFILE.init_admin_values();
 
 		for (var i = 0; i < YAHOO.profile.display_block_list.length; i++)
 		{
@@ -26,13 +27,16 @@ YAHOO.profile.Blocks = {
 				YAHOO.profile.draggableBlocks.push(new YAHOO.profile.DraggableBlock(block, null, null, displayBlock));
 			}
 			
-			if (displayBlock.editable() || displayBlock.removable())
+			if (displayBlock.editable() || displayBlock.removable() || (displayBlock.in_place_editable() && displayBlock.custom_edit_button() && displayBlock.custom_edit_button() != ""))
 			{
 				YAHOO.profile.editableBlocks.push(new YAHOO.profile.EditableBlock(block, displayBlock));
 			}
 			else
 			{
-				YAHOO.profile.Blocks.coverWithGlassPane(block);
+				if(!displayBlock.in_place_editable())
+				{
+					YAHOO.profile.Blocks.coverWithGlassPane(block);
+				}
 			}
 		}
 
@@ -48,30 +52,53 @@ YAHOO.profile.Blocks = {
 			YAHOO.profile.draggableBlocks[i] = new YAHOO.profile.DraggableBlock(block, "no_drag_column_bottom_handle_" + i, true);
 		}
 		
-		YAHOO.profile.Blocks.loadModuleJS("groups");
-
 		YAHOO.profile.Blocks.editOn();
 		
 		PROFILE.init_visibility();
 		
+		if (YAHOO.nexopia.Select.list && YAHOO.nexopia.Select.list["new_content_menu"])
+		{
+			this.initAddNewContentMenu();
+		}
+		
+		YAHOO.profile.DraggableBlockMgr.resizeColumnBottomMarkers();
     },
 
 
-	loadModuleJS: function(moduleName)
+	initAddNewContentMenu: function()
 	{
-		var loader = new YAHOO.util.YUILoader();
-		//Add the module to YUILoader
-		loader.addModule({
-			name: "nexopia_groups", //module name; must be unique
-			type: "js", //can be "js" or "css"
-		    fullpath: "http://www.david/static/4965/script/groups.js", //can use a path instead, extending base path
-		    varName: "JSON" // a variable that will be available when the script is loaded. Needed
-		                    // in order to act on the script immediately in Safari 2.x and below.
-			//requires: ['yahoo', 'event'] //if this module had dependencies, we could define here
-		});
+		function beforeContentMenuShow()
+		{
+			for (blockInfoKey in YAHOO.profile.block_info_list)
+			{
+				var blockInfo = YAHOO.profile.block_info_list[blockInfoKey];
+				YAHOO.nexopia.Select.list["new_content_menu"].setEnabled(blockInfoKey, blockInfo.can_make_more());
+			}
+		}
+		YAHOO.nexopia.Select.list["new_content_menu"].subscribe("beforeShow", beforeContentMenuShow);
 		
-		loader.require("nexopia_groups");
-		loader.insert();
+		
+		YAHOO.profile.Blocks.createNewContentButton = new YAHOO.widget.Button(
+			"create_new_content_button", 
+			{ 
+				type: "button", 
+				name: "create_new_content_button",
+				value: "Add New Block"
+			});
+		function onButtonClick(event, that) 
+		{  
+			var selected = YAHOO.nexopia.Select.list["new_content_menu"].getSelected();
+		
+			if (selected) 
+			{
+				this.createNewBlock(selected.value);
+			}
+			else
+			{
+				alert("You must select a block to add.");
+			}
+		}
+		YAHOO.profile.Blocks.createNewContentButton.addListener("click", onButtonClick, null, this);
 	},
 
 
@@ -114,68 +141,130 @@ YAHOO.profile.Blocks = {
 	
 	coverWithGlassPane: function(element)
 	{
-		Dom.setStyle(element, "position", element.style.position || "relative");
-		
-		var glassDiv = document.createElement("div");
-		element.appendChild(glassDiv);
+		var height = element.offsetHeight;
+		var width = element.offsetWidth;
 
-		YAHOO.util.Dom.setStyle(glassDiv, "height", element.offsetHeight);
-		YAHOO.util.Dom.setStyle(glassDiv, "width", element.offsetWidth);
+		Dom.setStyle(element, "position", element.style.position || "relative");
+
+		var glassDiv = document.createElement("div");
+		glassDiv.className = "glass_div";
+			
+		element.appendChild(glassDiv);
+	
+		YAHOO.util.Dom.setStyle(glassDiv, "height", height + "px");
+		YAHOO.util.Dom.setStyle(glassDiv, "width", width + "px");
 		YAHOO.util.Dom.setStyle(glassDiv, "z-index", "21");
 		YAHOO.util.Dom.setStyle(glassDiv, "position", "absolute");
-		YAHOO.util.Dom.setStyle(glassDiv, "top", "0");
-		YAHOO.util.Dom.setStyle(glassDiv, "left", "0");
+		YAHOO.util.Dom.setStyle(glassDiv, "top", "0px");
+		YAHOO.util.Dom.setStyle(glassDiv, "left", "0px");		
+		
+		// iframe shim needed to work in IE
+		if (YAHOO.env.ua.ie > 5 && YAHOO.env.ua.ie <= 7) 
+		{		
+			var glassIframe = document.createElement("iframe");
+			element.appendChild(glassIframe);
+			YAHOO.util.Dom.setStyle(glassIframe, "height", height + "px");
+			YAHOO.util.Dom.setStyle(glassIframe, "width", width + "px");
+			YAHOO.util.Dom.setStyle(glassIframe, "z-index", "20");
+			YAHOO.util.Dom.setStyle(glassIframe, "position", "absolute");
+			YAHOO.util.Dom.setStyle(glassIframe, "top", "0px");
+			YAHOO.util.Dom.setStyle(glassIframe, "left", "0px");
+			YAHOO.util.Dom.setStyle(glassIframe, "opacity", "0");
+		}
 	},
 	
 	
-	canMakeMoreOf: function(displayBlock)
+	disableAllButtons: function()
 	{
-		// Count the existing blocks
-		var count = 0;
-		for (var i=0; i < YAHOO.profile.display_block_list.length; i++)
+		if (YAHOO.profile.Blocks.createNewContentButton)
 		{
-			var existingBlock = YAHOO.profile.display_block_list[i];
-			if (existingBlock.moduleid === displayBlock.moduleid &&
-				existingBlock.path === displayBlock.path)
-			{
-				count++;
-			}
-
+			YAHOO.profile.Blocks.createNewContentButton.set("disabled", true);
 		}
 		
-		return count >= displayBlock.max_number();
+		for (var i = 0; i < YAHOO.profile.editableBlocks.length; i++)
+		{
+			var editableBlock = YAHOO.profile.editableBlocks[i];
+			editableBlock.disableButtons();
+		}
 	},
 	
 	
-	createNewBlock: function()
+	enableAllButtons: function()
 	{
-		var selector = document.getElementById("new_block_selector");
-		var blockHashID = selector.options[selector.selectedIndex].value;
-
+		if (YAHOO.profile.Blocks.createNewContentButton)
+		{
+			YAHOO.profile.Blocks.createNewContentButton.set("disabled", false);
+		}
+		
+		for (var i = 0; i < YAHOO.profile.editableBlocks.length; i++)
+		{
+			var editableBlock = YAHOO.profile.editableBlocks[i];
+			editableBlock.enableButtons();
+		}		
+	},
+	
+	
+	createNewBlock: function(blockHashID)
+	{
 		var blockInfo = YAHOO.profile.block_info_list[blockHashID];
 		var displayBlock = blockInfo.create_display_block();
 		var editPath = displayBlock.edit_path();
+
+		var formKey1 = document.getElementById("profile_block_form_key").value;
+		var formKey2 = document.getElementById("profile_form_key").value;
 		
-		if (this.canMakeMoreOf(displayBlock))
+		if (!blockInfo.can_make_more())
 		{
-			alert("You cannot create any more than " + displayBlock.max_number() + " " + displayBlock.title() + " blocks.")
+			alert("You cannot create any more than " + displayBlock.max_number() + " " + displayBlock.title() + " blocks.");
 			return;
+		}
+		
+		YAHOO.profile.Blocks.disableAllButtons();
+		
+		// Only use an EditDialog when it's needed. Otherwise use a blank object. This prevents problems
+		//  with the EditDialog for noneditable blocks from capturing save events from other EditDialogs.
+		if (displayBlock.editable())
+		{
+			var editPanel = new YAHOO.profile.EditDialog("edit_panel", displayBlock);
+			editPanel.setBody("<div class='edit_block'><div class='edit_title'>" + 
+				"<img src=\"" + Site.staticFilesURL + "/Legacy/images/spinner.gif\"/>" + "</div></div>");
+			editPanel.render(document.body);
+			editPanel.show();
+			editPanel.disableButtons();
+		}
+		else
+		{
+			var editPanel = new Object();
 		}
 		
 		var callback = {
 			success : function(o) {
-				
-				var editPanel = new YAHOO.profile.EditDialog("edit_panel", displayBlock);
-				
+				editPanel.afterClose = function()
+				{
+					YAHOO.profile.Blocks.enableAllButtons();
+				};
+					
 				editPanel.afterSave = function (blockId) {
-
-					blockId = parseInt(blockId);
+					
+					var max_position = 0;
+					for(var i=0; i<YAHOO.profile.display_block_list.length; i++)
+					{
+						var temp = YAHOO.profile.display_block_list[i];
+						if(temp.columnid == displayBlock.columnid && temp.position >= max_position)
+						{
+							max_position = temp.position + 1;
+						}
+					}
+					
+					displayBlock.position = max_position;
+					blockId = parseInt(blockId, 10);
 					displayBlock.update(blockId);
 					var refreshPath = displayBlock.refresh_path();
 				
 					var newBlockDiv = document.createElement("div");
 					newBlockDiv.id = displayBlock.html_id;
 					YAHOO.util.Dom.addClass(newBlockDiv, "block_container");
+					YAHOO.util.Dom.addClass(newBlockDiv, "primary_block");
 					var newInternalDiv = document.createElement("div");
 					newInternalDiv.id = "data_" + blockId;
 					newBlockDiv.appendChild(newInternalDiv);
@@ -184,57 +273,78 @@ YAHOO.profile.Blocks = {
 					var bottomElement = document.getElementById("column_bottom_marker_" + defaultColumn);
 					bottomElement.parentNode.insertBefore(newBlockDiv, bottomElement);
 
-					YAHOO.util.Connect.asyncRequest('GET', refreshPath , new ResponseHandler({
+					YAHOO.util.Connect.asyncRequest('POST', refreshPath , new ResponseHandler({
 						success: function(o) {
-							var block = document.getElementById(displayBlock.html_id);
 
-							YAHOO.profile.draggableBlocks.push(new YAHOO.profile.DraggableBlock(block, null, null, displayBlock));
-							YAHOO.profile.editableBlocks.push(new YAHOO.profile.EditableBlock(block, displayBlock));
-							YAHOO.profile.display_block_list.push(displayBlock);
+							var block = document.getElementById(displayBlock.html_id);
+							
+							// This is a hacky way to get rid of a gallery block that shouldn't have been 
+							// created in the first place.
+							// The real solution is to make the edit block work so that it doesn't have
+							// a save button to begin with.
+							if ( o.responseText == "<div id=\"profile_error\">The requested block does not exist</div>")
+							{
+								newBlockDiv.parentNode.removeChild(newBlockDiv);	
+							}
+							else 
+							{
+								YAHOO.profile.draggableBlocks.push(new YAHOO.profile.DraggableBlock(block, null, null, displayBlock));
+								YAHOO.profile.editableBlocks.push(new YAHOO.profile.EditableBlock(block, displayBlock));
+								YAHOO.profile.display_block_list.push(displayBlock);
+							
+								YAHOO.nexopia.Select.list["new_content_menu"].setSelected(null);
+							
+								var xy = YAHOO.util.Dom.getXY(block);
+								window.scrollTo(xy[0], xy[1]);
+							}
+							
 						},
 						failure: function(o) {
+							editPanel.afterClose();
 						},
 						scope: this
-					}), "ajax=true");
+					}), "ajax=true&form_key[]=" + formKey1 + "&form_key[]=" + formKey2);
 				};
 				
-				editPanel.afterDone = editPanel.afterSave;
 				
-				editPanel.setBody(o.responseText);
-				editPanel.render(document.body);
-
 				if (displayBlock.editable())
 				{
-					editPanel.show();
-				
-					// After the panel is shown and centered, keep it from repositioning as the user scrolls 
-					// down the page.
-					editPanel.cfg.setProperty("fixedcenter", false);
+					editPanel.beforeOpen = displayBlock.javascript_init_function();
+					editPanel.afterDone = editPanel.afterSave;
+					
+					editPanel.setBody(o.responseText);
+					editPanel.render();
+					editPanel.enableButtons();
 				}
 				else
 				{
-					var formKey1 = document.getElementById("profile_block_form_key").value;
-					var formKey2 = document.getElementById("profile_form_key").value;
-
 					YAHOO.util.Connect.asyncRequest('POST', displayBlock.save_path(), {
 						success: function(o) {
 							var response = o.responseText;
-							editPanel.afterSave(parseInt(response));
+							editPanel.afterSave(parseInt(response, 10));
+							editPanel.afterClose();
 						},
 						failure: function(o) {
+							editPanel.afterClose();
 						},
 						scope: this
-					}, "ajax=true&form_key=" + formKey1 + "&form_key=" + formKey2 + "&module_name=" + displayBlock.module_name() +
+					}, "ajax=true&form_key[]=" + formKey1 + "&form_key[]=" + formKey2 + "&module_name=" + displayBlock.module_name() +
 						"&path=" + displayBlock.path);					
 				}
 			},
 			failure : function(o) {
 				alert("Error accessing handler for: " + editPath);
+				editPanel.afterClose();
 			}
-		}
+		};
 
-		var conn = YAHOO.util.Connect.asyncRequest("GET", editPath, callback);
+		var conn = YAHOO.util.Connect.asyncRequest("POST", editPath, callback, "form_key[]=" + formKey1 + "&form_key[]=" + formKey2);
 	}
 };
 
-GlobalRegistry.register_handler("profile_edit", YAHOO.profile.Blocks.init, YAHOO.profile.Blocks, true);
+Overlord.assign({
+	minion: "profile_edit",
+	load: function(element) {
+		YAHOO.profile.Blocks.init();
+	}
+});

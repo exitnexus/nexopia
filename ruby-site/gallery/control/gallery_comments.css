@@ -1,0 +1,111 @@
+#gallery_comments_block
+{
+	& #gallery_comment_write
+	{
+		padding-top: 12px;
+		
+		& .comment_write_table
+		{
+			width: 100%;
+			
+			& #comment_text
+			{
+				width: 412px;
+			}
+			
+			& #post_comment_spinner
+			{
+				display: none;
+			}
+			
+			& .viewing_user_picture
+			{
+				padding-right: 8px;
+			}
+			
+			& textarea {
+				height: 76px;
+				border: 1px solid @secondary_block_background_color;
+				font-family: Verdana, Arial, Helvetica, sans-serif;
+				font-size: 10px;
+				padding: 0;
+				width: 628px;
+			}
+		}
+	}
+	& .gallery_comments_individual_page
+	{
+		width: 484px;
+		padding-bottom: 6px;
+	}
+	
+	& .comment_view_container
+	{
+		background-color: @secondary_block_background_color;
+		color: @secondary_block_text_color;
+		
+		& .comment_delete
+		{
+			padding: 2px;
+		}
+		
+		& .comment_body
+		{
+			width: 406px;
+			padding: 4px 6px 0px 0px;
+		}
+	}
+	& .comments_section 
+	{
+		& .select_links
+		{
+			display: inline;
+			float: left;
+			margin-right: 8px;
+		
+			& a 
+			{
+				font-weight: bold;
+				color: @primary_block_link_color;
+			
+				&:hover
+				{
+					color: @primary_block_link_hover_color;
+				}
+			}
+		}
+	}	
+	
+	& #gallery_comments_post_error, #gallery_comments_abuse_error, #gallery_comments_post_success
+	{
+		margin-bottom: 3px;
+		padding: 3px;
+		padding-left: 8px;
+		font-weight: bold;
+	}
+
+	& #gallery_comments_post_error, #gallery_comments_abuse_error
+	{
+		background-color: #FDE9EA;
+		color: #B10033;
+		border: 1px solid #B10033;
+	}
+
+	& #comments_user_message_row #gallery_comments_post_success
+	{
+		background-color: #E9FDEA;
+		color: #00B133;
+		border: 1px solid #00B133;
+
+		& a
+		{
+			color: #00B133;
+			text-decoration: underline;
+
+			&:hover
+			{
+				color: #073A0A;
+			}
+		}
+	}
+}

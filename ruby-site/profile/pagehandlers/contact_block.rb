@@ -8,9 +8,12 @@ class ContactBlock < PageHandler
 		
 		area :Self
 		page 	:GetRequest, :Full, :contact_block_edit, input(Integer), "edit";
+		page	:GetRequest, :Full, :contact_block_edit, "new";
 		
 		handle	:PostRequest, :contact_block_save, input(Integer), "save";
 		handle	:PostRequest, :contact_block_save, input(Integer), "create";
+		
+		handle	:PostRequest, :visibility_save, input(Integer), "visibility";
 		
 		handle	:PostRequest, :remove_contact_block, input(Integer), "remove";
 	}
@@ -18,6 +21,13 @@ class ContactBlock < PageHandler
 	Contact = Struct.new(:name, :value, :param)
 	
 	def contact_block(block_id)
+		edit_mode = params["profile_edit_mode", Boolean, false];
+		
+		if(!Profile::ProfileDisplayBlock.verify_visibility(block_id, request.user, request.session.user, edit_mode))
+			print "<h1>Not visible</h1>";
+			return;
+		end
+		
 		t = Template::instance('profile', 'contact_block_view')
 		t.user = request.user
 		
@@ -27,27 +37,35 @@ class ContactBlock < PageHandler
 		contacts << Contact.new("Yahoo:", request.user.profile.yahoo) unless (request.user.profile.yahoo.empty?)
 		contacts << Contact.new("ICQ:", request.user.profile.icq) unless (request.user.profile.icq.zero?)
 		
-		t.contacts = contacts
+		if(!contacts.empty?())
+		  t.contacts = contacts
 		
-		print t.display()
+		  print t.display()
+	  end
 	end
 	
 	def self.contact_block_query(info)
 		if(site_module_loaded?(:Profile))
 			info.extend(ProfileBlockQueryInfo);
 			info.title = "Contact";
-			info.initial_position = 8;
-			info.default_visibility = :friends
+			info.initial_position = 15;
+			info.default_visibility = :friends;
 			info.initial_column = 1;
 			info.form_factor = :both;
 			info.multiple = false;
 			info.removable = true;
+			info.initial_block = true;
+			info.max_number = 1;
+			info.add_visibility_exclude(:all);
+			info.add_visibility_exclude(:logged_in);
+			
+			info.content_cache_timeout = 120
 		end
 		
 		return info;
 	end
 	
-	def contact_block_edit(block_id)
+	def contact_block_edit(block_id=nil)
 		request.reply.headers["Content-Type"] = PageRequest::MimeType::PlainText
 		
 		t = Template::instance('profile', 'contact_edit_block')
@@ -56,7 +74,8 @@ class ContactBlock < PageHandler
 		contacts << Contact.new("MSN:", request.user.profile.msn, 'msn')
 		contacts << Contact.new("AIM:", request.user.profile.aim, 'aim')
 		contacts << Contact.new("Yahoo:", request.user.profile.yahoo, 'yahoo')
-		contacts << Contact.new("ICQ:", request.user.profile.icq, 'icq')
+		icq_val = (request.user.profile.icq > 0) ? request.user.profile.icq : "";
+		contacts << Contact.new("ICQ:", icq_val, 'icq')
 		
 		t.contacts = contacts
 		t.user = request.user
@@ -74,6 +93,10 @@ class ContactBlock < PageHandler
 	end
 	
 	def remove_contact_block(block_id)
+		return;
+	end
+	
+	def visibility_save(block_id)
 		return;
 	end
 end

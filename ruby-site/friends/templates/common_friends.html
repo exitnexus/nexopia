@@ -1,0 +1,14 @@
+<div id="friends_page">
+	#{pages}
+
+	<t:loop t:id="friends" t:iter="friend">
+		<t:if t:id="!friend.user.anonymous?()">
+			<t:varsub t:old="friend.user" t:new="person"/>
+			<t:varsub t:new="comment" t:old="friend.comment"/>
+			<t:template-include t:module="friends" t:name="friend"/>
+		</t:if>
+	</t:loop>
+	
+	#{pages}
+	<div class="clearit"/>
+</div>

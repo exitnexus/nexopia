@@ -1,0 +1,33 @@
+Hey {username}#{"\n"}
+#{"\n"}
+We just wanted to fire you a message letting you know what's been going on with your Nex account during the last couple of weeks.#{"\n"}
+#{"\n"}
+There's been...#{"\n"}
+#{"\n"}
+<t:if t:id="new_message_count.to_i > 0">
+{new_message_count} new private messages for you#{"\n"}
+</t:if>
+<t:if t:id="hits.to_i > 10">
+{hits} hits on your profile#{"\n"}
+</t:if>
+<t:if t:id="friends_blog_count.to_i > 0">
+{friends_blog_count} new blog entries posted by your friends#{"\n"}
+</t:if>
+<t:if t:id="friends_album_count.to_i > 0">
+{friends_album_count} new photo albums created by your friends#{"\n"}
+</t:if>
+<t:if t:id="new_comment_count.to_i > 0">
+{new_comment_count} new comments made on your profile#{"\n"}
+</t:if>
+{forum_post_count} new posts made in the Nexopia forums (check out the forums - {$site.www_url}/forums.php)#{"\n"}
+{total_blog_post_count} new blog entries made on Nexopia (make a new blog post - {$site.www_url}/my/blog/post/new)#{"\n"}
+{total_album_count} new photo albums created on Nexopia (create a new album - {$site.www_url}/my/gallery/create)#{"\n"}
+{total_pic_count} new profile pictures uploaded to Nexopia (add a new profile pic - {$site.www_url}/my/pictures)#{"\n"}
+#{"\n"}
+And check out Nexopia's newest contests to get in on the chance to win some sweet prizes! - {$site.www_url}/wiki/SiteText/music/ch_contests#{"\n"}
+#{"\n"}
+#{"\n"}
+See you soon!#{"\n"}
+-- The Nex Team#{"\n"}
+#{"\n"}
+<t:template-include name="message_footer_plain" module="orwell"/>

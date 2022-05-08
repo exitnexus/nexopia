@@ -1,0 +1,18 @@
+<div class="post_submit_btns">
+	<t:if t:id="admin">
+		<t:handler-include path="/current/abuse/{AbuseLog::ABUSE_ACTION_BLOG_EDIT}" area="Skeleton" />
+	</t:if>
+	<div class="post">
+		<t:button type="submit"
+		 minion_name="blogs:post">POST</t:button>
+	</div>
+	<div class="cancel">
+		| <a href="#{PageRequest.current.area_base_uri}/blog">Cancel</a>
+	</div>
+	<div class="preview">
+		<a href="#preview" minion_name="async_panel blogs:preview"
+		 load_form="new_blog" path="/my/blog/new/preview"
+		 id="blogs_preview">Preview</a>
+	</div>
+	<div class="clear"></div>
+</div>

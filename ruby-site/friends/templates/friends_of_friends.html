@@ -1,7 +1,11 @@
+<div>
+	Hi there
+
+<!--
 <div t:docid="friends_of_friends" class="friends friends_of_friends">
 	<t:template-include name="top_menu" module="friends"/>
 	<t:if t:id="hidden_count > 0">
-		<a href="/users/%{user.username}/friends/friends/show/all?form_key={form_key}" class="show_all">Unhide All</a>
+		<a href="/users/%{user.username}/friends/friends/show/all?form_key[]={form_key}" class="show_all">Unhide All</a>
 	</t:if>
 	Friends of friends of&#160;<a class="body" t:id="user"></a>:
 	<ul>
@@ -14,10 +18,10 @@
 					</td>
 					<td>
 						<span class="actions">
-							<a class="add" href="/users/%{user.username}/friends/add/%{friend_of_friend.userid}?form_key={form_key}">
+							<a class="add" href="/users/%{user.username}/friends/add/%{friend_of_friend.userid}?form_key[]={form_key}">
 								<img src="#{$site.static_files_url}/Friends/images/add_friend.gif"/>
 							</a>
-							<a class="hide" href="/users/%{user.username}/friends/friends/hide/%{friend_of_friend.userid}?form_key={form_key}">
+							<a class="hide" href="/users/%{user.username}/friends/friends/hide/%{friend_of_friend.userid}?form_key[]={form_key}">
 								<img src="#{$site.static_files_url}/Friends/images/cross_red.gif"/>
 							</a>
 						</span>
@@ -46,4 +50,6 @@
 			</table>
 		</li>
 	</ul>
+</div>
+-->
 </div>

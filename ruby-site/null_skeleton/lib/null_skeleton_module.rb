@@ -1,16 +1,8 @@
-lib_want :Observations, "site_event"
 lib_require :Core, "storable/user_content"
 mod_require :Nexoskel
 
 class NullSkeletonModule < SiteModuleBase
 	tags = :skin, :skeleton
-
-	UserContent.register_converter(:wrap, lambda {|string|	return string.wrap(25) }, true, UserContent::ContentConverter::GENERATES_HTML)
-	
-	if (site_module_loaded? :Observations)
-		site_event :feature, "Nexopia Update"
-		site_event :system, "Critical Update"
-	end
 
 	def skeleton?()
 		return true;

@@ -1,0 +1,24 @@
+<div id="picture_functions">
+	<textarea minion_name="edit_picture:description">{pic.description}</textarea><br/>
+	<div class="links">
+		<t:if t:id="functions.include?(:sign_pic)">
+			<a class="help" href="#help" minion_name="help" title="Sign Picture" content='Sign pictures verify users. Verified Users on Nexopia are people who have uploaded a picture with username@nexopia on a piece of paper.  People use this to prove that they are actually the user behind the account.'>[?]</a>
+			<t:if t:id="pic.signpic == :unmoderated"><a class="function" href="#signpic" minion_name="edit_picture:signpic">MAKE SIGN PICTURE</a></t:if>
+			<t:if t:id="pic.signpic == :accepted"><span class="function">SIGN PICTURE - APPROVED</span></t:if>
+			<t:if t:id="pic.signpic == :pending"><span class="function">SIGN PICTURE - PENDING</span></t:if>
+			<t:if t:id="pic.signpic == :failed"><span class="function">SIGN PICTURE - DENIED</span></t:if>
+			<br/>
+		</t:if>
+		<t:if t:id="functions.include?(:album_cover)">
+			<a class="function" href="#album_cover" minion_name="edit_picture:album_cover">MAKE ALBUM COVER</a><br/>
+		</t:if>
+		<t:if t:id="functions.include?(:profile_picture)">
+			<a class="function" href="#album_cover" minion_name="edit_picture:profile_picture">MAKE PROFILE PICTURE</a><br/>
+		</t:if>
+	</div>
+	<t:if t:id="functions.include?(:delete)">
+		<div class="links">
+			<a class="function" href="#delete" minion_name="edit_picture:delete">DELETE THIS PHOTO</a>
+		</div>
+	</t:if>
+</div>

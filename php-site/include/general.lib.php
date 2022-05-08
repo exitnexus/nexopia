@@ -4,6 +4,10 @@
 
 ini_set("precision","20");
 
+// Now that we have a gigantic set of locations, we need a bit more than the default memory limit
+// to be able to construct the list.
+ini_set("memory_limit","40M");
+
 error_reporting (E_ALL);
 
 define("REQUIRE_ANY", 0);
@@ -13,9 +17,7 @@ define("REQUIRE_NOTLOGGEDIN", -1);
 define("REQUIRE_LOGGEDIN_PLUS", 2);
 define("REQUIRE_LOGGEDIN_ADMIN", 3);
 
-$revstr = '$Revision: 4965 $';
-preg_match('/Revision: ([0-9]+)/', $revstr, $matches);
-$reporev = $matches[1];
+$reporev = $Ruby->g_site->static_number;
 
 /*
 
@@ -159,7 +161,8 @@ if($simplepage <= 1)
 		"include/textmanip.php",
 		"include/wiki2.php",
 		"include/sitenotifications.php",
-		"include/secure_form.php"
+		"include/secure_form.php",
+		"include/userSearch.php",
 	));
 
 if($simplepage == 0)
@@ -178,6 +181,7 @@ if($simplepage == 0)
 		"include/timer.php",
 		"include/filesystem.php",
 		"include/HTTPClient.php",
+		"include/typeid.php",
 		"include/MogileFS.php",
 		"include/mogfs.php",
 		"include/terms.php",
@@ -186,12 +190,10 @@ if($simplepage == 0)
 		"include/pics.php",
 		"include/comment.php",
 		"include/sourcepictures.php",
-		"include/userSearch.php",
 		"include/profileblocks.php",
 		"include/profilehead.php",
 		"include/inlineDebug.php",
 //		"include/uploads.php",
-		"include/typeid.php",
 		"include/groups.php"
 	) );
 
@@ -223,13 +225,13 @@ timeline('parse', true);
 		$payg = 		new paygcards( $shopdb );
 		$usernotify =   new usernotify( $db );
 		$filesystem = 	new filesystem($filesdb, $THIS_IMG_SERVER);
+		$typeid =		new typeid( $db );
 		$mogfs =		new mogfs($mogfs_domain, $mogfs_hosts);
 		$quizzes =		new quizzes( $contestdb );
 		$galleries = 	new galleries( $usersdb );
 		$sourcepictures=new sourcepictures( $usersdb );
 		$inlineDebug =	new inlineDebug();
-		$typeid =		new typeid( $db );
-		$groupmembers =	new groupmembers( $groupsdb, $usersdb );
+//		$groupmembers =	new groupmembers( $groupsdb, $usersdb );
 	}
 
 //	if($enableCompression)
@@ -428,10 +430,10 @@ function requireLogin($login = REQUIRE_LOGGEDIN, $adminpriv = "", $userid = fals
 {
 	global $simpleauth, $userData, $mods, $auth;
 
-	if (!$userid)
-		$userid = getCOOKIEval('userid', 'int');
-	if (!$key)
-		$key = getCOOKIEval('key');
+	if (!$userid || !$key){
+		if($cookie = getCOOKIEval('sessionkey'))
+			list($userid, $key) = explode(':', $cookie, 2);
+	}
 
 	$userData = $auth->auth($userid, $key, ($login >= REQUIRE_HALFLOGGEDIN), $simpleauth);
 
@@ -439,8 +441,10 @@ function requireLogin($login = REQUIRE_LOGGEDIN, $adminpriv = "", $userid = fals
 
 	if($login == REQUIRE_NOTLOGGEDIN && $userData['loggedIn'])
 		$msg = "This is only viewable by people who haven't logged in";
-	if($login == REQUIRE_LOGGEDIN && !$userData['loggedIn'])
+	if($login == REQUIRE_LOGGEDIN && !$userData['loggedIn'] && $userData['halfLoggedIn'])
 		$msg = "This page will only be usable when you've activated. Please check your email.";
+	if($login == REQUIRE_LOGGEDIN && !$userData['loggedIn'] && !$userData['halfLoggedIn'])
+		$msg = "You need to log in to view this page.";
 	if($login == REQUIRE_LOGGEDIN_PLUS && !($userData['premium'] || $mods->isAdmin($userData['userid'],$adminpriv)))
 		$msg = "You must be a plus member to view this page";
 	if($login == REQUIRE_LOGGEDIN_ADMIN && !$mods->isAdmin($userData['userid'],$adminpriv))
@@ -568,6 +572,10 @@ function debugOutput($force = false){
 	//database and memcache queries
 		outputQueries();
 
+		global $Ruby;
+		$request = $Ruby->self->subrequest(null, "GetRequest", "/log/timeline/html", null, "Internal");
+		print($request->reply->out->string);
+		
 		echo "</td></tr></table>";
 	}else{
 		$endTime = gettime();
@@ -697,7 +705,7 @@ function blocks($side){
 
 //	$blocks = $cache->hdget("blocks", 0, "getBlocks");
 
-	$blocks = array( 'r' => array( 'incMsgBlock', 'incFriendsBlock', 'incModBlock', 'incSubscribedThreadsBlock') );
+	$blocks = array( 'r' => array( 'incMsgBlock', 'incFriendsBlock', 'incUpdateBlock', 'incModBlock', 'incSubscribedThreadsBlock', 'incSortBlock', 'incSkyAdBlock') );
 
 	if(count($blocks[$side]))
 		foreach($blocks[$side] as $funcname)
@@ -710,7 +718,9 @@ function editBox($text = "", $id = 'msg', $formid = 'editbox', $height = 200, $w
 
 function editBoxStr($text = "", $id = 'msg', $formid = 'editbox', $height = 200, $width = 600, $maxlength = 0){
 	global $config;
-
+	$mangledtext = htmlentities($text);
+	return "<textarea id='$id' name='$id' class='enhanced_text_input' minion_name='enhanced_text_input' style='width: ${width}px; height: ${height}px'>$mangledtext</textarea>";
+/*
 	$smilyusage = getSmilies();
 
 	$mangledtext = htmlentities(str_replace("\r","",str_replace("\n","\\n",str_replace('\\', '\\\\', $text))));
@@ -725,6 +735,7 @@ function editBoxStr($text = "", $id = 'msg', $formid = 'editbox', $height = 200,
 	$output .= "<noscript><textarea cols=70 rows=10 name='$id'></textarea></noscript>";
 
 	return $output;
+*/
 }
 
 function weirdmap($input){
@@ -1038,6 +1049,15 @@ function getInputType(& $INPUT, $name, $type, $default, $allowremote){
 
 	$val = (isset($INPUT[$name]) ? $INPUT[$name] : $default);
 	settype($val, $type);
+	if ($type == 'array')
+	{
+		$orig = $val; 	// RAP hackage
+		ksort($orig); 	// More RAP hackage (arrays often end up not sorted by their key values, which is important because processing
+						// of array post values is often done via foreach loops, which expect it to be in order already).
+		$val = array();
+		foreach ($orig as $k => $v)
+			$val[$k] = $v;
+	}
 	return $val;
 }
 
@@ -1546,6 +1566,153 @@ function makeCatSelect($branch, $category = null){
 	return $str;
 }
 
+// Warning: Much badness lies in this function. It's only used by the banner admin to stick a multiple
+// selection autocomplete location component everywhere there was one of the select tag based multiple
+// location selectors. I justify my actions by the fact that we'll probably be re-writing banner admin
+// stuff before we have to come back to edit this (barring possible initial fixes after launch) and it
+// is not user-facing. Here's the gist: We do simple javascript addition of our options to the multi-
+// select that is now hidden with the same post variable name as before. Thus, as long as options get
+// correctly added and removed from the hidden select box, everything will operate as before (that's
+// good because pretty much everyone's understanding of the PHP side is shaky and there's always the
+// worry that touching something will cause a bunch of unpredictable problems). My understanding of
+// banner serving is basically at level 0, so it's good to not go wild west on this stuff. I'm grabbing
+// the location names (if there are already ones selected) from the RAP handler so the names can be
+// formatted nicely (smartly selecting the parent to show a province or country in order to avoid name
+// ambiguity). It reflects how they are shown in the auto-complete box.
+function locationAutocomplete_multiple($category=array(), $postName)
+{
+	global $rap_pagehandler, $configdb, $RAP, $ruby_site_obj;
+	
+	if(!isset($ruby_site_obj) || !isset($rap_pagehandler)) 
+	{
+		return "<div style='color:red; margin-top: 10px'><b>RAP is Required!</b></div>";
+	}
+	
+	$locationAutocomplete = $rap_pagehandler->subrequest(null, "GetRequest", "/autocomplete/location", array("location_id_field_id"=>"add_location"), "Public");
+
+	$str = <<<EOS
+		<script>
+			function addLocation() 
+			{	
+				var selectedLocation = document.getElementById('add_location').value;
+				var selectedLocationName = document.getElementById('location_name').value;
+
+				var existingSpan = document.getElementById('location-' + selectedLocation);
+				if (existingSpan)
+				{
+					alert('Location already added to list.');
+					return;
+				}
+				
+				var locationsToAdd = [[selectedLocation, selectedLocationName]];
+				
+				var subLocations = document.getElementById('query_sublocations').value;
+				if (subLocations && confirm("Add sub locations?"))
+				{
+					var addLocationLink = document.getElementById("add_location_link");
+					var spinner = new Spinner({ context: [addLocationLink, "tr"], offset: [12,0] , lazyload: true });
+					addLocationLink.style.visibility = "hidden";
+					spinner.on();
+					
+					var dataSource = new YAHOO.util.DataSource("/core/query/sublocations?id=" + selectedLocation);
+					dataSource.responseType = YAHOO.util.DataSource.TYPE_XML;
+					dataSource.responseSchema = {
+						resultNode: "location",
+						fields: ["location", "name", "id", "extra", "query_sublocations"]
+					};
+					dataSource.sendRequest(null,{
+					    success : function (req,res) 
+						{
+							var testing = "";
+					        for(var i=0; i < res.results.length; i++)
+							{	
+								var result = res.results[i];
+								locationsToAdd[locationsToAdd.length] = [result.id, result.name];
+							}
+							
+							addLocationsToDisplay(locationsToAdd);
+							spinner.off();
+							addLocationLink.style.visibility = "visible";
+					    }
+					});
+				}
+				else
+				{
+					addLocationsToDisplay(locationsToAdd);
+				}
+			}
+			
+			function addLocationsToDisplay(locations)
+			{
+				var selectedLocationDiv = document.getElementById('selected_locations');
+				
+				for(var i = 0; i < locations.length; i++)
+				{
+					var locationID = locations[i][0];
+					var locationName = locations[i][1];
+					
+					if(!document.getElementById('location-' + locationID))
+					{
+						var locationSpan = document.createElement('span');
+						locationSpan.id = 'location-' + locationID;
+						locationSpan.innerHTML =  '<b>[<a href="javascript:removeLocation(' + locationID + ')">Remove</a>]</b> ' +
+							'&nbsp;&nbsp;&nbsp;' + locationName + '<br/>';
+				
+						selectedLocationDiv.appendChild(locationSpan);
+				
+						var option = document.createElement('option');
+						option.selected = true;
+						option.value = locationID;
+						var select = document.getElementById('location_select_container');
+						select.add(option,null);
+					}
+				}				
+			}
+			
+			function removeLocation(value)
+			{
+				var locationSpan = document.getElementById('location-' + value);
+				var selectedLocationDiv = document.getElementById('selected_locations');
+				selectedLocationDiv.removeChild(locationSpan);
+				var select = document.getElementById('location_select_container');
+				var options = select.options;
+				for (i=0;i<options.length;i++)
+				{
+				    if(options[i].value == value)
+					{
+						select.remove(i);
+						break;
+					}
+				}
+			}
+		</script>
+EOS;
+
+	$str .= "<table style='margin-top:2px' border='0' cellwidth='0' cellspacing='0'><tr><td width='150'>";
+	$str .= $locationAutocomplete->get_reply_output();
+	$str .= "</td><td>";
+	$str .= "&nbsp;&nbsp;<b><a href='javascript:addLocation()' id='add_location_link'>[Add]</a></b>";
+	$str .= "</td></tr></table>";
+	$str .= "<div id='selected_locations' style='height: 180px; overflow:auto; margin-top:10px;'>";
+		
+	$locations = $RAP->location_text($category);
+		
+	foreach($category as $cat){
+		$str .= "<span id='location-$cat'><b><a href='javascript:removeLocation(\"$cat\")'>[Remove]</a></b> ";
+		$str .= "&nbsp;&nbsp;&nbsp;$locations[$cat]<input type='hidden' name=$postName\[$locations[$cat]\] value='$cat'/><br/></span>";
+	}
+	
+	$str .= "</div>";
+
+	$str .= "<select class=body id='location_select_container' name=$postName"."[] multiple=multiple style='display:none'>";
+	foreach($category as $cat){
+		$str .= "<option value='$cat' selected/>";
+	}
+	$str .= "</select>";
+	
+	return $str;
+}
+
 function makeCatSelect_multiple($branch, $category = array()){
 	$str="";
 
@@ -1702,13 +1869,19 @@ function getUserInfo($uids, $getactive = true){
 	return ($array ? $users : array_pop($users));
 }
 
-function getUserPics($uid){
+function getUserPics($uid, $approvedonly = FALSE){
 	global $usersdb, $cache;
 
 	$pics = $cache->get("pics-$uid");
 
 	if(!$pics){
-		$res = $usersdb->prepare_query("SELECT id, description, priority FROM pics WHERE userid = %", $uid);
+		$sql = "SELECT id, gallerypicid, description, priority FROM pics WHERE userid = %";
+		if($approvedonly) {
+			$sql .= " AND gallerypicid IN (SELECT id FROM gallerypics WHERE gallerypics.userid = pics.userid AND userpic = #)";
+			$res = $usersdb->prepare_query($sql, $uid, USERPIC_ACCEPTED);
+		} else {
+			$res = $usersdb->prepare_query($sql, $uid);			
+		}
 
 		$pics = array();
 		while($line = $res->fetchrow())
@@ -1850,7 +2023,7 @@ function getUserIDByEmail($emailAddress)
 }
 
 function getSpotlight(){
-	global $usersdb, $db, $cache, $messaging, $config;
+	global $usersdb, $db, $cache, $messaging, $config, $Ruby;
 
 	$spotlightmax = $cache->get("spotlightmax");
 
@@ -1880,16 +2053,28 @@ function getSpotlight(){
 		if($user['state'] != 'active' || !$user['plus'])
 			continue;
 
-		$pics = getUserPics($userid);
+		$pics = getUserPics($userid, TRUE);
 
 		if(count($pics) == 0)
 			continue;
 
-		$pic = $pics[array_rand($pics)]['id'];
+		$pic = $pics[array_rand($pics)];
 
+		// NEX-801 now fetches all the revisions for the profile pics on the page.
+		$imagepath = $cache->get("galleryimagepaths-$userid-$pic[gallerypicid]");
+
+		if( count($imagepath == 0) ) {
+			$res = $usersdb->prepare_query("SELECT userid, revision, id FROM gallerypics WHERE userid = % && id = #", $userid, $pic['gallerypicid']);
+			while($line = $res->fetchrow()){
+				$imagepath = $line['revision'] . "/" . weirdmap($line['userid']) . "/" . $line['id'] . ".jpg";
+				$cache->put("galleryimagepaths-$line[userid]-$line[id]", $imagepath, 86400*7);
+
+			}			
+		}
+		
 		$ret = array(	'userid' => $userid,
 						'username' => $user['username'],
-						'pic' => $pic,
+						'pic' => $pic['gallerypicid'],
 						'age' => $user['age'],
 						'sex' => $user['sex']
 					);
@@ -1900,7 +2085,7 @@ function getSpotlight(){
 	if($i){
 		$db->prepare_query("INSERT INTO spotlighthist SET userid = #, pic = #, time = #", $ret['userid'], $ret['pic'], time());
 
-		$messaging->deliverMsg($ret['userid'], "Spotlight", "You've been spotlighted with this picture:\n[img=$config[thumbloc]" . floor($ret['userid']/1000) . "/$ret[userid]/$ret[pic].jpg]", 0, "Nexopia", 0);
+		$messaging->deliverMsg($ret['userid'], "Spotlight", "You've been spotlighted with this picture:\n[img=$config[thumbloc]" . "$imagepath]", 0, "Nexopia", 0);
 
 		return $ret;
 	}else{
@@ -2030,7 +2215,7 @@ function isVisibleTo($userid, $viewerid, $visibility)
 
 function isValidEmail($email){
 	global $msgs;
-	if(!eregi("^[a-z0-9]+([a-z0-9_.&-]+)*@([a-z0-9.-]+)+$", $email, $regs) ){
+	if(!eregi("^[a-z0-9]+([a-z0-9_.&-+]+)*@([a-z0-9.-]+)+$", $email, $regs) ){
 		$msgs->addMsg("Error: '" . htmlentities($email) . "' isn't a valid mail address");
 		return false;
 	}
@@ -2182,6 +2367,7 @@ function sortCols(&$rows){
 // $func - the name of the ruby-side function you want to call
 // $params - the params to the function defined on the ruby side
 function post_process_queue($className, $func, $params){
+/*
 	global $db, $processqueuedb, $typeid, $config;
 
 	$class_typeid = $typeid->getTypeID($className);
@@ -2194,6 +2380,7 @@ function post_process_queue($className, $func, $params){
 	$processqueuedb->prepare_query("INSERT IGNORE INTO `postprocessqueue` ( `id` , `time` , `module` , `func` , `params` , `unique` , `expiry` , `lock` , `owner` , `cluster` , `status` )
 						VALUES ('', #, #, ?, ?, ?, #, 0, '', ?, 'queued')",
 						$time, $class_typeid, $func, "php$serialized_data", $unique, ($time + 86400), $cluster);
+						*/
 }
 
 // Use like this: enqueue("Observable::Status", "create", $uid, []);
@@ -2205,6 +2392,7 @@ function post_process_queue($className, $func, $params){
 //        the object is stored.  The object must exist already, ruby will
 //        attempt to retrieve it.
 function enqueue($className, $event_type, $uid, $params){
+	/*
 	global $db, $processqueuedb, $typeid, $config;
 
 	$observable_typeid = $typeid->getTypeID("ObservationsModule");
@@ -2220,4 +2408,5 @@ function enqueue($className, $event_type, $uid, $params){
 	$processqueuedb->prepare_query("INSERT IGNORE INTO `postprocessqueue` ( `id` , `time` , `module` , `func` , `params` , `unique` , `expiry` , `lock` , `owner` , `cluster` , `status` )
 						VALUES ('', #, #, ?, ?, ?, #, 0, '', ?, 'queued')",
 						$time, $observable_typeid, $func, "php$serialized_data", $unique, ($time + 86400), $cluster);
+						*/
 }

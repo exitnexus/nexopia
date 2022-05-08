@@ -1,0 +1,116 @@
+.blog_panel
+{
+	text-align: left;
+	padding: 12px;
+	
+	& input
+	{
+		margin: 0px 4px 0px 0px;
+		vertical-align: text-bottom;
+		
+		&.checkbox {
+			border: 0px;
+		}
+	}
+	
+	& label.disabled
+	{
+		color: #C0C0C0;
+	}
+	
+	& h1.panel_title
+	{
+		margin: 0px;
+		font-size: 16px;
+		font-weight: bold;
+		margin-bottom: 20px;
+	}
+	
+	& .panel_functions
+	{
+		float: right;
+	}
+	
+	& td.field_name
+	{
+		font-weight: bold;
+		padding-right: 20px;
+	}
+	
+	& td
+	{
+		padding-bottom: 10px;
+		
+		&.apply_to_all {
+			padding-top: 2px;
+			
+			& a {
+				text-decoration: underline;
+			}
+		}
+	}
+}
+
+#blog_settings_panel
+{
+	width: 510px;
+	height: 200px;
+}
+
+#blog_delete_entries_panel
+{
+	display: none;
+	
+	width: 400px;
+	height: 120px;
+	
+	& .button_bar
+	{
+		position: absolute;
+		bottom: 12px;
+		right: 12px;
+		
+		& .yui-button
+		{
+			margin-left: 4px;
+		}
+	}
+}
+
+#blog_change_permissions_panel
+{
+	display: none;	
+	
+	width: 510px;
+	height: 200px;
+	
+	& .button_bar
+	{
+		float: right;
+	}
+	
+	& select
+	{
+		width: 180px;
+	}
+}
+
+#blog_ignore_user_panel, #blog_unignore_user_panel, #blog_edit_cancel_panel
+{
+	display: none;
+	
+	width: 400px;
+	height: 120px;
+	
+	& .button_bar
+	{
+		position: absolute;
+		bottom: 12px;
+		right: 12px;
+		
+		& .yui-button
+		{
+			margin-left: 4px;
+		}
+	}
+}

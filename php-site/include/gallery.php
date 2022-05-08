@@ -439,21 +439,21 @@ class gallerypic extends databaseobject
 			{
 				@unlink($normal);
 				$filesystem->delete($normal);
-				$mogfs->delete(FS_GALLERY, "{$this->userid}/{$this->id}.jpg");
+				$mogfs->delete(FS_GALLERY, "{$this->userid}/{$this->id}");
 			}
 			$full = $this->getImagePath('full');
 			if (file_exists($full))
 			{
 				@unlink($full);
 				$filesystem->delete($full);
-				$mogfs->delete(FS_GALLERYFULL, "{$this->userid}/{$this->id}.jpg");
+				$mogfs->delete(FS_GALLERYFULL, "{$this->userid}/{$this->id}");
 			}
 			$thumb = $this->getImagePath('thumb');
 			if (file_exists($thumb))
 			{
 				@unlink($thumb);
 				$filesystem->delete($thumb);
-				$mogfs->delete(FS_GALLERYTHUMB, "{$this->userid}/{$this->id}.jpg");
+				$mogfs->delete(FS_GALLERYTHUMB, "{$this->userid}/{$this->id}");
 			}
 
 			$mods->deleteItem(MOD_GALLERY,$this->id);
@@ -553,6 +553,7 @@ class gallerypic extends databaseobject
 		else
 			$path .= $config['gallerypicdir'];
 
+		# NEX-801 not changed to use revisions
 		$uidbase = floor($this->userid / 1000);
 		$uidhide = weirdmap($this->userid);
 
@@ -592,9 +593,9 @@ class gallerypic extends databaseobject
 		$sourceobj->duplicateImage($generate);
 		$this->sourceid = $sourceobj->id;
 
-		$mogfs->add(FS_GALLERY, "{$this->userid}/{$this->id}.jpg", file_get_contents($picdir));
-		$mogfs->add(FS_GALLERYFULL, "{$this->userid}/{$this->id}.jpg", file_get_contents($thumbdir));
-		$mogfs->add(FS_GALLERYTHUMB, "{$this->userid}/{$this->id}.jpg", file_get_contents($fulldir));
+		$mogfs->add(FS_GALLERY, "{$this->userid}/{$this->id}", file_get_contents($picdir));
+		$mogfs->add(FS_GALLERYFULL, "{$this->userid}/{$this->id}", file_get_contents($fulldir));
+		$mogfs->add(FS_GALLERYTHUMB, "{$this->userid}/{$this->id}", file_get_contents($thumbdir));
 
 		return true;
 	}

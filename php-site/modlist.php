@@ -44,7 +44,7 @@
 
 	foreach($rows as $line){
 		echo "<tr>";
-		echo "<td class=body><a class=body href=/profile.php?uid=$line[userid]>$line[username]</a></td>";
+		echo "<td class=body><a class=body href=/users/". urlencode($line["username"]) .">$line[username]</a></td>";
 		echo "<td class=body>" . ($line['online'] == 'y' ? "<b>Online</b>" : ($line['activetime'] == 0 ? "Never" : userDate("M j, Y G:i", $line['activetime']) )) . "</td>";
 	}
 

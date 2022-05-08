@@ -8,13 +8,13 @@ if($errorLogging){
 	openlog("PHP error", LOG_ODELAY, LOG_LOCAL0);
 
 	function userErrorHandler($errno, $errmsg, $filename, $linenum, $vars) {
-		global $sitebasedir, $userData, $debuginfousers;
+		global $config, $sitebasedir, $userData, $debuginfousers;
 
 		if(error_reporting() == 0) //likely disabled with the @ operator
 			return;
 
 
-//		$time = gmdate("M d Y H:i:s"); //time added by the syslog server 
+//		$time = gmdate("M d Y H:i:s"); //time added by the syslog server
 
 	// Get the error type from the error number
 		static $errortype = array ( 1   => "Error",
@@ -57,24 +57,29 @@ if($errorLogging){
 
 			for($i = 1; $i < 5 && $i < count($backtrace); $i++){ //only show 4 levels deep
 				$errfile = (isset($backtrace[$i]['file']) ? $backtrace[$i]['file'] : '');
-				
+
 				if(strpos($errfile, $sitebasedir) === 0)
 					$errfile = substr($errfile, strlen($sitebasedir));
-				
+
 				$line = (isset($backtrace[$i]['line']) ? $backtrace[$i]['line'] : '');
 				$function = (isset($backtrace[$i]['function']) ? $backtrace[$i]['function'] : '');
 				$args = (isset($backtrace[$i]['args']) ? count($backtrace[$i]['args']) : '');
-				
+
 				$backoutput .= "$errfile:$line:$function($args)";
-				
+
 				if($i+1 < count($backtrace)) //show if there are more levels that were cut off
 					$backoutput .= "<-";
-			}  
+			}
 		}
 
-		$str = "$_SERVER[PHP_SELF] ($errlevel) $filename:$linenum [$user/$ip] $errmsg $backoutput";
+		$config_name = "";
+		if (isset($config) && is_array($config) && isset($config['name']) && is_string($config['name']))
+		{
+			$config_name = $config['name'];
+		}
+		$str = "(" . $config_name . ") $_SERVER[PHP_SELF] ($errlevel) $filename:$linenum [$user/$ip] $errmsg $backoutput";
 
-		syslog($priority, $str);
+		syslog($priority | LOG_LOCAL0, $str);
 
 //		echo "sysloged $priority, $str\n";
 

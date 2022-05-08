@@ -4,10 +4,10 @@ require 'rake/gempackagetask'
 
 spec = Gem::Specification.new {|s|
 	s.name = "RAP"
-	s.version = "0.1.1"
-	s.author = "Sean Healy"
-	s.email = "sean@pointscape.org"
-	s.summary = "Ruby Around PHP, allows php code to be executed from within php/"
+	s.version = "0.1.7"
+	s.author = "Nexopia"
+	s.email = "cthompson@nexopia.com"
+	s.summary = "Ruby Around PHP, allows php code to be executed from within php"
 	s.require_path = "lib"
 	s.autorequire = "RAP"
 	s.platform = Gem::Platform::RUBY
@@ -21,23 +21,3 @@ Rake::GemPackageTask.new(spec) do |pkg|
 end
 
 
-# require 'rubygems'
-# Gem::manage_gems
-# require 'rake/gempackagetask'
-# 
-# spec = Gem::Specification.new {|s|
-# 	s.name = "RAP_clib"
-# 	s.version = "0.1.0"
-# 	s.author = "Sean Healy"
-# 	s.email = "sean@pointscape.org"
-# 	s.summary = "Ruby Around PHP, allows php code to be executed from within php/"
-# 	s.require_path = "lib"
-# 	s.autorequire = "RAPmini"
-# 	s.platform = Gem::Platform::RUBY
-# 	s.files = ["README", "LICENCE", "ext/RAP_clib.c", "lib/RAPmini.rb"];
-# 	s.extensions = ["ext/extconf.rb"];
-# }
-# 
-# Rake::GemPackageTask.new(spec) do |pkg|
-#   pkg.need_tar = false
-# end

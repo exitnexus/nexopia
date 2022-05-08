@@ -1,0 +1,69 @@
+<div id="blog_battle_photo">
+<div id="blog_new_entry_container">
+
+	<t:template-include t:module="blogs" t:name="blog_new_entry_header" />
+	
+	<div class="left_column">
+		<div class="battle_tabs">
+			<a href="#" class="first_tab selected"
+			 minion_name="blogs:battle:changetab:ignore">Photo Battle</a>
+			<a href="#video"
+			 minion_name="blogs:battle:changetab:video">Video Battle</a>
+		</div>
+	
+		<div class="post_title">
+			Photo Battle Title
+		</div>
+		<input type="text" class="text" id="photo_title" maxlength="128" 
+		 name="blog_post_title" />
+		
+		<div class="battle_item item1">
+			<input type="text" class="item_title" value="Photo 1"
+			 id="photo_caption_1" name="caption_1"
+			 minion_name="blogs:battle:photo:caption_1" />
+			<t:varsub t:new="photo_id" t:old="'_photo_1'"/>
+			<t:varsub t:new="photo_link_name" t:old="'link_1'"/>
+			<t:varsub t:new="photo_link" t:old="'blogs:battle:link_1'"/>
+			<t:template-include t:module="blogs" t:name="add_photo" />
+		</div>
+		
+		<div class="battle_item item2">
+			<input type="text" class="item_title" value="Photo 2"
+			 id="photo_caption_2" name="caption_2"
+			 minion_name="blogs:battle:photo:caption_2" />
+			<t:varsub t:new="photo_id" t:old="'_photo_2'"/>
+			<t:varsub t:new="photo_link_name" t:old="'link_2'"/>
+			<t:varsub t:new="photo_link" t:old="'blogs:battle:link_2'"/>
+			<t:template-include t:module="blogs" t:name="add_photo" />
+		</div>
+		<div class="clear"></div>
+		
+		<div class="post_submit_btns">
+			<t:if t:id="admin">
+				<t:handler-include path="/current/abuse/{AbuseLog::ABUSE_ACTION_BLOG_EDIT}" area="Skeleton" />
+			</t:if>
+			<div class="post">
+				<t:button type="submit"
+				 minion_name="blogs:battle_create:photo:post">POST</t:button>
+			</div>
+			<div class="cancel">
+				| <a href="#{PageRequest.current.area_base_uri}/blog">Cancel</a>
+			</div>
+			<div class="preview">
+				<a href="#preview"
+				 minion_name="async_panel blogs:battle:photo:preview"
+				 load_form="new_blog" path="/my/blog/new/preview"
+				 id="blogs_battle_photo_preview">Preview</a>
+			</div>
+			<div class="clear"></div>
+		</div>
+	</div>
+	
+	<div class="right_column">
+		<t:template-include t:module="blogs" t:name="blog_new_entry_options" />
+		<t:template-include t:module="blogs" t:name="blog_tip_battle_photo" />
+	</div>
+	<div class="clear"></div>
+	
+</div>
+</div>

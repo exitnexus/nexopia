@@ -1,0 +1,94 @@
+.new_entry_header_container {
+
+	& .header_container {
+		position: relative;
+		background-color: @secondary_block_background_color;
+		color: @secondary_block_text_color;
+		background-image: url('$static_files_url/blogs/shadow_bg.png');
+		background-repeat: repeat-x;
+		background-position: bottom;
+		padding: 6px 6px 0px 6px;
+		margin-bottom: 24px;
+		
+		& .page_title {
+			font-size: 16px;
+			font-family: Helvetica, Arial, sans-serif;
+			font-weight: bold;
+			margin-bottom: 6px;
+		}
+		
+		& #buttons {
+			height: 61px;
+			border-left: 1px dotted @secondary_block_text_color;
+			
+			& a {
+				color: @secondary_block_link_color;
+				background-repeat: no-repeat;
+				background-position: center 6px;
+				float: left;
+				text-align: center;
+				width: 71px;
+				height: 25px;
+				padding-top: 36px;
+				border-right: 1px dotted @secondary_block_text_color;
+				
+				&:hover {
+					color: @secondary_block_link_hover_color;
+				}
+				
+				&.freeform {
+					background-image: url('$static_files_url/blogs/freeform.gif');
+				}
+				
+				&.photo {
+					background-image: url('$static_files_url/blogs/photo.gif');
+				}
+				
+				&.video {
+					background-image: url('$static_files_url/blogs/video.gif');
+				}
+				
+				&.battle {
+					background-image: url('$static_files_url/blogs/battle.gif');
+				}
+				
+				&.poll {
+					background-image: url('$static_files_url/blogs/poll.gif');
+				}
+				
+				&.current {
+					 color: @primary_block_link_color;
+					 background-color: @primary_block_background_color;
+					 
+					 &:hover {
+					 	color: @primary_block_link_hover_color;
+					 }
+				}
+			} 
+		}
+		
+		& .stats_container {
+			position: absolute;
+			top: 9px;
+			left: 516px;
+			
+			& span {
+				font-weight: bold;
+			}
+			
+			& table {
+				margin-top: 6px;
+			
+				& td.number {
+					font-weight: bold;
+					text-align: right;
+				}
+				
+				& td.item {
+					padding: 0px 22px 0px 4px;
+				}
+			}
+		}
+	}
+	
+}

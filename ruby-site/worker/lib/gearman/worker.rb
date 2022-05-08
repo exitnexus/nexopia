@@ -290,7 +290,7 @@ class Worker
       servers = nil
       @servers_mutex.synchronize { servers = @sockets.keys.sort }
       servers.each do |hostport|
-        Util.log "Sending grab_job to #{hostport}"
+        Util.log "Sending grab_job to #{hostport}", :spam
         sock = @sockets[hostport]
         begin
           Util.send_request(sock, req)
@@ -308,7 +308,7 @@ class Worker
           end
           case type
           when :no_job
-            Util.log "Got no_job from #{hostport}"
+            Util.log "Got no_job from #{hostport}", :spam
             break
           when :job_assign
             return if handle_job_assign(data, sock, hostport)
@@ -332,7 +332,7 @@ class Worker
         end
       end
 
-      Util.log "Sending pre_sleep and going to sleep for #{@reconnect_sec} sec"
+      Util.log "Sending pre_sleep and going to sleep for #{@reconnect_sec} sec", :spam
       @servers_mutex.synchronize do
         @sockets.values.each do |sock|
           Util.send_request(sock, Util.pack_request(:pre_sleep))

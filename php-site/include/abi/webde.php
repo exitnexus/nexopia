@@ -11,7 +11,8 @@ WWW: http://www.octazen.com
 Email: support@octazen.com
 V: 1.1
 ********************************************************************************/
-include_once("abimporter.php");
+//include_once(dirname(__FILE__).'/abimporter.php');
+if (!defined('__ABI')) die('Please include abi.php to use this importer!');
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //WebDeImporter
@@ -34,6 +35,7 @@ class WebDeImporter extends WebRequestor {
 		$form->addField("username", $login);
 		$form->addField("password", $password);
 		$form->addField("rv_dologon", "Login");
+		$form->addField("_authtrkcde", "{#TRKCDE#}");
 		$postData = $form->buildPostData();
 		$html = $this->httpPost("https://login.web.de/intern/login/", $postData);
 		if (strpos($html, 'Passwort vergessen')!=false ||

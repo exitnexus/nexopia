@@ -1,5 +1,4 @@
 lib_require :core, "text_manip"
-require 'bbcode'
 
 module MonitoredContent
 	@@content_monitors = Hash.new

@@ -1,7 +1,7 @@
 lib_require :core, 'users/locs'
 
 module Groups
-	class Group < Storable
+	class Group < Cacheable
 		set_db(:groupsdb);
 		set_table("groups");
 		init_storable();

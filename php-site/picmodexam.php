@@ -1307,7 +1307,6 @@
 					$errmsgs[] = "- Removed '" . getUserName($userid[0]) . "' from the waiting list.";
 				}
 				elseif ($examstatus === 'invite sent' or $examstatus === 'exam started') {
-//					$messaging->deliverMsg($userid[0], 'exam invite revoked', "Your invitation to take the pic mod exam has been revoked. You will not be able to take the exam. Reason why your invitation was revoked:\n\n{$comments[$examid][0]}", 0, "Nexopia", 0, false, false);
 					$errmsgs[] = "- Revoked exam invite for '" . getUserName($userid[0]) . "'.";
 				}
 				else {
@@ -1322,7 +1321,7 @@
 			foreach ($invites as $examid => $userid) {
 				if ($userid[0] !== $userid[1] or is_null($userid[0])) continue;
 				$invitetxt = getStaticValue('picmodexam_emailinvite');
-				$messaging->deliverMsg($userid[0], 'pic mod exam invite', $invitetxt, 0, "Nexopia", 0, false, true);
+				$messaging->deliverMsg($userid[0], 'pic mod exam invite', $invitetxt, 0, "Nexopia", 0, false);
 				$this->db->prepare_query('UPDATE examresults SET examstatus=? WHERE examid=#', 'invite sent', $examid);
 				$this->db->prepare_query('UPDATE examusers SET posid=# WHERE userid=#', 0, $userid[0]);
 				$errmsgs[] = "- Sent invite to '" . getUserName($userid[0]) . "'.";
@@ -1519,7 +1518,7 @@
 					<? endif; ?>
 				</td>
 				<td class="<?= $highlight[0]; ?>" valign="top">
-					<a class="body" href="/profile.php?uid=<?= $row['userid']; ?>"><?= htmlentities($row['username'], ENT_NOQUOTES); ?></a>
+					<a class="body" href="/users/ <?= urlencode($row["username"]) ?>"><?= htmlentities($row['username'], ENT_NOQUOTES); ?></a>
 				</td>
 				<td class="<?= $highlight[0]; ?>" valign="top">
 					<?= $row['age']; ?>

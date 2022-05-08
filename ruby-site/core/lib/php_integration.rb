@@ -10,38 +10,44 @@ class MemCache
 	entries = MemcacheKeyMapping.find(:all, :scan);
 	@@keymap = {};
 	entries.each{|entry|
-		@@keymap[entry.rubykey] ||= [];
-		@@keymap[entry.rubykey] << entry.phpkey;
+		ruby_regex = /^#{entry.rubykey}\-(.*)$/
+		@@keymap[ruby_regex] ||= [];
+		@@keymap[ruby_regex] << entry.phpkey;
 	}
-	### Delete the entry with the specified key, optionally at the specified
-	### +time+.
-	alias raw_delete delete 
-	def delete( key, time=nil )
-		$log.info "php-integration: deleting ruby key #{key}", :debug
-		@@keymap.each{|rubykey, mappings|
-			if key =~ /^#{rubykey}\-(.*)$/
-				mappings.each{|phpkey|
-					$log.info "php-integration: deleting key #{phpkey}-#{$1}", :debug
-					raw_delete("#{phpkey}-#{$1}");
-				}
-			end
+
+	def delete_mappings(keys)
+		del_keys = []
+		keys.each{|key|
+			@@keymap.each{|ruby_regex, mappings|
+				if(match = key.match(ruby_regex))
+					mappings.each{|phpkey|
+						del_keys << "#{phpkey}-#{match[1]}";
+					}
+				end
+			}
 		}
-		raw_delete(key, time);
-	end
-	
-	### Store the specified +value+ to the cache associated with the specified
-	### +key+ and expiration time +exptime+.
-	alias raw_store store
-	def store( type, key, val, exptime )
-		$log.info "php-integration: Storing key '#{key}'.", :debug
-		@@keymap.each{|rubykey, mappings|
-			if key =~ /#{rubykey}/
-				mappings.each{|phpkey|
-					raw_delete(phpkey);
-				}
-			end
-		}
-		raw_store(type, key, val, exptime);
+
+		if(del_keys.length > 0)
+			$log.info "php-integration: Deleting ruby keys caused deleting php keys.", :debug
+			raw_delete_many(*del_keys);
+		end
 	end
 
+	### Delete the entry with the specified key, optionally at the specified +time+.
+	alias :raw_delete :delete 
+	def delete( key, time=nil )
+		delete_mappings([key])
+
+		raw_delete(key, time);
+	end
+
+	### Delete the entrys with the specified keys
+	alias :raw_delete_many :delete_many
+	def delete_many( *keys )
+		delete_mappings(keys)
+
+		raw_delete_many(*keys);
+	end
+	
+	# Don't need to do this on set/add/replace because we always invalidate (ie delete) first.
 end

@@ -1,0 +1,34 @@
+<div id="picmod_quiz_mockup">
+
+	<div class="header">
+		PIC MOD QUIZ
+	</div>
+	
+	<div class="error_container" id="error_container">
+		<div class="primary_text">
+			WRONG!
+		</div>
+		<div class="secondary_text">
+			The user has to show more than half a face or more than shoulders to hips. The goal here is to have an identifiable picture of someone; this could be anyone. You should have denied this.
+		</div>
+	</div>
+	
+	<div class="picture_container">
+		<img border="0" src="{$site.static_files_url}/mods/images/pic_mod_quiz/quiz_01.jpg" />
+	</div>
+	
+	<div class="answer_buttons" id="answer_buttons">
+		<div class="approve">
+			<t:button onClick="wrongAnswer();">Accept</t:button>
+		</div>
+		<div class="deny">
+			<t:button onClick="addToScore(); location.href='/mods/quiz/pics/2?correct=' + correct;">Deny</t:button>
+		</div>
+		<div class="clear" />
+	</div>
+	
+	<div class="continue_button" id="continue_button">
+		<t:button onClick="scoreContinue(); location.href='/mods/quiz/pics/2?correct=' + correct;">Continue</t:button>
+	</div>
+	
+</div>

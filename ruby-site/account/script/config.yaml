@@ -1,0 +1,8 @@
+--- !ruby/object:JavascriptConfig 
+module_require: 
+- autocomplete
+- panels
+
+yui_require:
+- datasource
+- autocomplete

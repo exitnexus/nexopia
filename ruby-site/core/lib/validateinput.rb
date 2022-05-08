@@ -41,7 +41,7 @@ class Boolean
 
 
 	def validate_input(value)
-		if (self == !!(/(true|on|y|enabled)/ =~ value.to_s))
+		if (self == !!(/(true|false|on|off|y|n|enabled|disabled)/ =~ value.to_s))
 			return !!(/(true|on|y|enabled)/ =~ value.to_s);
 		else
 			return nil;
@@ -71,7 +71,7 @@ end
 class Integer
 	# All characters must be numbers, except for the first which may be -
 	def Integer.validate_input(value)
-		if (value.kind_of?(Integer) || /^-?[0-9]+$/ =~ value)
+		if (value.kind_of?(Integer) || /^\s*-?[0-9]+\s*$/ =~ value)
 			return value.to_i;
 		else
 			return nil;
@@ -98,7 +98,7 @@ class Float
 	# All characters must be numbers, except there can be up to one decimal
 	# and a negative sign at the front
 	def Float.validate_input(value)
-		if (value.kind_of?(Float) || /^-?[0-9]*(\.[0-9]+)?$/ =~ value)
+		if (value.kind_of?(Float) || /^\s*-?[0-9]*(\.[0-9]+)?\s*$/ =~ value)
 			return value.to_f;
 		else
 			return nil;
@@ -147,8 +147,9 @@ end
 
 class Array
 	def Array.validate_input(value)
-		if (!value.kind_of?(Array) && value.length > 0)
-			return nil;
+		return [*value]
+		if (!value.kind_of?(Array))
+			return [value];
 		else
 			return value;
 		end
@@ -168,7 +169,6 @@ class Array
 			if (!innertype.kind_of?(Array) && innervalue.kind_of?(Array))
 				innervalue = innervalue[0];
 			end
-
 			innertype.validate_input(innervalue); # returns
 		}.compact();
 
@@ -176,6 +176,28 @@ class Array
 			return output;
 		else
 			return nil;
+		end
+	end
+end
+
+class Hash
+	def validate_input(value)
+		if (!value.kind_of?(Hash) || self.length != 1)
+			return nil
+		end
+		keytype = nil
+		valtype = nil
+		self.each {|k,v| keytype = k; valtype = v}
+		output = {}
+		value.each {|k, v|
+			if (!(k = keytype.validate_input(k)).nil? && !(v = valtype.validate_input(v)).nil?)
+				output[k] = v
+			end
+		}
+		if (output.length > 0)
+			return output
+		else
+			return nil
 		end
 	end
 end
@@ -195,7 +217,6 @@ class Set
 		end
 		return nil;
 	end
-
 end
 
 class Symbol
@@ -227,6 +248,8 @@ class Class
 		if (value.kind_of?(String) && value == name)
 			return value
 		elsif (value.kind_of?(Class) && value == self)
+			return value
+		elsif (value.kind_of?(self))
 			return value
 		end
 		return nil

@@ -4,7 +4,7 @@ module Music
 	class MusicChannel < Cacheable
 		init_storable(:streamsdb, "musicchannels");
 		
-		relation_multi(:channel_tags, :id, :channelid, MusicChannelTagSelection);
+		relation :multi, :channel_tags, [:id], MusicChannelTagSelection, :channelid
 		
 		def articles()
 			stream_tag_list = Array.new();

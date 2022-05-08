@@ -1,0 +1,30 @@
+<t:wrapper>
+	<!-- -1 means image not yet validated,
+		  0 means image not valid,
+		  1 means image valid
+	 -->
+	<t:if t:id="valid.nil?">
+	<input type="hidden" id="blog_post_photo_link{photo_id}_valid" value="0" />
+	</t:if>
+	<t:if t:id="!valid.nil?">
+	<input type="hidden" id="blog_post_photo_link{photo_id}_valid"
+	 value="{valid}" />
+	</t:if>
+
+	<input t:id="pic" id='blog_post_photo_link{photo_id}' class='text' type='text'
+	 value='{pic.img_info[1]}' name='blog_post_photo_link'
+	 minion_name='blogs:photo_link' />
+	
+	<t:if t:id="photo_link_name.nil?">
+	<input t:id="pic.nil?" id='blog_post_photo_link{photo_id}' class='text' type='text'
+	 value='{link}' name='blog_post_photo_link'
+	 minion_name='blogs:photo_link {photo_link}' />
+	</t:if>
+
+	<t:if t:id="!photo_link_name.nil?">
+	<input t:id="pic.nil?" id='blog_post_photo_link{photo_id}' class='text' type='text'
+	 value='http://' name='{photo_link_name}'
+	 minion_name='blogs:photo_link {photo_link}' />
+	</t:if>
+
+</t:wrapper>

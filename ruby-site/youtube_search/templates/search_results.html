@@ -1,0 +1,28 @@
+<div id="youtube_search_results">
+	
+	<t:if t:id="videos.size == 0">
+		<div>Sorry, YouTube doesn't have any results for your search.</div>
+	</t:if>
+	
+	<t:loop t:id="videos" t:iter="video" t:index="video_id">	
+	<t:if t:id="videos.size > 0">
+	<div id="video_{video_id}" class="video_container">
+		<img src="{video.thumbnails[1].url}" class="video_thumb" />
+		<div class="video_info">
+			<div class="video_title">
+				{video.title}
+			</div>
+			<div class="video_desc">
+				#{video.html_content}
+			</div>
+			<input type="hidden" value="{video.embed_html(640, 480)}" id="embed_{video_id}"/>
+			<div class="add_video">
+				<t:button class="add_button" id="add_video_{video_id}" minion_name="youtube:add_video">Add This Video</t:button>
+			</div>
+		</div>
+		<div class="clear"></div>
+	</div>
+	</t:if>
+	
+	</t:loop>
+</div>

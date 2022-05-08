@@ -1,16 +1,5 @@
 <?
 
-	define('FS_USERPICSTHUMB', 1);
-	define('FS_USERPICS', 2);
-	define('FS_GALLERY', 3);
-	define('FS_GALLERYFULL', 4);
-	define('FS_GALLERYTHUMB', 5);
-	define('FS_SOURCE', 6);
-	define('FS_BANNERS', 7);
-	define('FS_UPLOADS', 8);
-
-	define('FS_MAXCLASS', 8);
-
 	define('FS_RETRY', 10);	// number of times we'll try to store a file before giving ip
 
 	class mogfs {
@@ -20,15 +9,22 @@
 		function __construct ($domain, $hosts = array()) {
 			$this->mogile = new MogileFS_Client($domain, $hosts);
 
+			global $typeid;
+
+			define('FS_USERPICSTHUMB', 1);
+			define('FS_USERPICS', 2);
+			define('FS_GALLERY', 3);
+			define('FS_GALLERYFULL', 4);
+			define('FS_GALLERYTHUMB', 5);
+			define('FS_SOURCE', 6);
+			define('FS_BANNERS', $typeid->getTypeID("BannerFileType"));
+			define('FS_UPLOADS', $typeid->getTypeID("UserFiles::FileType"));
+
+			define('FS_MAXCLASS', max(FS_BANNERS, FS_UPLOADS));
+
 			$this->FS_MAP = array(
-				1	=> 'userpicsthumb',
-				2	=> 'userpics',
-				3	=> 'gallery',
-				4	=> 'galleryfull',
-				5	=> 'gallerythumb',
-				6	=> 'source',
-				7	=> 'banners',
-				8	=> 'uploads'
+				FS_BANNERS => 'source',
+				FS_UPLOADS => 'source'
 			);
 		}
 
@@ -45,6 +41,9 @@
 
 			$failed = array();
 			foreach ($items as $key => $data) {
+				if(!$data)
+					continue;
+
 				if ($class < 1 || $class > FS_MAXCLASS) {
 					trigger_error("mogilefs class must be an integer between 1 and " . FS_MAXCLASS, E_USER_WARNING);
 					$failed[] = $key;
@@ -54,6 +53,7 @@
 				$i = 0;
 				while (true) {
 					if (++$i >= FS_RETRY) {
+						trigger_error("mogilefs reached max retry ($i >= " . FS_RETRY . ") on $key", E_USER_WARNING);
 						$failed[] = $key;
 						break;
 					}
@@ -62,7 +62,6 @@
 						break;
 				}
 			}
-
 			if (count($failed) == 0)
 				return true;
 
@@ -163,4 +162,16 @@
 
 			return is_array($items) ? $fetched : array_shift($fetched);
 		}
+		
+		// usage:
+		//  $isthere = $mogfs->test(FS_CLASS, 'key1');
+		// Returns true if the file exists as far as mog is concerned, false otherwise.
+		function test($class, $key) {
+			$paths = $this->mogile->paths("${class}/${key}");
+			if (!$paths || count($paths) < 1)
+				return false;
+			else
+				return true;
+		}
+		
 	}

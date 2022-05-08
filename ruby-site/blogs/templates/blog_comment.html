@@ -1,0 +1,105 @@
+<t:if t:id="blog_comment.show_wrapper">
+	<div id="blog_comment_#{blog_comment.id}" class="blog_comment #{first_level_comment}">
+		<t:if t:id="blog_comment.displayed">
+			<div class="single_comment_wrapper">
+				<table width="100%" cellpadding="0" cellspacing="0">
+					<tr>
+						<td class="comment_user_img">
+							<div class="comment_user_img_spacer_div">
+								<t:if t:id="!blog_comment.deleted && blog_comment.author.kind_of?(User)">
+									<a t:id="blog_comment.author">
+										<img t:id="blog_comment.author" t:linktype="landscapethumb" />
+									</a>
+								</t:if>
+								<t:if t:id="!blog_comment.deleted && !blog_comment.author.kind_of?(User)">
+									<img t:id="blog_comment.author" t:linktype="landscapethumb" />
+								</t:if>
+							</div>
+						</td>
+						<td>
+							<div class="comment_content">
+								<t:if t:id="blog_comment.quick_delete?(viewing_user)">
+									<div class="comment_quick_delete_btn">
+										<a href="/users/%{blog_comment.user.username}/blog/#{blog_comment.blogid}/comment/#{blog_comment.id}/delete?page=#{current_page}&key={viewing_user.gen_auth_key()}" class="comment_quick_delete" id="comment_quick_delete_#{blog_comment.id}">
+											<img src="#{$site.colored_img_url(blog_user.blog_skin[:secondary_block_icon_color])/:comments/:images/'icon_delete_comment.gif'}"/>
+										</a>
+									</div>
+								</t:if>
+								<div class="comment_date">
+									<t:nice-time t:time="blog_comment.time" t:format="date_and_time"/>
+								</div>
+								<div class="comment_username">
+									<t:if t:id="blog_comment.deleted">
+										DELETED COMMENT
+									</t:if>
+									<t:if t:id="!blog_comment.deleted || (blog_comment.deleted && admin_viewer)">
+										<t:if t:id="blog_comment.deleted">
+											:&#160;
+										</t:if>
+										<a t:id="blog_comment.author"/>
+									</t:if>
+								</div>
+								<t:if t:id="!blog_comment.deleted || admin_viewer">
+									<div class="comment_body">
+										@{blog_comment.msg}
+									</div>
+								</t:if>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<td valign="bottom">
+							<t:if t:id="show_delete_controls && !blog_comment.deleted"> 
+								<div class="blog_comment_delete">
+									<input minion_name="blog_comments:post_select"
+										class="blog_comment_delete_input" id="comment_delete_#{blog_comment.userid}:#{blog_comment.id}" 
+										name="blog_comment_delete_#{blog_comment.userid}:#{blog_comment.id}" type="checkbox" />
+								</div>
+							</t:if>
+						</td>
+						<td valign="bottom">
+							<div class="comment_function_links">
+								<span>
+									<t:if t:id="!blog_comment.deleted">
+										<t:if t:id="!blog_user.ignored?(viewing_user) && !viewing_user.anonymous?()">
+											<a href="/users/%{blog_comment.user.username}/blog/{blog_post.id}/comment/{blog_comment.id}/reply" minion_name="blog:comment_reply" id="blog_comment_reply_#{blog_comment.id}">
+												Reply
+											</a>
+											&nbsp;|&nbsp;
+										</t:if>
+										<t:if t:id="blog_comment.author.kind_of?(User)">
+											<t:if t:id="blog_comment.author.userid != viewing_user.userid && !blog_user.ignored?(viewing_user) && !viewing_user.anonymous?()">
+												<a href="/messages.php?action=write&to=#{blog_comment.userid}">
+													Message
+												</a>
+												&nbsp;|&nbsp;
+											</t:if>
+											<t:if t:id="blog_post.user.userid == viewing_user.userid && blog_comment.author.userid != viewing_user.userid">
+												<t:handler-include path="/blog/comment/ignore_link" area="User">
+													<t:var t:name="'viewing_user'" t:val="viewing_user" />
+													<t:var t:name="'blog_comment_author'" t:val="blog_comment.author" />
+													<t:var t:name="'link_id'" t:val="blog_user.userid.to_s.concat(':').concat(blog_comment.id.to_s)"/>
+												</t:handler-include>
+												|&nbsp;
+											</t:if>
+										</t:if>
+									</t:if>
+									<a href="#comments_top">
+										Top
+									</a>
+								</span>
+							</div>
+						</td>
+					</tr>
+				</table>
+			</div>
+		</t:if>
+		<t:if t:id="blog_comment.descendant_displayed">
+			<t:varsub t:new="first_level_comment" t:old="''" />
+			<t:iter t:id="blog_comment.child_nodes" t:iter="blog_comment">
+				<t:template-include t:module="blogs" t:name="blog_comment" />
+			</t:iter>
+		</t:if>
+	</div>
+</t:if>
+

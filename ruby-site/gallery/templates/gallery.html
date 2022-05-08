@@ -1,47 +1,67 @@
-<div id="gallery_body" t:docid="gallery_body">
+<div id="gallery_body" minion_name="gallery_management">
+
 	<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/yui/build/button/assets/skins/sam/button.css"/>
-	<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/yui/build/container/assets/container.css"/>
+	<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.5.2/build/assets/skins/sam/resize.css"/> 
+	<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.5.2/build/assets/skins/sam/imagecropper.css"/>
+
+	<div t:id="PageRequest.current.impersonation?">
+		As a moderator, you only have the permissions to delete pictures, and change
+		captions.  If you try other actions, they will fail.<br/>
+	</div>
 
 	<div> 
 		<script type="text/javascript" src="{$site.static_files_url}/yui/build/button/button-min.js"></script>
 		<script type="text/javascript" src="{$site.static_files_url}/yui/build/json/json-beta-min.js"></script>
 
-		<div style="visibility: hidden; display: none;">
-			<div id="edit_photo_panel">
-
-			</div>
-		</div>
-
-		<t:json t:data="PageRequest.current.user" t:handle="jsonPageOwner"/>
-		<t:json t:data="PageRequest.current.session.user" t:handle="jsonPageViewer"/>
-		<t:json t:data="gallery.pics" t:handle="jsonGalleryPics"/>
-		<script>
-		//GLOBAL
-		galleryPics = [];
-		//alert("checking for existance of JSON data...");
-		for (index in Nexopia.JSONData['jsonGalleryPics']){
-			var galleryPic = Nexopia.JSONData['jsonGalleryPics'][index];
-			galleryPics[galleryPic.id] = new GalleryPic(galleryPic);
-			//alert(galleryPic.id);
-		}
-		</script>
+		<t:json t:data="PageRequest.current.area_base_uri" t:handle="areaBaseUri"/>
 	</div>
 
 	<div id="gallery_overlay">
-		<t:handler-include path="/gallery/create/" area="Self"/>
+		<t:handler-include path="/gallery/create_gallery_popup/" area="Self"/>
 	</div>
-	<form id="gallery_form" action="/my/gallery/action/{gallery.id}" method="POST">
+	<form id="gallery_form" action="#{PageRequest.current.area_base_uri}/gallery/upload/{gallery.id}" method="POST">
 		<input type="hidden" name="galleryid" id="galleryid" value="{gallery.id}"/>
 
+		<input type="hidden" name="test[]" value="1"/>
+		<input type="hidden" name="test[]" value="2"/>
+		<input type="hidden" name="test[]" value="3"/>
+
 		<ul id="action_bar" class="action_bar">
-			<li id="upload_images">
-				<input type="submit" name="function[upload][{gallery.id}]" value="Upload Images"/>
+			<li>
+				<!--<input type="submit" name="function[cover]" id="album_cover" value="Set as album cover"/>-->
+				<div class="button_bar" >
+					<span class="custom_button yui-button yui-button-button">
+						<span class="first-child">
+							<button id="album_cover" type="submit" name="function[cover]">
+								Make Album Cover
+							</button>
+						</span>
+					</span>
+				</div>
 			</li>
 			<li>
-				<input type="submit" name="function[cover]" id="album_cover" value="Set as album cover"/>
+				<!--<input type="submit" name="function[profile_pic]" value="Make Profile Pic"/>-->
+				<div class="button_bar" >
+					<span class="custom_button yui-button yui-button-button">
+						<span class="first-child">
+							<button id="make_profile_pic" type="submit" name="function[profile_pic]">
+								Make Profile Picture
+							</button>
+						</span>
+					</span>
+				</div>
 			</li>
-			<li>
-				<input type="submit" name="function[delete]" id="remove" value="Delete"/>
+			<li id="delete_images">
+				<!--<input type="submit" name="function[delete]" id="remove" value="Delete"/>-->
+				<div class="button_bar" >
+					<span class="custom_button yui-button yui-button-button">
+						<span class="first-child">
+							<button id="remove" type="submit" name="function[delete]">
+								Delete
+							</button>
+						</span>
+					</span>
+				</div>
 			</li>
 			<li>
 				<input id="move_gallery" class="noscript" type="submit" name="function[move]" value="Move to:"/>
@@ -49,53 +69,45 @@
 					<t:var t:name="'first_option'" t:val="'Move to:'"/>
 				</t:handler-include>
 			</li>
+			<li>
+				<img class="script" id="edit_gallery_spinner" src="#{$site.static_files_url}/Legacy/images/spinner.gif"/>
+			</li>
 		</ul>
 	</form>
 	<div class="script clear javascript_select">
 		Select:&#160;
-		<a id="select_all" class="body" href="#">All</a>,&#160;
-		<a id="select_none" class="body" href="#">None</a>
+		<a minion_name="gallery_management:select_all" class="body" href="#">All</a>,&#160;
+		<a minion_name="gallery_management:select_none" class="body" href="#">None</a>
 	</div>
 	<div id="album_page" class="album_page">
-		<ul class="gallery_pics_page page" t:id="gallerypics" t:iter="page" t:index="page_count" id="page_{page_count}">
-			<t:loop t:id="page" t:iter="row" t:index="count">
-				<li t:id="(page_count==0 && count==0)">
-					<t:handler-include area="Self" path="/gallery/edit_gallery/{gallery.id}"/>
-				</li>
-				<li t:id="row" t:iter="pic" id="{pic.id}">
-					<div class="photoframe">
-						<div class="edit_bar gallery_pic_bar">
-							<div>
-								<div class="left_menu">
-									<input id="picture[{pic.id}]" name="picture[{pic.id}]" type="checkbox"/>
-								</div>
-								<div class="right_menu">
-									<a id="edit_link_{pic.id}" class="edit_link" href="#">Edit</a>
-									<a class="script" name="delete_link" id="delete_link[{pic.id}]" href="/my/gallery/delete/{pic.id}">
-										<img src="{$site.static_files_url}/Gallery/images/delete.gif"/>
-									</a>
-									<input class="noscript" type="image" src="{$site.static_files_url}/Gallery/images/cross_red.gif" alt="Submit button" value="function[deletepic][{pic.id}]" name="function[deletepic][{pic.id}]"/>
-								</div>
-							</div>
-						</div>
-						<div class="middle">
-							<img class="photoframe_photo script handle" id="draggable_image[{pic.id}]" t:id="pic" t:linktype="squaremini"/>
-							<br/>
-						</div>
-						<div>
-							<div id="description[{pic.id}]" class="image_description">
-								{pic.description}
-							</div>
-							<textarea id="edit[{pic.id}]" class="edit_box"> 
-								{pic.description}
-							</textarea>
-						</div>
-						<div class="clearit"></div>
-					</div>
-				</li>
-			</t:loop>
-		</ul>
+    	<div class="extra_width_container">
+            <ul>
+                <li t:id="gallery.pics" t:iter="pic" id="{pic.id}" t:index="index">
+                    <div class="photoframe">
+                        <img class="photoframe_photo script handle" id="draggable_image[{pic.id}]" t:id="pic" t:linktype="square"/>
+                        <br/>
+                        <div>
+                            <div class="right_menu">
+                                <a class="script" name="delete_link" id="delete_link[{pic.id}]" href="#{PageRequest.current.area_base_uri}/gallery/pic/{pic.id}/delete?source=edit_gallery">
+                                    Delete
+                                </a>&nbsp;|&nbsp;
+                                <a id="edit_link_{pic.id}" class="edit_link" minion_name="edit_picture:edit_link" t:json="[pic.id, 'gallery']" href="#edit">Edit</a>
+                            </div>
+                            <input id="picture[{pic.id}]" minion_name="gallery:pic_checkbox" name="picture[{pic.id}]" type="checkbox"/>
+                        </div>
+                        
+                        <div class="clearit"></div>
+                    </div>
+                </li>
+            </ul>
+        </div>
 		<div class="clearit">
 		</div>
 	</div>
+	<div class="script clear javascript_select_bottom">
+		Select:&#160;
+		<a minion_name="gallery_management:select_all" class="body" href="#">All</a>,&#160;
+		<a minion_name="gallery_management:select_none" class="body" href="#">None</a>
+	</div>
+	<t:template-include t:module="gallery" t:name="abuselog"/>
 </div>

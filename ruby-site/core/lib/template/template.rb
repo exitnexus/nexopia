@@ -1,7 +1,6 @@
 require "rexml/document"
-require 'cgi'
 lib_require :Core, "template/generated_cache"
-lib_require :Core, "template/template_class_generator"
+lib_require :Core, "template/code_generator"
 lib_require :Core, "template/default_view"
 lib_require :Core, "template/literal_view"
 lib_require :Core, "filechangemonitor"
@@ -10,91 +9,62 @@ lib_require :Core, "template/form"
 lib_require :Core, "template/template_processor"
 lib_require :Core, "template/call_processor"
 
-# Abandon hope all ye who enter here!
-#           _.--"""--._
-#        .'             '.
-#       /                 \
-#      ;                   ;
-#      |                   |
-#      ;                   ;
-#       \ (`'--,   ,--'`) /
-#       ))(  ')/ _ \('  )((
-#       (_ `""` / \ `""` _)
-#       |`"-,  /   \  ,-"`|
-#       \  /   `"`"`   \  /
-#         | _. ; ; ; ._ |
-#   _|"";  '-'_'_'_'_'-'    ;""|_
-#   \__ '-,               ,-' __/
-#      '-, '-,         ,-' ,-'
-#         '-, '-,   ,-' ,-'
-#            '-, '-' ,-'
-#             ,-'-, '-,
-#          ,-' ,-' '-, '-,
-#     __,-' ,-'       '-, '-,__
-#   /_  ,-'              '-,  _\
-#    |,,;                  ;,,|
-# The class responsible for generating the templates.  Each template will generate
-# its own class, called Template<MODULENAME>_<FILENAME>.  Instances of the generated
-# classes are availabled by calling Template::instance(module, file).
-#
 # =Template Class User's Guide
 #
 # A template file is a .html file with special keywords and attributes.
 #
 # =How To Write Templates
 #
-# Most of the template file is basic HTML. Templates must be valid XML.  This means that
-# all tags must be closed in the correct order, and single tags such as "br" must be closed
-# as in "</br>".  All attributes must be surrounded in quotations. Any javascript with "<" and
-# ">" operators must be encapsulated in CDATA.
+# A template is an HTML document with control flow and other programming features. The control
+# flow is done with custom tags.  When the template is run, the output is a normal HTML
+# file. The custom tags let you do loops, ifs, insert data, etc.
 #
-# In order to seperate our own tags and attributes from those of html, we use our own namespace.
-# This namespace is identified by the url in TEMPLATE_NAMESPACE, and usually by the prefix t: on
-# those tags. It is EXTREMELY IMPORTANT that all template documents have a root tag, and that that
-# tag identify the two main namespaces in use, a default namespace of http://www.w3.org/1999/xhtml
-# and our own template namespace of TEMPLATE_NAMESPACE.
+# Templates must be valid XML.  This means that all tags must be closed in the correct order, 
+# and single tags such as "br" must be closed as in "<br/>".  All attributes must be surrounded 
+# in quotations. Any javascript with "<" and ">" operators must be encapsulated in CDATA. Also, 
+# there can only be one root tag in a template document.
+#
+# Any custom tags are namespaced, as in <namespace:tag>. There are also custom attributes,
+# like <div namespace:attribute="something">. 
+#
+# The template code can be extended to use any namespaces, but the one provided by default is
+# 't'. There are many different tags defined in the t namespace. Note that there are many
+# meaningful tags, but you can also use totally meaningless ones if you want.  The meaningless
+# ones will be stripped out, but you can use them for organization.   
 #
 # Following is an example hello world template that follows these conventions. This is useful as
 # a basis for writing new templates:
 #
-# <t:my-template xmlns="http://www.w3.org/1999/xhtml" xmlns:t="http://www.nexopia.com/dev/template">
+# <t:template>
 #  Hello World!
-# </t:my-template>
+# <t:template>
 #
-# Note that any tags or attributes in the template namespace will be stripped from the output
-# xml, so when this template is included into another it will not include the outer
-# t:my-template tag. If your template is completely surrounded in a real xhtml tag,
-# do not put it in the t: namespace.
-#
-# Although xml namespaces should be linked to the URL more than the prefix, current limitations
-# require that the namespace in question always be on the prefix 't'.
 #
 # We've introduced several special conventions into templates.
 #
 # Variables
-# * {varname} notation
-#   {varname} will be replaced with the value of a variable set at runtime.  The value of the
+#   You can insert variables into the template output with the {} characters.  The value of the
 #   variable will be converted into a string and transformed into an htmlentity, so all special
 #   characters in HTML will be converted.  "<" will become &lt;, for instance.
 #
-#   To escape HTML conversion, you can use #{varname} for a direct substitution, for instance
-#   if you are inserting actual HTML code into the text.
+#   {varname} will HTML-escape your data.
+#
+#   #{varname} will substitute directly, without escaping any characters.
 #
 #   ${varname} will add slashes to special characters found in the string value of the variable.
 #
 #   %{varname} will urlencode the string value of the variable.
 #
+# Here's an example:
 #
-# Includes
+# <t:template>
+#   Hello, #{PageRequest.current.username}.
+# </t:template>
 #
-# * <template-include module="modname" name="templatename"/> is a special tag, that will be
-#   transformed in the template output into the text of the included template.  This makes
-#   the most sense when treated as a simple text include.
+# Common template tags:
 #
-# * <handler-include path="/site"/> will include the contents of another path, dynamically at
-#   the time of instantiation.  This makes the most sense if the path you are including a
-#   page with many of its own variables, like the profile page.
-#
+# * <template-include module="modname" name="templatename"/> includes another template inside this one.
+# * <handler-include path="/site"/> includes another page inside this template. 
 #
 # Ifs, Loops, and Other Constructs
 #
@@ -119,37 +89,6 @@ lib_require :Core, "template/call_processor"
 #     method defines.
 # Javascript
 #
-# Tag Transforms
-#
-# The template system transforms certain tags BY DEFAULT.  For instance, <a> tags are
-# automatically re-written to perform ajax requests.  Here is a guide to the re-written
-# tags.
-#
-# <a>                Automatically converted to ajax requests that are displayed in the main ajax frame.
-#                    You should be able to use them just like normal <a href="..."> tags, unless you
-#                    are trying to do something wacky.
-#                    Attributes:
-#                      href        : Automatically re-written as "#" + value + ":Body"
-#                      ajax-target : The ID of the HTML element into which the text of the AJAX request
-#                                    will be placed.  If this element isn't specified, then the default
-#                                    ID is "MainObj", which is the main ajax frame in the middle of the
-#                                    page.
-#
-# <dropshadow>       A text style that creates a drop shadow on text.
-#                    Attributes:
-#                      none
-#
-# <scroll-list>      A list that scrolls and loads new elements from a target url.  An example
-#                    is the "users" list on the index page.  The scroll list element
-#                    itself only defines where the scroll button will go. You must create
-#                    an html element for each element of the list.  For instance,
-#                    <span id="thing0"></span> would be an HTML element for the 0th element.
-#                    Attributes:
-#                      t:target    : The url
-#                      t:num       : The number of list elements to display
-#                      t:element   : The ID of the element to use as a list.
-#
-#
 # =How To Instantiate Templates
 #
 # The mechanism for using a template is the static method
@@ -170,43 +109,18 @@ lib_require :Core, "template/call_processor"
 # in the ruby code.
 #
 #
-#
-# =AJAX Library
-#
-# This is a seperate section designed to describe the implementation of AJAX using templates
-# on nexopia.  It may be moved to a more appropriate place, when I think of one.
-#
-# Our template system is meant to work within an AJAX environment, where the user loads
-# framework at the page load, and then loads site data using asynchronous requests. The
-# template library has a lot of built in functionality for that purpose.
-#
-# The AJAX framework works like this:
-# 1) The user comes to the site (or closes all existing browsers) and opens the a page in
-#    her browser.
-# 2) The Pagehandler system responds with the Skin template.  The user's specific request is
-#    passed as a variable into the Skin template instance.
-# 3) The skin template is loaded in her browser.  The Skin page then makes an asynchronous
-#    request to the server.
-# 4) The server serves back any pages the user requests after this point as AJAX frames in
-#    the Skin page.
-#
-# Consequences Of This:
-# - After the skin page is loaded, the browser runs its onload event.  After this, any further pages
-#   will not receive an onload event.
-# - However, our ajax framework automatically parses any javascript out of asynchronously loaded
-#   HTML and runs it.  This happens after the whole request is received, so it is basically
-#   equivalent to onload, except for the following.
-# - Javascript source includes can't be relied on to be there by the time the script is executed.
-#   So you have to use the include_dom(uri, func_object) function.  Func_object will be executed
-#   when the script is loaded.
-#
-# There are some caveats to using Javascript in templates.  First of all, the window.onload
-# method is taken over by AJAX initialization, so if you try to set it in a subtemplate,
-# you'll break AJAX.
-#
+
 
 module Template
 
+	def self.generate_id
+		int_wrapper = Struct.new(:int)
+		id = $site.cache.get(:generated_template_id, :page) { int_wrapper.new(0) }
+		id.int += 1
+		return id.int
+	end
+
+	# Processor for xmlns: tags/attributes.
 	class XMLNSView < Processor
 		namespace :xmlns
 		show_in_html false;
@@ -219,6 +133,8 @@ module Template
 	
 	end
 	
+	# Processor for cond: attributes.  The attribute will only appear if its value is
+	# non-nil/false.
 	class ConditionalView < Processor
 
 		namespace :cond
@@ -238,13 +154,6 @@ module Template
 			def attribute_translate_default(ns,attr,code)
 				obj = attr.value;
 
-				# This should be extracted as common functionality for all
-				# namespaced attributes, when I have some time.
-				[*obj.match(TemplateClass::VARIABLE_REGEXP)].each{|match|
-					variable = $1
-					code.add_var_to_table(variable);
-				}
-
 				code.append "if (#{obj})\n";
 				code.append_print " #{attr.name}= \\\"\#{#{obj}}\\\""
 				code.append "end\n";
@@ -253,6 +162,10 @@ module Template
 	end
 
 	class Cache < GeneratedCodeCache
+		def self.instance(*args)
+			return Template::from_file(*args)
+		end
+		
 		def self.library
 			Dir["core/lib/template/*.rb"];
 		end
@@ -269,23 +182,21 @@ module Template
 		end
 		
 		def self.class_name(_module, file_base)
-			"Template#{_module.to_s.upcase}_#{file_base.upcase}"
+			"#{prefix}_#{_module.to_s.upcase}_#{file_base.upcase}"
 		end
 
 		def self.output_file(_module, file_base)
-			"generated/Template#{_module.to_s.upcase}_#{file_base.upcase}.gen.rb"
+			"#{$site.config.generated_base_dir}/#{prefix}_#{_module.to_s.upcase}_#{file_base.upcase}.gen.rb"
 		end
 		
 		def self.source_dirs(mod)
 			["#{mod.directory_name}/templates"]
 		end
 		def self.source_regexp()
-			/\/([^.\/]+).html/
+			/\/([^.\/]+)\.html$/
 		end
 
 		@@instantiatedClasses = {};
-		
-		@@times = {}
 		def self.instantiatedClasses
 			return @@instantiatedClasses;
 		end
@@ -312,11 +223,15 @@ module Template
 	end
 
 	def Template.get_name(mod_file, tem_file)
-		name = "Template" + mod_file.to_s.upcase + "_" + tem_file.upcase;
+		name = Cache.prefix + "_" + mod_file.to_s.upcase + "_" + tem_file.gsub(/[^a-zA-Z_0-9]/, "_").upcase;
 	end
 	
 	def Template.get_file_path(mod_file, tem_file)
-		f = "#{$site.config.site_base_dir}/#{mod_file}/templates/#{tem_file}.html";
+		mod = site_module_get(mod_file)
+		if (!mod)
+			raise "Unknown module #{mod_file}"
+		end
+		f = "#{mod.template_path}/#{tem_file}.html"
 	end
 	
 	# Get an instance of the template class defined by the given template file.
@@ -326,7 +241,7 @@ module Template
 		if !Cache.instantiatedClasses[[mod_file,template_name]]
 			$log.info("Creating... #{template_name}", :info, :template);
 			Template.from_file(mod_file, template_name);
-		elsif (!$site.config.live)
+		elsif (!$site.config.live) #all templates are pre-loaded live, so don't try to create it
 			#get_file_path(mod_file, tem_file)
 			$log.info("Checking cache... #{mod_file}:#{template_name}", :debug, :template);
 			
@@ -354,7 +269,33 @@ module Template
 
 
 	class TemplateClass
-
+		# Abandon hope all ye who enter here!
+		#           _.--"""--._
+		#        .'             '.
+		#       /                 \
+		#      ;                   ;
+		#      |                   |
+		#      ;                   ;
+		#       \ (`'--,   ,--'`) /
+		#       ))(  ')/ _ \('  )((
+		#       (_ `""` / \ `""` _)
+		#       |`"-,  /   \  ,-"`|
+		#       \  /   `"`"`   \  /
+		#         | _. ; ; ; ._ |
+		#   _|"";  '-'_'_'_'_'-'    ;""|_
+		#   \__ '-,               ,-' __/
+		#      '-, '-,         ,-' ,-'
+		#         '-, '-,   ,-' ,-'
+		#            '-, '-' ,-'
+		#             ,-'-, '-,
+		#          ,-' ,-' '-, '-,
+		#     __,-' ,-'       '-, '-,__
+		#   /_  ,-'              '-,  _\
+		#    |,,;                  ;,,|
+		# The class responsible for generating the templates.  Each template will generate
+		# its own class, called Template_<MODULENAME>_<FILENAME>.  Instances of the generated
+		# classes are availabled by calling Template::instance(module, file).
+		#
 		#
 		#
 		# The characters that are allowed in a template variable
@@ -394,7 +335,7 @@ module Template
 		#
 		# The general form of the variable Regexp
 		#
-		OPERATORS = '\+\-\/\*\,\>\<\%'
+		OPERATORS = '\+\-\/\*\,\>\<\%\='
 		PARSE_VAR_REGEXP = /([#{FORMAT_FLAG}#{URL_ENCODE_FLAG}#{NO_ESCAPE_FLAG}#{SLASHIFY_FLAG}]?)\{([\ \!\(\)\[\]\?\.\:\'\"\$#{OPERATORS}#{VARIABLE_CHARS}]+)\}/
 		#
 		#
@@ -414,11 +355,17 @@ module Template
 
 		# Completely parse the XML document and generate the Template class associated with it.
 		private; def parse
-			@doc = REXML::TemplateDocument.new(@xml_string);
+			@doc = REXML::TemplateDocument.new("<t:outer " +
+				"xmlns:t=\"#{TemplateClass::TEMPLATE_NAMESPACE}\" " + 
+				"xmlns:cond=\"#{TemplateClass::TEMPLATE_NAMESPACE}\" " +
+				"xmlns:call=\"#{TemplateClass::TEMPLATE_NAMESPACE}\" " +
+				">#{@xml_string}</t:outer>");
 
-			@code = TemplateClassGenerator.new(@name);
+			@code = CodeGenerator.new(@name);
 
 			@doc.root.add_namespace("t", TemplateClass::TEMPLATE_NAMESPACE);
+			@doc.root.add_namespace("cond", TemplateClass::TEMPLATE_NAMESPACE);
+			@doc.root.add_namespace("call", TemplateClass::TEMPLATE_NAMESPACE);
 
 			# Add docid handling to document.
 			if (@doc.root.attribute('t:docid'))
@@ -451,17 +398,15 @@ module Template
 		end
 
 		private; def self._pre_process_variable(code,variable,flag = nil)
-			code.add_var_to_table(variable);
-
 			case flag.to_s
 			when HTML_ESCAPE_FLAG
-	        	'#{CGI::escapeHTML((' + variable + ").to_s)}";
+				'#{htmlencode((' + variable + ").to_s)}";
 			when URL_ENCODE_FLAG
-	        	'#{CGI::escape((' + variable + ").to_s)}";
+				'#{urlencode((' + variable + ").to_s)}";
 			when FORMAT_FLAG
-	        	'#{' + variable + ".parsed}";
+				'#{' + variable + ".parsed}";
 			when NO_ESCAPE_FLAG,SLASHIFY_FLAG
-	        	'#{' + variable + '}';
+				'#{' + variable + '}';
 			else
 				raise(" Unexpected Variable Replacement Flag #{flag}!");
 			end
@@ -506,13 +451,6 @@ module Template
 				end
 				return;
 			end;
-			if (element.attribute('t:id'))
-				var = element.attributes.get_attribute('t:id').value;
-				[*var.match(VARIABLE_REGEXP)].each{|match|
-					variable = $1
-					code.add_var_to_table(variable);
-				}
-			end
 			element.attributes.each_attribute{ |attr|
 				attrname = (attr.prefix=="" ? "" : attr.prefix+":") + attr.name;
 				element.attributes[attrname] = TemplateClass.parseVar(attr.value, code).to_s;
@@ -545,6 +483,8 @@ module Template
 		end
 
 		def view_for_namespace(ns)
+			# This is hackish, and could easily be fixed.  Processors could register
+			# themselves in a hash.
 			if (ns == "t")
 				return DefaultView;
 			end
@@ -554,50 +494,42 @@ module Template
 			return LiteralView;
 		end
 
+		# Output the html for a node in the default way. 
 		def output_html(node, code)
 			show = (Processor.for_namespace(node.prefix).show_in_html?);
+
+			prefix = (node.prefix.length > 0 ? "#{node.prefix}:" : "")
+
 			if (node.has_elements? || node.has_text? || !TemplateClass::EMPTY_ELEMENTS.include?(node.name))
-				if (node.prefix.length > 0)
-					show && code.append_print("<#{node.prefix}:#{node.name}")
-					show && output_attributes(node,code)
-					show && code.append_print(">");
-				else
-					show && code.append_print("<#{node.name}")
-					show && output_attributes(node,code)
-					show && code.append_print(">");
-				end
-				show && code.push_indent;
-				if (node.has_text? && TemplateClass::SCRIPT_ELEMENTS.include?(node.name) && show)
-					code.append(%Q{if (PageHandler.current.reply.headers['Content-Type']['xml'])\n});
-					code.append_print("<![CDATA[");
-					code.append(%Q{end\n});
+				if(show)
+					code.append_print("<#{prefix}#{node.name}")
+					output_attributes(node,code)
+					code.append_print(">");
+
+					if (node.has_text? && TemplateClass::SCRIPT_ELEMENTS.include?(node.name))
+						code.append("if (PageHandler.current.reply.headers['Content-Type']['xml'])\n");
+						code.append_print("<![CDATA[");
+						code.append("end\n");
+					end
 				end
 
 				TemplateClass.each_child(node, code){ |child|
 					yield child;
 				};
 
-				if (node.has_text? && TemplateClass::SCRIPT_ELEMENTS.include?(node.name) && show)
-					code.append(%Q{if (PageHandler.current.reply.headers['Content-Type']['xml'])\n});
-					code.append_print("]]>");
-					code.append(%Q{end\n});
-				end
-				show && code.pop_indent;
-					if (node.prefix.length > 0)
-						show && code.append_print("</#{node.prefix}:#{node.name}>");
-					else
-						show && code.append_print("</#{node.name}>");
+				if(show)
+					if (node.has_text? && TemplateClass::SCRIPT_ELEMENTS.include?(node.name))
+						code.append("if (PageHandler.current.reply.headers['Content-Type']['xml'])\n");
+						code.append_print("]]>");
+						code.append("end\n");
 					end
-			elsif (show)
-				if (node.prefix.length > 0)
-					code.append_print "<#{node.prefix}:#{node.name}";
-					output_attributes(node,code)
-					code.append_print(" />");
-				else
-					code.append_print "<#{node.name}";
-					output_attributes(node,code)
-					code.append_print(" />");
+
+					code.append_print("</#{prefix}#{node.name}>");
 				end
+			elsif (show)
+				code.append_print "<#{prefix}#{node.name}";
+				output_attributes(node,code)
+				code.append_print(" />");
 			end
 		end
 

@@ -1,0 +1,9 @@
+<div id="gallery_comments_page_wrapper">
+	#{paging_string}
+	<div id="gallery_comments_individual_page_wrapper" class="gallery_comments_individual_page page">
+		<t:json t:data="current_page" t:handle="gallery_comments_current_page"/>
+		<t:iter t:id="gallery_pic_comment_list.compact" t:iter="gallery_comment">
+			<t:template-include t:module="gallery" t:name="gallery_comment"/>
+		</t:iter>
+	</div>
+</div>

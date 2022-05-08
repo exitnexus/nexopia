@@ -1,0 +1,49 @@
+<div class="groups_profile_block_edit">
+	<div class="groups_title">CONNECTIONS</div>
+	
+	<div id="groups_block_admin_edit" class="admin_edit">
+		<div class="list_container" id="groups_block_group_list_container">
+			<div class="groups_subtitle">Connections</div>
+			<div class="list" id="groups_block_group_list" style="overflow:-moz-scrollbars-vertical; position: relative">
+				<t:if t:id="!user_group_types.nil? && !user_group_types.empty?">
+					<table width="100%" border="0" class="tblContent" cellspacing="0" cellpadding="0">
+						<t:loop t:id="user_group_types" t:iter="user_group_type">
+							<tr valign="top">
+								<td>
+									<div class="list_row"><span class="title">{user_group_type.first.group_type_name}</span></div>
+								</td>
+							</tr>
+							<t:loop t:id="user_group_type" t:iter="user_group" t:index="num">
+								<tr>
+									<td>
+										<div class="list_row" id="list_row_{user_group.groupid}">
+											<div style="float:left; margin-right: 6px">
+												<select id="admin_action_{user_group.groupid}" name="admin_action[{user_group.groupid}]" class="admin_action">
+													<option value="keep">Keep</option>
+													<option value="remove_member">Remove from Connection</option>
+													<option value="remove_group">Remove entire Connection</option>
+												</select>
+											</div>
+											<div>
+												{user_group.group_name}<br />
+												<span class="location">{user_group.group_location_name}</span>
+											</div>
+										</div>
+									</td>
+								</tr>
+							</t:loop>
+						</t:loop>
+					</table>
+				</t:if>
+			</div>
+	
+			<t:if t:id="!PageRequest.current.impersonation?">
+				<div class="create_group_button_div">
+					<input onclick="GroupsProfileBlock.createNew(); return false;" id="group_create_new_button" type="submit" class="submit" 
+						value="Create New Connection"></input>
+				</div>
+			</t:if>
+
+		</div>
+	</div>
+</div>

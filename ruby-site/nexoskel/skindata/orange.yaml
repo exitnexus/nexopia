@@ -1,10 +1,11 @@
 --- !ruby/object:Skin 
 skin_name: orange
 display_name: "Tangerine"
-skin_properties: 
+skin_properties:
+  
+  side_header_height: "21px"
+   
   page_background_color: "#F3F3F3"
-  page_font_family: "Arial, sans-serif"
-  page_font_size: "8pt"
   link_color: "#BF0E00"
   link_accent_color: "#FE9900"
   primary_text_color: "#000000"
@@ -15,15 +16,15 @@ skin_properties:
   user_message_background_color: "#cccccc"
   header_text_color: "#FFFFFF"
   header_background_color: "#BF0E00"
-  header_font_family: "Arial, sans-serif"
-  header_font_size: "8pt"
   header_link_color: "#FFFFFF"
   header_link_accent_color: "#FE9800"
-  sidebar_text_color: "#000000"
-  sidebar_background_color: "#E9E9E9"
-  sidebar_header_text_color: "#FFFFFF"
-  sidebar_link_color: "#000000"
-  sidebar_link_accent_color: "#BF0E00"
+  legacy_sidebar_text_color: "#000000"
+  legacy_sidebar_background_color: "#E9E9E9"
+  legacy_sidebar_header_text_color: "#FFFFFF"
+  legacy_sidebar_link_color: "#000000"
+  legacy_sidebar_link_accent_color: "#BF0E00"
   section_header_text_color: "#ffffff"
   section_header_background_color: "#bf0e00"
   section_header_background_image: ""
+  user_online_color: "#00AA00"
+  user_offline_color: "#BF0E00"

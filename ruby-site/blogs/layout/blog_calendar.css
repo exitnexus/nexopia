@@ -1,0 +1,140 @@
+div.blog_container
+{
+	& .year {
+		margin-bottom: 10px;
+		margin-top: 10px;
+	}
+	
+	& .year .select {
+		width: 70px;
+		margin-left: 6px;
+	}
+	
+	& .year option {
+		padding-left: 3px;
+	}
+}
+
+
+div.blog_calendar
+{
+	background-color: @primary_block_background_color;
+	
+	& div.calendar_column
+	{
+		margin-top: 6px;
+		margin-bottom: 6px;
+		width: 33.333%;
+		float: left;
+		text-align: center;
+	}
+
+	& div.calendar_column_left
+	{
+		text-align: left !important;
+	}
+
+	& div.calendar_column_right
+	{
+		text-align: right !important;
+	}
+
+	& div.calendar_month_block_left
+	{
+		margin-left: 0px !important;
+	}
+
+	& div.calendar_month_block_right
+	{
+		margin-right: 0px !important;
+	}	
+}
+
+
+div.calendar_month_block
+{
+	background-color: @primary_block_background_color;
+	width: 231px;
+	margin-left: auto;
+	margin-right: auto;
+
+	& .month_grid
+	{	
+		& .month_table
+		{
+			background-color: @primary_block_background_color;
+			border: 1px solid @secondary_block_background_color;
+			border-collapse: collapse;
+			width: 231px;
+
+			& td.month_title
+			{
+				color: @primary_block_text_color;
+				font-weight: bold;
+				margin-bottom: 2px;
+				margin-left: 2px;
+				text-align: left !important;
+				border: none;
+				padding-bottom: 10px;
+			}
+			
+			& td
+			{
+				padding-left: 4px;
+				padding-right: 4px;
+				max-width: 24px;
+				width: 24px;
+				overflow: hidden;
+				border: 1px solid @secondary_block_background_color;
+				color: @primary_block_text_color;
+				
+				/* Because IE6 likes to make things difficult */
+				& div.cell_spacer
+				{
+					width: 24px;
+					text-align: center;
+				}
+			}
+			
+			& td.day
+			{
+				text-align: center !important;
+			}
+			
+			& tr.day_header_row
+			{
+				& td
+				{
+					text-align: center !important;
+					border: none;
+				}
+			}
+			& tr.week_row
+			{	
+				vertical-align: middle;
+				height: 24px;
+				
+				& td
+				{
+					max-height: 24px;
+					height: 24px;
+					background-color: @primary_block_background_color;
+				}
+				& td.posts
+				{
+					background-color: @secondary_block_background_color;
+					cursor: pointer;
+					& a
+					{
+						color: @secondary_block_link_color;
+					}
+				}
+				& td.empty
+				{
+					background-color: @primary_block_background_color;
+				}
+			}
+		}	
+	}
+
+}

@@ -5,7 +5,7 @@ tr {vertical-align: top;}
 body            {background-color: #000000; font-family: arial, sans-serif; font-size: 8pt; SCROLLBAR-FACE-COLOR: black; SCROLLBAR-HIGHLIGHT-COLOR: #cccccc; SCROLLBAR-SHADOW-COLOR: #cccccc; SCROLLBAR-3DLIGHT-COLOR: #cccccc; SCROLLBAR-ARROW-COLOR: #cccccc; SCROLLBAR-DARKSHADOW-COLOR: #cccccc; scrollbar-track-COLOR: #cccccc; margin: 0;  }
 
 /*textbox text color*/
-input,select,textarea	{ font: 10pt arial, sans-serif; color: #000000 }
+body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; color: #000; border:1px solid #d4d6d7;}
 
 /*color of link below smiley face menu in forums*/
 a:active	{ color: #000000; font-size: 8pt; font-family: arial, sans-serif; text-decoration:none }
@@ -116,7 +116,7 @@ a.body:visited	{
 	font-size: 8pt
 }
 a.body:hover	{
-	color: #0000CD;
+	color: #4767BF;
 	text-decoration:none;
 	font-family: arial, sans-serif;
 	font-size: 8pt

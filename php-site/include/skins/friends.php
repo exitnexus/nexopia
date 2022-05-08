@@ -49,6 +49,6 @@
 	$skindata['sideWidth'] = 130;                //width of the side blocks, in pixels
 	$skindata['blockBorder'] = 0;                //border size of the side blocks, colour in the css
 	$skindata['blockheadpic'] = "blockhead.png"; //block head, two images, prefixed with 'left' and 'right', with this suffix
-	$skindata['blockheadpicsize'] = 30;          //size of the image
+	$skindata['blockheadpicsize'] = 17;          //size of the image
 	$skindata['valignsideheader'] = "center";    //valign of the text in the block (bottom or center in general)
 

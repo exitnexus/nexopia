@@ -43,7 +43,7 @@
 	$skindata['menuends'] = "";          //menu ends, two images, prefixed with 'left' and 'right', with this suffix
 
 //body
-	$skindata['mainbg'] = ""; //background image for the main body, if empty or a colour, use the one from the css
+	$skindata['mainbg'] = "background.png"; //background image for the main body, if empty or a colour, use the one from the css
 
 //blocks
 	$skindata['sideWidth'] = 130;                //width of the side blocks, in pixels

@@ -1,0 +1,45 @@
+#user_gallery_normal_view {
+	padding: 0px 6px 6px;
+	& div.gallery_display_container {
+		background-color: @secondary_block_background_color;
+		padding: 6px 6px 4px;
+		margin-bottom: 12px;
+		& .gallery_view {
+			float: right;
+			& img {
+				margin: 0px 0px 0px 6px;
+			}
+		}
+		& .gallery_thumbs {
+			& a {
+				float: left;
+				width: 100px;
+				height: 100px;
+				margin: 3px 12px 3px 13px;
+				&.first {
+					margin: 3px 13px 3px 0px;
+				}
+				&.last {
+					margin: 3px 0px 3px 13px;
+				}
+				& .normal_view_thumb {
+					height: 100px;
+					width: 100px;
+					background-position: center center;
+					background-repeat: no-repeat;
+					background-image: url("$static_files_url/Core/images/spinner.gif");
+				}
+			}
+			& .info {
+				position: relative;
+				float: left;
+				padding-left: 6px;
+				width: 242px;
+				height: 100px;
+				& .title {
+					font-weight: bold;
+				}
+			}
+		}
+	}
+}

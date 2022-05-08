@@ -1,0 +1,28 @@
+#profile_admin_block
+{
+	& .admin_menu_group
+	{
+		border-top: 1px dotted @secondary_block_background_color;
+		margin-top: 12px;
+		font-weight: bold;
+		
+		& div
+		{
+			padding: 1px 2px 1px 2px;
+			
+			& a
+			{
+				text-transform: uppercase;
+				font-family: Verdana, Helvetica, Arial, sans-serif;
+				font-size: 11px;
+				text-decoration: none;
+				
+				&:hover
+				{
+					font-family: Verdana, Helvetica, Arial, sans-serif;
+					font-size: 11px;
+				}
+			}
+		}
+	}
+}

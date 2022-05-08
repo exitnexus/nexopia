@@ -17,31 +17,36 @@ class shoppingcart{
 
 
 	public $paymentmethods = array(
-								'debit' => "Debit",
+								'bp' => "Billing People",		
+								'paypal' => "Refund (Paypal)",
 								'cash' => "Cash",
 								'cheque' => "Cheque",
-								'mc' => "MC",
 								'moneyorder' => "Money Order",
-								'paypal' => "Paypal",
+								'debit' => "Debit",
+								'mc' => "MC",
 								'visa' => "Visa",
-								'bp' => "Billing People",
-								'payg' => "Voucher",
+								'payg' => "PIN/Voucher",
 								'emailmoneytransfer' => "EMT",
+								'pp_mobile' => "PaymentPin mobile",
+								'pp_land' => "PaymentPin land"
 								);
 
 	public $paymentcontacts = array(
+									"Chris",
+									"Mel B",
+									"Rodney",
+									"Jade",
 									"Petra",
 									"Mail",
-									"Blue Shift Gaming",
-									"Glasshouse",
-									"Vitamin Guy",
+									// "Blue Shift Gaming",
+									// "Glasshouse",
+									// "Vitamin Guy",
 									"Melina",
 									"Timo",
-									"Melissa",
+									// "Melissa",
 									"Automatic",
-									"Jade",
 									"Elle",
-									"Nate",
+									"Nate"
 									);
 
 	function __construct( & $db ){
@@ -184,6 +189,7 @@ class shoppingcart{
 		return $output;
 	}
 
+	// This is where someone actually gets Plus
 	function completeinvoice($id){
 
 		$this->db->query("LOCK TABLES invoice WRITE");
@@ -201,6 +207,8 @@ class shoppingcart{
 
 		$this->db->query("UNLOCK TABLES");
 
+		// products.callback is set to plusCallback when we're dealing with Plus purchases
+		// Go there to see how Plus is actually added.
 		$result = $this->db->prepare_query("SELECT products.callback, invoiceitems.input, invoiceitems.quantity FROM invoiceitems, products WHERE invoiceitems.productid=products.id && invoiceitems.invoiceid = #", $id);
 
 		$output = "";

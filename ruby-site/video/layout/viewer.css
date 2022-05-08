@@ -1,3 +1,5 @@
+/* #video_title here was conflicting with the #video_title in the blog module
+
 #actions {
 	float: left;
 	z-index: 1;
@@ -34,3 +36,5 @@
 #welcome_msg {
 	font-weight: 700;
 }
+
+*/

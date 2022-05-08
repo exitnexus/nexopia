@@ -1,0 +1,20 @@
+<div class="first_vote">
+
+	<form class="plus_vote" method="post" action="/vote/submit" id="plus_vote">
+
+		<h1>Skins</h1>
+		<div class="plus_skins_section">
+			<t:loop t:id="skin_entries" t:iter="skin_entry">
+				<div class="skin" id="skin_{skin_entry.skinid}">
+					<img width="320" height="200" src="#{$site.static_files_url}/vote/images/{skin_entry.filename}"/>
+					<div class="designer_name">{skin_entry.designername}</div>
+					<input type="radio" name="skin_entry" value="{skin_entry.skinid}"/>
+				</div>
+			</t:loop>
+		</div>
+
+		<input type="submit" value="SUBMIT" class="vote_submit" />
+	</form>
+
+
+</div>

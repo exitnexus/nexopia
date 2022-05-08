@@ -1,7 +1,6 @@
-<div t:docid="edit_gallery" id="edit_gallery">
+<div id="edit_gallery" minion_name="edit_gallery">
 	<img id="selected_album_cover" t:linktype="square" t:id="gallery"/>
-		<form id="edit_gallery_form" action="/my/gallery/submit_gallery_edit/#{gallery.id}" method="POST">
-			<img class="script" id="edit_gallery_spinner" src="#{$site.static_files_url}/Legacy/images/spinner.gif"/>
+		<form id="edit_gallery_form" action="#{PageRequest.current.area_base_uri}/gallery/submit_gallery_edit/#{gallery.id}" method="POST">
 			<div class="noscript">
 				<span class="noscript">Gallery Name:</span>
 				<input id="gallery_name_input" maxlength="32" type="text" value="{gallery.name}" name="name"/>
@@ -26,6 +25,7 @@
 					<t:if t:id="gallery.permission == 'anyone'">Visible To Anyone</t:if>
 					<t:if t:id="gallery.permission == 'loggedin'">Visible To Logged In Users</t:if>
 					<t:if t:id="gallery.permission == 'friends'">Visible To Friends</t:if>
+					<t:if t:id="gallery.permission == 'none'">Not Visible</t:if>
 					&#160;(Click to edit)
 				</span>
 				<span class="noscript">Permissions:</span>
@@ -33,9 +33,10 @@
 					<option cond:selected="gallery.permission == 'anyone'" value="anyone">Visible To Anyone</option>
 					<option cond:selected="gallery.permission == 'loggedin'" value="loggedin">Visible To Logged In Users</option>
 					<option cond:selected="gallery.permission == 'friends'" value="friends">Visible To Friends</option>
+					<option cond:selected="gallery.permission == 'none'" value="none">Not Visible</option>
 				</select><br/>
 			</div>
-			<div><a class="body" href="/galleries/%{user.username}/{gallery.id}/%{gallery.name}">View Gallery</a></div>
+			<div><a class="body" t:id="gallery">View Gallery</a></div>
 			<input class="noscript" type="submit" value="Update Gallery" name="action"/><br/>
 		</form>
 </div>

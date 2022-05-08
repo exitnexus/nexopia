@@ -1,290 +1,909 @@
 <html>
-<head>
-	<title>Nexopia: Skin Editor</title>
-	<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/profile/skin_edit/css/preview_main.css" />
-	
-</head>
-<body style="background-color: rgb(190, 190, 190);">
+	<head>
+		<title>
+			DevNexus
+		</title>
+		<link rel="stylesheet" href="{$site.style_url}/{$site.config.page_skeleton}/{skin_name}.css" />
+		<t:if t:id="!current_skin.nil?()">
+			<link rel="stylesheet" href="{current_skin.header}" />
+		</t:if>
+			<script type="text/javascript" src="{$site.static_files_url}/yui/build/yui.js"></script>
+			<script type="text/javascript" src="{core_js}"></script>
+			<script type="text/javascript">
+				Overlord.summonMinions();
+			</script>
+			
+			<style>
+				.gallery_pics_frame .thumbnail { padding: 6px 0px 0px 0px; }
+				.gallery_pics_frame .padding { padding: 0px 7px 0px 0px; }
+			</style>
+	</head>
+	<body id="skin_edit_preview_body_background" class="skin_edit_preview_body_background">
+		<noscript>
+			<style>
+		div.noscript, form.noscript, h1.noscript, h2.noscript, h3.noscript, h4.noscript, h5.noscript, h6.noscript, ol.noscript, p.noscript, pre.noscript, ul.noscript, li.noscript, td.noscript, tbody.noscript, th.noscript { display:block; } div.script, form.script, h1.script, h2.script, h3.script, h4.script, h5.script, h6.script, ol.script, p.script, pre.script, ul.script, li.script, td.script, tbody.script, th.script { display:none; } .noscript { display:inline;} .script { display:none;}
+		thead.noscript {display:table-header-group;}
+		tfoot.noscript {display:table-footer-group;}
+		tr.noscript {display:table-row;}
+		table.noscript {display:table;}
+		thead.script, tfoot.script, tr.script, table.script {display:none;}
+	</style>
+		</noscript>
+		<div class="ruby_content">
+			<div id="user_area_header">
+				<div class="nav_secondary">
+		</div>
+				<div class="navigation">
+					<table>
+						<tbody>
+							<tr>
+								<td class="selected">
+									<a href="">
+								Profile
+							</a>
+								</td>
+								<td class="">
+									<a href="">
+								Gallery
+							</a>
+								</td>
+								<td class="">
+									<a href="">
+								Blog
+							</a>
+								</td>
+								<td class="">
+									<a href="">
+								Comments
+							</a>
+								</td>
+								<td class="last_column">
+									<a href="">
+								Friends
+							</a>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<br class="clear"/>
+			</div>
+			<div class="profile_main" id="profile">
+				<table cellspacing="0" class="profile_container" cellpadding="0">
+					<tr>
+						<!-- LEFT COLUMN START -->
+						<td class="profile_left_column">
+							<div id="drag_drop_wrapper_1">
+								<div class="block_container control_block" id="block0_5" minion_name="profile:control_block">
+									<div id="data_5">
+										<!-- PROFILE FUNCTION SECTION START -->
+										<div id="profile_control_block">
+											<div class="user_info">
+												<div>
+												<div class="plus_icon"><a href="#"><img class="color_icon custom_color_icon" minion_name="skin_editor_icon" src="{$site.static_files_url}/profile/images/plus_icon.gif" border="0" /></a></div>
+													<div class="">
+														<span class="user_name">
+															tod.twitch
+														</span>
+														<br/>
+														18, Male, Edmonton
+													</div>
+													<br/>
+													<span class="user_status user_status_online">
+												Online
+											</span><br />
+										<span class="profile_hits">12,322 Hits</span>
+												</div>
+											</div>
+											<br class="clear"/>
+											<table cellspacing="0" class="profile_function_table" border="0" cellpadding="0">
+												<tr>
+													<td>
+														<a href="#" >
+												ADD AS FRIEND
+											</a>
+													</td>
+													<td class="profile_function_icon">
+														<a href="#" >
+															<img class="color_icon custom_color_icon" src="{$site.static_files_url}/profile/images/icon_add_friend.gif" border="0" height="8" width="10" minion_name="skin_editor_icon"/>
+														</a>
+													</td>
+												</tr>
+												<tr>
+													<td>
+														<a href="#">
+												SEND MESSAGE
+											</a>
+													</td>
+													<td class="profile_function_icon">
+														<a href="#">
+															<img class="color_icon custom_color_icon" src="{$site.static_files_url}/profile/images/icon_send_msg.gif" border="0" height="8" width="10" minion_name="skin_editor_icon"/>
+														</a>
+													</td>
+												</tr>
+												<tr>
+													<td>
+														<a href="#" class="comment_control_block_link">
+												COMMENT
+											</a>
+													</td>
+													<td class="profile_function_icon">
+														<a href="#" class="comment_control_block_link">
+															<img class="color_icon custom_color_icon" src="{$site.static_files_url}/profile/images/icon_comment.gif" border="0" height="8" width="10" minion_name="skin_editor_icon" />
+														</a>
+													</td>
+												</tr>
+											</table>
+											<table cellspacing="0" class="profile_function_table" border="0" cellpadding="0">
+												<tr>
+													<td>
+														<a href="#">
+												IGNORE USER
+											</a>
+													</td>
+													<td class="profile_function_icon">
+														<a href="#">
+															<img class="color_icon custom_color_icon" src="{$site.static_files_url}/profile/images/icon_ignore_user.gif" border="0" minion_name="skin_editor_icon"/>
+														</a>
+													</td>
+												</tr>
+												<tr>
+													<td>
+														<a href="">
+												REPORT ABUSE
+											</a>
+													</td>
+													<td class="profile_function_icon">
+														<a href="#">
+															<img class="color_icon custom_color_icon" src="{$site.static_files_url}/profile/images/icon_report_abuse.gif" border="0" minion_name="skin_editor_icon"/>
+														</a>
+													</td>
+												</tr>
+											</table>
+										</div>
+									</div>
+								</div>
+								<div class="block_container primary_block" id="block0_8">
+									<div id="data_8">
+										<div id="friends_profile_block">
+											<link href="{$site.static_files_url}/yui/build/container/assets/container.css?rev=1210875383" rel="stylesheet" type="text/css"/>
+											<div class="friends_header">
+												<div class="header_accessory">
+													<a href="#">
+											all (23)
+										</a>&#160;|&#160;<a href="/users/tod.twitch/friends/common">common (3)</a>
+												</div>
+												<div class="block_title">
+										FRIENDS
+									</div>
+											</div>
+											<div json_id="-j3akc0khpc14" id="friends_toolbar" class="yui-ac"><a class="change_view list_view" href="#"><img class="color_icon custom_color_icon" minion_name="skin_editor_icon" src="{$site.static_files_url}/friends/images/list_view.gif" border="0" width="14" height="11" /></a><a class="change_view thumb_view selected" href="#"><canvas width="14" height="11" class="color_icon custom_color_icon" minion_name="skin_editor_icon" style="color: rgb(192, 2, 2);"/></a><input type="text" id="friends_search" class="yui-ac-input" autocomplete="off"/>&#160;<img class="color_icon custom_color_icon" minion_name="skin_editor_icon" src="{$site.static_files_url}/friends/images/search.gif" border="0" width="11" height="11" /><div id="friends_results" class="yui-ac-container"><div class="yui-ac-content" style="display: none;"><div class="yui-ac-hd" style="display: none;"/><div class="yui-ac-bd"><ul><li style="display: none;"/><li style="display: none;"/><li style="display: none;"/><li style="display: none;"/><li style="display: none;"/><li style="display: none;"/><li style="display: none;"/><li style="display: none;"/><li style="display: none;"/><li style="display: none;"/></ul></div><div class="yui-ac-ft" style="display: none;"/></div></div></div>
+											<div id="friends_pages">
+												<input type="hidden" id="friends_pages_count" value="3"/>
+												<input type="hidden" id="friends_ajax_path" value=""/>
+												<div class="pages">
+													<ul class="page" id="friends_list">
+														<li class="user_container secondary_block block_regular">
+															<div class="user_thumb">
+																<a href="#">
+																	<img class="friend_pic" src="#{$site.static_files_url}/Profile/skin_edit/temp/friend01.jpg" alt="agentdave"/>
+																</a>
+															</div>
+															<div class="online_offline">
+																<img class="online" src="{$site.static_files_url}/Friends/images/online.gif"/>
+															</div>
+															<div class="user_info">
+																<a href="#">
+																															agentdave
+																															</a>
+																<br/>
+																															28, Male
+																															</div>
+															<div class="user_functions">
+																<div>
+																	<a href="#" class="add_friend">
+																		<img class="color_icon custom_color_icon" minion_name="skin_editor_icon"  src="{$site.static_files_url}/Friends/images/icon_add_friend.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="" class="send_message">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_send_msg.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="#" class="comment">
+																		<img class="color_icon custom_color_icon last"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_comment.gif"/>
+																	</a>
+																</div>
+															</div>
+															<br class="clear"/>
+														</li>
+														<li class="user_container secondary_block block_regular">
+															<div class="user_thumb">
+																<a href="#">
+																	<img class="friend_pic" src="#{$site.static_files_url}/Profile/skin_edit/temp/friend02.jpg" alt="bwertz"/>
+																</a>
+															</div>
+															<div class="online_offline">
+																<img class="online" src="{$site.static_files_url}/Friends/images/offline.gif"/>
+															</div>
+															<div class="user_info">
+																<a href="#">
+																																											bwertz
+																																											</a>
+																<br/>
+																																											34, Male
+																																											</div>
+															<div class="user_functions">
+																<div>
+																	<a href="#" class="add_friend">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_add_friend.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="" class="send_message">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_send_msg.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="#" class="comment">
+																		<img class="color_icon custom_color_icon last"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_comment.gif"/>
+																	</a>
+																</div>
+															</div>
+															<br class="clear"/>
+														</li>
+														<li class="user_container secondary_block block_regular">
+															<div class="user_thumb">
+																<a href="#">
+																	<img class="friend_pic" src="#{$site.static_files_url}/Profile/skin_edit/temp/friend03.jpg" alt="Castellan"/>
+																</a>
+															</div>
+															<div class="online_offline">
+																<img class="online" src="{$site.static_files_url}/Friends/images/offline.gif"/>
+															</div>
+															<div class="user_info">
+																<a href="#">
+																																																					Castellan
+																																																					</a>
+																<br/>
+																																																				34, Male
+																																																				</div>
+															<div class="user_functions">
+																<div>
+																	<a href="#" class="add_friend">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_add_friend.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="" class="send_message">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_send_msg.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="#" class="comment">
+																		<img class="color_icon custom_color_icon last"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_comment.gif"/>
+																	</a>
+																</div>
+															</div>
+															<br class="clear"/>
+														</li>
+														<li class="user_container secondary_block block_regular">
+															<div class="user_thumb">
+																<a href="#">
+																	<img class="friend_pic" src="#{$site.static_files_url}/Profile/skin_edit/temp/friend04.jpg" alt="danny.i"/>
+																</a>
+															</div>
+															<div class="online_offline">
+																<img class="online" src="{$site.static_files_url}/Friends/images/offline.gif"/>
+															</div>
+															<div class="user_info">
+																<a href="#">danny.i</a>
+																<br/>24, Male</div>
+															<div class="user_functions">
+																<div>
+																	<a href="#" class="add_friend">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_add_friend.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="" class="send_message">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_send_msg.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="#" class="comment">
+																		<img class="color_icon custom_color_icon last"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_comment.gif"/>
+																	</a>
+																</div>
+															</div>
+															<br class="clear"/>
+														</li>
+														<li class="user_container secondary_block block_regular">
+															<div class="user_thumb">
+																<a href="#">
+																	<img class="friend_pic" src="#{$site.static_files_url}/Profile/skin_edit/temp/friend05.jpg" alt="dunny82"/>
+																</a>
+															</div>
+															<div class="online_offline">
+																<img class="online" src="{$site.static_files_url}/Friends/images/offline.gif"/>
+															</div>
+															<div class="user_info">
+																<a href="#">dunny82</a>
+																<br/>23, Female</div>
+															<div class="user_functions">
+																<div>
+																	<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_friend_true.gif"/>
+																</div>
+																<div>
+																	<a href="" class="send_message">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_send_msg.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="#" class="comment">
+																		<img class="color_icon custom_color_icon last"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_comment.gif"/>
+																	</a>
+																</div>
+															</div>
+															<br class="clear"/>
+														</li>
+														<li class="user_container secondary_block block_regular">
+															<div class="user_thumb">
+																<a href="#">
+																	<img class="friend_pic" src="#{$site.static_files_url}/Profile/skin_edit/temp/friend06.jpg" alt="foxpilot"/>
+																</a>
+															</div>
+															<div class="online_offline">
+																<img class="online" src="{$site.static_files_url}/Friends/images/offline.gif"/>
+															</div>
+															<div class="user_info">
+																<a href="#">foxpilot</a>
+																<br/>19, Male</div>
+															<div class="user_functions">
+																<div>
+																	<a href="#" class="add_friend">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_add_friend.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="" class="send_message">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_send_msg.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="/users/Chris/comments" class="comment">
+																		<img class="color_icon custom_color_icon last"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_comment.gif"/>
+																	</a>
+																</div>
+															</div>
+															<br class="clear"/>
+														</li>
+														<li class="user_container secondary_block block_regular">
+															<div class="user_thumb">
+																<a href="#">
+																	<img class="friend_pic" src="#{$site.static_files_url}/Profile/skin_edit/temp/friend07.jpg" alt="graham"/>
+																</a>
+															</div>
+															<div class="online_offline">
+																<img class="online" src="{$site.static_files_url}/Friends/images/offline.gif"/>
+															</div>
+															<div class="user_info">
+																<a href="#">graham</a>
+																<br/>26, Male</div>
+															<div class="user_functions">
+																<div>
+																	<a href="#" class="add_friend">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_add_friend.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="" class="send_message">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_send_msg.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="#" class="comment">
+																		<img class="color_icon custom_color_icon last"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_comment.gif"/>
+																	</a>
+																</div>
+															</div>
+															<br class="clear"/>
+														</li>
+														<li class="user_container secondary_block block_regular">
+															<div class="user_thumb">
+																<a href="#">
+																	<img class="friend_pic" src="#{$site.static_files_url}/Profile/skin_edit/temp/friend08.jpg" alt="HumanFallacy"/>
+																</a>
+															</div>
+															<div class="online_offline">
+																<img class="online" src="{$site.static_files_url}/Friends/images/offline.gif"/>
+															</div>
+															<div class="user_info">
+																<a href="#">HumanFallacy</a>
+																<br/>22, Male</div>
+															<div class="user_functions">
+																<div>
+																	<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_friend_true.gif"/>
+																</div>
+																<div>
+																	<a href="" class="send_message">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_send_msg.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="#" class="comment">
+																		<img class="color_icon custom_color_icon last"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_comment.gif"/>
+																	</a>
+																</div>
+															</div>
+															<br class="clear"/>
+														</li>
+														<li class="user_container secondary_block block_regular">
+															<div class="user_thumb">
+																<a href="">
+																	<img class="friend_pic" src="#{$site.static_files_url}/Profile/skin_edit/temp/friend09.jpg" alt="Kelley"/>
+																</a>
+															</div>
+															<div class="online_offline">
+																<img class="online" src="{$site.static_files_url}/Friends/images/offline.gif"/>
+															</div>
+															<div class="user_info">
+																<a href="#">
+																																																				Kelley
+																																																				</a>
+																<br/>26, Female</div>
+															<div class="user_functions">
+																<div>
+																	<a href="#" class="add_friend">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_add_friend.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="" class="send_message">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_send_msg.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="#" class="comment">
+																		<img class="color_icon custom_color_icon last"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_comment.gif"/>
+																	</a>
+																</div>
+															</div>
+															<br class="clear"/>
+														</li>
+														<li class="user_container secondary_block block_regular">
+															<div class="user_thumb">
+																<a href="#">
+																	<img class="friend_pic" src="#{$site.static_files_url}/Profile/skin_edit/temp/friend10.jpg" alt="*Kriss*"/>
+																</a>
+															</div>
+															<div class="online_offline">
+																<img class="online" src="{$site.static_files_url}/Friends/images/offline.gif"/>
+															</div>
+															<div class="user_info">
+																<a href="#">
+																																																				*Kriss*
+																																																				</a>
+																<br/>29, Male</div>
+															<div class="user_functions">
+																<div>
+																	<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_friend_true.gif"/>
+																</div>
+																<div>
+																	<a href="" class="send_message">
+																		<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_send_msg.gif"/>
+																	</a>
+																</div>
+																<div>
+																	<a href="#" class="comment">
+																		<img class="color_icon custom_color_icon last"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_comment.gif"/>
+																	</a>
+																</div>
+															</div>
+															<br class="clear"/>
+														</li>
+													</ul>
+												</div>
+												<div class="friends_arrow_btns" id="friends_arrow_btns">
+													<a href="#" class="page_backward friends_btns" id="arrow_up">
+														<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_arrow_up.gif"/>
+													</a>
+													<a href="#" class="page_forward friends_btns" id="arrow_down">
+														<img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/Friends/images/icon_arrow_down.gif"/>
+													</a>
+													<br class="clear"/>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<div class="block_container primary_block" id="block0_81">
+									<div id="data_81">
+										<div class="freeform_text">
+											<div class="block_title">MUSIC</div>
+											<div class="content">
+												<img border="0" src="http://users.nexopia.com/uploads/3269/3269290/51O2lAA9VsL.jpg"/><br/><br/><img border="0" src="http://users.nexopia.com/uploads/3269/3269290/AgainstMe.jpg"/><br/><br/><img border="0" src="http://users.nexopia.com/uploads/3269/3269290/Alexisonfire.jpg"/>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<div class="block_container primary_block" id="block0_103">
+									<div id="data_103">
+										<ul id="recent_galleries">
+											<div class="header_accessory">
+													<a href="#">
+											view all (3)
+										</a>
+												</div>
+											<div class="block_title">
+										RECENT GALLERIES
+									</div>
+											<li class="secondary_block">
+												<a href="#" class="album_cover">
+													<img src="#{$site.static_files_url}/Profile/skin_edit/temp/recentgall01.jpg" alt=""/>
+												</a>
+												<div class="info">
+													<a href="#" class="name">Warped Tour</a>
+													<br/>
+													<span class="date">April 03, 2008</span>
+													<br/>
+													<div class="description">The raddest outdoor show of 2007!</div>
+												</div>
+												<br class="clear"/>
+											</li>
+											<li class="secondary_block">
+												<a href="#" class="album_cover">
+													<img src="#{$site.static_files_url}/Profile/skin_edit/temp/recentgall02.jpg" alt=""/>
+												</a>
+												<div class="info">
+													<a href="#" class="name">Pics of me</a>
+													<br/>
+													<span class="date">April 02, 2008</span>
+													<br/>
+													<div class="description">In and around.  Pics of me chillin'.</div>
+												</div>
+												<br class="clear"/>
+											</li>
+											<li class="secondary_block">
+												<a href="#" class="album_cover">
+													<img src="#{$site.static_files_url}/Profile/skin_edit/temp/recentgall03.jpg" alt=""/>
+												</a>
+												<div class="info">
+													<a href="#" class="name">Street</a>
+													<br/>
+													<span class="date">April 02, 2008</span>
+													<br/>
+													<div class="description">Sweet scenes of my home town...</div>
+												</div>
+												<br class="clear"/>
+											</li>
+										</ul>
+									</div>
+								</div>
+								<div class="column_bottom_marker" id="column_bottom_marker_0">
+								</div>
+								
+							</div>
+						</td>
+						<!-- LEFT COLUMN END -->
+						<!-- RIGHT COLUMN START -->
+						<td class="profile_right_column">
+							<div id="drag_drop_wrapper_2">
+								<div class="block_container" id="block1_6">
+									<div id="data_6">
+										<div>
+											<div id="film_strip_images_wrapper">
+												<div id="film_strip_images">
+													<img src="#{$site.static_files_url}/Profile/skin_edit/temp/profilepic.jpg" alt="58.jpg"/>
+												</div>
+											</div>
+										
+										
+										</div>
+									</div>
+								</div>
+								<div class="primary_block block_container" id="block1_13">
+									<div id="data_13">
+										<div>
+											<div class="secondary_block tagline_display">Mind if I have some of your tasty beverage to wash this down with?</div>
+										</div>
+									</div>
+								</div>
+								<div class="primary_block block_container" id="block1_67">
+									<div id="data_67">
+										<div>
+											<div class="block_title 4margin">BASICS</div>
+											<table cellspacing="0" class="stat_table" border="0" cellpadding="0">
+												<tr>
+													<td class="vitals_name">Height:</td>
+													<td>164 cm - 168 cm (5'5" - 5'6")</td>
+												</tr>
+												<tr>
+													<td class="vitals_name">Weight:</td>
+													<td>65 Kg - 68 Kg (141 lbs - 150 lbs)</td>
+												</tr>
+												<tr>
+													<td class="vitals_name">Birthday:</td>
+													<td>August 09, 1989</td>
+												</tr>
+												<tr>
+													<td class="vitals_name">Sexual Orientation:</td>
+													<td>Heterosexual</td>
+												</tr>
+												<tr>
+													<td class="vitals_name">Dating:</td>
+													<td>Dating</td>
+												</tr>
+												<tr>
+													<td class="vitals_name">Living Situation:</td>
+													<td>Living with roommate(s)</td>
+												</tr>
+												<tr>
+													<td class="vitals_name">Location:</td>
+													<td>Edmonton, Alberta, Canada</td>
+												</tr>
+											</table>
+										</div>
+									</div>
+								</div>
+								<div class="block_container primary_block" id="block0_101">
+									<div id="data_101">
+										<div>
+											<div class="block_title 4margin">CONTACT</div>
+											<table cellspacing="0" class="stat_table" border="0" cellpadding="0">
+												<tr>
+													<td class="vitals_name">MSN:</td>
+													<td>tod_twitch@hotmail.com</td>
+												</tr>
+												<tr>
+													<td class="vitals_name">Yahoo:</td>
+													<td>tod.twitch</td>
+												</tr>
+											</table>
+										</div>
+									</div>
+								</div>
+								<div class="primary_block block_container" id="block1_108">
+									<div id="data_108">
+										<div class="gallery_profile_block">
+											<div>
+												<div class="block_title">WARPED TOUR</div>
+											</div>
+											<div class="paginator" minion_name="paginator" id="paginator_0">
+											<div class="gallery_pics_frame">
+												<a href="#">
+														<img class="thumbnail padding" src="#{$site.static_files_url}/Profile/skin_edit/temp/strip01.jpg" alt="strip01.jpg"/>
+													</a>
+												
 
-	<!-- YUI things that are needed here -->
-	<script type="text/javascript" src="{$site.static_files_url}/yui/build/utilities/utilities.js"></script>
-	<script type="text/javascript" src="{$site.static_files_url}/yui/build/slider/slider.js"></script>
-	<script type="text/javascript" src="{$site.static_files_url}/yui/build/colorpicker/colorpicker-beta.js"></script>
-	<script type="text/javascript" src="{$site.static_files_url}/yui/build/dragdrop/dragdrop.js"></script>
-	<script type="text/javascript" src="{$site.static_files_url}/yui/build/animation/animation.js"></script>
-	
-	<script type="text/javascript" src="{core_js}"></script>
-	
-<div id="skin_edit_wrapper">
-	
-	<div class="header_block">
-		Header
-	</div>
-	
-	<div id="right">
-		<img src="{$site.static_files_url}/profile/skin_edit/images/profile_user_picture.jpg" />
-		<div class="primary_block" style="margin-top: 5px;">
-			<h1>Vitals</h1>
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-		</div>
-		<div class="primary_block">
-			<h1>About</h1>
-			<img src="{$site.static_files_url}/profile/icons/star.png" class="custom_color_icon_alpha" style="color: #f67832;" />
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-		</div>
-		<div class="primary_block">
-			<h1>More About</h1>
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-		</div>
-		<div class="primary_block">
-			<h1>Comments</h1>
-			<div class="secondary_block">
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			</div>
-			<div class="secondary_block">
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-			</div>
-		</div>
-	</div>
-	
-	<div id="left">
-		<div class="utility_block">
-			<h1>My_Name</h1>
-			<img src="{$site.static_files_url}/profile/icons/addfriend.gif" class="custom_color_icon" style="color: #f67832;" />
-			Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-		</div>
-		
-		<div class="primary_block">
-			<h1>Friends</h1>
-			<div class="secondary_block">
-				Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-			</div>
-		</div>
-		
-		<div class="primary_block">
-			<h1>Friends</h1>
-			<div class="secondary_block">
-				Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-			</div>
-		</div>
-	</div>
-	
+												<span id="21067">
+													<a href="#">
+														<img class="thumbnail padding" src="#{$site.static_files_url}/Profile/skin_edit/temp/strip02.jpg" alt="strip02.jpg"/>
+													</a>
+												</span>
+												<span id="21066">
+													<a href="#">
+														<img class="thumbnail padding" src="#{$site.static_files_url}/Profile/skin_edit/temp/strip03.jpg" alt="strip03.jpg"/>
+													</a>
+												</span>
+
+												<span id="21072">
+													<a href="#">
+														<img class="thumbnail padding" src="#{$site.static_files_url}/Profile/skin_edit/temp/strip04.jpg" alt="strip04.jpg"/>
+													</a>
+												</span>
+												<span id="21069">
+													<a href="#">
+														<img class="thumbnail padding" src="#{$site.static_files_url}/Profile/skin_edit/temp/strip05.jpg" alt="strip05.jpg"/>
+													</a>
+												</span>
+												<span id="21073">
+													<a href="#">
+														<img class="thumbnail" src="#{$site.static_files_url}/Profile/skin_edit/temp/strip06.jpg" alt="strip06.jpg"/>
+													</a>
+												</span>
+												<div class="control_bar"><div class="paging_buttons">	<a class="page_backward" href="javascript:void(0);"><img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/gallery/images/6x9_arrow_left.gif" border="0" /></a>	<a class="page_forward" href="javascript:void(0);"><img class="color_icon custom_color_icon"  minion_name="skin_editor_icon" src="{$site.static_files_url}/gallery/images/6x9_arrow_right.gif" border="0" /></a></div><div class="page_list"><canvas width="7" height="7" class="color_icon custom_color_icon"  minion_name="skin_editor_icon" style="color: rgb(0, 0, 0);"/><canvas width="7" height="7" class="color_icon custom_color_icon"  minion_name="skin_editor_icon" style="color: rgb(0, 0, 0);"/><canvas width="7" height="7" class="color_icon custom_color_icon"  minion_name="skin_editor_icon" style="color: rgb(0, 0, 0);"/><canvas width="7" height="7" class="color_icon custom_color_icon"  minion_name="skin_editor_icon" style="color: rgb(0, 0, 0);"/><canvas width="7" height="7" class="color_icon custom_color_icon"  minion_name="skin_editor_icon" style="color: rgb(0, 0, 0);"/></div></div>
+											</div>
+											</div>
+											
+										</div>
+									</div>
+								</div>
+								
+								<div class="primary_block block_container" id="block1_100">
+									<div id="data_100">
+										<div id="interests_profile_block">
+											<div class="block_title">INTERESTS</div>
+											<table>
+												<tbody>
+													<tr>
+														<td class="category">Movies:</td>
+														<td class="interests">Action, Horror, Independent, Psychological Thrillers, Science Fiction, Spy/Political Thrillers, Westerns</td>
+													</tr>
+													<tr>
+														<td class="category">Video Games:</td>
+														<td class="interests">First person shooter, Fighting, Racing, Strategy</td>
+													</tr>
+													<tr>
+														<td class="category">Music:</td>
+														<td class="interests">Emo, Hardcore, Indie, Metal, Progressive, Punk, Rock, Acoustic</td>
+													</tr>
+													<tr>
+														<td class="category">Sports:</td>
+														<td class="interests">Kickboxing</td>
+													</tr>
+													<tr>
+														<td class="category">Activities:</td>
+														<td class="interests">Drinking, Traveling, Flailing</td>
+													</tr>
+													<tr>
+														<td class="category">Musical Instruments:</td>
+														<td class="interests">Acoustic guitar, Electric Guitar</td>
+													</tr>
+													<tr>
+														<td class="category">Computers:</td>
+														<td class="interests">E-mail, Gaming, Instant Messaging</td>
+													</tr>
+												</tbody>
+											</table>
+										</div>
+									</div>
+								</div>
+								<div class="primary_block block_container" id="block1_57">
+									<div id="data_57">
+										<div class="freeform_text">
+											<div class="block_title">A LITTLE MORE...</div>
+											<div class="content">
+												<font face="optima"><font size="2"><i>Every great advance in natural knowledge has involved the absolute rejection of authority.</i> 
+												<br/><font color="grey">~ Aldous Huxley</font>
+												<br/>
+												<br/><div style="text-align: right;"><i>The only way to make sense out of change is to plunge into it, move with it, and join the dance.</i>
+												<br/><font color="grey">Alan Watts ~</font></div> 
+												<br/>
+												<br/><i>Those who are too lazy and comfortable to think for themselves and be their own judges obey the laws. Others sense their own laws within them...</i> 
+												<br/><font color="grey">~ Herman Hesse</font>
+												<br/>
+												<br/><center><img border="0" src="#{$site.static_files_url}/Profile/skin_edit/temp/tattoo.png"/></center>                             
+												<br/>
+												<br/><div style="text-align: right;"><i>This is the strangest life I've ever known...</i>
+												<br/><font color="grey">Jim Morrison ~</font></div> 
+												<br/>
+												<br/><i>This time, like all times, is a very good one, if we but know what to do with it.</i>
+												<br/><font color="grey">~ R. W. Emerson</font>
+												<br/></font></font>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<div class="primary_block block_container" id="block1_130">
+									<div id="data_130">
+										<div id="comments_profile_block">
+											<div class="header_accessory">
+												<a href="#">view all (14)</a>
+											</div>
+											<div class="comments_section">
+												<div class="block_title">COMMENTS</div>
+												<div id="comment_write">
+													
+												</div>
+												
+												<div class="comment_view_container secondary_block ">
+													<div class="comment_content">
+														<div>
+															<div class="comment_date">4:56am | May 14, '08</div>
+															<div class="comment_username">
+																<a href="#">graham</a>
+															</div>
+														</div>
+														<div class="comment_body">That's what she said... <img src="#{$site.static_files_url}/Profile/skin_edit/temp/smileysex.gif" /></div>
+													</div>
+													<div class="comment_user_img" style="padding: 2px 0px 0px 2px;">
+														<a href="#">
+															<img src="#{$site.static_files_url}/Profile/skin_edit/temp/friend07.jpg" alt="graham" width="50" height="42"/>
+														</a>
+													</div>
+													<div class="comment_functions">
+														<div class="comment_function_links">
+															<span>
+																<a href="#">Reply</a>&nbsp;|&nbsp;<a href="#">Conversation</a>
+	&nbsp;|&nbsp;
+	<a href="#">
+	Message</a>&nbsp;|&nbsp;<a href="#">
+	Top
+	</a>
+															</span>
+														</div>
+														<div class="clearit">
 </div>
-<script type="text/javascript">
-<![CDATA[
-
-YAHOO.util.Event.on(window, 'load', function(e)
-{
-	var icons = YAHOO.util.Dom.getElementsByClassName("custom_color_icon");
-		
-	for(i = 0; i < icons.length; i++)
-	{
-		if(!YAHOO.env.ua.ie)
-		{
-			var canvas = document.createElement('canvas');
-			
-			canvas.width = icons[i].width;
-			canvas.height = icons[i].height;
-			
-			YAHOO.util.Dom.addClass(canvas, "custom_color_icon");
-			YAHOO.util.Dom.setStyle(canvas, "color", YAHOO.util.Dom.getStyle(icons[i], "color"));
-			icons[i].parentNode.replaceChild(canvas, icons[i]);
-			canvas.maskImage = icons[i];
-			icons[i] = canvas;
-		}
-		
-		icons[i].setColor = function(color)
-		{
-			if(!YAHOO.env.ua.ie)
-			{
-				if (!this.getContext) return;
-				var ctx = this.getContext('2d');
-				
-				ctx.globalCompositeOperation = "source-over";
-				ctx.clearRect(0,0,this.width,this.height);
-				
-				ctx.drawImage(this.maskImage, 0, 0, this.width, this.height);
-				
-				ctx.globalCompositeOperation = "source-in";
-				
-				ctx.fillStyle = color;
-				ctx.fillRect(0,0,this.width,this.height);
-			}
-			else
-			{
-				// Convert color to a 6 digit hex value
-				var rgb = /^rgb\((\d*)\D*(\d*)\D*(\d*)\)\D*$/;
-				var hhh = /^#([a-fA-F0-9])([a-fA-F0-9])([a-fA-F0-9])$/;
-				var hhhhhh = /^#([a-fA-F0-9]{2})([a-fA-F0-9]{2})([a-fA-F0-9]{2})$/;
-				
-				if(match = color.match(rgb))
-				{
-					match.shift();
-					
-					for(j = 0; j < match.length; j++)
-						match[j] = parseInt(match[j]);
-				}
-				else
-				{
-					if(match = color.match(hhh))
-					{
-						match.shift();
-						for(j = 0; j < match.length; j++)
-							match[j] = match[j].concat(match[j]);
-					}
-					else if(match = color.match(hhhhhh))
-					{
-						match.shift();
-					}
-			
-					for(j = 0; j < match.length; j++)
-						match[j] = parseInt(match[j],16);
-				}
-				
-				match[0] = match[0].toString(16);
-				match[1] = match[1].toString(16);
-				match[2] = match[2].toString(16);
-				
-				if(match[0].length == 1)
-					match[0] = "0"+match[0];
-				if(match[1].length == 1)
-					match[1] = "0"+match[1];
-				if(match[2].length == 1)
-					match[2] = "0"+match[2];
-				
-				// Use this new color value in the IE filter
-				this.style.filter ="filter: progid:DXImageTransform.Microsoft.MaskFilter(color=#000000) progid:DXImageTransform.Microsoft.MaskFilter(color=#"+match.join("")+");";
-			}
-		}
-		
-		icons[i].setColor(YAHOO.util.Dom.getStyle(icons[i], "color"));
-	}
-});
-
-
-/********** Custom Icons with Alpha in IE **********/
-
-/*
-	NOTE:
-		Due to a DOCTYPE problem in IE custom icons in IE will be rendered to display as a block element.
-		For consistancy I have forced other browsers to do the same.
-*/
-
-YAHOO.util.Event.on(window, 'load', function(e)
-{
-	var icons = YAHOO.util.Dom.getElementsByClassName("custom_color_icon_alpha", "img");
-	
-	for(var i = 0; i < icons.length; i++)
-	{
-		if(!YAHOO.env.ua.ie)
-		{
-			var canvas = document.createElement('canvas');
-			
-			canvas.width = icons[i].width;
-			canvas.height = icons[i].height;
-			
-			YAHOO.util.Dom.addClass(canvas, "custom_color_icon_alpha");
-			YAHOO.util.Dom.setStyle(canvas, "display", "block");
-			YAHOO.util.Dom.setStyle(canvas, "color", YAHOO.util.Dom.getStyle(icons[i], "color"));
-			icons[i].parentNode.replaceChild(canvas, icons[i]);
-			canvas.maskImage = icons[i];
-			icons[i] = canvas;
-		}
-		else
-		{
-			var wrapper = document.createElement('div');
-		
-			icons[i].maskImageSrc = icons[i].src;
-			icons[i].width = YAHOO.util.Dom.getRegion(icons[i]).right - YAHOO.util.Dom.getRegion(icons[i]).left;
-			icons[i].height = YAHOO.util.Dom.getRegion(icons[i]).bottom - YAHOO.util.Dom.getRegion(icons[i]).top;
-			
-			icons[i].src = Site.staticFilesURL + "/core/custom_color_icon/transparent.gif";
-			
-			icons[i].style.filter ="filter: progid:DXImageTransform.Microsoft.AlphaImageLoader(src='" + icons[i].maskImageSrc + "', sizingMethod='scale');";
-			
-			YAHOO.util.Dom.setStyle(wrapper, "width", icons[i].width);
-			YAHOO.util.Dom.setStyle(wrapper, "height", icons[i].height);
-			
-			YAHOO.util.Dom.addClass(wrapper, "custom_color_icon_alpha");
-			YAHOO.util.Dom.removeClass(icons[1], "custom_color_icon_alpha");
-			YAHOO.util.Dom.setStyle(wrapper, "color", YAHOO.util.Dom.getStyle(icons[i], "color"));
-			
-			icons[i].parentNode.replaceChild(wrapper, icons[i]);
-			wrapper.appendChild(icons[i]);
-			
-			icons[i] = wrapper;
-		}
-		
-		icons[i].setColor = function(color)
-		{
-			if(!YAHOO.env.ua.ie)
-			{
-				if (!this.getContext) return;
-				var ctx = this.getContext('2d');
-				
-				ctx.globalCompositeOperation = "source-over";
-				ctx.clearRect(0,0,this.width,this.height);
-				
-				ctx.drawImage(this.maskImage, 0, 0, this.width, this.height);
-				
-				ctx.globalCompositeOperation = "source-in";
-				
-				ctx.fillStyle = color;
-				ctx.fillRect(0,0,this.width,this.height);
-			}
-			else
-			{
-				// Convert color to a 6 digit hex value
-				var rgb = /^rgb\((\d*)\D*(\d*)\D*(\d*)\)\D*$/;
-				var hhh = /^#([a-fA-F0-9])([a-fA-F0-9])([a-fA-F0-9])$/;
-				var hhhhhh = /^#([a-fA-F0-9]{2})([a-fA-F0-9]{2})([a-fA-F0-9]{2})$/;
-				
-				if(match = color.match(rgb))
-				{
-					match.shift();
-					
-					for(j = 0; j < match.length; j++)
-						match[j] = parseInt(match[j]);
-				}
-				else
-				{
-					if(match = color.match(hhh))
-					{
-						match.shift();
-						for(j = 0; j < match.length; j++)
-							match[j] = match[j].concat(match[j]);
-					}
-					else if(match = color.match(hhhhhh))
-					{
-						match.shift();
-					}
-			
-					for(j = 0; j < match.length; j++)
-						match[j] = parseInt(match[j],16);
-				}
-				
-				match[0] = match[0].toString(16);
-				match[1] = match[1].toString(16);
-				match[2] = match[2].toString(16);
-				
-				if(match[0].length == 1)
-					match[0] = "0"+match[0];
-				if(match[1].length == 1)
-					match[1] = "0"+match[1];
-				if(match[2].length == 1)
-					match[2] = "0"+match[2];
-				
-				// Use this new color value in the IE filter
-				this.style.filter ="filter: progid:DXImageTransform.Microsoft.MaskFilter(color=#000000) progid:DXImageTransform.Microsoft.MaskFilter(color=#"+match.join("")+");";
-			}
-		}
-		
-		icons[i].setColor(YAHOO.util.Dom.getStyle(icons[i], "color"));
-	}
-});
-
-
-]]>
-</script>
-</body>
+													</div>
+													<div class="clearit">
+</div>
+												</div>
+												<div class="comment_view_container secondary_block ">
+													<div class="comment_content">
+														<div>
+															<div class="comment_date">4:49am | May 14, '08</div>
+															<div class="comment_username">
+																<a href="#">agentdave</a>
+															</div>
+														</div>
+														<div class="comment_body">
+		What's up?
+		</div>
+													</div>
+													<div class="comment_user_img" style="padding: 2px 0px 0px 2px;">
+														<a href="#">
+															<img src="#{$site.static_files_url}/Profile/skin_edit/temp/friend01.jpg" alt="agentdave" width="50" height="42"/>
+														</a>
+													</div>
+													<div class="comment_functions">
+														<div class="comment_function_links">
+															<span>
+																<a href="#">
+			Reply
+			</a>&nbsp;|&nbsp;<a href="#">Conversation</a>&nbsp;|&nbsp;<a href="#">Message</a>&nbsp;|&nbsp;<a href="#">Top</a>
+															</span>
+														</div>
+														<div class="clearit">
+	</div>
+													</div>
+													<div class="clearit"/>
+												</div>
+												<div class="comment_view_container secondary_block ">
+													<div class="comment_content">
+														<div>
+															<div class="comment_date">
+																4:40am | May 14, '08
+															</div>
+															<div class="comment_username">
+																<a href="#">
+																	Castellan
+																</a>
+															</div>
+														</div>
+														<div class="comment_body">
+															Hey, Tod. Are you up for wings on Wednesday? I found a place with some killer hot wings. I think you will like them.
+														</div>
+													</div>
+													<div class="comment_user_img" style="padding: 2px 0px 0px 2px;">
+														<a href="#">
+															<img src="#{$site.static_files_url}/Profile/skin_edit/temp/friend03.jpg" alt="Castellan" width="50" height="42"/>
+														</a>
+															</div>
+															<div class="comment_functions">
+																<div class="comment_function_links">
+																	<span>
+																		<a href="#">Reply</a>&nbsp;|&nbsp;<a href="#">Conversation</a>&nbsp;|&nbsp;<a href="#">
+																			Message
+																		</a>
+																		&nbsp;|&nbsp;
+																		<a href="#">
+																		Top
+																		</a>
+																	</span>
+																</div>
+																<div class="clearit"></div>
+															</div>
+															<div class="clearit"/>
+														</div>
+														<div id="comment_footer" minion_name="comments:footer"></div>
+													</div>
+												</div>
+											</div>
+										</div>
+									<div class="column_bottom_marker" id="column_bottom_marker_1">
+								</div>
+							</div>
+						</td>
+						<!-- RIGHT COLUMN END -->
+					</tr>
+				</table>
+			</div>
+		</div>
+	</body>
 </html>
+																

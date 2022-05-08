@@ -1,0 +1,26 @@
+<div id="blog_new_entry_container">
+
+	<t:template-include t:module="blogs" t:name="blog_new_entry_header" />
+	
+	<form method="post" id="new_blog" action="#{PageRequest.current.area_base_uri}/blog/#{action}/submit">
+		<input type="hidden" name="typeid" value="0" />
+		<div class="left_column">
+			<div class="post_title">
+				Post Title
+			</div>
+			<input name="blog_post_title" type="text" class="text" value="{title}" maxlength="128"/>
+			<div class="text_editor_container">
+				<textarea name="blog_post_content" class="enhanced_text_input" minion_name="enhanced_text_input">{caption}</textarea>
+			</div>
+
+			<t:template-include t:module="blogs" t:name="new_blog_submit_buttons"/>
+		</div>
+	
+		<div class="right_column">
+			<t:template-include t:module="blogs" t:name="blog_new_entry_options" />
+			<t:template-include t:module="blogs" t:name="blog_tip_freeform" />
+		</div>
+		<div class="clear"></div>
+	</form>
+
+</div>

@@ -3,7 +3,13 @@
 	<script>
 		#{client_validation}
 	</script>
-
+	<t:if t:id="selected_group.created?">
+		<div class="groups_subtitle">Edit Connection</div>
+	</t:if>
+	<t:if t:id="!selected_group.created?">
+		<div class="groups_subtitle">Create New Connection</div>
+	</t:if>
+	
 	<div class="edit_form">
 		<table border="0" cellspacing="0" cellpadding="2">
 			<tr>
@@ -49,7 +55,7 @@
 						{selected_group.group_name}
 					</t:if>
 					<t:if t:id="!selected_group.created?">
-						<div class="yui-skin-sam">
+						<div class="yui-skin-nexopia">
 							<div id="autocomplete" class="yui-ac">
 								<input class="yui-ac-input" type="text" name="name" id="name" value="{name}" maxlength="100" onblur="EditGroups.validateName()"/>
 								<div id="name_container" style="width: 100%; height: 0px"></div>
@@ -137,16 +143,16 @@
 	
 	<div class="edit_button_bar">
 		<t:if t:id="selected_group.created?">
-			<input type="submit" class="submit" value="Update" id="group_update_button" 
+			<input type="submit" class="submit" value="Save" id="group_update_button" 
 				onclick="GroupsProfileBlock.updateSubmit({selected_group.groupid}); return false;" style="float: left" />
 			<input type="submit" class="submit" value="Cancel" id="group_cancel_button" 		
-				onclick="GroupsProfileBlock.cancelSubmit({selected_group.groupid}); return false;" style="margin-left: 4px; float: left"/>
+				onclick="GroupsProfileBlock.cancelSubmit({selected_group.groupid}); return false;" style="float: left"/>
 		</t:if>
 		<t:if t:id="!selected_group.created?">
-			<input type="submit" class="submit" value="Create" id="group_create_button" onclick="GroupsProfileBlock.createSubmit(); return false;"
+			<input type="submit" class="submit" value="Save" id="group_create_button" onclick="GroupsProfileBlock.createSubmit(); return false;"
 				style="float: left"/>
 			<input type="submit" class="submit" value="Cancel" id="group_cancel_button" onclick="GroupsProfileBlock.cancelSubmit(); return false;" 
-				style="margin-left: 4px; float: left"/>
+				style="float: left"/>
 		</t:if>
 		
 		<div style="width: 6px; float: left">&#160;</div>

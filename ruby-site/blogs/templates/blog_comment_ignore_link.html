@@ -1,0 +1,13 @@
+<t:doc>
+	<a href="/messages.php?action=#{(viewing_user.ignored?(blog_comment_author) ? 'unignore' : 'ignore')}&id={blog_comment_author.userid}&k={blog_comment_author.gen_auth_key}"
+		id="ignore_user_link_{link_id}"
+		minion_name="div_panel"
+	 	div_id="blog_#{(viewing_user.ignored?(blog_comment_author) ? 'unignore' : 'ignore')}_user_panel"
+		exit_path="/my/blog/#{(viewing_user.ignored?(blog_comment_author) ? 'unignore' : 'ignore')}_user/{blog_comment_author.userid}?form_key[]={ignore_form_key}"
+		exit_method="post"
+		ajax_exit="true"
+		form_id="blog_comments_delete_form"
+		class="comments_ignore_author">
+		#{(viewing_user.ignored?(blog_comment_author) ? 'Unignore User' : 'Ignore User')}
+	</a><input type="hidden" name="link_ids[{link_id}]" value="{blog_comment_author.userid}" />
+</t:doc>

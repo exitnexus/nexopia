@@ -1,8 +1,8 @@
-<div>
-	<div class="block_title_4margin" id="h2_2">
+<div class="basics_edit edit_block">
+	<div class="edit_title" id="h2_2">
 		BASICS
 	</div>
-	<form method="post" action="/my/profile_blocks/Profile/basics/5/save">
+	<div class="edit_content">
 		<table border="0" cellspacing="0" cellpadding="0" class="stat_table">
 			<tr>
 				<td class="vitals_name">
@@ -44,7 +44,58 @@
 					<t:handler-include path="/current/selector/living/{user.profile.living}" area="Skeleton"/>
 				</td>
 			</tr>
+			<tr>
+				<td class="vitals_name">
+					Location:
+				</td>
+				<td>
+					<t:handler-include path="/autocomplete/location/{user.location.id}" area="Public"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="vitals_name">
+					Date of Birth:
+				</td>
+				<td>
+					<t:handler-include path="/current/date/dob/{user.dob}" area="Skeleton">
+						<t:var t:name="'year_onchange_handler'" t:val="''" />
+						<t:var t:name="'month_onchange_handler'" t:val="''" />
+						<t:var t:name="'day_onchange_handler'" t:val="''" />
+					</t:handler-include>
+				</td>
+			</tr>
+			<tr>
+				<td class="vitals_name">
+					Show Birthday:
+				</td>
+				<td>
+					<input type="checkbox" name="showbday" value="showbday" cond:checked="showbday"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="vitals_name">
+					Show Join Date:
+				</td>
+				<td>
+					<input type="checkbox" name="showjointime" value="showjointime" cond:checked="showjointime"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="vitals_name">
+					Show Last Profile Update Time:
+				</td>
+				<td>
+					<input type="checkbox" name="showprofileupdatetime" value="showprofileupdatetime" cond:checked="showprofileupdatetime"/>
+				</td>
+			</tr>
+			<tr>
+				<td class="vitals_name">
+					Show Last Active Time:
+				</td>
+				<td>
+					<input type="checkbox" name="showactivetime" value="showactivetime" cond:checked="showactivetime"/>
+				</td>
+			</tr>
 		</table>
-		<input type="submit"/>
-	</form>
+	</div>
 </div>

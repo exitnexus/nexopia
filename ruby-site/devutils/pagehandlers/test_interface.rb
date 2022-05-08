@@ -1,5 +1,5 @@
-require "test/unit";
-require "test/unit/ui/console/testrunner"
+#require "test/unit";
+#require "test/unit/ui/console/testrunner"
 require "stringio";
 lib_require :Devutils, 'tests', 'test_status'
 
@@ -12,9 +12,8 @@ class TestInterface < PageHandler
 
 		handle :GetRequest, :tree_view
 	}
-
 	def page_initialize
-		@tests = Tests.instance
+		#@tests = Tests.instance
 	end
 
 	def tree_view
@@ -52,10 +51,10 @@ class TestInterface < PageHandler
 	end
 
 	def run_test(module_name, class_name)
-		@tests = Tests.instance()
+		#@tests = Tests.instance()
 		sio = StringIO.new;
-		@tests.run(class_name, sio)
-		puts parse_test(module_name + "#" + class_name, sio);
+		#@tests.run(class_name, sio)
+		#puts parse_test(module_name + "#" + class_name, sio);
 	end
 
 	def test_status

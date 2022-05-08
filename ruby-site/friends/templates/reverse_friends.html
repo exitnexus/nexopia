@@ -1,53 +1,13 @@
-<div t:docid="friends_page" class="friends">
-	<input type="hidden" id="reverse" value="true"/>
-	<t:template-include name="top_menu" module="friends"/>
-	People who have&#160;<a class="body" t:id="user"></a>&#160;on their friends list:
-	<ul>
-		<li class="friend_list_entry" t:id="friends" t:iter="friend">
-			<table class="friend">
-				<tr>
-					<td rowspan='5' class="picture"><a class="body" t:id="friend.owner"><img class="picture" t:id="friend.owner"/></a></td>
-					<td class="name" colspan='3'>
-						<span class="actions" t:id="logged_in">
-							<t:if t:id="!friend.mutual">
-								<a href="/users/%{user.username}/friends/add/{friend.userid}?form_key={form_key}" class="body script add">
-									<img src="#{$site.static_files_url}/Friends/images/add_friend.gif"/>
-								</a>
-							</t:if>
-							<form class="noscript">  
-							 	<input type="submit" name="edit" value="Edit"/>  
-								<input type="submit" name="delete" value="Delete"/>  
-							</form> 
-							<a href="/users/%{user.username}/friends/reverse/remove/{friend.userid}" class="body script delete">
-								<img src="#{$site.static_files_url}/Friends/images/cross_red.gif"/>
-							</a>
-						</span>
-						<a class="body" t:id="friend.owner"></a>&#160;
-						<t:if t:id="friend.owner.online"><img class="online" src="#{$site.static_files_url}/Friends/images/online.gif"/></t:if>
-						<t:if t:id="!friend.owner.online"><img class="offline" src="#{$site.static_files_url}/Friends/images/offline.gif"/></t:if>
-						&#160;
-						<span t:id="friend.mutual">Mutual</span>
-					</td>
-				</tr>
-				<tr>
-					<td class="minor">Age:</td>
-					<td>{friend.owner.age}</td>
-					<td class="minor">Public Notes:</td>
-				</tr>
-				<tr>
-					<td class="minor">Sex:</td>
-					<td>{friend.owner.sex}</td>
-					<td rowspan="3" class="comment_cell">
-						{friend.comment}
-					</td>
-				</tr>
-				<tr>
-					<td class="minor">Location:</td>
-					<td>{friend.owner.location}</td>
-				</tr>
-				<tr></tr>
-			</table>
-		</li>
-	</ul>
+<div id="reverse_friends_page"  minion_name="friends:init_tooltips">
+	#{pages}
+		
+	<t:loop t:id="friends" t:iter="friend">
+		<t:if t:id="!friend.owner.anonymous?()">
+			<t:varsub t:old="friend.owner" t:new="person"/>
+			<t:varsub t:new="comment" t:old="friend.comment"/>		
+			<t:template-include t:module="friends" t:name="friend"/>
+		</t:if>
+	</t:loop>
+		
 	#{pages}
 </div>

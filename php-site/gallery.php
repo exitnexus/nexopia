@@ -91,10 +91,15 @@
 		}
 
 		function listCats($uid){
-			global $userData, $config, $galleries, $weblog;
+			global $userData, $config, $galleries, $weblog, $wwwdomain;
 
 			$user = getUserInfo($uid);
-
+			
+			//http redirect to the new galleries in ruby-site	
+			header("HTTP/1.1 301 Moved Permanently");
+			header("Location: http://". $wwwdomain . "/users/" . urlencode($user['username']) . "/gallery/");
+			exit;
+			
 			if(!$user)
 				die("Bad User");
 
@@ -134,6 +139,12 @@
 
 		function listCatsUsername($username)
 		{
+			global $wwwdomain;
+			//http redirect to the new galleries in ruby-site	
+			header("HTTP/1.1 301 Moved Permanently");
+			header("Location: http://". $wwwdomain . "/users/" . urlencode($username) . "/gallery/");
+			exit;
+			
 			$uid = getUserId($username);
 			if (!$uid)
 				return false;
@@ -142,8 +153,15 @@
 		}
 
 		function allThumbs($uid, $cat){
-			global $userData, $db, $galleries, $config, $weblog, $reporev;
+			global $userData, $db, $galleries, $config, $weblog, $reporev, $wwwdomain;
 
+			$user = getUserInfo($uid);
+			//http redirect to the new galleries in ruby-site	
+			header("HTTP/1.1 301 Moved Permanently");
+			header("Location: http://". $wwwdomain . "/users/" . urlencode($user['username']) . "/gallery/");
+			exit;
+			
+			
 			$userGalleries = new usergalleries($galleries, $uid);
 			$galleryaccess = $userGalleries->getAccessLevel($userData);
 			$galleryobj = $userGalleries->getGallery("$uid:$cat");
@@ -151,7 +169,7 @@
 			if (!$galleryobj || !$galleryobj->hasAccess($galleryaccess))
 				return; // throw back to user's gallery main page?
 
-			$user = getUserInfo($uid);
+			
 
 			if(!$user)
 				die("Bad User");
@@ -193,6 +211,12 @@
 		}
 		function allThumbsUsername($username, $cat, $galleryname)
 		{
+			global $wwwdomain;
+			//http redirect to the new galleries in ruby-site	
+			header("HTTP/1.1 301 Moved Permanently");
+			header("Location: http://". $wwwdomain . "/users/" . urlencode($username) . "/gallery/" . $cat);
+			exit;
+			
 			$uid = getUserId($username);
 			if (!$uid)
 				return false;
@@ -202,7 +226,13 @@
 
 		function showFullPicture($username, $cat, $galleryname, $picid)
 		{
-			global $userData, $db, $galleries, $config, $weblog;
+			global $userData, $db, $galleries, $config, $weblog, $wwwdomain;
+			
+			//http redirect to the new galleries in ruby-site	
+			header("HTTP/1.1 301 Moved Permanently");
+			header("Location: http://". $wwwdomain . "/users/" . urlencode($username) . "/gallery/" . $cat);
+			exit;
+			
 			$uid = getUserId($username);
 			if (!$uid)
 				return false;
@@ -240,8 +270,15 @@
 
 		function filmStripThumbs($uid, $cat, $id)
 		{
-			global $userData, $db, $galleries, $config, $weblog, $reporev;
-
+			global $userData, $db, $galleries, $config, $weblog, $reporev, $wwwdomain;
+			
+			$user = getUserInfo($uid);
+			
+			//http redirect to the new galleries in ruby-site	
+			header("HTTP/1.1 301 Moved Permanently");
+			header("Location: http://". $wwwdomain . "/users/" . urlencode($user['username']) . "/gallery/");
+			exit;
+			
 			$userGalleries = new usergalleries($galleries, $uid);
 			$galleryaccess = $userGalleries->getAccessLevel($userData);
 			$galleryobj = $userGalleries->getGallery("$uid:$cat");
@@ -249,7 +286,7 @@
 			if (!$galleryobj || !$galleryobj->hasAccess($galleryaccess))
 				return; // throw back to user's gallery main page?
 
-			$user = getUserInfo($uid);
+			
 
 			if(!$user)
 				die("Bad User");
@@ -317,6 +354,12 @@
 		}
 		function filmStripThumbsUsername($username, $cat, $galleryname, $picid = false)
 		{
+			global $wwwdomain;
+			//http redirect to the new galleries in ruby-site	
+			header("HTTP/1.1 301 Moved Permanently");
+			header("Location: http://". $wwwdomain . "/users/" . urlencode($username) . "/gallery/" . $cat);
+			exit;
+			
 			$uid = getUserId($username);
 			if (!$uid)
 				return false;

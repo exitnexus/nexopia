@@ -235,6 +235,10 @@
 					$row = $sth->fetchrow();
 					$curFolders[$key]['permissions'] = $row['permissions'];
 				}
+				else
+				{
+					$curFolders[$key]['permissions'] = "";
+				}
 			}
 
 			$ttlsize = 0;
@@ -492,7 +496,10 @@
 						$fileUploads['name'][$key], $fileUploads['type'][$key], $fileUploads['size'][$key], $fileUploads['tmp_name'][$key]
 					);
 
-					$fname = (isset($fname) && (string)$fname !== '') ? basename($fname) : 'unknown-filename';
+					$fname = (isset($fname) && (string)$fname !== '') ? $fname : 'unknown-filename';
+
+					# Handle backslashes from insane Windows-like systems
+					$fname = end(explode('\\', $fname));
 
 					if (
 						strlen($fname) > $this->config['filesMaxFileLength'] ||
@@ -532,8 +539,10 @@
 							}
 
 							$this->adminlog("upload file;{$handle->root}{$fname}");
-							$userfiles->uploadFile($tmpfile, "{$handle->root}{$fname}");
-							$this->errmsgs[] = "Uploaded file '{$fname}'.";
+							if ($userfiles->uploadFile($tmpfile, "{$handle->root}{$fname}"))
+								$this->errmsgs[] = "Uploaded file '{$fname}'.";
+							else
+								break;
 					}
 				}
 			}

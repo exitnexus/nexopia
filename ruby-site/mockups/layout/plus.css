@@ -1,0 +1,267 @@
+#mockup {
+	& #plus_mockup {
+		position: relative;
+		width: 750px;
+		padding: 75px 0px 0px 0px;
+		margin: 0px auto 0px auto;
+		background: url('$static_files_url/mockups/plus/BackgroundTop.png') no-repeat;
+		color: #6d6d6d;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+		
+		& br.clear {
+			clear: both;
+		}
+		
+		& .bold {
+			font-weight: bold;
+		}
+		
+		& a {
+			color: #e40067;
+			
+			&:hover {
+				color: #516068;
+			}
+		}
+		
+		& img {
+			border: 0px;
+		}
+		
+		& img.plus_logo {
+			position: absolute;
+			top: 18px;
+			left: 12px;
+		}
+		
+		& img.prices {
+			position: absolute;
+			top: 35px;
+			left: 260px;
+		}
+		
+		& .content {
+			background-color: #000;
+			padding: 45px 12px 0px 12px;
+			
+			& .left_column {
+				float: left;
+			
+				& .get_more {
+					font-family: Arial, Helvetica, sans-serif;
+					font-size: 20px;
+					color: #c1c1c1;
+					line-height: 29px;
+					padding-bottom: 30px;
+				}
+				
+				& table.feature_container {
+					width: 465px;
+					border-top: 5px solid #1c1c1c;
+					margin-top: 8px;
+					margin-bottom: 26px;
+					font-family: Arial, Helvetica, sans-serif;
+					font-size: 14px;
+					
+					& tr.headings td {
+						font-size: 20px;
+					}
+					
+					& tr.alt_table_row {
+						background-color: #1c1c1c;
+					}
+					
+					& td {
+						padding: 6px 0px 6px 0px;
+						
+						&.feature {
+							color: #c1c1c1;
+							width: 173px;
+							padding-left: 18px;
+						}
+						
+						&.free {
+							color: #878787;
+							width: 137px;
+						}
+						
+						&.plus {
+							color: #c1c1c1;
+							width: 137px;
+						}
+						
+						&.much_more {
+							text-align: right;
+							font-weight: bold;
+						}
+					}
+				}
+				
+				& a.buy_plus_now {
+					margin-bottom: 6px;
+				}
+			}
+			
+			& .right_column {
+				float: right;
+				width: 222px;
+				
+				& .get_more {
+					font-family: Arial, Helvetica, sans-serif;
+					font-size: 13px;
+					color: #c1c1c1;
+					line-height: 21px;
+					padding-bottom: 30px;
+					
+					& .heading {
+						font-size: 16px;
+					}
+				}
+				
+				& .header {
+					font-family: Arial, Helvetica, sans-serif;
+					font-size: 16px;
+					color: #fff;
+					padding-bottom: 4px;
+					
+					& span {
+						font-size: 11px;
+						color: #6d6d6d;
+						font-family: Verdana, Arial, Helvetica, sans-serif;
+					}
+				}
+				
+				& .header_padding {
+					margin-top: 40px;
+				}
+				
+				& .payment_method_container {
+					padding-top: 4px;
+					
+					& .expanded {
+						width: 210px;
+						margin-top: 1px;
+						margin-bottom: 4px;
+						background-color: #1c1c1c;
+						padding: 6px 6px 12px 6px;
+						
+						& input.username {
+							width: 94px;
+							margin-right: 6px;
+							margin-bottom: 6px;
+						}
+						
+						& input.mobile {
+							float: left;
+						}
+						
+						& select {
+							width: 108px;
+							margin-bottom: 6px;
+						}
+						
+						& .mobile_amount {
+							float: right;
+							width: 102px;
+							height: 17px;
+							background-color: #141414;
+							padding: 1px 0px 0px 6px;
+						}
+						
+						& a.add_user {
+							float: left;
+						}
+						
+						& .total_checkout {
+							float: right;
+							text-align: right;
+							font-family: Arial, Helvetica, sans-serif;
+							font-size: 14px;
+							color: #c1c1c1;
+							
+							& .gst {
+								font-size: 11px;
+							}
+							
+							& div {
+								margin: 10px 0px 24px 0px;
+							}
+						}
+						
+						& .mobile_checkout {
+							margin-bottom: 24px;
+						}
+						
+						& img {
+							margin-top: 6px;
+						}
+					}
+				}
+				
+				& .activate_container {
+					
+					& input.voucher {
+						width: 142px;
+						margin-top: 2px;
+						margin-bottom: 6px;
+						float: left;
+					}
+					
+					& .buy_voucher {
+						float: right;
+					}
+					
+					& input.pin {
+						width: 220px;
+						margin-bottom: 6px;
+					}
+					
+					& .addlinks_info {
+					
+						& a.add {
+							float: left;
+						}
+						
+						& div {
+							float: right;
+						}
+					}
+					
+					& .usernames_amounts {
+						padding-top: 18px;
+					
+						& input.username {
+							width: 100px;
+							margin-right: 6px;
+							margin-bottom: 6px;
+						}
+						
+						& select {
+							width: 114px;
+							margin-bottom: 6px;
+						}
+						
+						& a.add_user {
+							float: left;
+						}
+						
+						& .total_checkout {
+							float: right;
+							text-align: right;
+							font-family: Arial, Helvetica, sans-serif;
+							font-size: 14px;
+							color: #c1c1c1;
+							
+							& div {
+								margin: 10px 0px 24px 0px;
+							}
+						}
+					}
+				}
+			}
+			
+		}
+	
+	}
+}

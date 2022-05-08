@@ -7,12 +7,12 @@
 	if(!$mods->isadmin($userData['userid'], "adminlog"))
 		die("Permission denied");
 
-	$uid = getREQval('uid', 'int');
+	$uid = getREQval('uid');
 	$page = getREQval('page','int');
 
 //	$mods->adminlog("admin log","Admin log, user: $uid");
 
-	$query = "SELECT SQL_CALC_FOUND_ROWS * FROM adminlog";
+	$query = "SELECT * FROM adminlog";
 	if($uid)
 		$query .= " WHERE " . $mods->db->prepare("userid = ?", getUserID($uid));
 	$query .=" ORDER BY id DESC LIMIT " . $page*$config['linesPerPage'] . ", $config[linesPerPage]";
@@ -25,7 +25,14 @@
 		$uids[$line['userid']] = $line['userid'];
 	}
 
-	$numrows = $res->totalrows();
+
+
+	$query = "SELECT count(*) FROM adminlog";
+	if($uid)
+		$query .= " WHERE " . $mods->db->prepare("userid = ?", getUserID($uid));
+	$res = $mods->db->query($query);
+
+	$numrows = $res->fetchfield();
 	$numpages =  ceil($numrows / $config['linesPerPage']);
 
 	$usernames = getUserName($uids);
@@ -44,8 +51,8 @@
 
 	foreach($rows as $row){
 		echo "<tr>";
-		echo "<td class=body><a class=body href=/profile.php?uid=$row[userid]>" . $usernames[$row['userid']] . "</a></td>";
-		echo "<td class=body nowrap>" . userDate("F j, Y, g:i a", $row['time']) . "</td>";
+		echo "<td class=body><a class=body href=/users/". urlencode($usernames[$row["userid"]]) .">" . $usernames[$row['userid']] . "</a></td>";
+		echo "<td class=body nowrap>" . userDate("F j, Y, g:i:s a", $row['time']) . "</td>";
 		$ip = long2ip($row['ip']);
 		echo "<td class=body><a class=body href=/adminuser.php?type=ip&search=$ip&k=" . makeKey($ip) . ">$ip</a></td>";
 		echo "<td class=body>$row[page]</td>";
@@ -59,7 +66,7 @@
 	echo "<table width=100%><tr>";
 	echo "<form action=$_SERVER[PHP_SELF]>";
 	echo "<td class=header>";
-	echo "Admin Name: <input class=body type=text name=uid value='$uid'><input class=body type=submit value=Go>";
+	echo "Admin Name: <input class=body type=text name=uid value='" . htmlentities($uid) . "'><input class=body type=submit value=Go>";
 	echo "</td>";
 	echo "</form>";
 

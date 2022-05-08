@@ -145,9 +145,33 @@ class TestSql < Quiz
 		assert_equal(@db.get_server_values(prepared), [1]);
 		assert_equal(prepared, "SELECT * FROM table WHERE foo = 'asdf' AND id = 1");
 
+		prepared = @db.prepare("SELECT * FROM table WHERE foo = '' AND id = #", 1);
+		assert_equal(@db.get_server_values(prepared), [1]);
+		assert_equal(prepared, "SELECT * FROM table WHERE foo = '' AND id = 1");
+
+		prepared = @db.prepare("SELECT * FROM table WHERE id = # AND foo = 'asdf'", 1);
+		assert_equal(@db.get_server_values(prepared), [1]);
+		assert_equal(prepared, "SELECT * FROM table WHERE id = 1 AND foo = 'asdf'");
+
+		prepared = @db.prepare("SELECT * FROM table WHERE id = # AND foo = ''", 1);
+		assert_equal(@db.get_server_values(prepared), [1]);
+		assert_equal(prepared, "SELECT * FROM table WHERE id = 1 AND foo = ''");
+
+		prepared = @db.prepare("SELECT * FROM table WHERE foo = 'asdf' AND id = # AND bar = 'fdsa'", 1);
+		assert_equal(@db.get_server_values(prepared), [1]);
+		assert_equal(prepared, "SELECT * FROM table WHERE foo = 'asdf' AND id = 1 AND bar = 'fdsa'");
+
 		prepared = @db.prepare("SELECT * FROM table WHERE foo = 'as\\'df' AND id = #", 1);
 		assert_equal(@db.get_server_values(prepared), [1]);
 		assert_equal(prepared, "SELECT * FROM table WHERE foo = 'as\\'df' AND id = 1");
+
+		prepared = @db.prepare("SELECT * FROM table WHERE foo = 'as\\'df' AND id = # AND bar = 'asdf'", 1);
+		assert_equal(@db.get_server_values(prepared), [1]);
+		assert_equal(prepared, "SELECT * FROM table WHERE foo = 'as\\'df' AND id = 1 AND bar = 'asdf'");
+
+		prepared = @db.prepare("SELECT * FROM table WHERE foo = 'as\\'df' AND id = # AND bar = 'as\\'df'", 1);
+		assert_equal(@db.get_server_values(prepared), [1]);
+		assert_equal(prepared, "SELECT * FROM table WHERE foo = 'as\\'df' AND id = 1 AND bar = 'as\\'df'");
 
 		prepared = @db.prepare("SELECT * FROM table WHERE foo = 'as\\\\\\'df' AND id = #", 1);
 		assert_equal(@db.get_server_values(prepared), [1]);

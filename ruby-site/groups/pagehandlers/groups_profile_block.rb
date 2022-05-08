@@ -8,25 +8,42 @@ class GroupsProfileBlock < PageHandler
 	declare_handlers("profile_blocks/Groups") {
 		area :User
 		access_level :Any
-		page :GetRequest, :Full, :groups, "list", input(Integer)
+		handle :GetRequest, :groups, "list", input(Integer)
 		
 		area :Self
-		page 	:GetRequest, :Full, :edit, "list", input(Integer), "edit"
+		access_level :IsUser, CoreModule, :editprofile
+		handle 	:GetRequest, :edit, "list", input(Integer), "edit"
 		
-		page :GetRequest, :Full, :refresh_list, "refresh_list"
-		page :GetRequest, :Full, :edit_group, "edit_group", input(Integer)
-		page :GetRequest, :Full, :create_group, "create_group"
+		handle :GetRequest, :refresh_list, "refresh_list"
+		handle :GetRequest, :edit_group, "edit_group", input(Integer)
+		handle :GetRequest, :create_group, "create_group"
 		
-		page :PostRequest, :Full, :update_group, "update"
+		handle	:PostRequest, :visibility_save, "list", input(Integer), "visibility";
 		
-		page	:GetRequest, :Full, :edit, "list", "new";
+		handle :PostRequest, :update_group, "update";
+		
+		handle	:GetRequest, :edit, "list", "new";
 		handle	:PostRequest, :groups_block_create, "list", input(Integer), "create";
-		handle	:PostRequest, :groups_block_remove, "list", input(Integer), "remove";		
+		handle	:PostRequest, :groups_block_remove, "list", input(Integer), "remove";
+		handle	:PostRequest, :groups_block_save, "list", input(Integer), "save";
 	}
 	
 	def groups(block_id)
+		edit_mode = params["profile_edit_mode", Boolean, false];
+		
+		if(!Profile::ProfileDisplayBlock.verify_visibility(block_id, request.user, request.session.user, edit_mode))
+			print "<h1>Not visible</h1>";
+			return;
+		end
+		
 		t = Template::instance('groups', 'groups_profile_block');
-		t.user_group_types = Groups::GroupMember.grouped_by_type(request.user.userid, request.session.user.userid, !request.session.anonymous?);
+		t.user_group_types = Groups::GroupMember.grouped_by_type(request.user, request.session.user.userid, 
+			!request.session.anonymous?, request.session.has_priv?(CoreModule, "editprofile"));
+
+		# if there are no groups to display, don't display the block
+		if (t.user_group_types.empty?)
+			return;
+		end
 
 		puts t.display
 	end
@@ -35,18 +52,16 @@ class GroupsProfileBlock < PageHandler
 	def edit(block_id=nil)
 		request.reply.headers['Content-Type'] = PageRequest::MimeType::PlainText;
 
-		t = Template.instance("groups", "groups_profile_block_edit");
-				
-		t.selected_group = Groups::GroupMember.new;
-		t.user_group_types = Groups::GroupMember.grouped_by_type(request.session.userid);
-		# if (!group_id.nil?)
-		# 	t.selected_group = Groups::GroupMember.find(:first, request.user.userid, group_id);
-		# end
+		if (!request.impersonation?)
+			t = Template.instance("groups", "groups_profile_block_edit");	
+			t.selected_group = Groups::GroupMember.new;
+		else
+			t = Template.instance("groups", "admin_list_groups");
+		end
+		
+		t.user_group_types = Groups::GroupMember.grouped_by_type(request.user);
 		
 		puts t.display;
-
-		
-		# print "I'm a groups edit";
 	end
 
 
@@ -94,7 +109,7 @@ class GroupsProfileBlock < PageHandler
 		request.reply.headers['Content-Type'] = PageRequest::MimeType::PlainText;
 		
 		t = Template::instance('groups', 'list_groups');
-		t.user_group_types = Groups::GroupMember.grouped_by_type(request.user.userid, request.session.user.userid, !request.session.anonymous?);
+		t.user_group_types = Groups::GroupMember.grouped_by_type(request.user);
 
 		puts t.display
 	end
@@ -105,7 +120,7 @@ class GroupsProfileBlock < PageHandler
 		
 		t = Template.instance("groups", "edit_group");
 		t.selected_group = Groups::GroupMember.find(:first, request.session.userid, id);
-		t.edit_form_key = SecureForm.encrypt(request.session.user, Time.now, "/Self/groups/update");
+		t.edit_form_key = SecureForm.encrypt(request.session.user, "/Self/groups/update");
 	 	_validate_group_edit(t, params);
 		puts t.display;
 	end
@@ -116,7 +131,7 @@ class GroupsProfileBlock < PageHandler
 		
 		t = Template.instance("groups", "edit_group");
 		t.selected_group = Groups::GroupMember.new;
-		t.edit_form_key = SecureForm.encrypt(request.session.user, Time.now, "/Self/groups/update");
+		t.edit_form_key = SecureForm.encrypt(request.session.user, "/Self/groups/update");
 		_validate_group_edit(t, params);
 		puts t.display;
 	end
@@ -138,7 +153,7 @@ class GroupsProfileBlock < PageHandler
 		
 		t = Template.instance("groups", "edit_group");
 		t.selected_group = Groups::GroupMember.find(:first, request.session.userid, group_id) || Groups::GroupMember.new;
-		t.edit_form_key = SecureForm.encrypt(request.session.user, Time.now, "/Self/groups/update");
+		t.edit_form_key = SecureForm.encrypt(request.session.user, "/Self/groups/update");
 		if (!_validate_group_edit(t, params, true))
 			t.present = present;
 			puts t.display;
@@ -194,19 +209,26 @@ class GroupsProfileBlock < PageHandler
 		end
 		
 		group_member.store;
+		return;
 	end
 	
-		
+			
 	def self.groups_query(info)
 		if(site_module_loaded?(:Profile))
 			info.extend(ProfileBlockQueryInfo);
-			info.title = "Groups";
+			info.title = "Connections";
 			info.initial_position = 20;
 			info.initial_column = 1;
 			info.form_factor = :both;
 			info.explicit_save = false;
 			info.max_number = 1;
 			info.javascript_init_function = ProfileBlockQueryInfo::JavascriptFunction.new("GroupsProfileBlock.init");
+			info.admin_editable = true;
+			info.add_visibility_exclude(:all);
+			info.default_visibility = :logged_in;
+
+			# changes on a per user basis because of complex access rights
+			info.content_cache_timeout = 0 
 		end
 		
 		return info;
@@ -222,4 +244,42 @@ class GroupsProfileBlock < PageHandler
 		$log.info("groups_block_remove");
 	end
 	
+	
+	def groups_block_save(block_id)
+		log_details = "";
+		groups_removed = Array.new;
+		membership_removed = Array.new;
+		
+		admin_actions = params["admin_action", TypeSafeHash, nil];
+		admin_actions.each { | id |
+			action = admin_actions[id, String];
+			if (action == "remove_group")
+				members = Groups::GroupMember.find(:scan, :all, :conditions => ["groupid = ?", id]);
+				group = Groups::Group.find(:first, id);
+
+				groups_removed << "#{id} (#{group.name})";
+
+				members.each { | member | member.delete; };
+				group.delete;
+			elsif (action == "remove_member")
+				member = Groups::GroupMember.find(:first, request.user.userid, id);
+
+				membership_removed << "#{id} (#{member.group_name})";
+
+				member.delete;
+			end
+		};
+		
+		if (request.impersonation?)
+			log_details += "Removed entire group: " + (groups_removed * ", ").to_s if !groups_removed.empty?;
+			log_details += " / " if !membership_removed.empty? && !groups_removed.empty?;
+			log_details += "Removed group membership: " + (membership_removed * ", ").to_s if !membership_removed.empty?;
+		
+			$log.info(["edit groups", log_details], :info, :admin);
+		end
+	end
+	
+	def visibility_save(block_id)
+		return;
+	end
 end

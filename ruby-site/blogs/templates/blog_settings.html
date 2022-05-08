@@ -1,0 +1,44 @@
+<div id="blog_settings_panel" class="blog_panel">
+	<div class="panel_functions">
+		<t:button class="nexopia_panel_save_and_close">Done</t:button>
+	</div>	
+	
+	<h1 class="panel_title">BLOG SETTINGS</h1>
+	<form id="blog_settings_form">
+		<table cellpadding="0" cellspacing="0">
+			<tr>
+				<td class="field_name">Default&#160;Entry&#160;Settings:</td>
+				<td width="175">
+					<t:handler-include path="/current/selector/visibility/{blog_profile.defaultvisibility}" area="Skeleton"/>
+				</td>
+				<td class="apply_to_all">
+					<a href="#">Apply to all current posts</a>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td colspan="2"><input type="checkbox" name="allow_comments" id="allow_comments" cond:checked="blog_profile.allowcomments" class="checkbox">Allow Comments</input></td>
+			</tr>
+			<tr>
+				<td></td>
+				<td colspan="2">These settings will be used when you create a new blog post. You can still change each post's settings individually.</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td colspan="2"></td>
+			</tr>
+			<tr>
+				<td class="field_name">Blog&#160;Settings:</td>
+				<td colspan="2">
+					<input type="checkbox" name="show_hits" id="show_hits" cond:checked="!blog_profile.showhits"
+						cond:disabled="!plus" class="checkbox"><label class="{'disabled' if !plus}">Hide Hits (PLUS only)</label></input>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td colspan="2"><input name="hide_quick_post" cond:checked="!blog_profile.showquickpost" type="checkbox" class="checkbox">Hide Quick Post Block</input></td>
+			</tr>
+		</table>
+	</form>
+</div>
+

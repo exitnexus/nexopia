@@ -160,7 +160,7 @@ function updateForum($data,$id){
 		$commands[] = $forums->db->prepare("sorttime = #", $sorttime);
 	}
 
-	$commands[] = $forums->db->prepare("rules = ?", removeHTML(trim($rules)));
+	$commands[] = $forums->db->prepare("rules = ?", cleanHTML(trim($rules)));
 
 	$query = "UPDATE forums SET " . implode(", ",$commands) . $forums->db->prepare(" WHERE id = #", $id);
 	$forums->db->query($query);

@@ -128,11 +128,10 @@
 				if(!$mods->isAdmin($userData['userid'],"banusers"))
 					break;
 
-				$res = $usersdb->prepare_query("SELECT userid, ip FROM users WHERE ip != 0 &&  userid IN (%)", $checkID);
+				$res = $usersdb->prepare_query("SELECT userid, ip FROM useractivetime WHERE ip != 0 &&  userid IN (%)", $checkID);
 
 				while($line = $res->fetchrow())
 					$db->prepare_query("INSERT IGNORE INTO bannedusers SET banned = ?, userid = #, date = #, modid = #", $line['ip'], $line['userid'], time(), $userData['userid']);
-
 
 				foreach($checkID as $user){
 					$abuselog->addAbuse($user, ABUSE_ACTION_IP_BAN, $reason, $input, "");
@@ -258,11 +257,15 @@
 				$searchid = getUserID($searchid);
 
 			case "userid":
-				$res = $usersdb->prepare_query("SELECT userid, ip FROM users WHERE userid = %", $searchid);
+				$res = $usersdb->prepare_query("SELECT userid, ip FROM useractivetime WHERE userid = %", $searchid);
 				$user = $res->fetchrow();
 				if($user){
 					$ip = $user['ip'];
 					$userids[$user['userid']] = $user['userid'];
+				}
+				else
+				{
+					$userids[$searchid] = $searchid;
 				}
 				$firstuid = $user['userid'];
 				$mods->adminlog('search userid',"Search user: $search");
@@ -275,7 +278,7 @@
 
 				$userids[$userid] = $userid;
 
-				$res = $usersdb->prepare_query("SELECT ip FROM users WHERE userid = %", $userid);
+				$res = $usersdb->prepare_query("SELECT ip FROM useractivetime WHERE userid = %", $userid);
 				$user = $res->fetchrow();
 				if($user)
 					$ip = $user['ip'];
@@ -292,7 +295,7 @@
 
 	//get all the userids that have touched that ip recently/ever
 		if($ip != ""){
-			$table = ($iptype == 'all' ? 'userhitlog' : 'users');
+			$table = ($iptype == 'all' ? 'userhitlog' : 'useractivetime');
 			
 			$res = $usersdb->prepare_query("SELECT userid FROM $table WHERE ip = #", $ip);
 		
@@ -304,13 +307,12 @@
 		if(count($userids)){
 
 		//get info for accounts that still exist
-			$res = $usersdb->prepare_query("SELECT userid, frozentime, jointime, activetime, state, premiumexpiry, ip, age, sex, loc, abuses FROM users WHERE userid IN (%)", $userids);
+			$res = $usersdb->prepare_query("SELECT userid, frozentime, jointime, state, premiumexpiry, age, sex, loc, abuses FROM users WHERE userid IN (%)", $userids);
 
 			while($line = $res->fetchrow()){
 				$users[$line['userid']] = $line;
 				$users[$line['userid']]['hits'] = 0;
 				$users[$line['userid']]['exists'] = true;
-				$users[$line['userid']]['diffip'] = ($line['ip'] != $ip);
 			}
 
 			if(count($users)){
@@ -318,11 +320,12 @@
 				while($line = $res->fetchrow())
 					$users[$line['userid']]['username'] = $line['username'];
 
-				$res = $usersdb->prepare_query("SELECT userid, hits, activetime FROM useractivetime WHERE userid IN (%)", array_keys($users));
+				$res = $usersdb->prepare_query("SELECT userid, hits, activetime, ip FROM useractivetime WHERE userid IN (%)", array_keys($users));
 
 				while($line = $res->fetchrow()){
 					$users[$line['userid']]['hits'] = $line['hits'];
 					$users[$line['userid']]['activetime'] = $line['activetime'];
+					$users[$line['userid']]['diffip'] = ($line['ip'] != $ip);
 				}
 
 				if($mods->isAdmin($userData['userid'], "showemail")){
@@ -511,7 +514,7 @@
 						echo implode('<br>', $line[$n]);
 						break;
 					case 'username':
-						echo "<a class=body href=/profile.php?uid=$line[userid]>$line[username]</a>";
+						echo "<a class=body href=/users/". urlencode($line['username']) .">$line[username]</a>";
 						break;
 					case 'hits':
 						if($line['exists'])

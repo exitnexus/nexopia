@@ -1,16 +1,18 @@
 <div t:docid="galleries_profile_block" class="galleries_profile_block">
-	<h2>GALLERIES</h2>
-	<div class="right_menu">
-		<a href="/gallery.php?uid=#{user.userid}">
-			View all (#{galleries.length})
-		</a>
+	<div>
+		<div class="header_accessory">
+			<a href="/gallery.php?uid=#{user.userid}">
+				view all (#{galleries.length})
+			</a>
+		</div>
+		<div class="block_title">
+			GALLERIES        
+		</div>
 	</div>
-	<div class="clearit"></div>
-
 	<div class="galleries_frame">
 		<t:loop t:id="galleries" t:iter="gallery">
 			<a t:id="gallery">
-				<img class="gallerythumb" t:id="gallery.album_cover.square"/>
+				<img class="gallerythumb" t:id="gallery" t:linktype="thumb"/>
 			</a>
 		</t:loop>
 	</div>

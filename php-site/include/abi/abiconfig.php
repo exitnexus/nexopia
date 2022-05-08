@@ -14,16 +14,27 @@ V: 1.0
 
 define('_ABI_CONFIG_FILE','');
 
-define('_ABI_DEBUG',0);	//1=enable debug, 0=no debug
-define('_ABI_GZIP',1);	//1=enable gzip, 0=no gzip support
-//GoDaddy users, please enable this line
+//Enable/disable debug mode (1=enable, 0=disable). 
+//	During debug mode, http traffic is dumped to the browser as well.
+define('_ABI_DEBUG',0);
+
+//Enable/Disable gzip compression in cURL. (1=enable, 0=disable))
+//	If cURL is not compiled with zlib, this will fail. In this case, set the value to 0 to disable gzip.
+define('_ABI_GZIP',1);
+
+//Enable (true) HTTP 1.1 features where supported, Disable (false) otherwise
+define('_ABI_HTTP1_1',false);
+
+//GoDaddy users, please enable this line to make use of their proxy
 //define('_ABI_PROXY', "http://proxy.shr.secureserver.net:3128");
 
-//Others?
+
+//Others
 //define('_ABI_PROXYPORT', 3128);
 //define('_ABI_PROXYTYPE', CURLPROXY_SOCKS5);
 //define('_ABI_PROXY', "193.196.39.9");
 
+//define('_ABI_ABCAPTCHA',1);	//1=Enable the new return code _ABI_CAPTCHA_RAISED for contacts importer (otherwise, existing code returns _ABI_FAILED)
 
 //--------------------------------------------------
 // CAPTCHA 

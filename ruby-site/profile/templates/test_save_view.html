@@ -1,0 +1,96 @@
+<div>
+	<div>
+		#{save_results}
+	</div>
+	<form name="test_form" method="post" action="/my/profile/edit/illegal/save">
+		<input type="hidden" name="module_name" value="{block.module_name}"></input>
+		<input type="hidden" name="path" value="{block.path}"></input>
+		<table>
+			<tr>
+				<td colspan="2">
+					<select name="block_id">
+						<t:iter t:id="block_list" t:iter="block">
+							<option value="{block.blockid}">
+								{block.module_name} - {block.path}
+							</option>
+						</t:iter>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Column
+				</td>
+				<td>
+					<input type="text" name="column"></input>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Position
+				</td>
+				<td>
+					<input type="text" name="position"></input>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					Visibility
+				</td>
+				<td>
+					<input type="text" name="visibility"></input>
+				</td>
+			</tr>
+		</table>
+		<input type="submit" name="edit_submit" value="Edit Save"></input>
+		<input type="submit" name="remove_submit" value="Remove"></input>
+	</form>
+	<table>
+		<thead>
+			<tr>
+				<th>
+					Block ID
+				</th>
+				<th>
+					Module - Path
+				</th>
+				<th>
+					Editable/Removable 
+				</th>
+				<th>
+					Visibility
+				</th>
+				<th>
+					Column/Position - Moveable
+				</th>
+				<th>
+					Allowed Columns
+				</th>
+			</tr>
+		</thead>
+		<tbody>
+			<t:iter t:id="block_list" t:iter="block">
+				<tr>
+					<td>
+						{block.blockid}
+					</td>
+					<td>
+						{block.module_name} ({block.moduleid}) - {block.path}
+					</td>
+					<td>
+						{block.block_info.editable}/{block.block_info.removable}
+					</td>
+					<td>
+						{block.visibility}
+					</td>
+					<td>
+						{block.columnid}/{block.position} - {block.moveable}
+					</td>
+					<td>
+						{block.block_info.form_factor}
+					</td>
+				</tr>
+			</t:iter>
+		</tbody>
+	</table>
+</div>

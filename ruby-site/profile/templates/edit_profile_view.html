@@ -1,14 +1,10 @@
-<div t:docid="profile_edit">
+<div id="profile_edit" minion_name="profile_edit">
 	#{my_javascript}
 	<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/yui/build/button/assets/skins/sam/button.css"/>
 	
-	<div class="profile_main">
-		<table class="page_container_tbl" cellspacing="0" cellpadding="0">
-			<tr>
-				<td colspan="2">
-					<t:template-include t:module="profile" t:name="edit_profile_header"></t:template-include>
-				</td>
-			</tr>
+	<div id="profile" class="profile_main">
+		<t:template-include t:module="profile" t:name="edit_profile_header"></t:template-include>
+		<table class="profile_container" cellspacing="0" cellpadding="0">
 			<t:template-include t:module="profile" t:name="profile_body"></t:template-include>
 		</table>
 		<input type="hidden" id="profile_form_key" name="profile_form_key" value="{profile_form_key}" />

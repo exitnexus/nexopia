@@ -1,0 +1,37 @@
+<div id="film_strip_profile_edit_view" minion_name="userpics:film_strip_profile_edit_view">
+	<div class="extra_wrapper">
+		<div class="user_picture">
+			<img id="profile_picture_thumbnail" t:id="profile_user" t:linktype="landscapethumb" />
+		</div>
+		<div class="edit_content">
+			<div class="film_strip_edit_buttons">
+				<div class="button_bar primary-button">
+					<span id="film_strip_edit_button" class="yui-button yui-button-button" minion_name="async_panel" path="/my/pictures/add">
+						<span class="first-child">
+							<button id="add_profile_picture" type="button">
+								<span class="button_prefix">+</span> 
+								<span class="button_text">Add Profile Pic</span>
+							</button>
+						</span>
+					</span>
+				</div>
+				<span>
+					or&#160;<a href="#{PageRequest.current.area_base_uri}/pictures/">Edit Profile Pictures</a>
+				</span>
+			</div>
+			<div class="film_strip_view_choice">
+				View:<br/>
+				<form id="film_strip_choice_form" name="film_strip_choice_form" method="post" action="#{PageRequest.current.area_base_uri}/profile_blocks/Userpics/film_strip/#{block_id}/save/type">
+					<t:if t:id="form_key">
+					 <input type="hidden" name="form_key[]" value="{form_key}" />
+					</t:if>
+					<select name="film_strip_choice" id="film_strip_choice">
+						<option value="improved" cond:selected="improved">Improved Slider</option>
+						<option value="classic" cond:selected="classic">Classic View</option>
+					</select>
+				</form>
+			</div>
+		</div>
+		<br class="clear" />
+	</div>
+</div>

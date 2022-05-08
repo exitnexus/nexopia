@@ -36,8 +36,8 @@ module Validation
 			xml_string = 
 				"<?xml version = \"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>" + 
 				"<validation-results>" + 
-					"<state>#{CGI::escapeHTML(state.to_s)}</state>" + 
-					"<message>#{CGI::escapeHTML(message.to_s)}</message>" + 
+					"<state>#{htmlencode(state.to_s)}</state>" + 
+					"<message>#{htmlencode(message.to_s)}</message>" + 
 				"</validation-results>";
 			
 			return xml_string;

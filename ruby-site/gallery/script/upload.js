@@ -1,134 +1,178 @@
 var Uploader = {
 	flashUploader: null,
 	flashDoneLoading: false,
+	filesQueue: [],
 	init: function() {
 		this.uploadQueue = [];
-		this.flashUploader = new SWFUpload({
-			upload_url: document.getElementById("gallery_upload_link").href,
-			flash_url: Site.staticFilesURL + "/Gallery/flash/SWFUpload.swf",
-			file_size_limit: "10 MB",
-			file_types: "*.jpeg;*.jpg;*.png;*.gif;*.bmp",
-			file_types_description: "Picture Files",
-			post_params: {
-				type: "Gallery",
-				session: YAHOO.util.Dom.get("session").value
-			},
-			debug: true,
+		if (this.hasSuitableFlashVersion()) {
+			YAHOO.widget.Uploader.SWFURL = Site.staticFilesURL + "/gallery/flash/uploader.swf";
+			this.flashUploader = new YAHOO.widget.Uploader("uploader_overlay");
+
+			var overlay = document.getElementById('uploader_overlay');
+			var button = overlay.nextSibling.firstChild.firstChild;
+			var uiLayer = YAHOO.util.Dom.getRegion(button); 
+			YAHOO.util.Dom.setStyle(button.firstChild, 'visibility', 'visible');
+			YAHOO.util.Dom.setStyle(overlay, 'width', (uiLayer.right-uiLayer.left+2) + "px"); 
+			YAHOO.util.Dom.setStyle(overlay, 'height', (uiLayer.bottom-uiLayer.top+2) + "px"); 
 			
-			swfupload_loaded_handler: function() {return Uploader.flashLoaded();},
-			file_queued_handler: function(file) {return Uploader.fileQueued(file);},
-			upload_start_handler: function(file) {return Uploader.uploadFileStart(file);},
-			upload_progress_handler: function(file, bytesLoaded, bytesTotal) {return Uploader.uploadProgress(file, bytesLoaded, bytesTotal);},
-			upload_success_handler: function(file, data) {return Uploader.uploadFileComplete(file);},
-			upload_complete_handler: function(file) {},
-			upload_error_handler: function(file, errorCode, message) {Uploader.uploadError(file, errorCode, message);}
-		});
+			this.flashUploader.addListener('contentReady', this.configUploader, this, true);
+			this.flashUploader.addListener('fileSelect', this.filesQueued, this, true);
+			this.flashUploader.addListener('uploadCompleteData', this.uploadFileSuccess, this, true);
+			this.flashUploader.addListener('uploadProgress', this.uploadProgress, this, true);
+			this.flashUploader.addListener('uploadStart', function(event) {
+				YAHOO.util.Dom.setStyle(overlay, 'width', "1px"); 
+				YAHOO.util.Dom.setStyle(overlay, 'height', "1px");
+				YAHOO.util.Dom.setStyle(button.parentNode, 'display', "none");
+			});
+		} else {
+			this.activateClassicUploader();
+		}
 	},
-	flashLoaded: function() {
-		var button = YAHOO.util.Dom.get("Filedata");
-		button.type = "button";
-		button.value = "Browse";
-		YAHOO.util.Event.on(button, 'click', this.flashUploader.selectFiles, this.flashUploader, true);
-		YAHOO.util.Event.on("upload_queue", 'click', this.startUpload, this, true);
+	configUploader: function() {
+		this.flashUploader.setSimUploadLimit(1);
+		this.flashUploader.setAllowMultipleFiles(true);
+		this.flashUploader.setFileFilters(["*.jpeg;*.jpg;*.png;*.gif;*.bmp"], "Picture Files");
+	},
+	//minimum version is 9.0.45
+	hasSuitableFlashVersion: function() {
+		if (YAHOO.util.FlashDetect.major > 9) {
+			return true;
+		} else if (YAHOO.util.FlashDetect.major == 9) {
+			if (YAHOO.util.FlashDetect.minor > 0 || YAHOO.util.FlashDetect.revision >= 45) {
+				return true;
+			}
+		}
+		return false;
+	},
+
+	activateClassicUploader: function() {
+		var noscript = YAHOO.util.Dom.getElementsByClassName("noscript");
+		var script = YAHOO.util.Dom.getElementsByClassName("script");
+
+		for (var i = 0; i < noscript.length; i++) {
+			YAHOO.util.Dom.addClass(noscript[i], 'script');
+			YAHOO.util.Dom.removeClass(noscript[i], 'noscript');
+		}
+
+		for (i = 0; i < script.length; i++) {
+			YAHOO.util.Dom.addClass(script[i], 'noscript');
+			YAHOO.util.Dom.removeClass(script[i], 'script');
+		}
+		YAHOO.util.Dom.get('upload_queue').style.display = "block";
+		var overlay = document.getElementById('uploader_overlay');
+		YAHOO.util.Dom.setStyle(overlay, 'display', "none");
+		YAHOO.util.Dom.setStyle(overlay.nextSibling.firstChild, 'display', "none");
 	},
 	files: {},
-	fileQueued: function(file, queueLength) {
+	totalFiles: 0,
+	uploadedFiles: 0,
+	filesQueued: function(event) {
+		//We need to do this extra processing of keys in order to preserve upload order
+		keys = []
+		for (var k in event.fileList) {
+			keys.push(k);
+		}
+		keys.sort();
+		for (var i=0; i<keys.length; i++) {
+			this.fileQueued(event.fileList[keys[i]]);
+		}
+		
+		var overlay = document.getElementById('uploader_overlay');
+		YAHOO.util.Dom.setStyle(overlay, 'width', "1px"); 
+		YAHOO.util.Dom.setStyle(overlay, 'height', "1px");
+		YAHOO.util.Dom.setStyle(overlay.nextSibling, 'display', "none");
+		YAHOO.util.Dom.setStyle('terms_warning', 'display', "none");
+		
+		this.uploadNext();
+	},
+	fileQueued: function(file) {
 		var queue = document.getElementById("gallery_queue");
 		var template = new Template("file");
 		template.cancel.onclick = function() {Uploader.cancel(this);};
-		template.description.value = file.name;
+		template.description.innerHTML = file.name;
 		template.cancel.id = file.id;
 		this.files[file.id] = template;
-		this.uploadQueue.push(file.id);
+		this.filesQueue.push(file.id);
+		this.totalFiles++;
 		queue.appendChild(template.rootElement);
-		if (this.uploadComplete) {
-			document.getElementById("upload_queue").value = "Upload Queue";
-			document.getElementById("view_gallery").style.display = "none";
-			this.uploadComplete = false;
+	},
+	uploadProgress: function(event) {
+		var fileTemplate = this.files[event.id];
+		fileTemplate.complete.style.width = (event.bytesLoaded/event.bytesTotal)*100 + "%";
+	},
+	uploadFileSuccess: function(event) {
+		this.uploadedFiles++;
+		var success = false;
+		r = new ResponseHandler({});
+		var serverData = event.data;
+		if (serverData.indexOf("Success") == 0) {
+			serverData = serverData.slice(0,8);
+			success = true;
+		}
+
+		r.handleResponse({responseText: serverData});
+
+		if (success) {
+			var fileTemplate = this.files[event.id];
+			fileTemplate.complete.style.width = "100%";
+			fileTemplate.cancel.src = Site.staticFilesURL + "/Gallery/images/check_on.gif";
+		} else {
+			this.uploadError(event);
+		}
+		if (this.uploadedFiles == this.totalFiles) {
+			this.allUploadsComplete();
+		} else {
+			this.uploadNext();
 		}
 	},
-	uploadFileStart: function(file) {
-		this.flashUploader.addFileParam(file.id, "selected_gallery", YAHOO.util.Dom.get("selected_gallery").value);
-		this.uploadProgress(file, 0, file.size);
-		document.getElementById("upload_queue").disabled = "disabled";
-		document.getElementById("upload_queue").value = "Uploading...";
-		return true;
+	uploadNext: function() {
+		var file = this.filesQueue.shift();
+		this.flashUploader.upload(file, document.getElementById("gallery_upload_link").href, 'POST', {
+			type: "Gallery",
+			description: "",
+			session: YAHOO.util.Dom.get('session').value,
+			selected_gallery: YAHOO.util.Dom.get('selected_gallery').value
+		});
 	},
-	uploadProgress: function(file, bytesLoaded, bytesTotal) {
-		var fileTemplate = this.files[file.id];
-		fileTemplate.complete.style.width = (bytesLoaded/bytesTotal)*100 + "%";
+	allUploadsComplete: function() {
+		YAHOO.util.Dom.setStyle('view_album_links', 'display', 'block');
 	},
-	uploadFileComplete: function(file) {
-		this.uploadProgress(file, file.size, file.size);
-		this.files[file.id].description.disabled = "disabled";
-		this.files[file.id].cancel.src = Site.staticFilesURL + "/Gallery/images/check_on.gif";
-		if (this.flashUploader.getStats().files_queued > 0) {
-			this.flashUploader.startUpload();
-		} else { //otherwise mark the queue complete
-			this.uploadQueueComplete();
-		}
+	uploadError: function(event) {
+		YAHOO.util.Dom.setStyle(this.files[event.id].rootElement, 'background-color', '#880000');
 	},
-	uploadQueueComplete: function() {
-		document.getElementById("upload_queue").disabled = false;
-		document.getElementById("upload_queue").value = "Upload Complete";
-		this.uploadComplete = true;
-		this.inProgress = false;
-		var selectedGallery = document.getElementById("selected_gallery");
-		var viewGalleryLink = document.getElementById("view_gallery");
-		viewGalleryLink.href = "/my/gallery/" + selectedGallery.value;
-		viewGalleryLink.innerHTML = 'Manage, "' + selectedGallery.options[selectedGallery.selectedIndex].innerHTML + '"';
-		viewGalleryLink.style.display = "inline";
-	},
-	uploadError: function(file, errorCode, message) {
-	},
-	uploadCancel: function() {},
-/*	uploadParams: function(file) {
-		var description = escape(this.files[file.id].description.value);
-		var galleryid = document.getElementById("selected_gallery").value;
-		var session = document.getElementById("session").value;
-		var iv = document.getElementById("iv").value;
-		var form_key = SecureForm.getFormKey();
-		return "type=Gallery&selected_gallery="+galleryid+"&session="+session+"&iv="+iv+"&description="+description+"&form_key="+form_key;
-	},*/
 	cancel: function(cancelElement) {
 		var fileID = cancelElement.id;
 		var fileTemplate = this.files[fileID];
 		fileTemplate.rootElement.parentNode.removeChild(fileTemplate.rootElement);
-		if (this.inProgress) {
-			if (!this.flashUploader.getStats().in_progress > 0) { //we were uploading and cancelled the active upload
-				if (this.flashUploader.getStats().files_queued > 0) { //start uploading the next file
-					this.flashUploader.startUpload();
-				} else { //otherwise mark the queue complete
-					this.uploadQueueComplete();
-				}
-			}
-		}
-	},
-	startUpload: function(event) {
-		if (event) {
-			YAHOO.util.Event.preventDefault(event);
-		}
-		if (this.verifyUploadReady()) {
-			if (this.flashUploader.getStats().files_queued > 0) {
-				this.inProgress = true;
-				this.flashUploader.startUpload();
-			} else {
-				alert("You must select a file to upload.");
-			}
-		}
+		this.flashUploader.removeFile(fileID);
 	},
 	verifyUploadReady: function() {
-		if (document.getElementById("certify").checked) {
-			if (parseInt(document.getElementById("selected_gallery").value) > 0) {
-				return true;
-			} else {
-				alert("You must select a valid gallery to upload to.");
-			}
-		} else {
-			alert("You must certify you have the right to distribute these pictures.");
-			return false;
+		return true;
+	},
+	verifyFilesSelected: function(event) {
+		var fileInput = document.getElementById("Filedata_noflash");
+		if(!fileInput.value) {
+			YAHOO.util.Event.preventDefault(event);
+			alert("No files selected.");
 		}
 	},
 	inProgress: false
 };
-GlobalRegistry.register_handler("gallery_upload", Uploader.init, Uploader, true);
+
+Overlord.assign({
+	minion: "gallery_upload",
+	load: Uploader.init,
+	scope: Uploader	
+});
+
+Overlord.assign({
+	minion: "gallery_upload:classic_link",
+	click: Uploader.activateClassicUploader,
+	scope: Uploader
+});
+
+Overlord.assign({
+	minion: "gallery_upload:classic_upload",
+	click: Uploader.verifyFilesSelected,
+	scope: Uploader
+});

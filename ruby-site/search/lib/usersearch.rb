@@ -15,7 +15,7 @@ module Search
 				"location"  => 0,
 				"interests" => 0,
 				"socials"   => 0,
-				"active"    => 2,
+				"active"    => 3,
 				"pic"       => 1,
 				"sexuality" => 0,
 				"single"    => 0,
@@ -72,8 +72,12 @@ module Search
 			opts = {}
 
 			params.each {|k,v|
-				if(nil == defaults[k] || defaults[k].to_i != v.to_i)
-					opts[k] = v.to_i;
+				if(nil == defaults[k] || !(defaults[k] === v))
+					if(v.kind_of? Array)
+						opts[k] = v.map{ |i| i.to_i}.join(',')
+					else
+						opts[k] = v.to_i
+					end
 				end
 			}
 

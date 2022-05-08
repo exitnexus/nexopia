@@ -101,33 +101,20 @@ module Validation
 			message_get_method = "#{message_ref}";
 			
 			if (!@index.nil? && @index != "")
-				if (@template.respond_to?(icon_set_method)) 
-					icon_array = @template.send(icon_get_method) || Array.new;
-					icon_array[@index.to_i] = display_icon;
-					display_icon_text = icon_array;
-				end
-				if (@template.respond_to?(message_set_method)) 
-					message_array = @template.send(message_get_method) || Array.new;
-					message_array[@index.to_i] = display_message;
-					display_message_text = message_array;
-				end		
+				icon_array = @template.send(icon_get_method) || Array.new;
+				icon_array[@index.to_i] = display_icon;
+				display_icon_text = icon_array;
+
+				message_array = @template.send(message_get_method) || Array.new;
+				message_array[@index.to_i] = display_message;
+				display_message_text = message_array;
 			else
 				display_icon_text = display_icon;
 				display_message_text = display_message;
 			end
-			
-		
-			if (@template.respond_to?(icon_set_method)) 
-				@template.send(icon_set_method, display_icon_text);
-			else
-				$log.info("#{icon_set_method} does not exist! Not binding a validation icon.");
-			end
-		
-			if (@template.respond_to?(message_set_method)) 
-				@template.send(message_set_method, display_message_text);
-			else
-				$log.info("#{message_set_method} does not exist! Not binding a validation message.");
-			end
+					
+			@template.send(icon_set_method, display_icon_text);
+			@template.send(message_set_method, display_message_text);
 		end
 	
 	
@@ -147,7 +134,7 @@ module Validation
 				div_class = "validation_text";
 			end
 		
-			return "<div id='#{@field_id}_vm#{@index_text}' class='#{div_class}' style='padding: 2px'>#{@results.message}</div>";
+			return "<div id='#{@field_id}_vm#{@index_text}' class='#{div_class}'>#{@results.message}</div>";
 		end
 	end
 end

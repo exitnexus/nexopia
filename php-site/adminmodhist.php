@@ -45,7 +45,7 @@
 	$rows = array();
 	while($line = $res->fetchrow())
 		$rows[$line['userid']] = $line;
-
+		
 	$usernames = getUserName(array_keys($rows));
 
 	$res = $mods->db->prepare_query("SELECT userid, `right`+`wrong` as total, `right`, `wrong`, strict, lenient, level, IF(`right`+`wrong`=0,0,100.0*`wrong`/(`right` + `wrong`)) as percent, time, creationtime FROM modhist WHERE type = # && dumptime BETWEEN # AND #", $type, $startdate, $startdate + 86399);
@@ -139,7 +139,7 @@
 		$class = $classes[$i = !$i];
 
 		echo "<tr>";
-		echo "<td class=$class><a class=body href=/profile.php?uid=$line[userid]>$line[username]</a></td>";
+		echo "<td class=$class><a class=body href=/users/". urlencode($line["username"]) .">$line[username]</a></td>";
 		echo "<td class=$class>$line[level]</td>";
 		echo "<td class=$class align=right>$line[total]</td>";
 		echo "<td class=$class align=right>$line[right]</td>";

@@ -1,0 +1,15 @@
+<div id="plus">
+	<div id="plus_details">
+		<form id="form" action="/plus" method="post">
+		<img src="#{$site.static_files_url}/plus/PlusLogoLarge.png" class="plus_logo" />
+		<img src="#{$site.static_files_url}/plus/Prices.png" class="prices" />
+		<div class="content">
+			<div class="bold">Transaction failed!<br /></div>
+			<div>Your PIN number did not match.&nbsp;
+			<a href="#retry_phone"
+			 minion_name="plus:pp_validation_fail:retry_phone">
+			Click here</a>&nbsp;to try again.</div>
+		</div>
+		</form>
+	</div>
+</div>

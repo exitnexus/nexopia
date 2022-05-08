@@ -18,6 +18,9 @@ class Cache
 
     # Set the :context hash to the value passed in and yield the block
     def use_context(context)
+				if (context.nil?)
+					context = @context || {}
+				end
         @context, old_context = context, @context
         begin
             yield

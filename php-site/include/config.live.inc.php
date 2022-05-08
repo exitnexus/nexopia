@@ -3,9 +3,10 @@
 	if(!isset($basedomain))      $basedomain = "nexopia.com";
 
 	if(!isset($wwwdomain))       $wwwdomain = "www.$basedomain";
-	if(!isset($pluswwwdomain))   $pluswwwdomain = "plus.www.$basedomain"; //needed only to check which db server to use, when plus only db servers are possible
+	if(!isset($pluswwwdomain))   $pluswwwdomain = "www.$basedomain"; //needed only to check which db server to use, when plus only db servers are possible
 
-	if(!isset($staticdomain))    $staticdomain = "$wwwdomain/static/$reporev/files";
+	if(!isset($staticbasedomain)) $staticbasedomain = "static.$basedomain/$reporev";
+	if(!isset($staticdomain))	 $staticdomain = "$staticbasedomain/files";
 	if(!isset($staticimgdomain)) $staticimgdomain = "$staticdomain/Legacy";
 	if(!isset($userimgdomain))   $userimgdomain = "images.$basedomain";
 	if(!isset($userfilesdomain)) $userfilesdomain = "users.$basedomain";
@@ -15,11 +16,9 @@
 
 	if(!isset($rubydomain))      $rubydomain = "ruby.$basedomain";
 
-	if(!isset($sitebasedir))     $sitebasedir = "/home/nexopia";
+	if(!isset($sitebasedir))     $sitebasedir = "/var/nexopia/php-live";
 
-	if(!isset($docRoot))         $docRoot = "$sitebasedir/public_html_ram";
-
-	$staticRoot = "$sitebasedir/public_static";
+	if(!isset($docRoot))         $docRoot = "$sitebasedir/public_html";
 
 	$databaseprofile = 'live';
 
@@ -28,100 +27,29 @@
 	$errorLogging = (isset($errorLogging) ? max($errorLogging, 1) : 1);
 
 	$mogfs_domain = 'nexopia.com';
-	$mogfs_hosts = array(
-		"10.0.0.101:6001",
-		"10.0.0.102:6001",
-		"10.0.0.103:6001",
-		"10.0.0.104:6001",
-		);
+	$mogfs_hosts = array( // note: these all use slogile, as php site only does userfiles at this point, and they're entirely in the source class.
+		'10.0.0.210:6001',
+		'10.0.0.211:6001',
+		'10.0.0.212:6001',
+		'10.0.0.213:6001',
+	);
 	shuffle($mogfs_hosts);
 
 	$rubysite = array('127.0.0.1:7080');
 
-	$bannerservers = array(
-		'10.0.3.1',
-		'10.0.3.2',
-		'10.0.3.3',
-		'10.0.3.4',
-		'10.0.3.5',
-		'10.0.3.6',
-		'10.0.3.7',
-		'10.0.3.8',
-		'10.0.3.9',
-		'10.0.3.10',
-		'10.0.3.11',
-		'10.0.3.12',
-		'10.0.3.13',
-		'10.0.3.14',
-		'10.0.3.15',
-		'10.0.3.16',
-		'10.0.3.17',
-		'10.0.3.18',
-		'10.0.3.19',
-		'10.0.3.20',
-		'10.0.3.21',
-		'10.0.3.22',
-		'10.0.3.23',
-		'10.0.3.24',
-		'10.0.3.25',
-		'10.0.3.26',
-		'10.0.3.27',
-		'10.0.3.28',
-		'10.0.3.29',
-		'10.0.3.30',
-		'10.0.3.31',
-		'10.0.3.32',
-		'10.0.3.33',
-		'10.0.3.34',
-		'10.0.3.35',
-		'10.0.3.36',
-		'10.0.3.37',
-		'10.0.3.38',
-		'10.0.3.39',
-		'10.0.3.40',
-		'10.0.3.41',
-		'10.0.3.42',
-		'10.0.3.43',
-		'10.0.3.44',
-		'10.0.3.45',
-		'10.0.3.46',
-		'10.0.3.47',
-		'10.0.3.48',
-		'10.0.3.49',
-		'10.0.3.50',
-		'10.0.3.51',
-		'10.0.3.52',
-		'10.0.3.53',
-		'10.0.3.54',
-		'10.0.3.55',
-		'10.0.3.56',
-		'10.0.3.57',
-		'10.0.3.58',
-#		'10.0.3.59', # dynamic59 is not configured/does not exist.
-		'10.0.3.60',
-		'10.0.3.61',
-		'10.0.3.62',
-#		'10.0.3.63', # dynamic63 is not configured/does not exist.
-#		'10.0.3.64', # dynamic64 is of unknown stability.
-		'10.0.3.65',
-#		'10.0.3.66', # dynamic66 is of unknown stability (network problems?)
-		'10.0.3.67',
-		'10.0.3.68',
-		'10.0.3.69',
-#		'10.0.3.70', # dynamic70 is our testing/staging image.
-			);
+	$bannerservers = array('10.0.0.31', '10.0.0.32');
 
 	$memcacheoptions = array(
 		'name' => 'cache',
 		'servers' => array(
-			array ("10.0.7.1:11212", 1), // 3.1G
-			array ("10.0.7.2:11212", 1), // 3.1G
-			array ("10.0.7.3:11212", 1), // 3.1G
-			array ("10.0.7.4:11212", 1), // 3.1G
-			array ("10.0.7.5:11212", 1), // 3.1G
-			array ("10.0.7.6:11212", 1), // 3.1G
-			array ("10.0.7.7:11212", 1), // 3.1G
-			array ("10.0.7.8:11212", 1), // 3.1G
+			array ("10.0.7.1:11212", 1),
+			array ("10.0.7.2:11212", 1),
+			array ("10.0.7.3:11212", 1),
+			array ("10.0.7.4:11212", 1),
+			array ("10.0.7.5:11212", 1),
+			array ("10.0.7.6:11212", 1),
+			array ("10.0.7.7:11212", 1),
+			array ("10.0.7.8:11212", 1)
 			),
 		'debug'   => false,
 		'delete_only' => false,
@@ -131,14 +59,14 @@
 	$pagecacheoptions = array(
 		'name' => 'pagecache',
 		'servers' => array(
-			array ("10.0.7.1:11213", 1), // 128M
-			array ("10.0.7.2:11213", 1), // 128M
-			array ("10.0.7.3:11213", 1), // 128M
-			array ("10.0.7.4:11213", 1), // 128M
-			array ("10.0.7.5:11213", 1), // 128M
-			array ("10.0.7.6:11213", 1), // 128M
-			array ("10.0.7.7:11213", 1), // 128M
-			array ("10.0.7.8:11213", 1), // 128M
+			array ("10.0.7.1:11213", 1),
+			array ("10.0.7.2:11213", 1),
+			array ("10.0.7.3:11213", 1),
+			array ("10.0.7.4:11213", 1),
+			array ("10.0.7.5:11213", 1),
+			array ("10.0.7.6:11213", 1),
+			array ("10.0.7.7:11213", 1),
+			array ("10.0.7.8:11213", 1)
 			),
 		'debug'   => false,
 		'compress_threshold' => 8000,
@@ -154,7 +82,7 @@
         );
 
 
-	$debuginfousers = array(1,21,997372,1745917,2309088);
+	$debuginfousers = array(1,21,997372,1745917,2309088,3233577,3495055);
 
 	$tidyoutput = false;
 
@@ -168,16 +96,17 @@
 
 // options relating to what age range is supported in the system (this is used to build the stats tables
 // as well as in the userSearch object
-	$systemAgeMin = "14";
+	$systemAgeMin = "13";
 	$systemAgeMax = "60";
 
 	$lockSplitWriteOps = false;
 
 	$config = array(
+		'name' => 'live',
 		'devutil' => false,
 
-		'bannerlogserver' => '10.0.0.85:6666',
-		'adblasterserver' => "10.0.0.64:5556",
+		'bannerlogserver' => '10.0.0.30:',
+		'adblasterserver' => '10.0.0.30:5556',
 
 		'templatefilesdir' => "$docRoot/include/templates/template_files/",
 		'templateparsedir' => "$sitebasedir/cache/templates/",
@@ -192,21 +121,22 @@
 		'jsdir' => '/site_data/javascript/',
 		'jsloc' => "http://$staticimgdomain/javascript/",
 
+		'yuiloc' => "http://$staticdomain/Yui/",
+
 		'skindir' => '/site_data/skins/',
 		'skinloc' => "http://$staticimgdomain/skins/",
 
-		'bannerdir' => '/user_data/banners/', //directory relative to the $staticRoot to save banners.
 		'bannerloc' => "http://$userimgdomain/banners/", //directory relative to the $staticRoot to save banners.
 
 		'timezone' => 317, //timezone the times should be aligned to
 
 		'title' => 'Nexopia', //website name
-		'metadescription' => 'Nexopia.com is the latest and fastest growing ranking site on the internet. We offer fair and fun user ranking, intriguing articles regarding all walks of life, and a friendly entertaining forum.',
-		'metakeywords' => 'Nexopia.com, chat, nexopia, rank, guys, girls, boys, men, women, kids, teens, 20\'s, college, university, high school, junior high, clubs, jokes, community, forums, pictures, hot, babe, love, friends, email, e-mail, rate, vote, talk, date, dating, meet',
+		'metadescription' => ' Nexopia.com is one of the largest youth oriented social networking platforms and the number one place for teens to express themselves online. Members use Nexopia to keep in touch with friends, share pictures and videos, blog, and meet exciting new people.',
+		'metakeywords' => 'Nexopia.com, nexopia, finding, friends, teens, kids, sharing, blogs, journals, pics, forums, music, Canadian, Canada, social, networking, boys, girls, men, women, high school, junior high, College, University, email, messaging, community, dating, pictures, profile, videos, rate, bands, rock, emo, goth, punk, hiphop, talk, opinions',
 
 
 		'contactsubjectPrefix' => 'Nexopia Response:', //prefix for emails from the contact us page.
-		'copyright' => '© Nexopia.com Inc. 2008 all rights reserved.',
+		'copyright' => '© Nexopia.com Inc. 2009 all rights reserved.',
 		'email' => 'no-reply@nexopia.com',
 
 		'enableCompression' => true,
@@ -217,10 +147,10 @@
 
 		'voteHistLength' => 86400*21, //poll vote length
 
-		'smtp_host' => '10.0.0.8', //outgoing email server
+		'smtp_host' => '127.0.0.1', //outgoing email server
 		'paypalemail' => 'timo@tzc.com',
 
-		'minAge' => 14, //(current year- minAge) is the first year shown in the signup page.
+		'minAge' => 13, //(current year- minAge) is the first year shown in the signup page.
 		'maxAge' => 60,
 
 		'maxfriends' => 250,
@@ -241,14 +171,12 @@
 
 		'lockmoditems' => true,
 
-		'forumBannerDir' => '/user_data/forumbanners/',
 		'forumBannerLoc' => "http://$userimgdomain/forumbanners/",
 		'forumBannerHeight' => 130,
 		'forumBannerWidth' => 500,
 		'foruminactivetime' => 1209600, //time in seconds needed for a thread to be auto-locked. 0 to disable.
 		'forumPic' => true, //show user pics in forum
 
-		'basefiledir' => '/user_files/uploads/',
 		'basefileloc' => "http://$userfilesdomain/uploads/",
 		'filesizelimit' => 204800,
 		'filesMaxFileLength' => 25, //maximum length of any filename
@@ -259,14 +187,12 @@
 		'filesRestrictExts' => 'php pif com scr bat vbs', //file extensions users may not create
 		'quota' => 1048576,
 
-		'imagedir' => '/site_data/images/',
 		'imageloc' => "http://$staticimgdomain/images/",
 		'smilydir' => '/site_data/smilies/',
 		'smilyloc' => "http://$staticimgdomain/smilies/",
 
 		'picText' => 'Nexopia.com',
 
-		'sourcepicdir' => '/user_data/source/',
 		'sourcepicloc' => "http://$userimgdomain/source/",
 		'galleryfulldir' => '/user_data/galleryfull/', //Location below docroot of full size gallery pictures
 		'galleryfullloc' => "http://$userimgdomain/galleryfull/",
@@ -279,7 +205,6 @@
 		'maxGalleryPicHeight' => 640,
 		'maxGalleryPicWidth' => 640,
 
-		'picdir' => '/user_data/userpics/',
 		'picloc' => "http://$userimgdomain/gallery/",
 		'thumbdir' => '/user_data/userpicsthumb/', //directory relative to the docroot to save thumbs.
 		'thumbloc' => "http://$userimgdomain/gallerythumb/",
@@ -292,7 +217,6 @@
 		'maxTinyPicHeight' => 64,
 		'maxTinyPicWidth' => 64,
 
-		'picmodexamdir' => '/site_data/picmodexam/', //directory relative to the docroot to save pic mod exam imgs
 		'picmodexamloc' => "http://$staticimgdomain/picmodexam/", //directory relative to the docroot to save pic mod exam imgs
 		'picmodpluserrrate' => 2.5, //maximum error rate required during a week to earn plus
 		'picmodpluspicrate' => 2500, //modded pics required during a week to get plus

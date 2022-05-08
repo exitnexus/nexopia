@@ -1,0 +1,49 @@
+<div id="add_profile_pic" class="add_profile_pic yui-skin-nexopia" minion_name="add_profile_pic">
+	<h1 class="page_title">ADD PROFILE PICTURE</h1>
+
+	<div id="uploader_overlay"></div>
+	<form id="add_profile_pic_form" name="add_profile_pic_form" enctype="multipart/form-data" method="post" action="#{$site.upload_url}/httpupload/my/profile/edit">
+		<input type="hidden" id="session" name="session" value="#{session}"/>
+		<input type="hidden" name="swf_upload_path" value="#{$site.upload_url}/swfupload" id="swf_upload_path"/>
+		<t:button id="choose_picture">Choose Picture</t:button>
+		<input type="file" name="file_upload" id="file_upload"></input>
+		&#160;|&#160;<a href="javascript:void(0);" minion_name="add_profile_pic:cancel_link" class="body tertiary_button">Cancel</a>
+
+		<div class="terms_warning">
+			By uploading pictures, you are indicating that you have the right to distribute all the pictures and that they do not violate the&#160;<a class="body" href="/wiki/rules/Pictures" target="_new">Profile Picture Rules</a>.
+		</div>
+
+		<div id="classic_file_upload">
+			<span class="custom_button yui-button yui-button-button">
+				<span class="first-child">
+					<input type="submit" value="Upload"/>
+				</span>
+			</span>
+		</div>
+		
+		<a href="javascript:void(0);" minion_name="add_profile_pic:advanced_link" class="advanced_link">
+			<img id="down_arrow" style="display: inline" src="#{$site.static_files_url}/gallery/images/down_arrow.gif" border="0" />
+			<img id="up_arrow" style="display: none" src="#{$site.static_files_url}/gallery/images/up_arrow.gif" border="0" />&#160;<span class="advanced">Advanced</span>
+		</a>
+
+		<div id="advanced_content" style="display: none">
+			<span class="advanced_item">Change Upload Location:</span> 
+			<t:handler-include path="/gallery/select" area="Internal">
+				<t:var t:name="'first_option'" t:val="'Choose an Album'"/>
+			</t:handler-include>				
+		</div>
+
+		<!-- Tells the uploader which file upload handler to use. -->
+		<input type="hidden" name="type" value="Userpics"/>
+
+		<div id="alternate_instructions">
+			<a href="http://www.adobe.com/go/flashplayer/" target="_blank" class="body">Adobe Flash</a>&nbsp;is required to use this uploader.
+			If you are having difficulty you can switch to the&nbsp;
+			<a id="classic_link" minion_name="add_profile_pic:classic_interface" class="body" href="#classic_interface">classic interface</a>.
+		</div>
+
+		<div id="gallery_overlay">
+			<t:handler-include path="/gallery/create_gallery_popup/" area="Self"/>
+		</div>
+	</form>
+</div>

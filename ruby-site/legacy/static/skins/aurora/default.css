@@ -4,7 +4,7 @@ tr {vertical-align: top;}
 
 body         { background-color: #444444; font-family: arial, sans-serif; font-size: 8pt; SCROLLBAR-FACE-COLOR: black; SCROLLBAR-HIGHLIGHT-COLOR: #cccccc; SCROLLBAR-SHADOW-COLOR: #cccccc; SCROLLBAR-3DLIGHT-COLOR: #cccccc; SCROLLBAR-ARROW-COLOR: #cccccc; SCROLLBAR-DARKSHADOW-COLOR: #cccccc; scrollbar-track-COLOR: #cccccc; margin: 0;  }
 
-input,select,textarea			{ font: 10pt arial, sans-serif; color: #000000 }
+body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; color: #000; border:1px solid #d4d6d7;}
 
 a:active		{ color: #000000; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
 a:link			{ color: #000000; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
@@ -46,7 +46,7 @@ td.header2			{ color: #FFFFFF; font-family: arial, sans-serif; font-size: 8pt}
 a.body:active	{ color: #287C4E; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
 a.body:link		{ color: #287C4E; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
 a.body:visited	{ color: #287C4E; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
-a.body:hover	{ color: #000000; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.body:hover	{ color: #20AF52; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
 td.body			{ background-color: #DFDED9; color: #000000; font-family: arial, sans-serif; font-size: 8pt}
 input.body,select.body			{ font: 8pt arial, sans-serif; color: #000000 }
 textarea.body					{ font: 8pt arial, sans-serif; color: #000000 }

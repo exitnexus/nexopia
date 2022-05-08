@@ -1,0 +1,32 @@
+<div id="tutorial">
+	<input id="form_key" type="hidden" value="{form_key}" />
+<table>
+	<tr>
+		<th>#</th>
+		<th>Name</th>
+		<th>Type</th>
+		<th><a href="" minion_name="tutorial:worlds:resort:m" class="{massclass}">Mass (Yg) <span id="massdirect">{massdirect}</span></a></th>
+		<th><a href="" minion_name="tutorial:worlds:resort:r" class="{radiusclass}">Orbital radius (km) <span id="radiusdirect">{radiusdirect}</span></a></th>
+	</tr>
+<div t:id="worlds" t:iter="world" t:index="i">
+	<tr>
+		<td>{i+1}</td>
+		<td>{world.worldname}</td>
+		<td>{world.type}</td>
+		<td class="num">{world.mass2/1e+21}</td>
+		<td class="num">{world.orbitalradius}</td>
+		<td><a href="" onclick="alert('Hello, {world.worldname}!')">Greet</a></td>
+	</tr>
+	<div t:id="world.moons" t:iter="moon" t:index="j">
+		<tr>
+			<td>{i+1}.{j+1}</td>
+			<td>{moon.worldname}</td>
+			<td>{moon.type}</td>
+			<td class="num">{moon.mass2/1e+21}</td>
+			<td class="num">{moon.orbitalradius}</td>
+			<td><a href="" onclick="alert('Hello, {moon.worldname}!')">Greet</a></td>
+		</tr>	
+	</div>
+</div>
+</table>
+</div>

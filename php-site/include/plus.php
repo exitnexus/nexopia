@@ -55,24 +55,6 @@ function addPlus($userid, $duration, $fromid, $trackid){ //duration in months
 	return "Plus Added for userid $userid for $duration months\n";
 }
 
-function remindAlmostExpiredPlus(){
-	global $usersdb, $messaging, $wiki;
-
-	$time = time();
-
-	$res = $usersdb->prepare_query("SELECT userid FROM users WHERE premiumexpiry BETWEEN # AND #", $time + 86400*7, $time + 86400*8);
-
-	$to = array();
-	while($line = $res->fetchrow())
-		$to[] = $line['userid'];
-
-	$subject = "Not Much Plus Left!";
-	$message = $wiki->getPage("/SiteText/plus/remindermsg");
-	$message = $message['content'];
-
-	$messaging->deliverMsg($to, $subject, $message, 0, "Nexopia", 0);
-}
-
 function transferPlus($from, $to){
 	global $db, $msgs, $cache, $userData;
 

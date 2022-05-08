@@ -1,0 +1,31 @@
+<div id="share_picture_page">
+    <h2 class="page_title">SHARE THIS PICTURE</h2>	
+    <t:if t:id="pic.nil?">
+	    <table cellpadding="0" cellspacing="0" class="link_container">
+	    <tr>
+	    	<td class="link_name bottom_padding">
+	        	Link:
+	        </td>
+	        <td class="bottom_padding">
+	        	<input type="text" class="text" value="#{$site.www_url}#{pic.uri_info[1]}" />
+			</td>
+		</tr><tr>
+	    	<td class="link_name">
+	        	Embed:
+	        </td>
+	        <td>
+	        	<input type="text" class="text" value="<a href='#{$site.www_url}#{pic.uri_info[1]}'><img src='#{pic.img_info('normal')[1]}'></a>" />
+	        </td>
+	    </tr>
+	    </table>
+	</t:if>
+	<t:if t:id="!pic.nil?">
+		This picture has been deleted.
+	</t:if>
+    
+    <div class="button_done">
+        <t:button class="nexopia_panel_close">Done</t:button>
+    </div>
+    <br class="clear" />
+
+</div>

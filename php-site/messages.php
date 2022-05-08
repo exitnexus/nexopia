@@ -220,13 +220,14 @@ function sendMesg($to, $subject, $msg, $replyto){
 
 	$spam = spamfilter(trim($msg));
 
-	if(!$spam || !$messaging->deliverMsg($to, $subject, $msg, $replyto, false, false, true, false))
+	if(!$spam || !$messaging->deliverMsg($to, $subject, $msg, $replyto, false, false))
 		writeMsg($to, $subject, $msg, $replyto, null); // exits
 
 	scan_string_for_notables($msg);
 
 	$cache->put("messagesratelimit-$userData[userid]", 1, 3); //block for 3 seconds
 }
+
 
 function writeMsg($to="",$subject="",$msg="",$replyto=0, $preview = false){
 	global $msgs, $userData, $sortt, $sortd, $config, $usersdb, $messaging;
@@ -242,7 +243,7 @@ function writeMsg($to="",$subject="",$msg="",$replyto=0, $preview = false){
 	$friends = getFriendsList($userData['userid']);
 	$template->set("preview", $preview);
 
-	$nmsg = removeHTML(trim($msg));
+	$nmsg = cleanHTML(trim($msg));
 
 
 	if($preview){
@@ -252,7 +253,7 @@ function writeMsg($to="",$subject="",$msg="",$replyto=0, $preview = false){
 		$nmsg3 = smilies($nmsg2);
 
 		$template->set("nsubject", $nsubject);
-		$template->set("msg", nl2br($nmsg3));
+		$template->set("msg", $nmsg3);
 	}
 	$template->set("massmessage", $userData['premium']);
 	$template->set("replyto", $replyto);
@@ -292,7 +293,7 @@ function writeMassMsg($to = array(), $subject = "", $msg = "", $preview = false)
 	$template = new Template("messages/writemassmsg");
 	$template->set("preview", $preview);
 
-	$nmsg = removeHTML(trim($msg));
+	$nmsg = cleanHTML(trim($msg));
 
 	if($preview){
 		$nsubject = trim(removeHTML($subject));
@@ -301,7 +302,7 @@ function writeMassMsg($to = array(), $subject = "", $msg = "", $preview = false)
 		$nmsg3 = smilies($nmsg2);
 
 		$template->set("nsubject", $nsubject);
-		$template->set("msg", nl2br($nmsg3));
+		$template->set("msg", $nmsg3);
 	}
 	$template->set("select_list_friends", $friendslist);
 	$template->set("subject", $subject);
@@ -339,7 +340,7 @@ function sendMassMesg($to, $subject, $msg){
 
 	$spam = spamfilter(trim($msg));
 
-	if(!$spam || !$messaging->deliverMsg($uids, $subject, $msg, 0, false, false, true, false))
+	if(!$spam || !$messaging->deliverMsg($uids, $subject, $msg, 0, false, false))
 		writeMassMsg($to, $subject, $msg, 0, null);
 
 
@@ -413,6 +414,7 @@ function viewNew(){
 			$userData['newmsgs'] = 0;
 //			$cache->put("newmsgs-$userData[userid]", 0, $config['maxAwayTime']);
 			$cache->remove("newmsglist-$userData[userid]");
+			$cache->remove("userinfo-$userData[userid]"); //only needed because ruby uses a cached version of the user object
 		}
 
 		listMsgs();
@@ -443,6 +445,7 @@ function viewMsg($id){
 			$userData['newmsgs']--;
 //		$cache->decr(array($userData['userid'], "newmsgs-$userData[userid]"));
 		$cache->remove("newmsglist-$userData[userid]");
+		$cache->remove("userinfo-$userData[userid]"); //only needed because ruby uses a cached version of the user object
 	}
 
 	if($uid != $userData['userid']){
@@ -468,15 +471,15 @@ function viewMsg($id){
 		$template->set("uid", $uid);
 	}
 
-	$msg['msg'] = removeHTML($msg['msg']);
-	$msg['msg'] = nl2br(parseHTML(smilies($msg['msg'])));
+	$msg['msg'] = cleanHTML($msg['msg']);
+	$msg['msg'] = parseHTML(smilies($msg['msg']));
 
 
 	if($msg['replyto'] && $rmsg)
 	{
 		$msg['replyto'] = $msg['replyto'] && $rmsg;
-		$rmsg['msg'] = removeHTML($rmsg['msg']);
-		$rmsg['msg'] = nl2br(parseHTML(smilies($rmsg['msg'])));
+		$rmsg['msg'] = cleanHTML($rmsg['msg']);
+		$rmsg['msg'] = parseHTML(smilies($rmsg['msg']));
 		$template->set("rmsg", $rmsg);
 	}
 	else

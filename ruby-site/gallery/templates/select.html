@@ -2,8 +2,8 @@
 	<select name="selected_gallery" id="selected_gallery">
 		<option t:id="first_option" value="-1" selected="selected">{first_option}</option>
 		<option t:id="galleries" t:iter="gallery" value="{gallery.id}" cond:selected="gallery.id == selected_gallery">{gallery.name}</option>
-		<option value="0" id="new_gallery" class="script select_separator">New Gallery</option>
+		<option value="0" id="new_gallery" class="script select_separator">New Album</option>
 	</select>
 	<br class="noscript"/>
-	<a class="body noscript" href="/my/gallery/create">Create a gallery</a>
+	<a class="body noscript" href="#{PageRequest.current.area_base_uri}/gallery/create_gallery_popup">Create an album</a>
 </div>

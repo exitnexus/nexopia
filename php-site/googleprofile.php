@@ -48,7 +48,7 @@
 
 		foreach ($profBlocks as $index => $profBlock) {
 			$profBlocks[$index]['nBlocktitle'] = removeHTML(trim($profBlock['blocktitle']));
-			$profBlocks[$index]['nBlockcontent'] = nl2br(wrap(parseHTML(smilies($profBlock['blockcontent']))));
+			$profBlocks[$index]['nBlockcontent'] = wrap(parseHTML(smilies($profBlock['blockcontent'])));
 			unset($profBlocks[$index]['blockcontent']);
 			unset($profBlocks[$index]['blocktitle']);
 		}
@@ -92,7 +92,7 @@
 		$profileparts = array();
 		foreach($user['profBlocks'] as $index => $profBlock)
 			if($profBlock['nBlockcontent'] && $profBlock['permission'] == 'anyone')
-				$profileparts[] = htmlentities($profBlock['nBlockcontent']);
+				$profileparts[] = htmlspecialchars($profBlock['nBlockcontent']);
 
 		if($profileparts)
 			echo "<AboutMe>" . implode("", $profileparts) . "</AboutMe>";
@@ -164,7 +164,7 @@
 						echo "<Comment>";
 							echo "<CommentTimestamp>" . gmdate("Y-m-d\TH:i:s\Z", $line['time']) . "</CommentTimestamp>";
 							echo "<CommentUserID>" . $google->encuserid($line['authorid']) . "</CommentUserID>";
-							echo "<CommentText>" . htmlentities($line['nmsg']) . "</CommentText>";
+							echo "<CommentText>" . htmlspecialchars($line['nmsg']) . "</CommentText>";
 						echo "</Comment>";
 					}
 					echo "</CommentList>";
@@ -188,7 +188,7 @@
 
 					foreach($pics as $pic){
 						echo "<MediaEntry>";
-							echo "<MediaDescription>" . htmlentities($pic['description']) . "</MediaDescription>";
+							echo "<MediaDescription>" . htmlspecialchars($pic['description']) . "</MediaDescription>";
 							echo "<MediaId>pic:" . $google->encuserid($uid) . ":$pic[id]</MediaId>";
 						echo "</MediaEntry>";
 					}
@@ -216,8 +216,8 @@
 
 						foreach($pics as & $pic){
 							echo "<MediaEntry>";
-								echo "<MediaName>" . htmlentities($galleryobj->name) . "</MediaName>";
-								echo "<MediaDescription>" . htmlentities($pic->parseDescription(true)) . "</MediaDescription>";
+								echo "<MediaName>" . htmlspecialchars($galleryobj->name) . "</MediaName>";
+								echo "<MediaDescription>" . htmlspecialchars($pic->parseDescription(true)) . "</MediaDescription>";
 								echo "<MediaId>gallery:" . $google->encuserid($uid) . ":$galleryobj->id:$pic->id</MediaId>";
 							echo "</MediaEntry>";
 						}
@@ -249,9 +249,9 @@
 							$lastentry = new blogpost($userblog, $entryid, $userData);
 
 							echo "<BlogEntry>";
-								echo "<EntryName>" . htmlentities($lastentry->title) . "</EntryName>";
+								echo "<EntryName>" . htmlspecialchars($lastentry->title) . "</EntryName>";
 								echo "<EntryDate>" . gmdate("Y-m-d\TH:i:s\Z", $lastentry->time) . "</EntryDate>";
-								echo "<EntryContents>" . htmlentities($lastentry->getParsedText()) . "</EntryContents>";
+								echo "<EntryContents>" . htmlspecialchars($lastentry->getParsedText()) . "</EntryContents>";
 							echo "</BlogEntry>";
 						}
 						echo "</BlogEntries>";

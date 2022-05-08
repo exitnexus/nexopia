@@ -1,7 +1,7 @@
 table {text-align: left;}
 tr {vertical-align: top;}
 
-body         { background: #545353 url(http://static.nexopia.com/skins/splatter/bg.png) repeat-x top left ; font-family: arial, sans-serif; font-size: 8pt; margin: 0; }
+body         { background: #545353 url(http://static.nexopia.com/1/files/Legacy/skins/splatter/bg.png) repeat-x top left ; font-family: arial, sans-serif; font-size: 8pt; margin: 0; }
 
 td.footer		{ color:#CCCCCC; text-decoration:none; font: 6pt arial, sans-serif;}
 
@@ -18,7 +18,7 @@ td.header		{ background-color: #3a3839; color: #c0c0c0; font-family: arial, sans
 a.header  	{ color: #c0c0c0; text-decoration:none;  }
 a.header:hover	{ color: #FFF; }
 
-td.headerfront	{ color:#BCBEC0; background: url(http://static.nexopia.com/skins/splatter/blockhead.png); font-size: 12pt;}
+td.headerfront	{ color:#BCBEC0; background: url(http://static.nexopia.com/1/files/Legacy/skins/splatter/blockhead.png); font-size: 12pt;}
 
 td.header2			{ color: #9F9F9F; font-family: arial, sans-serif; font-size: 8pt}
 a.header2     	{ color: #9F9F9F; text-decoration:none; }
@@ -27,8 +27,8 @@ a.header2:hover		{ color: #fff; }
 td.body			{ background-color: #231f20; color: #BCBEC0; font-family: arial, sans-serif; font-size: 8pt}
 td.body2		{ background-color: #2a2829; color: #BCBEC0; font-family: arial, sans-serif; font-size: 8pt}
 a.body { color: #d74256; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
-a.body:hover	{ color: #FFFFFF; }
-body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; border:1px solid #636466;}
+a.body:hover	{ color: #DFA7B0; }
+body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; color: #000; border:1px solid #d4d6d7;}
 body textarea { font-size: 9pt; }
 
 td.menu				{ color: #fff; font-family: arial, sans-serif; font-size: 9pt;}

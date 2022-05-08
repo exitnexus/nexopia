@@ -1,0 +1,23 @@
+/*
+	Setting a field to auto-complete always seems to cause problems with the layout. For now,
+	this fixes the problems, though not in the most ideal way. TODO: Figure out why YUI does
+	this and stop it.
+*/
+
+.location_bottom_spacer
+{
+	height: 18px;
+}
+
+.autocomplete_main_container
+{
+	margin-top: 1px;
+}
+
+#join_page
+{
+	& .location_bottom_spacer
+	{
+		height: 18px;
+	}
+}

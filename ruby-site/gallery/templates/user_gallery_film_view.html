@@ -1,0 +1,117 @@
+<div>
+	<input type="hidden" id="current_profile_pics" value="{current_profile_pics}"/>
+	<div class="primary_block" t:id="!gallery.pics.length.zero?">
+		<div id="user_gallery_film_view" class="user_gallery" minion_name="user_gallery_film_view">
+			<div class="gallery_display_container">
+				<div class="photo_number"><span id="current_index">{current_pic.priority}</span>&#160;of {gallery.pics.length}</div>
+				
+				<div id="photo_full_view">
+						<img id="current_picture" t:id="current_pic" minion_name="film_view:current_picture"/>
+						<div id="left_arrow_panel">
+							<div class="arrow_panel">
+								<img id="left_arrow_img" src="#{$site.colored_img_url(user.profile_skin[:secondary_block_icon_color])/:userpics/:images/'6x9_arrow_left.gif'}" hover_src="#{$site.colored_img_url(user.profile_skin[:primary_block_icon_color])/:userpics/:images/'6x9_arrow_left.gif'}"/>
+							</div>
+						</div>
+						<div id="right_arrow_panel">
+							<div class="arrow_panel">
+								<img id="right_arrow_img" src="#{$site.colored_img_url(user.profile_skin[:secondary_block_icon_color])/:userpics/:images/'6x9_arrow_right.gif'}" hover_src="#{$site.colored_img_url(user.profile_skin[:primary_block_icon_color])/:userpics/:images/'6x9_arrow_right.gif'}"/>
+							</div>
+						</div>
+				</div>
+				
+				<br class="clear" />
+				<div class="photo_info">
+					<div class="info_right">
+						<div class="profile_function">
+							<div>
+								<a t:id="current_pic" id="full_view" t:linktype="full">VIEW FULL SIZE</a>
+							</div>
+						</div>
+						<div class="profile_function">
+							<div>
+								<a id="share_link" minion_name="async_panel"
+								 	href="#{PageRequest.current.area_base_uri}/gallery/share/%{current_pic.id}"
+									path="#{PageRequest.current.area_base_uri}/gallery/share/%{current_pic.id}">
+									SHARE THIS PICTURE
+								</a>
+							</div>
+						</div>
+						<div class="profile_function">
+							<div>
+								<a id="report_abuse" href="#{$site.www_url}/reportabuse.php?type=22&uid={current_pic.userid}&id={current_pic.id}">
+									REPORT PICTURE
+								</a>
+							</div>
+						</div>
+						<t:if t:id="manage_gallery">
+							<input type="hidden" name="manage_gallery_form_key" id="manage_gallery_form_key" value="{manage_gallery_form_key}"/>
+							<br/>
+							<div class="profile_function">
+								<div>
+									<a id="make_profile_picture" href="#" minion_name="film_view:make_profile_picture">
+										MAKE PROFILE PICTURE
+									</a>
+								</div>
+							</div>
+							<div class="profile_function">
+								<div>
+									<a href="#edit" id="edit_link_{current_pic.id}" minion_name="film_view:edit_picture">
+										EDIT PICTURE
+									</a>
+								</div>
+							</div>
+						</t:if>
+					</div>
+					<div id="image_description" class="info_left">
+						{current_pic.description}
+					</div>
+					<br class="clear" />
+				</div>
+			</div>
+			<div id="gallery_film_strip" class="gallery_nav_container" minion_name="gallery_film_strip">
+				<div class="arrow left">
+					<a href="#" class="page_backward"><img src="#{$site.colored_img_url(PageRequest.current.user.gallery_skin[:secondary_block_icon_color])/:gallery/:images/'6x9_arrow_left.gif'}" /></a>
+				</div>
+				<div class="pages">
+					<div t:id="gallery.pics" t:json="pic" t:iter="pic" class="thumb" minion_name="gallery_film_strip:thumb" t:index="strip_index">
+						<a t:id="pic">
+							<img t:delay="strip_index >= 9" t:id="pic" t:linktype="squaremini" class="#{(pic.id == current_pic.id ? 'current' : '')}"/>
+						</a>
+					</div>
+				</div>
+				<div class="arrow right">
+					<a href="#" class="page_forward"><img src="#{$site.colored_img_url(PageRequest.current.user.gallery_skin[:secondary_block_icon_color])/:gallery/:images/'6x9_arrow_right.gif'}" /></a>
+				</div>
+				<br class="clear" />
+				<div class="control_bar"></div>
+			</div>
+			
+			<div class="clearit"/>
+		</div>
+	</div>	
+	<div class="primary_block" t:id="gallery.pics.length.zero?">
+		<div id="user_gallery_film_view" class="user_gallery">
+			<div class="gallery_display_container">
+				No images have been added to this gallery.
+			</div>
+			<div class="clearit"/>
+		</div>
+	</div>
+	
+	<div id="gallery_bottom_container">
+		<div id="gallery_view_left_column" class="primary_block">
+			<t:handler-include t:path="/gallery/recent" t:area="user" t:user="PageRequest.current.user"/>
+		</div>
+		<t:if t:id="!gallery.pics.length.zero? && gallery.allowcomments == true">
+			<div id="gallery_view_right_column" class="primary_block">
+				<t:json t:data="comment_url" t:handle="commentLink"/>
+				<t:handler-include t:path="/gallery/comments/#{current_pic.id}" t:area="user" t:user="PageRequest.current.user">
+					<t:var t:name="'admin_view'" t:val="comments_admin_view"/>
+					<t:var t:name="'page'" t:val="comments_page" />
+				</t:handler-include>
+			</div>
+		</t:if>			
+
+		<br class="clearit"/>
+	</div>
+</div>

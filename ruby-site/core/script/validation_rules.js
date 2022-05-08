@@ -79,6 +79,12 @@ ValidationRules =
 		this.className = "CheckIllegalCharacters";
 	},
 
+	CheckNoSpaces: function(value_accessors, static_values)
+	{
+		this.text = value_accessors[0];
+		this.className = "CheckNoSpaces";
+	},
+
 	CheckAlphaCharactersExist: function(value_accessors, static_values)
 	{
 		this.text = value_accessors[0];
@@ -183,7 +189,32 @@ ValidationRules =
 		this.password = value_accessors[0];
 		this.username = value_accessors[1];
 		this.className = "CheckPasswordStrength";
+	},
+	
+	CheckCaptcha: function(value_accessors, static_values)
+	{
+		this.value = value_accessors[0];
+		this.nil_state = static_values[0] || "none";
+		this.filled_state = static_values[1] || "valid";
+		this.className = "CheckCaptcha";
 	}
+	
+};
+
+ValidationRules.CheckCaptcha.prototype = 
+{
+	validate: function()
+	{
+		
+		return new ValidationResults("valid", "");
+		
+	},
+	
+	isServerSide: function()
+	{
+		return false;
+	}
+	
 };
 
 
@@ -263,7 +294,7 @@ ValidationRules.CheckRetypeValueMatches.prototype =
 	{
 		if (this.value.value() != this.retype_value.value())
 		{	
-			return new ValidationResults("error", this.field_name + " and Retype " + this.field_name + " do not match");
+			return new ValidationResults("error", "Did not match the first " + this.field_name);
 		}
 		else
 		{
@@ -395,29 +426,46 @@ ValidationRules.CheckEmailAvailable.prototype =
 ValidationRules.CheckIllegalCharacters.prototype = 
 {
 	validate: function()
-	{/*
-		chars = new Array(' ','<','>','&','%','"',"'",'`','+','=','@',127.chr,129.chr,152.chr,158.chr,160.chr,'/','\\');
-		(0...40).each { |i| chars << i.chr };
-		(166..223).each { |i| chars << i.chr };
-		(240..255).each { |i| chars << i.chr };
-
-		r = Regexp.new("[" + chars.to_s + "]");
-		m = this.text.match(r);
+	{
+		r = /[^a-zA-Z0-9~\^\*\-\\|\]\}\[\{\.]/;
+		m = this.text.value().match(r);
 		if (m == null)
 		{
 			return new ValidationResults("valid", "");
 		}
 		else
 		{
-			return new ValidationResults("error", "Illegal character: " + m.to_s);
+			return new ValidationResults("error", "Illegal character: " + Nexopia.Utilities.escapeHTML(m.toString()));
 		}
-		*/
 	},
 
 
 	isServerSide: function()
 	{
 		return true;
+	}
+};
+
+ValidationRules.CheckNoSpaces.prototype = 
+{
+	validate: function()
+	{
+		m = this.text.value().match(/\s/);
+
+		if (m == null)
+		{
+			return new ValidationResults("valid", "");
+		}
+		else
+		{
+			return new ValidationResults("valid", "No spaces allowed");
+		}
+	},
+
+
+	isServerSide: function()
+	{
+		return false;
 	}
 };
 
@@ -478,11 +526,11 @@ ValidationRules.CheckPasswordLength.prototype =
 	{
 		if (this.password.value().length < 4)
 		{
-			return new ValidationResults("error", "Password must be at least 4 characters long.");
+			return new ValidationResults("error", "4 characters minimum");
 		}
 		else if (this.password.value().length > 32)
 		{
-			return new ValidationResults("error", "Password cannot be longer than 32 characters.");
+			return new ValidationResults("error", "32 characters maximum");
 		}
 		else
 		{
@@ -632,9 +680,9 @@ ValidationRules.CheckDateOfBirth.prototype =
 				age = age - 1;
 			}
 		
-			if (age < 14)
+			if (age < 13)
 			{
-				return new ValidationResults("error", "Must be 14 or over to join");
+				return new ValidationResults("error", "Must be 13 or over to join");
 			}
 			else
 			{
@@ -734,21 +782,20 @@ ValidationRules.CheckPasswordStrength.prototype =
 	{
 		weak = false;
 		if ( (!this.username.value() == null && this.username.value() != "" && !this.password.value().index(this.username.value()) == null) ||
-			this.password.value() == "secret" ||
+			this.password.value() == "secret")
+		{
+			return new ValidationResults("warning", "Weak");
+		}
+		else if (
 			this.password.value().match(/^[a-z]*$/) != null || 				// Warn if all lowercase letters
 			this.password.value().match(/^[A-Z]*$/) != null ||				// Warn if all uppercase letters
-			this.password.value().match(/^[a-zA-Z][a-z]*$/) != null)		// Warn if only first is uppercase and the rest are lowercase
+			this.password.value().match(/^[a-zA-Z][a-z]*$/) != null)		// Warn if only first is uppercase and the rest are lowercase)
 		{
-			weak = true;
-		}
-
-		if (weak)
-		{
-			return new ValidationResults("warning", "Password is not very strong");
+			return new ValidationResults("warning", "Medium");
 		}
 		else
 		{
-			return new ValidationResults("valid", "");
+			return new ValidationResults("valid", "Strong");
 		}
 	},
 

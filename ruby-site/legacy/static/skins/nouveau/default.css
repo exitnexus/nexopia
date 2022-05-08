@@ -1,0 +1,69 @@
+table {text-align: left;}
+tr {vertical-align: top;}
+
+body         { background: #000; font-family: arial, sans-serif; font-size: 8pt; margin: 0; }
+
+a       		{ color: #d1d3d4; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a:hover			{ color: #598241; }
+
+td.footer		{ color:#d4d6d7; text-decoration:none; font: 6pt arial, sans-serif}
+
+td.side					                { background-color: #C2DFB5; color: #2d2d2d; font-family: arial, sans-serif; font-size: 8pt; }
+td.side a   	                 	{ color: #4F0F25; text-decoration:none; }
+td.side a:hover	            		{ color: #7F1F40; }
+td.side input, select, textarea { font-family: arial, sans-serif; font-size: 8pt;color: #000; border:1px solid #d4d6d7; margin: 1 0 0 0;}
+
+td.border		{ background-color:#fff; }
+
+td.sideheader		{ color:#000; font-family: arial, sans-serif; font-size: 8pt; padding-bottom:3px; }
+
+td.header		{ background-color: #1E1F1D; color: #fff; font-family: arial, sans-serif; font-size: 8pt}
+a.header  	{ color: #CFCFCF; text-decoration:none;  }
+a.header:hover	{ color: #7F1F40; }
+
+td.headerfront	{ color:#000; background-color: #C2DFB5; height:30px; padding-bottom:8px; }
+
+
+td.header2			{ color: #fff; font-family: arial, sans-serif; font-size: 8pt}
+a.header2     	{ color: #CFCFCF; text-decoration:none; }
+a.header2:hover		{ color: #7F1F40; }
+
+td.body			{ background-color: #C2DFB5; color: #2d2d2d; font-family: arial, sans-serif; font-size: 8pt}
+td.body2		{ background-color: #9FAF99; color: #2d2d2d; font-family: arial, sans-serif; font-size: 8pt}
+a.body { color: #4F0F25; }
+a.body:hover	{ color: #7F1F40; }
+body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; color: #000; border:1px solid #d4d6d7;}
+body textarea { font-size: 9pt; }
+
+td.menu				{ color: #bfbfbf; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a			{ color: #bfbfbf; text-decoration:none; font-family: arial, sans-serif; font-size: 9pt;}
+td.menu a:hover		{ color: #dfdfdf; }
+
+td.forumlst							{ color: #fff; font: 8pt arial, sans-serif}
+a.forumlst:link,a.forumlst:visited 	{ color: #9F9F9F; text-decoration:none; font: 8pt arial, sans-serif }
+a.forumlst:hover,a.forumlst:active 	{ color: #555555; text-decoration:none; font: 8pt arial, sans-serif }
+
+td.forumlst1 { background-color:#D6E3EE; color: #0353A2; text-decoration:none; font: 8pt arial, sans-serif}
+a.forumlst1:link,a.forumlst1:visited { color: #2F4F22; text-decoration:none; font: 8pt arial, sans-serif }
+a.forumlst1:hover,a.forumlst1:active { color: #516068; text-decoration:none; font: 8pt arial, sans-serif }
+
+td.forumlst0 { background-color:#D6E3EE; color: #0353A2; text-decoration:none; font: 8pt arial, sans-serif}
+a.forumlst0:link,a.forumlst0:visited { color: #4F0F25; text-decoration:none; font: 8pt arial, sans-serif }
+a.forumlst0:hover,a.forumlst0:active { color: #516068; text-decoration:none; font: 8pt arial, sans-serif }
+
+a.forumlst2:link,a.forumlst2:visited { color: #5F5F5F; text-decoration:none; font: 8pt arial, sans-serif }
+a.forumlst2:hover,a.forumlst2:active { color: #516068; text-decoration:none; font: 8pt arial, sans-serif }
+
+td.small  		{ background-color: #1E1F1D; color: #fff; font-family: arial, sans-serif; font-size: 8pt}
+a.small     	{ color: #CFCFCF; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt; font-weight: bold }
+a.small:hover	{ color: #4F0F25; }
+
+td.msg		  	{ color:#fff; background-color:#1E1F1D; font-family: arial, sans-serif; font-size: 8pt}
+a.msg       	{ color: #CFCFCF; text-decoration:none; font-family: arial, sans-serif; font-size: 8pt }
+a.msg:hover		{ color: #BF172E; }
+
+a.vote      	{ color: #555555; text-decoration:none; font-family: arial, sans-serif; font-size: 15pt; font-weight: bold }
+a.vote:hover	{ color: #d1d3d4; }
+
+td.online		{ color: #00AA00; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}
+td.offline		{ color: #BF0E00; font-family: arial, sans-serif; font-size: 16pt; font-weight: bold}

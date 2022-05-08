@@ -1,0 +1,74 @@
+#user_area_header
+{
+	margin-left: auto;
+	margin-right: auto;
+	width: 744px;
+	background-color: @primary_block_background_color;
+	color: @primary_block_header_text_color;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 14px;
+	letter-spacing: 0px;
+	padding: 4px 3px;
+	
+	& a
+	{
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 14px;
+		color: @primary_block_link_color;
+		
+		&:hover
+		{
+			color: @primary_block_link_hover_color;
+		}
+	}
+	
+	& .navigation
+	{
+		float: left;
+		
+		& table 
+		{	
+			& tr td
+			{
+				padding: 0px 5px 0px 5px;
+				text-transform: uppercase;
+				border-right: 1px solid @primary_block_text_color;
+			}
+			
+			& .selected
+			{
+				font-weight: bold;
+			}
+			
+			& .last_column
+			{
+				border-right: none;
+			}
+		}
+		
+		& .current_page
+		{
+			font-weight: bold;
+		}
+	}
+	
+	& .nav_secondary
+	{
+		float: right;
+		
+		& table
+		{
+			& td
+			{
+				padding: 0px 5px;
+				text-transform: uppercase;
+				border-right: 1px solid @primary_block_text_color;
+			}
+			
+			& .last_column
+			{
+				border-right: none;
+			}
+		}	
+	}
+}

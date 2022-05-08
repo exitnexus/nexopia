@@ -1,0 +1,42 @@
+<div id="comment_write" minion_name="comments:write">
+	<table class="comment_write_table" cellspacing="0" cellpadding="0">
+		<t:if t:id="post_error" >
+			<tr id="comments_user_message_row">
+				<td>
+					&#160;
+				</td>
+				<td>
+					<div id="comments_post_error">
+						#{post_error}
+					</div>
+				</td>
+			</tr>
+		</t:if>
+		<tr id="comments_editor_row">
+			<td class="viewing_user_picture">
+				<a t:id="viewing_user">
+					<img class="picture" t:id="viewing_user" t:linktype="{thumbnail_image_type}" />
+				</a>
+			</td>
+			<td>
+				<form id="comment_write_form" method="post" action="{comment_post_url}">
+					<t:if t:id="conversation_page">
+						<input type="hidden" name="conversation_page" value="{conversation_page}"/>
+					</t:if>
+					<textarea cond:class="text_editor_type" id="comment_text" name="comment_text" minion_name="enhanced_text_input">
+						{editor_text}
+					</textarea>
+					<div class="comment_post_wrapper">
+						<input id="comment_post_submit" accesskey="s" type="submit" class="submit" value="post" />
+						<img id="post_comment_spinner" src="#{$site.static_files_url}/Legacy/images/spinner.gif"/>
+					</div>
+				</form>
+			</td>
+		</tr>
+	</table>
+<!--	
+	<t:if t:id="PageRequest.current.user.commentsmenuaccess == :none && PageRequest.current.user.userid == PageRequest.current.session.user.userid">
+		Comments are disabled and are only viewable by you. Other users will not be able to view or post comments.
+	</t:if>
+-->
+</div>

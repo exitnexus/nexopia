@@ -1,0 +1,22 @@
+<div id="blog_new_entry_options">
+
+	<a href="#" minion_name="blogs:options" class="expand">More Options</a>
+	<div class="blog_options">
+		<div class="option_section">
+			<span class="bold">Privacy:</span><br />
+			<t:handler-include path="/current/selector/visibility/{blog_post_visibility}" area="Skeleton">
+				<t:var t:name="'field'" t:val="'blog_post_visibility'" />
+			</t:handler-include>
+		</div>
+	
+		<div class="option_section">
+			<input type="checkbox" class="checkbox" id="blog_post_comments" name="blog_post_comments" cond:checked="blog_post_allow_comments"/>
+			<label for="blog_post_comments">Allow Comments</label>
+		</div>
+		
+		<div t:id="action != 'new'" class="option_section">
+			<input type="checkbox" class="checkbox" name="reset_timestamp" id="reset_timestamp"/>
+			<label for="reset_timestamp">Reset Timestamp</label>
+		</div>
+	</div>
+</div>

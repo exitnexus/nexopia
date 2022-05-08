@@ -1,5 +1,4 @@
-YAHOO.util.Event.on(window, 'load', init_accordions);
-
+//require overlord.js
 function init_accordions()
 {
 	var speed = 0.15;
@@ -91,4 +90,14 @@ function init_accordions()
 		
 /* 		accordions[j].meta.active = ["null", "null"]; */
 	}
-}
+};
+
+Overlord.assign({
+	minion: "profile_edit",
+	load: init_accordions
+});
+
+Overlord.assign({
+	minion: "skin_edit_wrapper",
+	load: init_accordions
+});

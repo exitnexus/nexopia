@@ -1,0 +1,23 @@
+<div id="youtube_search_panel">
+	<div>
+		<div class="title">
+			Find a Video on YouTube
+		</div>
+		<a href="" class="close">Close</a>
+		<br class="clear" />
+	</div>
+	<form id="youtube_search_form" method="post" action="/youtube/search" name="youtube_search_form" minion_name="youtube:find_videos">
+		<input id="search_terms" name="search_terms" type="text" class="search_terms"></input>
+		<div class="find_video_btn">
+			<t:button type="submit">Find Videos</t:button>
+		</div>
+		<br class="clear" />
+	</form>
+	<div class="example">
+		Example:&#160;<span>skateboarder wiping out</span>
+	</div>
+
+	<img id="search_spinner" src="#{$site.static_files_url}/Legacy/images/spinner.gif"/>
+	<input type="hidden" id="return_location" name="return_location" value="{return_location}" />
+	<div id="youtube_search_results"></div>	
+</div>

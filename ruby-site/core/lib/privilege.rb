@@ -77,27 +77,115 @@ module Privilege
 	class Privilege
 		attr_reader :type, :object;
 
+		@@account_privileges = nil
+		
+		def self.load_all
+			@@account_privileges = $site.cache.get("account_privileges", 60*60){
+
+				db_privilege_names = Storage::PrivilegeName.find(:all, :scan)
+
+				privileges = {}
+				db_privilege_names.each{|row|
+					privileges[row.privilegeid] = [row.moduleid, row.name]
+				}
+
+				grants = Storage::GlobalGrant.find(:all, :scan)
+				grant_privileges = {}
+				grants.each{|grant|
+					grant_privileges[grant.accountid] ||= []
+					grant_privileges[grant.accountid] << privileges[grant.privilegeid]
+				}
+				
+				accounts = AccountMap.find(:primaryid, *grant_privileges.keys.collect { |key| [key] });
+				
+				account_privileges = {}
+				accounts.each{|account|
+					if grant_privileges[account.primaryid]
+						account_privileges[account.accountid] ||= []
+						account_privileges[account.accountid].concat( grant_privileges[account.primaryid] )
+					end
+				}
+				account_privileges
+			}			
+		end
+		
+		# Checks if any of the users specified have the privilege bit set, and returns an array of those
+		# users. Note that if the full extent of this system is ever exploited (per-object privileges and the
+		# like), this function will need a massive overhaul. As is, checks only global privs.
+		def self.has?(users, mod, bit)
+			return if (users.empty?)
+			self.load_all if !@@account_privileges
+			bit = bit.to_s
+			mod = mod.typeid
+
+			uids = []
+			uid_map = nil
+			if (users.first.respond_to? :userid)
+				users.each {|u|
+					uids.push(u.userid)
+					uid_map[u.userid] = u
+				}
+			else
+				uids = users
+			end
+
+			uids = @@account_privileges.collect {|uid, priv|
+				if (uids.include?(uid) && priv.include?([mod, bit]))
+					uid
+				else
+					nil
+				end
+			}.compact
+
+			if (uid_map)
+				return uids.collect {|uid|
+					uid_map[uid]
+				}
+			else
+				return uids
+			end
+		end
+		
+		# Checks who has mod:bit as a global privilege and returns the list of uids.
+		def self.who_has?(mod, bit)
+			self.load_all if !@@account_privileges
+			bit = bit.to_s
+			mod = mod.typeid
+			
+			uids = @@account_privileges.collect {|uid, privs|
+				if (privs.include?([mod, bit]))
+					uid
+				else
+					nil
+				end
+			}.compact
+			
+			return uids
+		end
+		
 		# The default is to give you a global privilege set. object is any
 		# object that responds to object.id with a value meaningful to look up
 		# privileges on (must be an account object of some sort).
 		def initialize(userobj, object = :Global)
+			Privilege.load_all if !@@account_privileges
+			
 			@userid = userobj.userid;
 
 			if (object == :Global)
 				@global = nil;
 				@objectid = 0;
-				@localroles = [];
+				#@localroles = [];
 				@type = :Global;
 			else
 				@global = Privilege.new(userobj);
 				@objectid = object.id;
-				localrolesmember = Storage::TypeRoleMember.find(@objectid, @userid);
-				@localroles = Storage::TypeRole.find(*localrolesmember.collect {|member| member.roleid; });
+				#localrolesmember = Storage::TypeRoleMember.find(@objectid, @userid);
+				#@localroles = Storage::TypeRole.find(*localrolesmember.collect {|member| member.roleid; });
 				@type = object.class.to_s.to_sym;
 			end
 
-			membership = userobj.account_membership.collect {|member| member.id; };
-			@globalprivs = (membership.length == 0 ? [] : Storage::GlobalGrant.find(:conditions => ['accountid IN # AND objectaccountid = ?', membership, @objectid]));
+			#membership = userobj.account_membership.collect {|member| member.id; };
+			#@globalprivs = (membership.length == 0 ? [] : Storage::GlobalGrant.find(:conditions => ['accountid IN # AND objectaccountid = ?', membership, @objectid]));
 		end
 
 		# Returns true if the user has the privilege mod.bit set on the object
@@ -108,28 +196,29 @@ module Privilege
 			end
 
 			modid = mod.typeid;
-			bitid = Storage::PrivilegeName.find(modid, bit.to_s, :module_name);
-			if (bitid.first)
-				bitid = bitid.first.privilegeid;
-			else
-				return false; # privilege has never been set on anyone, so no.
-			end
+
+			#bitid = Storage::PrivilegeName.find(modid, bit.to_s, :module_name);
+			#if (bitid.first)
+			#	bitid = bitid.first.privilegeid;
+			#else
+			#	return false; # privilege has never been set on anyone, so no.
+			#end
 
 			# find out if the user has this privilege as part of a global priv
 			# entry.
-			@globalprivs.each {|priv|
-				if (priv.privilegeid == bitid)
+			if (@@account_privileges[@userid])
+				if(@@account_privileges[@userid].include?([modid, bit.to_s]))
 					return true;
 				end
-			}
-
+			end
+			
 			# find out if the user has this privilege under a local role.
-			@localroles.each {|roleid|
-				granted = Storage::TypeRoleGrant.find(:first, roleid, modid, bitid);
-				if (granted)
-					return true;
-				end
-			}
+			#@localroles.each {|roleid|
+			#	granted = Storage::TypeRoleGrant.find(:first, roleid, modid, bitid);
+			#	if (granted)
+			#		return true;
+			#	end
+			#}
 
 			# nothing granted the power, so no power. Done.
 			return false;
@@ -184,5 +273,9 @@ module Privilege
 				|;
 			}
 		end
+	end
+	
+	def init_privileges()
+		
 	end
 end

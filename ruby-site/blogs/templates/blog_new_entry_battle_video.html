@@ -1,0 +1,84 @@
+<div id="blog_battle_video">
+<div id="blog_new_entry_container">
+
+	<t:template-include t:module="blogs" t:name="blog_new_entry_header" />
+	
+	<div class="left_column">
+		<div class="battle_tabs">
+			<a href="#" class="first_tab"
+			 minion_name="blogs:battle:changetab:photo">Photo Battle</a>
+			<a href="#" class="selected"
+			 minion_name="blogs:battle:changetab:ignore">Video Battle</a>
+		</div>
+	
+		<div class="post_title">
+			Video Battle Title
+		</div>
+		<input type="text" class="text" id="video_title" maxlength="128" />
+		
+		<div class="battle_item item1">
+			<input type="text" class="item_title" value="Video 1"
+			 id="video_caption_1" name="video_caption_1"
+			 minion_name="blogs:battle:video:caption_1" />
+			<div class="battle_link_container photo_uploader_container">
+				<span class="title">Video link or embed code</span><br />
+				<textarea class="item_link" name="video_link_1"
+				 id="video_link_1"></textarea>
+				<div class="get_button">
+					<input type="image" src="{$site.static_files_url}/blogs/find_on_you_tube_button.jpg" path="/youtube/search_panel?return_location=video_link_1" minion_name="async_panel"/>
+				</div>
+				<div class="or">
+					or
+				</div>
+				<div class="clear"></div>
+			</div>
+		</div>
+		
+		<div class="battle_item item2">
+			<input type="text" class="item_title" value="Video 2"
+			 id="video_caption_2" name="video_caption_2"
+			 minion_name="blogs:battle:video:caption_2" />
+			<div class="battle_link_container photo_uploader_container">
+				<span class="title">Video link or embed code</span><br />
+				<textarea class="item_link" name="video_link_2"
+				 id="video_link_2"></textarea>
+				<div class="get_button">
+					<input type="image" src="{$site.static_files_url}/blogs/find_on_you_tube_button.jpg" path="/youtube/search_panel?return_location=video_link_2" minion_name="async_panel"/>
+				</div>
+				<div class="or">
+					or
+				</div>
+				<div class="clear"></div>
+			</div>
+		</div>
+		<div class="clear"></div>
+		
+		<div class="post_submit_btns">
+			<t:if t:id="admin">
+				<t:handler-include path="/current/abuse/{AbuseLog::ABUSE_ACTION_BLOG_EDIT}" area="Skeleton" />
+			</t:if>
+			<div class="post">
+				<t:button type="submit"
+				 minion_name="blogs:battle_create:video:post">POST</t:button>
+			</div>
+			<div class="cancel">
+				| <a href="#{PageRequest.current.area_base_uri}/blog">Cancel</a>
+			</div>
+			<div class="preview">
+				<a href="#preview"
+				 minion_name="async_panel blogs:battle:video:preview"
+				 load_form="new_blog" path="/my/blog/new/preview"
+				 id="blogs_battle_video_preview">Preview</a>
+			</div>
+			<div class="clear"></div>
+		</div>
+	</div>
+	
+	<div class="right_column">
+		<t:template-include t:module="blogs" t:name="blog_new_entry_options" />
+		<t:template-include t:module="blogs" t:name="blog_tip_battle_video" />
+	</div>
+	<div class="clear"></div>
+	
+</div>
+</div>

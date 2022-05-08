@@ -1,0 +1,91 @@
+#edit_panel_mask {
+	opacity: 0.8;
+	background-color: black;
+}
+
+#add_profile_pic {
+	width: 486px;
+	padding: 12px;
+	text-align: left;
+	background-color: $primary_background_color;
+	position: relative;
+	
+	& h1.page_title {
+		color: #323237;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		margin: 0px;
+		font-size: 14px;
+		font-weight: bold;
+		margin-bottom: 80px;
+	}
+	
+	& #file_upload {
+		display:none;
+	}
+	
+	& #classic_file_upload {
+		display:none;
+		position: relative;
+		top: -30px;
+	}
+	
+	& #uploader_overlay {
+		position: absolute;
+		background-color: transparent;
+		z-index: 10000;
+	}
+
+	& .tertiary_button {
+		font-weight: bold;
+		text-decoration: underline;
+	}
+	
+	& .terms_warning {
+		font-size: 10px;
+		padding: 20px 0px 80px 0px;
+		
+		& a {
+			font-size: 10px;
+		}
+	}
+	
+	& a.advanced_link:link,
+	a.advanced_link:visited {
+		color: $link_color;
+		font-weight: bold;
+	}
+	
+	& a.advanced_link:hover {
+		color: $link_accent_color;
+	}
+	
+	& span.advanced {
+		text-decoration: underline;
+	}
+	
+	& #advanced_content {
+		margin: 6px 0px 40px 0px;
+		padding: 6px 6px 12px 6px;
+		background-color: #dfdfdf;
+		
+		& span.advanced_item {
+			padding-right: 20px;
+			font-weight: bold;
+		}
+	}
+	& img.spinner {
+		display: none;
+	}
+		
+	& #gallery_overlay {
+		left: 282px;
+		top: 186px;
+	}
+	
+	& #alternate_instructions {
+		border-top: 1px dotted $primary_text_color;
+		margin-top: 24px;
+	}
+
+}
+

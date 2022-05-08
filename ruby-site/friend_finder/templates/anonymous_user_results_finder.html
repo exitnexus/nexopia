@@ -1,0 +1,53 @@
+<div id="find_friends">
+	<div id="friend_finder_user_results">
+		<h1>
+			Add Friends
+		</h1>
+		<h4>
+			Success! These people are on Nexopia.&#160;<a href="/account/join">Join Nexopia</a>&#160;to add them as friends.
+		</h4>
+		<div class="result_container">
+			<form name="user_result_form" id="user_result_form" method="get" action="/account/join">
+				<div class="controls">
+					<div class="submit_friends">
+						<t:button type="submit">
+							Join
+						</t:button>
+					</div>
+					<br class="clear"/>
+				</div>
+				<div class="add_friends_results">
+					<t:iter t:id="user_results" t:iter="user_contact">
+						<div class="user_friend_result">
+							<table>
+								<tbody>
+									<tr>
+										<td class="friend_checkbox" style="vertical-align: middle">
+											&#160;
+										</td>
+										<td class="friend_thumb">
+											<img t:id="user_contact.user" t:linktype="landscapemini"/>
+										</td>
+										<td class="friend_details">
+											<span class="user_name">{user_contact.user.username}</span>&#160;{user_contact.user.age}, {user_contact.user.sex}<br/>
+											{user_contact.name} &#60;{user_contact.email}&#62;
+										</td>
+									</tr>
+								</tbody>
+							</table>
+							<br class="clear"/>
+						</div>
+					</t:iter>
+				</div>
+				<div class="controls">
+					<div class="submit_friends">
+						<t:button type="submit">
+							Join
+						</t:button>
+					</div>
+					<br class="clear"/>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>

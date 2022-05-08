@@ -53,10 +53,11 @@ function updateStats(){
 	$time = time();
 
 	if($userData['loggedIn']){
+		/*
 		$usersdb->prepare_query("UPDATE useractivetime SET activetime = #, hits = hits+1, ip = #, online = 'y' WHERE userid = %", $time, $ip, $userData['userid']);
 		if($usersdb->affectedrows()==0)
 			$usersdb->prepare_query("INSERT IGNORE INTO useractivetime SET activetime = #, hits = 1, ip = #, online = 'y', userid = %", $time, $ip, $userData['userid']);
-
+			*/
 		$plusclause = ($userData['premium'] ? ", hitsplus = hitsplus + 1" : "");
 
 		$sex = trim($userData['sex']);
@@ -210,7 +211,7 @@ function updateUserBirthdays() {
 
 	foreach($dbs as $dbInstance) {
 
-		$res = $dbInstance->query("SELECT userid, dob, age, sex FROM users");
+		$res = $dbInstance->query("SELECT userid, dob, age, sex FROM users WHERE state != 'frozen' AND state != 'deleted'");
 		$updateages = array();
 
 		while($line = $res->fetchrow()) {
@@ -353,9 +354,9 @@ function updateUserIndexes(){
 		$db->query("TRUNCATE usersearch");
 		$db->prepare_query("ALTER TABLE usersearch auto_increment = #", $insertId);
 		$result = $db->prepare_query("INSERT INTO usersearch (userid, age, sex, loc, active, pic, single, sexuality)
-			SELECT userid, age, sex, loc, ( (activetime > #) + (online = 'y' && activetime > #) ) as active,
-				( (firstpic >= 1) + (signpic = 'y') ) as pic, (single = 'y') as single, sexuality
-				FROM users", time() - 86400*7, time() - 3600);
+			SELECT users.userid, age, sex, loc, ( (useractivetime.activetime > #) + (useractivetime.online = 'y' && useractivetime.activetime > #) ) as active,
+				( (firstpic >= 1) + (signpic = 'y') ) as pic, (single = 'y') as single, SUBSTRING(profile.profile, 3, 1)
+				FROM users, useractivetime,profile WHERE users.userid = useractivetime.userid AND profile.userid = users.userid AND users.state != 'frozen' AND users.state != 'deleted' ORDER BY users.userid", time() - 86400*7, time() - 3600);
 
 		$firstId = $insertId;
 		$insertId += $result->affectedrows();
@@ -707,7 +708,7 @@ function dumpActiveAccountStats(){
 	$query = "INSERT INTO statsactiveaccountshist SET ";
 
 	foreach($activetimes as $name => $period){
-		$res = $usersdb->prepare_query("SELECT count(*) AS count FROM users WHERE activetime >= #", ($time - $period));
+		$res = $usersdb->prepare_query("SELECT count(*) AS count FROM useractivetime WHERE activetime >= #", ($time - $period));
 		$count = 0;
 		while($line = $res->fetchrow())
 			$count += $line['count'];

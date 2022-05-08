@@ -1,0 +1,49 @@
+#edit_photo_panel {
+	visibility: inherit;
+	background-color: @primary_block_background_color;
+	color: @primary_block_text_color;
+	padding: 6px;
+	min-width: 400px;
+	& a {
+		color: @primary_block_link_color;
+		&:hover {
+			color: @primary_block_link_hover_color;
+		}
+	}
+	& img.spinner {
+		float:right;
+		display:none;
+	}
+	& .description {
+		float: left;
+		font-size: 15px;
+		cursor: pointer;
+		margin-bottom: 3px;
+	}
+	& input.description {
+		display:none;
+		width: 283px;
+	}
+	& .right_menu {
+		clear:left;
+		float: right;
+		& span.yui-button {
+			margin: 0px 0px 6px 6px;
+		}
+	}
+	& .left_menu {
+		float:left;
+		& span.yui-button {
+			margin: 0px 6px 6px 0px;
+		}
+	}
+	& .normal_actions {
+		display: block;
+	}
+	& .crop_actions {
+		display: none;
+	}
+	& .image_wrapper {
+		clear: both;
+	}
+}

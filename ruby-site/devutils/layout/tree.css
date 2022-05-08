@@ -56,7 +56,7 @@
 }
 
 
-.spinner, .spinner:link, .spinner:visited, .spinner:hover { padding-left: 20px; margin-left:2px; background: transparent url("/static/images/blue_spinner.gif") 3px 1px no-repeat; width:1em; height:20px; font-weight: bold; font-size: 14px; text-decoration: none;}
+/*.spinner, .spinner:link, .spinner:visited, .spinner:hover { padding-left: 20px; margin-left:2px; background: transparent url("/static/images/blue_spinner.gif") 3px 1px no-repeat; width:1em; height:20px; font-weight: bold; font-size: 14px; text-decoration: none;}*/
 .pass, .pass:link, .pass:visited, .pass:hover { padding-left: 20px; margin-left:2px; background: transparent url("/static/images/test_icons.png") 0 -3px no-repeat; width:1em; height:20px; font-weight: bold; font-size: 14px; text-decoration: none;}
 .not_run, .not_run:link, .not_run:visited, .not_run:hover { padding-left: 20px; margin-left:2px; background: transparent url("/static/images/test_icons.png") 0 -23px no-repeat; width:1em; height:20px; font-weight: bold; font-size: 14px; text-decoration: none;}
 .fail, .fail:link, .fail:visited, .fail:hover { padding-left: 20px; margin-left:2px; background: transparent url("/static/images/test_icons.png") 0 -43px no-repeat; width:1em; height:20px; font-weight: bold; font-size: 14px;	text-decoration: none;}

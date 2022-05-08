@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <main/php.h>
 #include <main/SAPI.h>
+#include <sapi/embed/php_embed.h>
 #include <main/php_main.h>
 #include <main/php_variables.h>
 #include <main/php_ini.h>
@@ -46,6 +47,7 @@ typedef struct rap_globals {
 	VALUE headers;
 	VALUE rap_log;
 	VALUE request;
+	VALUE callback_object;
 	zval *ruby_vars;
 } rap_globals;
 
@@ -62,10 +64,28 @@ rap_globals globals;
 # define   RAP_G(v)     (globals.v)
 #endif
 
-#define FOREACH(hash, iter, val) if ((hash) != Qnil) \
-	st_foreach(RHASH(hash)->tbl, (iter), (val)); \
+// We can be transferring arrays of arrays (and so forth), so
+// we need a stack to keep track of our position in each
+// array.
+struct iter_stack {
+	struct iter_stack *prev;
+	int count;
+};
 
+static struct iter_stack *foreach_iter_count = NULL;
 
+#define FOREACH(hash, iter, val) \
+	if ((hash) != Qnil) { \
+		struct iter_stack *tmp = foreach_iter_count; \
+		foreach_iter_count = emalloc(sizeof(struct iter_stack)); \
+		foreach_iter_count->prev = tmp; \
+		foreach_iter_count->count = 0; \
+		rb_iterate(rb_each, (hash), (iter), (val)); \
+		tmp = foreach_iter_count; \
+		foreach_iter_count = foreach_iter_count->prev; \
+		efree(tmp); \
+	}
+		
 /****************************** header stuff  ******************************/
 
 VALUE method_php_exec(VALUE self, VALUE code, VALUE pre, VALUE vars, VALUE r,
@@ -244,7 +264,8 @@ void run_php_file(char *file) {
 	file_handle.free_filename = 0;
 	SG(request_info).path_translated = file;
 
-	php_execute_script(&file_handle TSRMLS_CC);
+	if (php_execute_script(&file_handle TSRMLS_CC) == FAILURE)
+		fprintf(stderr, "Unable to run %s\n", file);
 	//zend_eval_string("include '%s'", file)
 
 }
@@ -270,39 +291,51 @@ zval *create_php_global_hash(char *name)
 	return array_ptr;
 }
 
-#include "st.h"
-typedef struct st_table_entry st_table_entry;
-struct st_table_entry {
-	unsigned int hash;
-	LONG_LONG key;
-	LONG_LONG record;
-	st_table_entry *next;
-};
-
-/* Iterator function for ruby each loops */
-static int php_array_foreach_iter(VALUE key, VALUE value, zval *array)
+/* Iterator function for ruby each loops over arrays */
+static int php_array_foreach_iter(VALUE value, zval *array)
 {
-	if (rb_class_of(key) == rb_cFixnum){
-		int k = FIX2INT(key);
-		zval *val;
-		MAKE_STD_ZVAL(val);
-		set_val(value, val);
-		
-		add_index_zval(array, k, val);
-	} else {
-		VALUE str = rb_funcall(key, rb_intern("to_s"), 0);//rb_str_to_str(in);
-		char *akey = RSTRING(str)->ptr;
-		int length = RSTRING(str)->len;
-		char *data = estrndup(akey, length);
-	
-		zval *val;
-		MAKE_STD_ZVAL(val);
-		set_val(value, val);
-		
-		zend_hash_add(Z_ARRVAL_P(array), data, length+1, &val, sizeof(val), NULL);
-	}
+	int key;
+	zval *val;
 
-	return ST_CONTINUE;
+	/* In Php, arrays are actually ordered maps.  If we are copying
+	 * over Ruby arrays, we set the key to the whole number
+	 * sequence.  Ruby arrays are copied over with ordering
+	 * maintained, hooray.
+	 */
+	// Can probably actually remove the foreach_iter_count,
+	// now we use add_next_index_zval
+	key = foreach_iter_count->count++;
+	MAKE_STD_ZVAL(val);
+	set_val(value, val);
+		
+	add_next_index_zval(array, val);
+
+	return 0;
+}
+
+/* Iterator function for ruby each loops over hash tables */
+static int php_hash_foreach_iter(VALUE keyvalue, zval *array)
+{
+	VALUE key, value;
+	char *key_data;
+	zval *val;
+
+	/* In Php, arrays are actually ordered maps.  If we are
+	 * converting from Ruby hashes, we have |key, value| pairs
+	 * (although Ruby hashes, unlike Php arrays, are not ordered).
+	 * So, we copy over the key and value.
+	 */
+	key = rb_funcall(rb_ary_entry(keyvalue, 0), rb_intern("to_s"), 0);
+	key_data = estrndup(RSTRING(key)->ptr, RSTRING(key)->len);
+
+	value = rb_ary_entry(keyvalue, 1);
+	MAKE_STD_ZVAL(val);
+	set_val(value, val);
+
+	zend_hash_add(Z_ARRVAL_P(array), key_data, RSTRING(key)->len + 1,
+	 	&val, sizeof(val), NULL);
+
+	return 0;
 }
 
 /* Iterator function for ruby each loops */
@@ -312,18 +345,21 @@ static int php_var_foreach_iter(VALUE key, VALUE value, VALUE self)
 	MAKE_STD_ZVAL(val);
 	VALUE str = rb_funcall(key, rb_intern("to_s"), 0);//rb_str_to_str(in);
 	set_val(value, val);
-	ZEND_SET_SYMBOL(&EG(symbol_table), rb_string_value_ptr(&str), val);
-	return ST_CONTINUE;
+	ZEND_SET_SYMBOL(&EG(symbol_table), StringValuePtr(str), val);
+	return 0;
 }
 
 void make_php_array(VALUE in, zval *array)
 {
 	array_init(array);
-	FOREACH(in, php_array_foreach_iter, array);	
+	if (rb_class_of(in) == rb_cHash) {
+		FOREACH(in, php_hash_foreach_iter, array);
+	} else {
+		FOREACH(in, php_array_foreach_iter, array);
+	}
 }
 
-// Is this the gateway to php variables from ruby ones?
-// It would appear so...
+// Set PHP variable from Ruby variable.
 static void set_val(VALUE in, zval *val)
 {
 	if (in == Qnil){
@@ -333,17 +369,53 @@ static void set_val(VALUE in, zval *val)
 	}else if (in == Qtrue){
 		ZVAL_TRUE(val);
 	}else if (rb_class_of(in) == rb_cFloat){
-		ZVAL_DOUBLE(val, RFLOAT(in)->value);
+		ZVAL_DOUBLE(val, NUM2DBL(in));
 	}else if (rb_class_of(in) == rb_cInteger){
 		ZVAL_LONG(val, NUM2INT(in));
 	}else if (rb_class_of(in) == rb_cFixnum){
 		ZVAL_LONG(val, FIX2INT(in));
+	}else if (rb_class_of(in) == rb_cBignum){
+		// Will it fit in a regular Php int?  Let's find out
+		// Php main/main.c defines PHP_INT_MAX as LONG_MAX
+		if (rb_funcall(in, rb_intern(">"), 1, INT2NUM(LONG_MAX)) ==
+		 	Qfalse) {
+			// Will fit, send it as a regular int
+			ZVAL_LONG(val, NUM2INT(in));
+		} else {
+			// Won't fit, send it as a string
+			VALUE str = rb_funcall(in, rb_intern("to_s"), 0);
+			char *akey = RSTRING(str)->ptr;
+			int length = RSTRING(str)->len;
+			ZVAL_STRINGL(val, akey, length, 1);
+		}
 	}else if (rb_class_of(in) == rb_cHash){
 		make_php_array(in, val);
 	}else if (rb_class_of(in) == rb_cArray){
-		make_php_array(rb_funcall(in, rb_intern("to_hash"), 0), val);
-	}else{ 
-		VALUE str = rb_funcall(in, rb_intern("to_s"), 0);//rb_str_to_str(in);
+		make_php_array(in, val);
+	}else if (rb_class_of(in) == rb_cString){
+		char *akey = RSTRING(in)->ptr;
+		int length = RSTRING(in)->len;
+		ZVAL_STRINGL(val, akey, length, 1);
+	}else if (rb_funcall(in, rb_intern("class"), 0) ==
+		  rb_const_get(rb_cObject, rb_intern("String"))){
+		// Not a real Ruby string, but something we
+		// previously treated as a real Ruby string.
+		VALUE str = rb_funcall(in, rb_intern("to_s"), 0);
+		char *akey = RSTRING(str)->ptr;
+		int length = RSTRING(str)->len;
+		ZVAL_STRINGL(val, akey, length, 1);
+	}else if (rb_type(in) == T_OBJECT){
+		// We have to generate a proxy object
+		VALUE proxy = rb_funcall(RAP_G(callback_object),
+		 	rb_intern("register_proxy_obj"), 1, in);
+		// and set a string with a magic value, so RAP_RubyObject.php
+		// can unpack it
+		char *magic_val;
+		spprintf(&magic_val, 0, "#!RAP:%s", RSTRING(proxy)->ptr);
+		ZVAL_STRINGL(val, magic_val, strlen(magic_val), 1);
+		efree(magic_val);
+	}else{
+		VALUE str = rb_funcall(in, rb_intern("to_s"), 0);
 		char *akey = RSTRING(str)->ptr;
 		int length = RSTRING(str)->len;
 		ZVAL_STRINGL(val, akey, length, 1);
@@ -368,7 +440,7 @@ static void rap_register_variables(zval *track_vars_array TSRMLS_DC)
 	php_import_environment_variables(track_vars_array TSRMLS_CC);
 	/* Build the special-case PHP_SELF variable for the CGI version */
 
-	FOREACH(rb_iv_get(RAP_G(request), "@server"), php_array_foreach_iter, track_vars_array);
+	FOREACH(rb_iv_get(RAP_G(request), "@server"), php_hash_foreach_iter, track_vars_array);
 
 	efree(php_self);
 }
@@ -390,7 +462,7 @@ VALUE php_exec(VALUE self, VALUE file, VALUE pre, VALUE p_result,
 		SG(request_info).no_headers = 1;
 		SG(request_info).argc=0;
 		SG(request_info).argv=NULL;
-		SG(request_info).request_uri=rb_string_value_ptr(& file);
+		SG(request_info).request_uri=StringValuePtr(file);
 
 		if (php_request_startup(TSRMLS_C)==FAILURE) {
 			php_module_shutdown(TSRMLS_C);
@@ -400,15 +472,15 @@ VALUE php_exec(VALUE self, VALUE file, VALUE pre, VALUE p_result,
 		FOREACH(rb_iv_get(RAP_G(request), "@globals"), php_var_foreach_iter, Qnil);
 		
 		RAP_G(ruby_vars) = create_php_global_hash("_RUBY");
-		FOREACH(rb_iv_get(RAP_G(request), "@ruby"), php_array_foreach_iter, RAP_G(ruby_vars));
-		FOREACH(rb_iv_get(RAP_G(request), "@get"), php_array_foreach_iter, PG(http_globals)[TRACK_VARS_GET]);
-		FOREACH(rb_iv_get(RAP_G(request), "@post"), php_array_foreach_iter, PG(http_globals)[TRACK_VARS_POST]);
-		FOREACH(rb_iv_get(RAP_G(request), "@files"), php_array_foreach_iter, PG(http_globals)[TRACK_VARS_FILES]);
-		FOREACH(rb_iv_get(RAP_G(request), "@cookies"), php_array_foreach_iter, PG(http_globals)[TRACK_VARS_COOKIE]);
+		FOREACH(rb_iv_get(RAP_G(request), "@ruby"), php_hash_foreach_iter, RAP_G(ruby_vars));
+		FOREACH(rb_iv_get(RAP_G(request), "@get"), php_hash_foreach_iter, PG(http_globals)[TRACK_VARS_GET]);
+		FOREACH(rb_iv_get(RAP_G(request), "@post"), php_hash_foreach_iter, PG(http_globals)[TRACK_VARS_POST]);
+		FOREACH(rb_iv_get(RAP_G(request), "@files"), php_hash_foreach_iter, PG(http_globals)[TRACK_VARS_FILES]);
+		FOREACH(rb_iv_get(RAP_G(request), "@cookies"), php_hash_foreach_iter, PG(http_globals)[TRACK_VARS_COOKIE]);
 		
-		zend_eval_string(rb_string_value_ptr(& pre), NULL, "Pre" TSRMLS_CC);
+		zend_eval_string(StringValuePtr(pre), NULL, "Pre" TSRMLS_CC);
 		
-		run_php_file(rb_string_value_ptr(& file));
+		run_php_file(StringValuePtr(file));
 	}
 	zend_catch {
 		php_request_shutdown((void *) 0);
@@ -433,10 +505,9 @@ VALUE get_ruby_version_debug_option(zval **php_var, int debug);
 // NOTE: azval->value.ht
 
 // Keeps track of the RAP ruby object so we can make callbacks back out to it.
-VALUE ruby_callback_object;
 VALUE php_register_object(VALUE self, VALUE ruby_object)
 {
-	ruby_callback_object = ruby_object;
+	RAP_G(callback_object) = ruby_object;
 }
 
 VALUE rubyize_array(zval *val)
@@ -635,16 +706,16 @@ PHP_FUNCTION(ruby_callback)
 	VALUE ruby_result;
 	char * ruby_callback_method = "call";
 	
-	ruby_result = rb_funcall(ruby_callback_object, rb_intern(ruby_callback_method), 3, klass, method, parameter_array);
+	ruby_result = rb_funcall(RAP_G(callback_object), rb_intern(ruby_callback_method), 3, klass, method, parameter_array);
 	
 	if(0)
 	{
 		char * ruby_print_function = "print";
 		char * start_pre = "<pre style=\"border: solid 1px #000; padding: 5px; background-color: #ccf;\"><u>Ruby Result</u>: ";
 		char * end_pre = "</pre>";
-		rb_funcall(ruby_callback_object, rb_intern(ruby_print_function), 1, rb_str_new2(start_pre));
-		rb_funcall(ruby_callback_object, rb_intern(ruby_print_function), 1, ruby_result);
-		rb_funcall(ruby_callback_object, rb_intern(ruby_print_function), 1, rb_str_new2(end_pre));
+		rb_funcall(RAP_G(callback_object), rb_intern(ruby_print_function), 1, rb_str_new2(start_pre));
+		rb_funcall(RAP_G(callback_object), rb_intern(ruby_print_function), 1, ruby_result);
+		rb_funcall(RAP_G(callback_object), rb_intern(ruby_print_function), 1, rb_str_new2(end_pre));
 	}
 	
 	set_val(ruby_result, return_value);
@@ -669,7 +740,7 @@ zend_module_entry php_rap_callback_module_entry = {
 	NULL,               /* rinit            */
 	NULL,               /* rshutdown        */
 	NULL,               /* module info      */
-	"0.1.1",            /* version          */
+	"0.1.7",            /* version          */
 	STANDARD_MODULE_PROPERTIES
 };
 

@@ -1,0 +1,44 @@
+<html>
+	<head>
+		<style>
+			body { background-color: #2e2e2e; font-family: Verdana, Helvetica, Arial, sans-serif; font-size: 12px;}
+			a { color: #ee2b7b; font-weight: bold; text-decoration: none;}
+			#content { background-color: white; width: 600px; color: #737373;}
+			#content .bd div { float: left;}
+			#content .hd {margin-bottom: 12px;}
+			#content .bd {padding: 12px;}
+			#content .bd .profile_photo {margin-right: 10px;}
+			#content .bd .invite_text {margin-bottom: 12px; font-weight: bold; font-size: 14px; font-family: Arial, Helvetica, sans-serif;}
+			#content .bd .invite_link {font-size: 11px;}
+			#content .ft {float: left; font-size: 10px; padding: 12px; color: #dfdfdf; margin-top: 25px;}
+			#content .ft a {color: #dfdfdf; text-decoration: underline;}
+			br.clear {clear: both;}
+		</style>
+	</head>
+	<body>
+		<div id="content">
+			<div class="hd">
+				<img src="{$site.static_files_url}/FriendFinder/images/invite_logo_header.jpg" />
+			</div>
+			<div class="bd">
+				<div class="profile_photo">
+					<img src="{invite_user.img_info('landscapethumb')[1]}"/>
+				</div>
+				<div class="invite_text">
+					Hey,<br/>
+					<a href="{$site.www_url}/users/%{invite_user.username}">{invite_user.username}</a>&#160;wants you to become {invite_user.possessive_pronoun}<br/>
+					friend on {$site.config.site_name}!
+				</div>
+				<div class="invite_link">
+					To become {invite_user.username}'s friend, follow this link:<br/>
+					<a href="{$site.www_url}/account/join?email_addr=%{invite_email_address}&friend_id={invite_user.userid}">{$site.www_url}/account/join</a><br/>
+					<img src="{$site.static_files_url}/FriendFinder/images/line_solid.png" />
+				</div>
+			</div>
+			<div class="ft">
+				To opt out of receiving emails like this in the future,&#160;<a href="{$site.www_url}/account/optout?email_addr=%{invite_email_address}">click here</a>.
+			</div>
+			<br class="clear" />
+		</div>
+	</body>
+</html>

@@ -1,0 +1,15 @@
+<div id="plus">
+	<div id="plus_details">
+		<img src="#{$site.static_files_url}/plus/PlusLogoLarge.png" class="plus_logo" />
+		<img src="#{$site.static_files_url}/plus/Prices.png" class="prices" />
+		<div class="content">
+			<div class="bold">Your Transaction has been completed.<br /></div>
+			<t:loop t:id="lines" t:iter="line">
+				<div>You purchased {line[0]} of plus for&nbsp;
+					<a href="/users/%{line[1]}">{line[1]}</a>.<br />
+				</div>
+			</t:loop>
+			<div>Thanks for buying plus.</div>
+		</div>
+	</div>
+</div>

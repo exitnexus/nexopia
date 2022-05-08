@@ -1,5 +1,5 @@
 require 'set'
-require "test/unit/ui/console/testrunner"
+#require "test/unit/ui/console/testrunner"
 lib_require :Core, 'inheritance'
 lib_require :Devutils, 'quiz', 'test_status', 'defect_tag'
 

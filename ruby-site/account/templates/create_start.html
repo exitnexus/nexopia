@@ -1,0 +1,168 @@
+<div class="account_content_container" minion_name="join:main">
+	<script>
+		#{client_validation}
+	</script>
+	<div class="post_response {post_response.state == :error ? 'error' : 'valid'}" t:id="post_response">
+		<div class="primary_text">
+			#{post_response.primary_text}
+		</div>
+		<div class="secondary_text">
+			#{post_response.secondary_text}
+		</div>
+	</div>
+	<div id="join_page" class="content">
+		<div class="login_now">
+			<t:if t:id="!complete_action">
+				Already a Member?&#160;<a href="/account/login" minion_name="join:show_login">Login</a>
+			</t:if>
+			<t:if t:id="complete_action">
+				You must&#160;<a href="/account/login" minion_name="join:show_login">Login</a>&#160;or Join to complete this action.
+			</t:if>
+		</div>
+
+		<div class="left_column">
+			<div class="header">
+				Join Nexopia
+			</div>
+			<form method="post" action="/account/create" id="account_join_form">
+				<input type="hidden" name="referer" value="{referer}"/>
+				<input type="hidden" name="join_type" value="{join_type}"/>
+				<input type="hidden" name="invite_user_id" value="{invite_user_id}"/>
+				
+				<table cellspacing="0" cellpadding="0">
+				<tr>
+					<td class="label">Username</td>
+					<td class="field">
+						<input 
+							class="text" type="text" id="username" name="username" value="{username}" maxlength="15"
+							onblur="AccountValidation.validateUsername()"/>
+					</td>
+					<td class="error_field">
+						<div class="error_msg">
+							#{username_vm}
+						</div>
+					</td>
+				</tr><tr>
+					<td class="label">Password</td>
+					<td class="field">
+						<input 
+							class="text" type="password" id="password" name="password" value="{password}" maxlength="32"
+							onfocus="AccountValidation.passwordFocus()"
+							onblur="AccountValidation.validatePassword()"/>
+					</td>
+					<td class="error_field">
+						<div class="error_msg">
+							#{password_vm}
+						</div>
+					</td>
+				</tr><tr>
+					<td class="label">Email</td>
+					<td class="field">
+						<t:if t:id="!provided_email.nil?()">
+							<t:varsub t:new="email" t:old="provided_email"/>
+							<t:varsub t:new="email_confirm" t:old="provided_email"/>
+						</t:if>
+						<input 
+							class="text" type="text" id="email" name="email" value="{email}" maxlength="100"
+							onblur="AccountValidation.validateEmail(); AccountValidation.validateEmailConfirm()"/>
+					</td>
+					<td class="error_field">
+						<div class="error_msg">
+							#{email_vi}
+							#{email_vm}
+						</div>
+					</td>
+				</tr><tr>
+					<td class="label">Retype Email</td>
+					<td class="field">
+						<input 
+							class="text" type="text" id="email_confirm" name="email_confirm" value="{email_confirm}"
+							maxlength="100" onblur="AccountValidation.validateEmailConfirm(); AccountValidation.validateEmail()"/>
+					</td>
+					<td class="error_field">
+						<div class="error_msg">
+							#{email_confirm_vi}
+							#{email_confirm_vm}
+						</div>
+					</td>
+				</tr><tr>
+					<td class="label extra_space">Location</td>
+					<td class="field extra_space">
+						<t:handler-include path="/autocomplete/location/{location}" area="Public"/>
+					</td>
+					<td class="error_field">
+						<div class="error_msg">
+							#{location_vm}
+						</div>
+					</td>
+				</tr><tr>
+					<td class="label">Birthday</td>
+					<td class="field">
+						<t:handler-include path="/current/date/dob/{month}/{day}/{year}" area="Skeleton">
+							<t:var t:name="'year_onchange_handler'" t:val="'AccountValidation.validateDOB()'" />
+							<t:var t:name="'month_onchange_handler'" t:val="'AccountValidation.validateDOB()'" />
+							<t:var t:name="'day_onchange_handler'" t:val="'AccountValidation.validateDOB()'" />
+						</t:handler-include>
+					</td>
+					<td class="error_field">
+						<div class="error_msg">
+							#{dob_vm}
+						</div>
+					</td>
+				</tr><tr>
+					<td class="label">Sex</td>
+					<td class="field">
+						<input class="radio_first" type="radio" id="sex" name="sex" value="Male" 
+							cond:checked="sex == 'Male'" onchange="this.validateSex = AccountValidation.validateSex; this.validateSex()">Male</input>
+						<input class="radio_next" type="radio" id="sex" name="sex" value="Female" 
+							cond:checked="sex == 'Female'" onchange="this.validateSex = AccountValidation.validateSex; this.validateSex()">Female</input>
+						<input type="hidden" id="sex" name="sex" value="" />
+					</td>
+					<td class="error_field">
+						<div class="error_msg">
+							#{sex_vm}
+						</div>
+					</td>
+				</tr><tr>
+					<td class="label"></td>
+					<td class="field terms_of_use" colspan="2">
+						By clicking join, you agree to the&nbsp;<a href="http://www.nexopia.com/terms.php" target="_new">Terms of Use</a>.<br />
+						<div class="join_btn">
+							<t:if t:id="(first_name.nil? || last_name.nil?)">
+								<t:button type="submit" minion_name="div_panel" 
+									id="join_button"
+									div_id="account_extra_info"
+									form_id="account_join_form"
+									exit_path="/account/create"
+									ajax_exit="false">JOIN</t:button>
+							</t:if>
+							<t:if t:id="!(first_name.nil? || last_name.nil?)">
+								<input name="first_name" type="hidden" value="{first_name}"/>
+								<input name="last_name" type="hidden" value="{last_name}"/>
+								<t:button id="join_button" type="submit">JOIN</t:button>
+							</t:if>
+						</div>
+					</td>
+				</tr>
+				</table>
+			</form>
+		</div>
+
+		<div class="right_column">
+			#{why_join_text}
+		</div>
+
+		<br class="clear" />
+	</div>
+	
+	<t:template-include name="extra_info_popup" module="account"/>
+	
+	<div id="inline_login_page_container" t:id="!inline" style='display:none'>
+		<t:handler-include path="/account/login" area="Public">
+			<t:var t:name="'inline'" t:val="true"/>
+		</t:handler-include>
+	</div>
+	<script>
+		document.getElementById("username").focus();
+	</script>
+</div>

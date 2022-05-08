@@ -1,9 +1,12 @@
+# Generate a class that represents a template object.  The class should be
+# generated at compile-time at a one-time overhead, then instanciated quickly
+# many times afterwards.
+
 class CodeGenerator
 	attr :dependencies, true;
 	attr :exports, true;
 	
 	def initialize(string)
-		@vars = Hash.new;
 		@class_name = string;
 		@code = Array.new();
 		@strings = Array.new();
@@ -23,7 +26,6 @@ class CodeGenerator
 		if (string.length < 1)
 			return
 		end
-		#@code << "@output << '" + ("\t"*@indent) + "' + %Q|" + string.gsub("|", "\\|") + "\\n|;\n";
 		if (string.index('#{'))
 			match = string.match(/\#\{([^\}]+)\}/)
 			append_print($`) if $`
@@ -34,47 +36,44 @@ class CodeGenerator
 				@strings[-1] += string
 			else
 				@strings << string
-				@code << "@output << _static_strings[#{@strings.length - 1}];\n";
+				@code << "\t\t__template_output << @@_static_strings[#{@strings.length - 1}];\n";
 				@write_open = true;
 			end
 		end
 	end
 	
+	def append_conditional_print(skin_property, prop, rule_value)
+		if(prop.length() < 1)
+			return;
+		end
+		
+		@strings << prop;
+		@code << "\t\tif(!#{skin_property}.nil?())\n";
+		@code << "\t\t\t__template_output << @@_static_strings[#{@strings.length - 1}]\n";
+		@code << "\t\t\t__template_output << #{rule_value}\n";
+		@code << "\t\tend\n";
+		@write_open = false;
+	end
+	
 	def append_string(string)
-		append_output("%q|#{string}|")
+		append_output("%q|#{string.gsub('|','\|')}|")
 	end
 
 	# Apped a print statement for the input paramenter, which is a variable or method call
 	# such as "object.to_s"
 	def append_output( string )
 		@write_open = false;
-		@code << "@output << #{string};\n";
+		@code << "\t\t__template_output << #{string};\n";
 	end
 
 	# Generate the class through a mixture of metaprogramming and string evals.
 	# Most of the class generation is done through metaprogramming constructs
 	# because they are faster and have a more programmatic interface.
 	def generate(xml_file_name)
-		basename = "generated/#{@class_name}.gen"
+		basename = "#{$site.config.generated_base_dir}/#{@class_name}.gen"
 		filename = "#{basename}.rb"
-		temp = @vars;
-		temp_code = @code;
 
-		vars = "";
-		temp.each{|var|
-			if (vars.length > 0)
-				vars = vars + ",";
-			end
-			vars = vars + "[\"#{var[0]}\", \"#{var[1]}\"]";
-		}
-		string_array = "";
-		@strings.each{|str|
-			if (string_array.length > 0)
-				string_array += ",\n";
-			end
-			string_array += ("%Q|" + str.gsub("|", "\\|") + "|");
-			
-		}
+		strings = @strings.map {|str| ("%Q|" + str.gsub("|", "\\|") + "|") }.join(",\n");
 		defines = "";
 		@exports.each{ |name,dump|
 			File.open("#{basename}.#{name}.robj", "w"){|f|
@@ -83,53 +82,23 @@ class CodeGenerator
 			defines << "Template::DefaultView.defines['#{name}'] = Marshal.load(File.open('#{basename}.#{name}.robj').read)\n";
 		}
 		string = <<-EOF
-  	@xml_file_name = "#{xml_file_name}";
-	@vars = [#{vars}];	
-	@_static_strings = [#{string_array}];
-	
-	attr :this_page, true;
-	attr :host, true;
+	@xml_file_name = "#{xml_file_name}";
+	@@_static_strings = [
+#{strings}
+	];
 
 	#{defines}
-	
-	def initialize()
-    	@this_page = "";
-	end
-	
+
 	def method_missing(meth, *args)
-		if meth.to_s[-1..-1] == "="
-			self.instance_variable_set(:"@\#{meth.to_s[0...-1]}", *args)
-		else
-			self.instance_variable_get(:"@\#{meth}")
-		end
-	end
-	
-		EOF
-		
-		@vars.each{ |var, type|
-			begin
-			string << <<-EOF
-	attr :#{var}, false;
-	def #{var}=(val)
-		send :instance_variable_set, "@#{var}", val;
-	end
-			EOF
-			rescue
-				$log.object variable_positions, :error;
-				raise
-			end
+		self.class.module_eval {
+			attr meth.to_s.chomp('=').to_sym, true;
 		}
-		string << <<-EOF
-	class << self
-		def _static_strings
-			return @_static_strings
-		end
-		
-		def get_vars
-			return @vars;
-		end
+
+		self.send(meth, *args)
 	end
+
 		EOF
+		
 		# The "display" method is created as an evaluation of a string,
 		# because it is a complex chain of arbitrary commands.  The same results
 		# could be achieved with a list of Proc objects, but the proc objects incur
@@ -141,10 +110,9 @@ class CodeGenerator
 		begin
 			string << <<-EOF
 	def display()
-		@output = StringIO.new();
-		_static_strings = self.class._static_strings
-			#{@code}
-		return @output.string;
+		__template_output = [];
+#{@code}
+		return __template_output.join('');
 	end
 			EOF
 		rescue SyntaxError => err
@@ -156,10 +124,10 @@ class CodeGenerator
 		f = File.new(filename, "w")
 		$log.info("Writing #{@class_name}", :debug, :template);
 		f.write("#dependencies=#{@dependencies.join(',')}\n");
-		f.write("lib_require :core, 'template/default_view'\n");
+		f.write("#lib_require :core, 'template/default_view'\n");
 		f.write("class #{@class_name}\n")
 		f.write(string);
-		f.write("end");
+		f.write("end\n");
 		f.flush();
 		f.close();
 		begin

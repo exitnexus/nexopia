@@ -166,9 +166,9 @@ class Mysql
   def options(option, arg=nil)
     if option == OPT_LOCAL_INFILE then
       if arg == false or arg == 0 then
-	@client_flag &= ~CLIENT_LOCAL_FILES
+        @client_flag &= ~CLIENT_LOCAL_FILES
       else
-	@client_flag |= CLIENT_LOCAL_FILES
+        @client_flag |= CLIENT_LOCAL_FILES
       end
     else
       raise "not implemented"
@@ -362,9 +362,9 @@ class Mysql
     field_count.times do
       len = get_length data
       if len == nil then
-	rec << len
+        rec << len
       else
-	rec << data.slice!(0,len)
+        rec << data.slice!(0,len)
       end
     end
     rec
@@ -373,8 +373,8 @@ class Mysql
   def skip_result()
     if @status == :STATUS_USE_RESULT then
       loop do
-	data = read
-	break if data[0] == 254 and data.length == 1
+        data = read
+        break if data[0] == 254 and data.length == 1
       end
       @status = :STATUS_READY
     end
@@ -390,8 +390,8 @@ class Mysql
     data = read
     @field_count = get_length(data)
     if @field_count == nil then		# LOAD DATA LOCAL INFILE
-		File::open(data) do |f|
-	write f.read
+      File::open(data) do |f|
+        write f.read
       end
       write ""		# mark EOF
       data = read
@@ -401,11 +401,11 @@ class Mysql
       @affected_rows = get_length(data, true)
       @insert_id = get_length(data, true)
       if @server_capabilities & CLIENT_TRANSACTIONS != 0 then
-	a = data.slice!(0,2)
-	@server_status = a[0]+a[1]*256
+        a = data.slice!(0,2)
+        @server_status = a[0]+a[1]*256
       end
       if data.size > 0 and get_length(data) then
-	@info = data
+        @info = data
       end
     else
       @extra_info = get_length(data, true)
@@ -464,11 +464,7 @@ class Mysql
     ret
   end
 
-  def get_length(data, longlong = nil)
-	return rb_get_length(data, longlong);
-  end
-
-  def rb_get_length(data, longlong=nil)
+  def get_length(data, longlong=nil)
     return if data.length == 0
     c = data.slice!(0)
     case c
@@ -483,10 +479,10 @@ class Mysql
     when 254
       a = data.slice!(0,8)
       if longlong then
-	return a[0]+a[1]*256+a[2]*256**2+a[3]*256**3+
-	  a[4]*256**4+a[5]*256**5+a[6]*256**6+a[7]*256**7
+        return a[0]+a[1]*256+a[2]*256**2+a[3]*256**3+
+          a[4]*256**4+a[5]*256**5+a[6]*256**6+a[7]*256**7
       else
-	return a[0]+a[1]*256+a[2]*256**2+a[3]*256**3
+        return a[0]+a[1]*256+a[2]*256**2+a[3]*256**3
       end
     else
       c
@@ -513,11 +509,11 @@ class Mysql
     a = @net.read
     if a[0] == 255 then
       if a.length > 3 then
-	@errno = a[1]+a[2]*256
-	@error = a[3 .. -1]
+        @errno = a[1]+a[2]*256
+        @error = a[3 .. -1]
       else
-	@errno = Error::CR_UNKNOWN_ERROR
-	@error = Error::err @errno
+        @errno = Error::CR_UNKNOWN_ERROR
+        @error = Error::err @errno
       end
       raise Error::new(@errno, @error)
     end
@@ -618,21 +614,21 @@ class Mysql
 
     def fetch_row()
       if @data then
-	if @current_row >= @data.length then
-	  @handle.status = :STATUS_READY
-	  return
-	end
-	ret = @data[@current_row]
-	@current_row += 1
+        if @current_row >= @data.length then
+          @handle.status = :STATUS_READY
+          return
+        end
+        ret = @data[@current_row]
+        @current_row += 1
       else
-	return if @eof
-	ret = @handle.read_one_row @field_count
-	if ret == nil then
-	  @eof = true
-	  return
-	end
-	@lengths = ret.map{|i| i ? i.length : 0}
-	@row_count += 1
+        return if @eof
+        ret = @handle.read_one_row @field_count
+        if ret == nil then
+          @eof = true
+          return
+        end
+        @lengths = ret.map{|i| i ? i.length : 0}
+        @row_count += 1
       end
       ret
     end
@@ -642,8 +638,8 @@ class Mysql
       return if row == nil
       hash = {}
       @fields.each_index do |i|
-	f = with_table ? @fields[i].table+"."+@fields[i].name : @fields[i].name
-	hash[f] = row[i]
+        f = with_table ? @fields[i].table+"."+@fields[i].name : @fields[i].name
+        hash[f] = row[i]
       end
       hash
     end
@@ -679,13 +675,13 @@ class Mysql
 
     def each()
       while row = fetch_row do
-	yield row
+        yield row
       end
     end
 
     def each_hash(with_table=nil)
       while hash = fetch_hash(with_table) do
-	yield hash
+        yield hash
       end
     end
 
@@ -753,7 +749,7 @@ class Mysql
       @def = def_value
       @max_length = max_length
       if (type <= TYPE_INT24 and (type != TYPE_TIMESTAMP or length == 14 or length == 8)) or type == TYPE_YEAR then
-	@flags |= NUM_FLAG
+        @flags |= NUM_FLAG
       end
     end
     attr_reader :table, :org_table, :name, :length, :type, :flags, :decimals, :def, :max_length
@@ -1090,52 +1086,47 @@ class Mysql
       @pkt_nr = 0
     end
 
-
-	def read()
-		s = rb_read();
-		return s;
+    #read and return one mysql packet
+    def read()
+      buf = ""
+      @sock.sync = false
+      begin
+        a = @sock.read(4)
+        len = a[0] + a[1]*256 + a[2]*65536;
+        pkt_nr = a[3]
+        if @pkt_nr != pkt_nr then
+          raise "Packets out of order: #{@pkt_nr}<>#{pkt_nr}"
+        end
+        @pkt_nr = @pkt_nr + 1 & 0xff
+        buf << @sock.read(len)
+      end while len == MAX_PACKET_LENGTH
+      @sock.sync = true
+      return buf
     rescue
       errno = Error::CR_SERVER_LOST
       raise Error::new(errno, Error::err(errno))
-
-    end
-
-    def rb_read()
-      buf = []
-      len = nil
-      @sock.sync = false
-      while len == nil or len == MAX_PACKET_LENGTH do
-	a = @sock.read(4)
-	len = a[0] + a[1]*256 + a[2]*65536;
-	pkt_nr = a[3]
-	if @pkt_nr != pkt_nr then
-	  raise "Packets out of order: #{@pkt_nr}<>#{pkt_nr}"
-	end
-	@pkt_nr = @pkt_nr + 1 & 0xff
-	buf << @sock.read(len)
-      end
-      @sock.sync = true
-      buf.join
     end
 
     def write(data)
       if data.is_a? Array then
-	data = data.join
+        data = data.join
       end
       @sock.sync = false
       ptr = 0
       while data.length >= MAX_PACKET_LENGTH do
-	@sock.write Net::int3str(MAX_PACKET_LENGTH)+@pkt_nr.chr+data[ptr, MAX_PACKET_LENGTH]
-	@pkt_nr = @pkt_nr + 1 & 0xff
-	ptr += MAX_PACKET_LENGTH
+        @sock.write Net::int3str(MAX_PACKET_LENGTH)+@pkt_nr.chr+data[ptr, MAX_PACKET_LENGTH]
+        @pkt_nr = @pkt_nr + 1 & 0xff
+        ptr += MAX_PACKET_LENGTH
       end
       @sock.write Net::int3str(data.length-ptr)+@pkt_nr.chr+data[ptr .. -1]
       @pkt_nr = @pkt_nr + 1 & 0xff
       @sock.sync = true
       @sock.flush
     rescue
-      errno = Error::CR_SERVER_LOST
-      raise Error::new(errno, Error::err(errno))
+      if (data[0] != COM_QUIT) # We aren't actually trying to quit
+        errno = Error::CR_SERVER_LOST
+        raise Error::new(errno, Error::err(errno))
+      end
     end
 
     def close()

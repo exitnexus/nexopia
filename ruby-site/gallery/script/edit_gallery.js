@@ -1,21 +1,24 @@
 EditGallery  = {
 	init: function () {
-		this.galleryName = document.getElementById("gallery_name");
-		this.galleryNameInput = document.getElementById("gallery_name_input");
-		this.galleryDescription = document.getElementById("gallery_description");
-		this.galleryDescriptionInput = document.getElementById("gallery_description_input");
-		this.galleryPermissions = document.getElementById("current_gallery_permission");
-		this.galleryPermissionsSelect = document.getElementById("gallery_permission_select");
-		this.form = document.getElementById("edit_gallery_form");
-		this.root = document.getElementById("edit_gallery");
-		YAHOO.util.Event.on(this.galleryName, "click", function(e) {this.editName();}, this, true);
-		YAHOO.util.Event.on(this.galleryNameInput, "blur", function(e) {this.scheduleSave();}, this, true);
-		YAHOO.util.Event.on(this.galleryDescription, "click", function(e) {this.editDescription();}, this, true);
-		YAHOO.util.Event.on(this.galleryDescriptionInput, "blur", function(e) {this.scheduleSave();}, this, true);
-		YAHOO.util.Event.on(this.galleryPermissions, "click", function(e) {this.editPermissions();}, this, true);
-		YAHOO.util.Event.on(this.galleryPermissionsSelect, "change", function(e) {this.scheduleSave();}, this, true);
-		YAHOO.util.Event.on(this.galleryPermissionsSelect, "blur", function(e) {this.scheduleSave();}, this, true);
-		YAHOO.util.Event.on(document.getElementsByTagName("body")[0], "click", function(e) {this.considerSaving();}, this, true);
+		this.galleryName = YAHOO.util.Dom.get("gallery_name");
+		this.galleryNameInput = YAHOO.util.Dom.get("gallery_name_input");
+		this.galleryDescription = YAHOO.util.Dom.get("gallery_description");
+		this.galleryDescriptionInput = YAHOO.util.Dom.get("gallery_description_input");
+		this.galleryPermissions = YAHOO.util.Dom.get("current_gallery_permission");
+		this.galleryPermissionsSelect = YAHOO.util.Dom.get("gallery_permission_select");
+		this.form = YAHOO.util.Dom.get("edit_gallery_form");
+		this.root = YAHOO.util.Dom.get("edit_gallery");
+		YAHOO.util.Event.on(this.galleryName, "click", this.editName, this, true);
+		YAHOO.util.Event.on(this.galleryNameInput, "blur", this.scheduleSave, this, true);
+		YAHOO.util.Event.on(this.galleryNameInput, "keypress", this.checkKeys, this, true);
+		YAHOO.util.Event.on(this.galleryDescription, "click", this.editDescription, this, true);
+		YAHOO.util.Event.on(this.galleryDescriptionInput, "blur", this.scheduleSave, this, true);
+		YAHOO.util.Event.on(this.galleryDescriptionInput, "keypress", this.checkKeys, this, true);
+		YAHOO.util.Event.on(this.galleryPermissions, "click", this.editPermissions, this, true);
+		YAHOO.util.Event.on(this.galleryPermissionsSelect, "change", this.scheduleSave, this, true);
+		YAHOO.util.Event.on(this.galleryPermissionsSelect, "blur", this.scheduleSave, this, true);
+		YAHOO.util.Event.on(this.galleryPermissionsSelect, "keypress", this.checkKeys, this, true);
+		YAHOO.util.Event.on(document.getElementsByTagName("body")[0], "click", this.considerSaving, this, true);
 	},
 	saveOnClick: false,
 	reinit: function() {
@@ -41,6 +44,18 @@ EditGallery  = {
 		this.galleryPermissionsSelect.style.display = "block";
 		this.galleryPermissionsSelect.focus();
 	},
+	checkKeys: function(event) {
+		switch (YAHOO.util.Event.getCharCode(event)) {
+			case 13: //enter
+				this.save();
+				YAHOO.util.Event.preventDefault(event);
+				break;
+			case 27: //escape
+				this.cancel();
+				YAHOO.util.Event.preventDefault(event);
+				break;
+		}
+	},
 	scheduleSave: function() {
 		this.saveOnClick = true;
 	},
@@ -48,6 +63,18 @@ EditGallery  = {
 		if (this.saveOnClick) {
 			this.save();
 		}
+	},
+	cancel: function() {
+		this.galleryName.style.display = "block";
+		this.galleryNameInput.parentNode.style.display = "none";
+		this.galleryNameInput.blur();
+		this.galleryDescription.style.display = "block";
+		this.galleryDescriptionInput.parentNode.style.display = "none";
+		this.galleryDescriptionInput.blur();
+		this.galleryPermissions.style.display = "block";
+		this.galleryPermissionsSelect.style.display = "none";
+		this.galleryPermissionsSelect.blur();
+		this.cancelSave();
 	},
 	cancelSave: function() {
 		this.saveOnClick = false;
@@ -70,18 +97,21 @@ EditGallery  = {
 		this.cancelSave();
 	},
 	startSpinner: function() {
-		var spinner = document.getElementById("edit_gallery_spinner");
+		var spinner = YAHOO.util.Dom.get("edit_gallery_spinner");
 		if (spinner) {
 			spinner.style.display = "block";
 		}
 	},
 	stopSpinner: function() {
-		var spinner = document.getElementById("edit_gallery_spinner");
+		var spinner = YAHOO.util.Dom.get("edit_gallery_spinner");
 		if (spinner) {
 			spinner.style.display = "none";
 		}
 	}
 };
 
-GlobalRegistry.register_handler("edit_gallery", EditGallery.init, EditGallery, true);
-ResponseHandler.registerIDHandler("edit_gallery", EditGallery.reinit, EditGallery, true);
+Overlord.assign({
+	minion: "edit_gallery",
+	load: EditGallery.init,
+	scope: EditGallery
+});

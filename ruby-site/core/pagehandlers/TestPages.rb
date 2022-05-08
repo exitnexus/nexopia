@@ -19,6 +19,7 @@ class TestPages < PageHandler
 		page   :GetRequest, :Full, :default_page, "page"
 		handle :GetRequest, :default_page
 		page   :GetRequest, :Full, :sean_test, "sean"
+		page	 :GetRequest, :Full, :storable_test, "storable_test"
 
 		handle :GetRequest, :object_test, 42
 
@@ -90,6 +91,15 @@ class TestPages < PageHandler
 		puts("Hello, " + params['hello', String, ""] + ". You are " + params['age', Integer, 0].to_s + " years old!");
 	end
 
+	class Blorp
+		extend UserContent
+		attr :str
+		def initialize(str)
+			@str = str
+		end
+		user_content :str
+	end
+	
 	def default_page()
 		#PageHandler.list_uri(url/:test_stuff, :User).html_dump
 		#PageHandler.query_uri(:GetRequest, url/:test_stuff, :Public).html_dump
@@ -98,8 +108,20 @@ class TestPages < PageHandler
 #		(1..100000000000).each {|i|
 #			print("#{i}\n")
 #		}
-		
-		print("Hello, this is the default page<br/>");
+
+		print("Hello, this is the default page -- I think.<br/>");
+=begin		
+		x = Blorp.new(%Q{<img src="http://blah"/> &stuff <3 <br><a href="mailto:blorp" zref="woop" style="position: absolute">blah</a><b> <ul><li>blah
+			<object width="464" height="392"><param name="movie" value="http://embed.break.com/NDc5ODUx"></param><embed src="http://embed.break.com/NDc5ODUx" type="application/x-shockwave-flash" width="464" height="392"></embed></object><br><font size=1><a href="http://break.com/index/genius-interviewed-about-aliens.html">Genius Interviewed About Aliens</a> - Watch more <a href="http://www.break.com/">free videos</a></font>
+			<embed style="width:400px; height:326px;" id="VideoPlayback" type="application/x-shockwave-flash" src="http://video.google.com/googleplayer.swf?docId=-4974994628499449162&hl=en-CA" flashvars=""> </embed>
+			<embed width="448" height="361" type="application/x-shockwave-flash" wmode="transparent" src="http://i212.photobucket.com/player.swf?file=http://vid212.photobucket.com/albums/cc38/babes_photobucket/CIMG0211.flv&amp;sr=1">
+			<object width="425" height="355"><param name="movie" value="http://www.youtube.com/v/-GNApD8yoTM&hl=en"></param><param name="wmode" value="transparent"></param><embed src="http://www.youtube.com/v/-GNApD8yoTM&hl=en" type="application/x-shockwave-flash" wmode="transparent" width="425" height="355"></embed></object>
+			<object type="application/x-shockwave-flash" width="400" height="225" data="http://www.vimeo.com/moogaloop.swf?clip_id=419344&amp;server=www.vimeo.com&amp;fullscreen=1&amp;show_title=1&amp;show_byline=1&amp;show_portrait=0&amp;color=">	<param name="quality" value="best" />	<param name="allowfullscreen" value="true" />	<param name="scale" value="showAll" />	<param name="movie" value="http://www.vimeo.com/moogaloop.swf?clip_id=419344&amp;server=www.vimeo.com&amp;fullscreen=1&amp;show_title=1&amp;show_byline=1&amp;show_portrait=0&amp;color=" /></object><br /><a href="http://www.vimeo.com/419344/l:embed_419344">Pause</a> from <a href="http://www.vimeo.com/sjogren/l:embed_419344">Aaron Sjogren</a> on <a href="http://vimeo.com/l:embed_419344">Vimeo</a>.
+			<object width="460" height="390"><param name="movie" value="http://media.imeem.com/s/cdr5rYCuCu/aus=false/"></param><param name="allowFullScreen" value="true"></param></param><param name="salign" value="lt"></param><param name="scale" value="noscale"></param><embed src="http://media.imeem.com/s/cdr5rYCuCu/aus=false/" allowFullScreen="true" scale="noscale" type="application/x-shockwave-flash" width="460" height="390"></embed></object>
+			<object width="400" height="345"><param name="movie" value="http://media.imeem.com/v/SDyLPCvheA/aus=false/pv=2"></param><param name="allowFullScreen" value="true"></param><embed src="http://media.imeem.com/v/SDyLPCvheA/aus=false/pv=2" type="application/x-shockwave-flash" width="400" height="345" allowFullScreen="true"></embed></object>
+			<object width="400" height="345"><param name="movie" value="http://media.imeem.com/v/SDyLPCvheA/pv=2"></param><param name="allowFullScreen" value="true"></param><embed src="http://media.imeem.com/v/SDyLPCvheA/pv=2" type="application/x-shockwave-flash" width="400" height="345" allowFullScreen="true"></embed></object>
+			})
+		print(x.str.parsed)
 		
 		salt = rand
 		print(%Q{
@@ -113,6 +135,7 @@ class TestPages < PageHandler
 				<input type="submit"/>
 			  </form>
 			  })
+=end
 	end
 	module TestStuff
 		attr :boom, true
@@ -175,6 +198,18 @@ class TestPages < PageHandler
 
 		t.myvar = "Sean is #{params['msg',String]}."
 		print t.display
+	end
+
+	
+	def storable_test
+		ip = -1062729173;
+		puts "Banned User Check for: #{ip.to_s}<br/>";
+		banned = BannedUsers.find(:first, ip);
+		puts "nil (1st access)?: #{banned.nil?.to_s}<br/>";
+		banned = BannedUsers.find(:first, ip);
+		puts "nil (2nd access)?: #{banned.nil?.to_s}<br/>";
+		banned = BannedUsers.find(:first, ip);
+		puts "nil (3rd access)?: #{banned.nil?.to_s}<br/>";
 	end
 
 end

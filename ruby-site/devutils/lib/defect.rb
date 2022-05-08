@@ -29,8 +29,8 @@ class Defect < Storable
 	relation_singular :repuser, :repuserid, User;
 	relation_singular :ownuser, :ownuserid, User;
 	
-	def initialize()
-		super;
+	def initialize(*args)
+		super(*args);
 		
 		@initial_values = Hash.new;
 	end

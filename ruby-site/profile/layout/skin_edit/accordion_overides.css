@@ -1,0 +1,24 @@
+#skin_edit_wrapper
+{ 
+	& .accordion_view
+	{ 
+		& .accordion_handle
+		{
+			font-size: 11px;
+			font-weight: bold;
+			color: #333;
+			font-family: Verdana, Arial, Helvetica, sans-serif;
+	
+			background-color: #dfdfdf;
+		}
+		& .accordion_handle_active
+		{
+			border-bottom: solid 0px transparent;
+		}
+		& .accordion_body
+		{
+			background-color: #dfdfdf;
+			border-bottom: solid 2px #fff;
+		}
+	}
+}

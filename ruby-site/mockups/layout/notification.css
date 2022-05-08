@@ -1,0 +1,24 @@
+#notification_mockup {
+	width: 724px;
+	padding: 12px;
+	margin: 0px auto 6px auto;
+	/* background-color: #e0e0e0; */
+	background-color: $user_message_background_color;
+	color: $user_message_text_color;
+	border: 1px solid $user_message_border_color;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	
+	& * {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+	}
+	
+	& .primary_text {
+		font-size: 15px;
+		font-weight: bold;
+	}
+	
+	& .secondary_text {
+		margin-top: 2px;
+	}
+}

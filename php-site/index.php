@@ -8,13 +8,13 @@
 	$spotlighthist = $cache->hdget('spotlightpics2', 60, 'getSpotlightPics');
 	foreach ($spotlighthist as &$spotlightitem)
 	{
-		$spotlightitem['pic_url'] = $config['thumbloc'] . $spotlightitem['pic_url'];
+		$spotlightitem['pic_url'] = $spotlightitem['pic_url'];
 	}
 
 //grab the ads
-	if(!$userData['limitads']){
-		$vulcunbannertext = ""; //$banner->getbanner(BANNER_VULCAN);
-		$boxbannertext = $banner->getbanner(BANNER_BIGBOX);
+	if(!($userData['limitads'] && $userData['premium'])){
+		$vulcunbannertext = "";//$banner->getbanner(BANNER_VULCAN);
+		$boxbannertext = $banner->getbanner(BANNER_BIGBOX);  // this doesn't use the iframe to allow for expanding adds.
 	}
 
 //site news
@@ -46,8 +46,8 @@
 
 	$template->set("spotlighthist", $spotlighthist);
 
-	$template->set("limit_ads", $userData['limitads']);
-	if(!$userData['limitads']){
+	$template->set("limit_ads", ($userData['limitads'] && $userData['premium']));
+	if(!($userData['limitads'] && $userData['premium'])){
 		$template->set("vulcanbannertext", $vulcunbannertext);
 		$template->set("boxbannertext", $boxbannertext);
 	}
@@ -62,15 +62,50 @@
 
 
 function getSpotlightPics(){
-	global $config;
+	global $config, $usersdb, $cache;
 
 	$spotlight = getSpotlight(); //get a new one
 	
 	$spotlightlist = array($spotlight['userid'] => $spotlight);
 	$spotlightlist += getSpotlightHist(); //get old ones
 
+	// NEX-801
+	// Get any cached image paths
+	$picids = array();
+	foreach( $spotlightlist as $line ) {
+		$picids[] = $line['userid'] . "-" . $line['pic'];
+	}	
+	$imagepaths = $cache->get_multi($picids, 'galleryimagepaths-');
+	
+	// figure out if there are any images that didn't have cached paths
+	$missingpaths = array_diff($picids, array_keys($imagepaths));
+
+	// If there are any missing paths get them from the DB.
+	if(count($missingpaths)){
+
+		// Generate a list of user id, pic id pairs for the query.	
+		$keys = array('userid' => '%', 'id' => '#');
+		$itemid = array();
+		foreach( $spotlightlist as $line ) {
+			$itemid[] = array($line['userid'], $line['pic']);
+		}
+		
+		// Get any remaining images
+		$res = $usersdb->prepare_query("SELECT userid, revision, id FROM gallerypics WHERE ^", $usersdb->prepare_multikey($keys, $itemid));
+		while($line = $res->fetchrow()){
+
+			// Generate the uncached image paths.
+			$imagepaths[$line['userid'] . "-" . $line['id']] = $line['revision'] . '/' . weirdmap($line['userid']) . "/" . $line['id'] . ".jpg";
+
+			// Cache the paths.
+			$cache->put("galleryimagepaths-$line[userid]-$line[id]", $imagepaths[$line['userid'] . "-" . $line['id']], 86400*7);
+		}
+	
+	}
+
+
 	foreach($spotlightlist as & $user)
-		$user['pic_url'] = floor($user['userid']/1000) . "/" . weirdmap($user['userid']) . "/$user[pic].jpg";
+		$user['pic_url'] = $config['thumbloc'] . $imagepaths[$user['userid'] . "-" . $user['pic']];
 	
 	return $spotlightlist;
 }
@@ -85,7 +120,7 @@ function getArticles(){
 
 	while($line = $result->fetchrow()){
 		$line['ntext'] = $line['text'];
-		$line['ntext'] = nl2br(smilies(parseHTML($line['text'])));
+		$line['ntext'] = smilies(parseHTML($line['text']));
 		$line['ntext'] = truncate($line['ntext'], 400);
 		$line['author'] = getUserName($line['authorid']);
 		$articledata[] = $line;

@@ -35,9 +35,12 @@ class Account < Cacheable
 		masterdb.query('UPDATE serverbalance SET realaccounts = realaccounts - 1 WHERE serverid = ? AND type = ?', serverid, type);
 	end
 	
+	def frozen?
+		return self.state == ACCOUNT_STATE_FROZEN
+	end
 	
 	def active?
-		return self.state == ACCOUNT_STATE_ACTIVE;
+		return self.state == ACCOUNT_STATE_ACTIVE
 	end
 	
 	
@@ -59,7 +62,7 @@ end
 # Maps group accounts to their members and vice versa.
 class AccountMap < Storable
 	init_storable(:masterdb, "accountmap");
-	relation_singular(:user, "accountid", User)
+	#relation_singular(:user, "accountid", User)
 end
 
 # This class is automatically extended when AccountType is included and defines

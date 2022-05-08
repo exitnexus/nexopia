@@ -10,6 +10,13 @@ module Search
 		#only active determines if only "active" users are eligible for the search results.
 		def EmailSearch.search_contacts(contact_list, search_user, only_active = true)
 			email_list = contact_list.map{|contact| contact.email}.compact();
+			found_invites = false;
+			found_users = false;
+			
+			# If there are no emails from the contact, there's nothing to do.
+			if(email_list.empty?())
+				return {:users => found_invites, :invites => found_invites, :contacts => []};
+			end
 			
 			user_email_list = UserEmail.find(:all, :email, *email_list);
 			
@@ -25,11 +32,13 @@ module Search
 				end
 			}.compact();
 			
-			user_list = User.find(:all, *user_id_list);
+			if(!user_id_list.empty?())
+				user_list = User.find(:all, *user_id_list);
+			end
 			
 			filtered_contact_list = Array.new();
 			
-			for user_email in user_email_list
+			user_email_list.each{|user_email|
 				user = EmailSearch.search_user_list(user_email.userid, user_list);#user_list[user_email.userid];
 				
 				if(user.nil?())
@@ -47,41 +56,48 @@ module Search
 				#that the user is visible to the search user, the user is searchable
 				#by email and that the search user has not already friended the user.
 				friend_eligible = true;
-				friend_eligible = friend_eligible && user.visible?(search_user);
+				if(!search_user.anonymous?())
+					friend_eligible = friend_eligible && user.visible?(search_user);
+					friend_eligible = friend_eligible && !search_user.friend?(user);
+					friend_eligible = friend_eligible && !user.ignored?(search_user);
+				end
 				friend_eligible = friend_eligible && user.searchemail;
-				friend_eligible = friend_eligible && !search_user.friend?(user);
-				friend_eligible = friend_eligible && !user.ignored?(search_user);
 				
 				if(friend_eligible)
 					filtered_contact_list << contact;
+					found_users = true;
 				end
-			end
+			}
 			
-			for contact in filtered_contact_list
+			filtered_contact_list.each{|contact|
 				email_list.delete(contact.email);
-			end
+			}
 			
-			invite_id = 0;
-			for email_address in email_list
+			if(!search_user.anonymous?())
 				user_invite_list = FriendFinder::EmailInvite.find(:all, search_user.userid);
-				
-				contact = EmailSearch.find_contacts(email_address, contact_list);
-				if(contact.nil?())
-					next;
-				end
-				
-				invite_eligible = true;
-				invite_eligible = invite_eligible && !EmailSearch.has_email_invite?(email_address, user_invite_list);
-				invite_eligible = invite_eligible && EmailSearch.has_optout?(email_address);
-				
-				if(invite_eligible)
-					contact.invite_id = invite_id;
-					filtered_contact_list << contact;
-					invite_id += 1;
-				end
-			end
+				invite_id = 0;
 			
-			return filtered_contact_list;
+				email_optout_list = FriendFinder::InviteOptout.find(*email_list).to_hash();
+			
+				email_list.each{|email_address|
+					contact = EmailSearch.find_contacts(email_address, contact_list);
+					if(contact.nil?())
+						next;
+					end
+				
+					invite_eligible = true;
+					invite_eligible = invite_eligible && !EmailSearch.has_email_invite?(email_address, user_invite_list);
+					invite_eligible = invite_eligible && email_optout_list[[email_address]].nil?();
+				
+					if(invite_eligible)
+						contact.invite_id = invite_id;
+						filtered_contact_list << contact;
+						found_invites = true;
+						invite_id += 1;
+					end
+				}
+			end
+			return {:users => found_users, :invites => found_invites, :contacts => filtered_contact_list};
 		end
 		
 		def EmailSearch.find_contacts(email_address, contact_list)
@@ -137,13 +153,7 @@ module Search
 			
 			return false;
 		end
-		
-		def EmailSearch.has_optout?(email_address)
-			optout = FriendFinder::InviteOptout.find(:first, email_address);
-			
-			return optout.nil?();
-		end
-		
+
 		def EmailSearch.search_user_list(user_id, user_list)
 			for user in user_list
 				if(user.userid == user_id)

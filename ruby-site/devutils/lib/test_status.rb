@@ -8,7 +8,7 @@ class TestStatus < Storable
 	init_storable(:taskdb, 'teststatus')
 	
 	def initialize(error=nil, revision = 0, author = "none")
-		super()
+		super(true)
 		if (error)
 			self.test = error.short_display[/^(.*?)\(/, 1]
 			self.testclass = error.short_display[/^.*?\((.*?)\)/, 1]

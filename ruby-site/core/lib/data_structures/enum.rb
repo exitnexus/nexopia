@@ -5,19 +5,13 @@ class Enum
 	attr(:symbol)
 	attr_reader :symbols
 
-	def initialize(symbol, *symbols)
-		@symbols = Set.new;
-		symbols.each { |sym|
-			if (sym.is_a?(Enumerable))
-				@symbols.merge(sym);
-			else
-				@symbols.add(sym);
-			end
-		}
-		if (symbol == '' || symbol.nil?)
+	EMPTY_STR = ''
+
+	def initialize(symbol, symbols) #symbols can be an array, hash of (symbol => true) or a set.
+		@symbols = symbols
+		if(symbol.nil? || symbol == EMPTY_STR)
 			symbol = @symbols.to_a.first
-		end
-		if (@symbols.include?(symbol))
+		elsif(@symbols.include?(symbol))
 			@symbol = symbol
 		else
 			raise "Invalid symbol for Enum '#{symbol}', valid symbols are: #{@symbols.inspect}";
@@ -38,20 +32,6 @@ class Enum
 			@symbol = symbol;
 		else
 			raise "Invalid symbol for Enum '#{symbol}', valid symbols are: #{@symbols.inspect}";
-		end
-	end
-
-	#adds a symbol to the set of valid symbols
-	def add_symbol(symbol)
-		@symbols.add(symbol);
-	end
-
-	#deletes a symbol from the set of valid symbols, raises an exception if the symbol is currently active
-	def delete_symbol(symbol)
-		if (@symbol != symbol)
-			@symbols.delete(symbol);
-		else
-			raise "Tried to delete current symbol in Enum";
 		end
 	end
 

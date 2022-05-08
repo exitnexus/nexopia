@@ -1,9 +1,9 @@
 lib_require :Core, "session"
 lib_require :Wiki, "wiki"
-require 'bbcode'
-
+lib_require :Bbcode, "bbcodemodule"
 
 class WikiPages < PageHandler
+=begin	
 	declare_handlers("wiki") {
 		area :Public
 		access_level :Any
@@ -22,7 +22,7 @@ class WikiPages < PageHandler
 			form "SubmitEdit", :validate_and_submit_new_wiki
 
 	}
-	
+=end	
 	def admin_wikis
 		t = Template.instance("wiki", "admin")
 		t.wikis = WikiPage.find(:conditions => ["parent = 0"]).collect{|wikipage|

@@ -1,0 +1,44 @@
+#share_picture_page {
+	margin: auto;
+	padding: 12px;
+	width: 486px;
+	background-color: #fff;
+	text-align: left;
+	
+	& br.clear {
+		clear: both;
+	}
+	
+	& h2.page_title {
+		color: #323237;
+		margin: 0px;
+		font-size: 14px;
+		font-weight: bold;
+	}
+	
+	& .link_container {
+		margin: 10px 0px 20px 0px;
+		
+		& td {
+			vertical-align: middle;
+		}
+		
+		& td.link_name {
+			width: 85px;
+			font-weight: bold;
+		}
+		
+		& td.bottom_padding {
+			padding-bottom: 3px;
+		}
+		
+		& input.text {
+			padding: 2px;
+			width: 401px;
+		}
+	}
+	
+	& div.button_done {
+		float: right;
+	}	
+}

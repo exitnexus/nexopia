@@ -1,0 +1,61 @@
+<div id="header">
+	<div class="editor_nav_secondary">
+		<a href="/my/profile">
+			CANCEL
+		</a>
+		&#160;|&#160;
+		<a href="/my/profile" id="skin_edit_done">
+			DONE
+		</a>
+	</div>
+	<h1>
+		Skin Editor
+	</h1>
+	<div id="create_new_skin">
+		<div class="button_bar">
+			<span class="yui-button yui-button-button">
+				<span class="first-child">
+					<form method="post" action="/my/profile/edit/skin/new">
+						<button id="create_skin_submit" type="submit">
+							Create New
+						</button>
+					</form>
+				</span>
+			</span>
+		</div>
+	</div>
+	<div id="skin_selector_controls">
+		<div class="button_bar">
+			<select id="skin_menu" class="themed_select" minion_name="themed_select">
+				<option value="-1">Select Skin</option>
+				<t:iter t:id="user_skin_list" t:iter="skin">
+					<option value="#{skin[1]}">{skin[0]}</option>
+				</t:iter>
+			</select>
+		</div>
+		<div class="button_bar">
+			<span class="yui-button yui-button-button">
+				<span class="first-child">
+					<button id="load_user_skin" type="button">
+						Edit
+					</button>
+				</span>
+			</span>
+		</div>
+		<div class="button_bar secondary_buttons">
+			<a href="#" id="duplicate_submit">
+				Duplicate
+			</a>
+			|
+			<a href="#" id="remove_submit">
+				Delete
+			</a>
+			<form method="post" id="duplicate_form" action="">
+			</form>
+			<form method="post" id="remove_form" action="">
+			</form>
+		</div>												
+		<div class="clearit"/>
+	</div>
+	<div class="clearit"/>
+</div>

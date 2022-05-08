@@ -99,8 +99,6 @@ class cache{
 
 					$this->remove("lock-$name");
 				}
-			}else{
-				$rows = false;
 			}
 		}
 
@@ -197,7 +195,14 @@ class cache{
 			$res = $db->query("SELECT phpkey,rubykey FROM keymap");
 
 			while($line = $res->fetchrow())
-				$map[$line['phpkey']] = $line['rubykey'];
+			{
+				if (!array_key_exists($line['phpkey'], $map))
+				{
+					$map[$line['phpkey']] = array();
+				}
+
+				$map[$line['phpkey']][] = $line['rubykey'];
+			}
 		}
 		return $map;
 	}
@@ -205,9 +210,10 @@ class cache{
 	function signalModification($key){
 		$this->verifyKeymap();
 		if($this->keymap)
-			foreach($this->keymap as $phpkey => $rubykey)
-				if(strncmp($phpkey, $key, strlen($phpkey)) == 0)
-					$this->remove($rubykey . substr($key, strlen($phpkey)));
+			foreach($this->keymap as $phpkey => $rubykey_array)
+				foreach($rubykey_array as $rubykey)
+					if(strncmp($phpkey, $key, strlen($phpkey)) == 0)
+						$this->remove($rubykey . substr($key, strlen($phpkey)));
 	}
 
 	function put($key, $value, $refresh, $wrap = false){

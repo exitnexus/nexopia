@@ -16,11 +16,9 @@ class ProfileInfoSelectors < PageHandler
 		page :GetRequest, :Full, :dating, "dating", input(String)
 	}
 	
-	ProfileInfoSelectorOption = Struct.new :value, :text;
-	
 	
 	def weight(value=nil)
-		options = profile_option_array(Profile::Profile::WEIGHT);
+		options = SelectorOptions.option_array_from_assoc_array(Profile::Profile::WEIGHT);
 		
 		t = Template.instance("nexoskel", "selector");
 		t.options = options;
@@ -32,7 +30,7 @@ class ProfileInfoSelectors < PageHandler
 	
 	
 	def height(value=nil)
-		options = profile_option_array(Profile::Profile::HEIGHT);
+		options = SelectorOptions.option_array_from_assoc_array(Profile::Profile::HEIGHT);
 		
 		t = Template.instance("nexoskel", "selector");
 		t.options = options;
@@ -44,7 +42,7 @@ class ProfileInfoSelectors < PageHandler
 	
 	
 	def orientation(value=nil)
-		options = profile_option_array(Profile::Profile::SEXUAL_ORIENTATION);
+		options = SelectorOptions.option_array_from_assoc_array(Profile::Profile::SEXUAL_ORIENTATION);
 		
 		t = Template.instance("nexoskel", "selector");
 		t.options = options;
@@ -56,7 +54,7 @@ class ProfileInfoSelectors < PageHandler
 
 
 	def living(value=nil)
-		options = profile_option_array(Profile::Profile::LIVING_SITUATION);
+		options = SelectorOptions.option_array_from_assoc_array(Profile::Profile::LIVING_SITUATION);
 		
 		t = Template.instance("nexoskel", "selector");
 		t.options = options;
@@ -68,7 +66,7 @@ class ProfileInfoSelectors < PageHandler
 
 
 	def dating(value=nil)
-		options = profile_option_array(Profile::Profile::DATING_SITUATION);
+		options = SelectorOptions.option_array_from_assoc_array(Profile::Profile::DATING_SITUATION);
 		
 		t = Template.instance("nexoskel", "selector");
 		t.options = options;
@@ -77,16 +75,4 @@ class ProfileInfoSelectors < PageHandler
 
 		puts t.display;
 	end
-
-
-	def profile_option_array(assoc_array)
-		options = Array.new;
-		
-		assoc_array.each { |member| 
-			options << ProfileInfoSelectorOption.new(member[0], member[1]);
-		};
-		
-		return options;
-	end
-	private :profile_option_array;
 end

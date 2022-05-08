@@ -20,7 +20,7 @@
 		die("Bad user");
 
 	if(!$isAdmin && ($data[$uid1]['enablecomments'] == 'n' || $data[$uid2]['enablecomments'] == 'n')){
-		header("location: /profile.php?uid=$uid1");
+		header("location: /users/". urlencode($data[$uid1]['username']));
 		exit;
 	}
 

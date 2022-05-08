@@ -1,10 +1,11 @@
 --- !ruby/object:Skin 
 skin_name: verypink
 display_name: "Very Pink"
-skin_properties: 
+skin_properties:
+  
+  side_header_height: "26px"
+   
   page_background_color: "#e9acac"
-  page_font_family: "Arial, sans-serif"
-  page_font_size: "8pt"
   link_color: "#636466"
   link_accent_color: "#f27fc2"
   primary_text_color: "#6f6f6f"
@@ -15,15 +16,18 @@ skin_properties:
   user_message_background_color: "#cccccc"
   header_text_color: "#2c2c2c"
   header_background_color: "#fac1e2"
-  header_font_family: "Arial, sans-serif"
-  header_font_size: "8pt"
   header_link_color: "#2c2c2c"
   header_link_accent_color: "#f27fc2"
-  sidebar_text_color: "#2c2c2c"
-  sidebar_background_color: "#f7f8f8"
-  sidebar_header_text_color: "#2c2c2c"
-  sidebar_link_color: "#2c2c2c"
-  sidebar_link_accent_color: "#f27fc2"
+  
   section_header_text_color: "#2c2c2c"
   section_header_background_color: "#f7f8f8"
   section_header_background_image: "/legacy/skins/verypink/blockhead.png"
+  user_online_color: "#00AA00"
+  user_offline_color: "#BF0E00"
+  
+  legacy_sidebar_text_color: "#2c2c2c"
+  legacy_sidebar_background_color: "#f7f8f8"
+  legacy_sidebar_header_text_color: "#2c2c2c"
+  legacy_sidebar_link_color: "#2c2c2c"
+  legacy_sidebar_link_accent_color: "#f27fc2"
+  

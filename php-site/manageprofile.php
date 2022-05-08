@@ -3,19 +3,24 @@
 	$login=0.5;
 
 	require_once("include/general.lib.php");
+	
+	//http redirect to the new profile in ruby-site	
+	header("HTTP/1.1 301 Moved Permanently");
+	header("Location: http://". $wwwdomain . "/my/profile/edit");
+	exit;
+
 
 	$isProfileAdmin = $mods->isAdmin($userData['userid'],'editprofile');
 	$isSigAdmin = $mods->isAdmin($userData['userid'],'editsig');
 
 	$uid = ($isProfileAdmin || $isSigAdmin ? getREQval('uid', 'int', $userData['userid']) : $userData['userid']);
 
-
 	$res = $usersdb->prepare_query("SELECT userid, age, sex, premiumexpiry > # AS plus, dob, forumrank, posts FROM users WHERE userid = %", time(), $uid);
 	$user = $res->fetchrow();
 	
 	if(!$user)
 		die("Bad User");
-
+	
 	$maxlengths = array(
 		'tagline'   => 300,
 		'signiture' =>1000,
@@ -551,8 +556,8 @@ function updateForumDetails(){
 		if($isSigAdmin)
 			$set[] = $usersdb->prepare("enablesignature = ?", (getPOSTval('enablesignature', 'bool') ? "y" : "n") );
 
-		$signiture = removeHTML(trim(substr($data['signiture'], 0, $maxlengths['signiture'])));
-		$nsigniture = nl2br(wrap(parseHTML(smilies($signiture))));
+		$signiture = cleanHTML(trim(substr($data['signiture'], 0, $maxlengths['signiture'])));
+		$nsigniture = wrap(parseHTML(smilies($signiture)));
 		$set[] = $usersdb->prepare("signiture = ?", $signiture);
 		$set[] = $usersdb->prepare("nsigniture = ?", $nsigniture);
 
@@ -598,7 +603,7 @@ function updateForumDetails(){
 		$reportreminder = getPOSTval('reportreminder', 'int');
 
 		if($reportreminder){
-			$message = 	"[url=manageprofile.php?section=forums&uid=$uid]Check/re-enable[/url] the signature for [url=profile.php?uid=$uid]" . getUserName($uid) . "[/url].\n\n" .
+			$message = 	"[url=/manageprofile.php?section=forums&uid=$uid]Check/re-enable[/url] the signature for [url=/profile.php?uid=$uid]" . getUserName($uid) . "[/url].\n\n" .
 						"The report was for " . $abuselog->reasons[$reportreason] . ": $reportsubject\n[quote]" . $reporttext. "[/quote]";
 
 			$usernotify->newNotify($userData['userid'], time() + $reportreminder, 'Signature Checkup', $message);

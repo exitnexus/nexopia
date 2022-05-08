@@ -164,6 +164,10 @@ class UserTime
 		end
 		alias gm utc
 
+		def at(*args)
+			return UserTime.new(*args)
+		end
+
 		def local(*args)
 			time = self.utc(*args)
 			time.time_zone = self.default_time_zone
@@ -226,10 +230,10 @@ class UserTime
 			if not (@dst_start)
 				return base_offset;
 			end
-			if (after_dst?(time) && before_std?(time))
-				return base_offset - dst_offset
+			if (dst?(time))
+				return base_offset + dst_offset
 			else
-				return base_offset - std_offset
+				return base_offset + std_offset
 			end
 		end
 
@@ -252,9 +256,10 @@ class UserTime
 		private
 		#ignores year, just compares month/day/hour/minute/second
 		def date_time_before_time?(date_time, time)
-			yseconds_date_time = date_time.yday*86400 + date_time.hour*3600 + date_time.min*60 + date_time.sec
-			yseconds_time = time.yday*86400 + time.hour*3600 + time.min*60 + time.sec
-			return yseconds_date_time < yseconds_time
+			return date_time.yday < time.yday unless date_time.yday == time.yday
+			return date_time.hour < time.hour unless date_time.hour == time.hour
+			return date_time.min  < time.min  unless date_time.min  == time.min
+			return date_time.sec  < time.sec
 		end
 	end
 
@@ -331,8 +336,8 @@ class UserTime
 		'Africa/Tripoli' => TimeZone.new(120, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'Africa/Tunis' => TimeZone.new(60, [0,0,2,5,9,0,0,0], 0, [0,0,2,5,2,0,0,0], 60),
 		'Africa/Windhoek' => TimeZone.new(60, [0,0,2,1,8,0,0,0], 60, [0,0,2,1,3,0,0,0], 0),
-		'America/Adak' => TimeZone.new(-600, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/Anchorage' => TimeZone.new(-540, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Adak' => TimeZone.new(-600, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Anchorage' => TimeZone.new(-540, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
 		'America/Anguilla' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Antigua' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Araguaina' => TimeZone.new(-180, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
@@ -356,29 +361,29 @@ class UserTime
 		'America/Blanc-Sablon' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Boa_Vista' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Bogota' => TimeZone.new(-300, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Boise' => TimeZone.new(-420, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/Cambridge_Bay' => TimeZone.new(-420, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
+		'America/Boise' => TimeZone.new(-420, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Cambridge_Bay' => TimeZone.new(-420, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
 		'America/Campo_Grande' => TimeZone.new(-240, [0,0,0,1,10,0,0,0], 60, [0,0,0,5,1,0,0,0], 0),
 		'America/Cancun' => TimeZone.new(-360, [0,0,2,5,9,0,0,0], 0, [0,0,2,1,3,0,0,0], 60),
 		'America/Caracas' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Cayenne' => TimeZone.new(-180, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Cayman' => TimeZone.new(-300, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Chicago' => TimeZone.new(-360, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Chicago' => TimeZone.new(-360, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
 		'America/Chihuahua' => TimeZone.new(-420, [0,0,2,5,9,0,0,0], 0, [0,0,2,1,3,0,0,0], 60),
 		'America/Costa_Rica' => TimeZone.new(-360, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Cuiaba' => TimeZone.new(-240, [0,0,0,1,10,0,0,0], 60, [0,0,0,5,1,0,0,0], 0),
 		'America/Curacao' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Danmarkshavn' => TimeZone.new(0, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Dawson' => TimeZone.new(-480, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
+		'America/Dawson' => TimeZone.new(-480, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
 		'America/Dawson_Creek' => TimeZone.new(-420, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Denver' => TimeZone.new(-420, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/Detroit' => TimeZone.new(-300, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Denver' => TimeZone.new(-420, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Detroit' => TimeZone.new(-300, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
 		'America/Dominica' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Edmonton' => TimeZone.new(-420, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
+		'America/Edmonton' => TimeZone.new(-420, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
 		'America/Eirunepe' => TimeZone.new(-300, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/El_Salvador' => TimeZone.new(-360, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Fortaleza' => TimeZone.new(-180, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Glace_Bay' => TimeZone.new(-240, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
+		'America/Glace_Bay' => TimeZone.new(-240, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
 		'America/Godthab' => TimeZone.new(-180, [0,0,1,5,2,0,0,0], 60, [0,0,1,5,9,0,0,0], 0),
 		'America/Goose_Bay' => TimeZone.new(-240, [0,1,0,2,2,0,0,0], 60, [0,1,0,1,10,0,0,0], 0),
 		'America/Grand_Turk' => TimeZone.new(-300, [0,0,0,5,9,0,0,0], 0, [0,0,0,1,3,0,0,0], 60),
@@ -387,55 +392,55 @@ class UserTime
 		'America/Guatemala' => TimeZone.new(-360, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Guayaquil' => TimeZone.new(-300, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Guyana' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Halifax' => TimeZone.new(-240, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
+		'America/Halifax' => TimeZone.new(-240, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
 		'America/Havana' => TimeZone.new(-300, [0,0,0,5,9,0,0,0], 0, [0,0,0,1,3,0,0,0], 60),
 		'America/Hermosillo' => TimeZone.new(-420, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Indiana/Indianapolis' => TimeZone.new(-300, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/Indiana/Knox' => TimeZone.new(-360, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/Indiana/Marengo' => TimeZone.new(-300, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/Indiana/Petersburg' => TimeZone.new(-360, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/Indiana/Vevay' => TimeZone.new(-300, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/Indiana/Vincennes' => TimeZone.new(-360, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/Inuvik' => TimeZone.new(-420, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
-		'America/Iqaluit' => TimeZone.new(-300, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
+		'America/Indiana/Indianapolis' => TimeZone.new(-300, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Indiana/Knox' => TimeZone.new(-360, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Indiana/Marengo' => TimeZone.new(-300, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Indiana/Petersburg' => TimeZone.new(-360, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Indiana/Vevay' => TimeZone.new(-300, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Indiana/Vincennes' => TimeZone.new(-360, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Inuvik' => TimeZone.new(-420, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
+		'America/Iqaluit' => TimeZone.new(-300, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
 		'America/Jamaica' => TimeZone.new(-300, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Juneau' => TimeZone.new(-540, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/Kentucky/Louisville' => TimeZone.new(-300, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/Kentucky/Monticello' => TimeZone.new(-300, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Juneau' => TimeZone.new(-540, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Kentucky/Louisville' => TimeZone.new(-300, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Kentucky/Monticello' => TimeZone.new(-300, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
 		'America/La_Paz' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Lima' => TimeZone.new(-300, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Los_Angeles' => TimeZone.new(-480, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Los_Angeles' => TimeZone.new(-480, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
 		'America/Maceio' => TimeZone.new(-180, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Managua' => TimeZone.new(-360, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Manaus' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Martinique' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Mazatlan' => TimeZone.new(-420, [0,0,2,5,9,0,0,0], 0, [0,0,2,1,3,0,0,0], 60),
-		'America/Menominee' => TimeZone.new(-360, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Menominee' => TimeZone.new(-360, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
 		'America/Merida' => TimeZone.new(-360, [0,0,2,5,9,0,0,0], 0, [0,0,2,1,3,0,0,0], 60),
 		'America/Mexico_City' => TimeZone.new(-360, [0,0,2,5,9,0,0,0], 0, [0,0,2,1,3,0,0,0], 60),
-		'America/Miquelon' => TimeZone.new(-180, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
-		'America/Moncton' => TimeZone.new(-240, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
+		'America/Miquelon' => TimeZone.new(-180, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
+		'America/Moncton' => TimeZone.new(-240, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
 		'America/Monterrey' => TimeZone.new(-360, [0,0,2,5,9,0,0,0], 0, [0,0,2,1,3,0,0,0], 60),
-		'America/Montevideo' => TimeZone.new(-180, [0,0,2,1,9,0,0,0], 60, [0,0,2,2,2,0,0,0], 0),
-		'America/Montreal' => TimeZone.new(-300, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
+		'America/Montevideo' => TimeZone.new(-180, [0,0,2,1,9,0,0,0], 60, [0,0,2,8,3,0,0,0], 0),
+		'America/Montreal' => TimeZone.new(-300, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
 		'America/Montserrat' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Nassau' => TimeZone.new(-300, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/New_York' => TimeZone.new(-300, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/Nipigon' => TimeZone.new(-300, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
-		'America/Nome' => TimeZone.new(-540, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Nassau' => TimeZone.new(-300, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/New_York' => TimeZone.new(-300, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Nipigon' => TimeZone.new(-300, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
+		'America/Nome' => TimeZone.new(-540, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
 		'America/Noronha' => TimeZone.new(-120, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/North_Dakota/Center' => TimeZone.new(-360, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/North_Dakota/New_Salem' => TimeZone.new(-360, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/North_Dakota/Center' => TimeZone.new(-360, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/North_Dakota/New_Salem' => TimeZone.new(-360, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
 		'America/Panama' => TimeZone.new(-300, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Pangnirtung' => TimeZone.new(-300, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
+		'America/Pangnirtung' => TimeZone.new(-300, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
 		'America/Paramaribo' => TimeZone.new(-180, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Phoenix' => TimeZone.new(-420, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Port-au-Prince' => TimeZone.new(-300, [0,0,0,5,9,0,0,0], 0, [0,0,0,1,3,0,0,0], 60),
 		'America/Port_of_Spain' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Porto_Velho' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Puerto_Rico' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Rainy_River' => TimeZone.new(-360, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
-		'America/Rankin_Inlet' => TimeZone.new(-360, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
+		'America/Rainy_River' => TimeZone.new(-360, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
+		'America/Rankin_Inlet' => TimeZone.new(-360, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
 		'America/Recife' => TimeZone.new(-180, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Regina' => TimeZone.new(-360, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Rio_Branco' => TimeZone.new(-300, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
@@ -450,16 +455,16 @@ class UserTime
 		'America/St_Vincent' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Swift_Current' => TimeZone.new(-360, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'America/Tegucigalpa' => TimeZone.new(-360, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Thule' => TimeZone.new(-240, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
-		'America/Thunder_Bay' => TimeZone.new(-300, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
+		'America/Thule' => TimeZone.new(-240, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
+		'America/Thunder_Bay' => TimeZone.new(-300, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
 		'America/Tijuana' => TimeZone.new(-480, [0,0,2,5,9,0,0,0], 0, [0,0,2,1,3,0,0,0], 60),
-		'America/Toronto' => TimeZone.new(-300, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
+		'America/Toronto' => TimeZone.new(-300, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
 		'America/Tortola' => TimeZone.new(-240, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
-		'America/Vancouver' => TimeZone.new(-480, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
-		'America/Whitehorse' => TimeZone.new(-480, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
-		'America/Winnipeg' => TimeZone.new(-360, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
-		'America/Yakutat' => TimeZone.new(-540, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
-		'America/Yellowknife' => TimeZone.new(-420, [0,0,2,1,10,0,0,0], 0, [0,0,2,2,2,0,0,0], 60),
+		'America/Vancouver' => TimeZone.new(-480, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
+		'America/Whitehorse' => TimeZone.new(-480, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
+		'America/Winnipeg' => TimeZone.new(-360, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
+		'America/Yakutat' => TimeZone.new(-540, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'America/Yellowknife' => TimeZone.new(-420, [0,0,2,1,10,0,0,0], 0, [0,0,2,8,3,0,0,0], 60),
 		'Antarctica/Casey' => TimeZone.new(480, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'Antarctica/Davis' => TimeZone.new(420, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'Antarctica/DumontDUrville' => TimeZone.new(600, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
@@ -545,7 +550,7 @@ class UserTime
 		'Asia/Yekaterinburg' => TimeZone.new(300, [0,0,2,5,9,0,0,0], 0, [0,0,2,5,2,0,0,0], 60),
 		'Asia/Yerevan' => TimeZone.new(240, [0,0,2,5,2,0,0,0], 60, [0,0,2,5,9,0,0,0], 0),
 		'Atlantic/Azores' => TimeZone.new(-60, [0,0,1,5,2,0,0,0], 60, [0,0,1,5,9,0,0,0], 0),
-		'Atlantic/Bermuda' => TimeZone.new(-240, [0,0,2,2,2,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
+		'Atlantic/Bermuda' => TimeZone.new(-240, [0,0,2,8,3,0,0,0], 60, [0,0,2,1,10,0,0,0], 0),
 		'Atlantic/Canary' => TimeZone.new(0, [0,0,1,5,2,0,0,0], 60, [0,0,1,5,9,0,0,0], 0),
 		'Atlantic/Cape_Verde' => TimeZone.new(-60, [0,0,0,0,0,0,0,0], 0, [0,0,0,0,0,0,0,0], 0),
 		'Atlantic/Faroe' => TimeZone.new(0, [0,0,1,5,2,0,0,0], 60, [0,0,1,5,9,0,0,0], 0),

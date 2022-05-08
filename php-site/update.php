@@ -15,6 +15,8 @@
 	set_time_limit(0);
 //	ignore_user_abort(true);
 
+	var_dump($mods->getModLvl(2350, 31));
+
 	$queries = array(
 
 	);

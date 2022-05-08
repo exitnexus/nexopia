@@ -37,27 +37,47 @@ class AnonymousUser
 		return false
 	end
 
-	def logged_in
+	def logged_in?
 		return false;
 	end
 	
 	def skin
-		return "newblue"
+		return "newblack"
 	end
 	def showrightblocks
 		return false;
+	end
+	def profilefriendslistthumbs
+		return true
 	end
 	
 	def plus?
 		return false
 	end
 
+	def ignored?(user)
+		return false;
+	end
+
+	def age()
+		return 0;
+	end
+
 	def uri_info
-		return nil
+		return ['', '']
 	end
 	
-	def img_info
-		return nil
+	def img_info(type = 'landscapethumb')
+		return ['', $site.static_files_url / :Userpics / :images / "no_profile_image_#{type}.gif"]
+	end
+	
+	def profilefriendslistthumbs
+		return true
+	end
+	
+	
+	def pic_mod?()
+		return false;
 	end
 	
 	class << self

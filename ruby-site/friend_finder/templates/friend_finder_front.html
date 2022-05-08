@@ -1,0 +1,21 @@
+<div id="find_friends">
+
+	<div class="header">
+		Find and Add Friends on Nexopia
+	</div>
+	
+	<br class="clear" />
+	
+	<div class="tab_control">
+		<a href="/my/friends/find" class="first selected">
+			Import From Email
+		</a>
+		<t:if t:id="!viewing_user.anonymous?()">
+			<a href="/my/friends/find/invite/manual/full">
+				Invite Friends
+			</a>
+		</t:if>
+	</div>
+	
+	<t:template-include t:module="friend_finder" t:name="friend_finder_body"/>
+</div>

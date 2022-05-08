@@ -3,7 +3,7 @@ tr {vertical-align: top;}
 
 body         { background-color: #FFF1F6; font-family: tahoma; font-size: 8pt; SCROLLBAR-FACE-COLOR: #FFF1F6; SCROLLBAR-HIGHLIGHT-COLOR: white; SCROLLBAR-SHADOW-COLOR: #FF7FA4; SCROLLBAR-3DLIGHT-COLOR: #FFA4C0; SCROLLBAR-ARROW-COLOR: #FF7FA4; SCROLLBAR-DARKSHADOW-COLOR: #FFF1F6; scrollbar-track-COLOR: #FFF1F6; margin: 0;  }
 
-input,select,textarea			{ font: 10pt tahoma; color: black }
+body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; color: #000; border:1px solid #d4d6d7;}
 
 a:active		{ color: #FF6991; text-decoration:none; font-family: tahoma; font-size: 8pt }
 a:link			{ color: #FF6991; text-decoration:none; font-family: tahoma; font-size: 8pt }

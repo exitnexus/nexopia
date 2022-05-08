@@ -81,7 +81,7 @@ As a member you can:
 
 The best part is it's FREE!
 
-Check out " . $myname . "'s profile right now and see what we're all about: http://www.nexopia.com/profile.php?uid=$userData[userid]
+Check out " . $myname . "'s profile right now and see what we're all about: http://www.nexopia.com/users/". urlencode($userData['username']) ."
 
 If you do not want to receive invitation emails from Nexopia members in the future, you can click here: http://www.nexopia.com/inviteoptout.php?email=$friendemails[$i]&k=" . makeKey($friendemails[$i], -1);
 

@@ -1,0 +1,34 @@
+.basics_edit 
+{
+	& .edit_content
+	{
+		margin-top: 20px;
+		/* 
+			This needs to be so big to fit the location lookup. Ideally, we would have the lookup div
+			able to expand over the boundaries of the panel, but this is not an easy task when dealing
+			with CSS and the way YUI implements the autocomplete.
+		*/
+		margin-bottom: 196px;
+/*		margin-bottom: 40px*/
+	}
+	
+	& select {
+		width: 220px;
+
+
+		&.month {
+			width: 100px;
+		}
+
+		&.day {
+			width: 50px;
+		}
+
+		&.year {
+			width: 70px;
+		}
+
+
+	}
+
+}

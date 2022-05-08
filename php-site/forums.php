@@ -35,7 +35,13 @@
 	}
 	$setprefs = array();
 
-	$onlysubspref = !empty($userData['onlysubscribedforums']) && $userData['onlysubscribedforums']=='y';
+	$onlysubspref = false;
+	if ($userData['halfLoggedIn']){
+		$onlysubsprefrow = $usersdb->prepare_query("SELECT onlysubscribedforums FROM users WHERE userid = %", $userData['userid'])->fetchrow();
+		if ($onlysubsprefrow)
+			$onlysubspref = $onlysubsprefrow['onlysubscribedforums'] != 'n';
+	}
+
 	$onlysubs = getREQval('onlysubs', 'integer', $onlysubspref);
 
 	if ($onlysubs != $onlysubspref)

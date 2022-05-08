@@ -1,0 +1,25 @@
+#blog_mockup_container {
+
+	& .blog_tip {
+		color: @primary_block_text_color;
+		margin-top: 24px;
+		
+		& a.tip {
+			color: @primary_block_link_color;
+			text-decoration: underline;
+			
+			&:hover {
+				color: @primary_block_link_hover_color;
+			}
+		}
+		
+		& ol {
+			padding: 0px 0px 0px 20px;
+			
+			& li {
+				padding-bottom: 17px;
+			}
+		}
+	}
+	
+}

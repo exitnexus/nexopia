@@ -11,12 +11,12 @@ class StaticContent < PageHandler
 
 	#try a plus version of the page
 		if(request.session.user.plus?)
-			page = Wiki::from_address("/SiteText/content/#{remain}plus").get_revision();
+			page = Wiki::from_address(url/:SiteText/:content/remain/:plus).get_revision();
 		end
 
 	#fall back to the normal version
 		if(!page)
-			page = Wiki::from_address("/SiteText/content/#{remain}").get_revision();
+			page = Wiki::from_address(url/:SiteText/:content/remain).get_revision();
 		end
 
 	#if neither found, 404

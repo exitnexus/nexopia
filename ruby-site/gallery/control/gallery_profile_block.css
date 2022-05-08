@@ -1,0 +1,42 @@
+#profile div.gallery_profile_block{	
+	& h2{
+		font-family: $page_font_family;
+		font-size: 14px;
+		letter-spacing: 0px;
+		margin: 2px;
+	}
+	& div.gallery_pics_frame{
+		margin: 0px;
+		background-color: @secondary_block_background_color;
+	}
+	& .paginator {
+		background-color: @secondary_block_background_color;
+		padding-left: 6px;
+		& .control_bar {
+			padding: 4px 0px;
+			& img {
+				color: @secondary_block_icon_color;
+			}
+		}
+	}
+	& .pages {
+		float: left;
+		& .thumb {
+	 		float: left;
+			width: 75px;
+			height: 75px;
+			padding: 5px 5px 1px 0px;
+			border: 1px solid @secondary_block_background_color;
+
+			& img.thumbnail {
+				width: 75px;
+				height: 75px;
+				
+				&:hover {
+					border: 1px solid @secondary_block_link_hover_color;
+				}
+
+			}
+		}
+	}
+}

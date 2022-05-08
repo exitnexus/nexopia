@@ -1,0 +1,37 @@
+<form action="{PageRequest.current.area_base_uri}/user_dump/submit" method="post">
+
+	User ID: <input name="user_id" type="text"/><br/>
+	
+	Start Date: 
+	<t:handler-include path="/current/date/date/1/1/2000" area="Skeleton">	
+		<t:var t:name="'year_ref'" t:val="'start_year'" />
+		<t:var t:name="'month_ref'" t:val="'start_month'" />
+		<t:var t:name="'day_ref'" t:val="'start_day'" />
+		<t:var t:name="'min_year'" t:val="2000" />
+		<t:var t:name="'max_year'" t:val="Time.now.year" />	
+		<t:var t:name="'year_onchange_handler'" t:val="''" />
+		<t:var t:name="'month_onchange_handler'" t:val="''" />
+		<t:var t:name="'day_onchange_handler'" t:val="''" />
+	</t:handler-include>
+	
+	End Date:
+	<t:handler-include path="/current/date/date/{Time.now.month}/{Time.now.day}/{Time.now.year}" area="Skeleton">
+		<t:var t:name="'year_ref'" t:val="'end_year'" />
+		<t:var t:name="'month_ref'" t:val="'end_month'" />
+		<t:var t:name="'day_ref'" t:val="'end_day'" />
+		<t:var t:name="'min_year'" t:val="2000" />
+		<t:var t:name="'max_year'" t:val="Time.now.year" />
+		<t:var t:name="'year_onchange_handler'" t:val="''" />
+		<t:var t:name="'month_onchange_handler'" t:val="''" />
+		<t:var t:name="'day_onchange_handler'" t:val="''" />
+	</t:handler-include>
+	
+	Select Modules to Dump:<br/>
+	<t:loop t:id="registered_classes" t:iter="thingy">
+		<input name="{thingy.name}" type="checkbox" checked="true"/>{thingy.name}<br/>
+	</t:loop>
+	
+	<input type="submit"/>
+	
+</form>
+	

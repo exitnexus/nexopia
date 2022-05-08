@@ -5,14 +5,13 @@ if(YAHOO.profile == undefined){
 YAHOO.profile.EditDialog = function(el, profileDisplayBlock) {
     YAHOO.profile.EditDialog.superclass.constructor.call(this, el, 
 	{
-		width:"560px",
-		fixedcenter:true,
+		xy: [(YAHOO.util.Dom.getDocumentWidth() - 580) / 2, YAHOO.util.Dom.getDocumentScrollTop() + 140],
+		width:"580px",
 		close:false,
 		draggable:false,
 		zindex:24,
 		modal:true,
 		visible:false,
-		effect:{effect:YAHOO.widget.ContainerEffect.FADE,duration:0.50},
 		profileDisplayBlock: profileDisplayBlock
 	});
 };
@@ -33,44 +32,76 @@ YAHOO.extend(YAHOO.profile.EditDialog, YAHOO.widget.Panel, {
 		var dialog = this;
 		var refreshPath = this.profileDisplayBlock.refresh_path();
 		var savePath = 	this.profileDisplayBlock.save_path();
-
-		this.visibilitySelector = document.createElement("select");
-		this.visibilitySelector.name = "block_visibility";
-
-		for (var i = 0; i < YAHOO.profile.visibility_options.length; i++)
+		
+		if(!YAHOO.profile.admin_user)
 		{
-			var option = document.createElement('option');
-			option.text = YAHOO.profile.visibility_options[i][0];
-			option.value = YAHOO.profile.visibility_options[i][1];
-			try
+			this.visibilitySelector = document.createElement("select");
+			this.visibilitySelector.name = "block_visibility";
+	
+			var exclude_list = this.profileDisplayBlock.visibility_exclude();
+			for (var i = 0; i < YAHOO.profile.visibility_options.length; i++)
 			{
-				this.visibilitySelector.add(option, null); // standards compliant
+				var add_option = true;
+				for (var j=0; j < exclude_list.length; j++)
+				{
+					if (YAHOO.profile.visibility_options[i][1] == exclude_list[j])
+					{
+						add_option = false;
+						break;
+					}
+				}
+				
+				if (add_option)
+				{
+					var option = document.createElement('option');
+					option.text = YAHOO.profile.visibility_options[i][0];
+					option.value = YAHOO.profile.visibility_options[i][1];
+					try
+					{
+						this.visibilitySelector.add(option, null); // standards compliant
+					}
+					catch(ex)
+					{
+						this.visibilitySelector.add(option); // IE only
+					}
+				}
 			}
-			catch(ex)
+	
+			for(var i = 0; i < this.visibilitySelector.options.length; i++)
 			{
-				this.visibilitySelector.add(option); // IE only
+				if (this.visibilitySelector.options[i].value == this.profileDisplayBlock.visibility ||
+					this.visibilitySelector.options.length - 1 == i)
+				{
+					this.visibilitySelector.selectedIndex = i;
+					break;				
+				}
 			}
 			
-		}
-
-		for(var i = 0; i < YAHOO.profile.visibility_options.length; i++)
-		{
-			if (YAHOO.profile.visibility_options[i][1] == this.profileDisplayBlock.visibility)
+			// If we have one option or less, don't show the visibility selector because it serves no
+			// purpose to allow selection of only one item.
+			if (this.visibilitySelector.options.length <= 1)
 			{
-				this.visibilitySelector.selectedIndex = i;
-				break;				
+				this.visibilitySelector.style.display = "none";
 			}
+			
+			this.dialogButtonBar.appendChild(this.visibilitySelector);
 		}
 
-		this.dialogButtonBar.appendChild(this.visibilitySelector);
+		
+		var formKey1 = document.getElementById("profile_block_form_key").value;
+		var formKey2 = document.getElementById("profile_form_key").value;			
 		
 		function save(onSuccess)
 		{
-			dialog.disableButtons();
+			dialog.disableButtons();			
 			
-			var formKey1 = document.getElementById("profile_block_form_key").value;
-			var formKey2 = document.getElementById("profile_form_key").value;
-			var visibility = dialog.visibilitySelector.options[dialog.visibilitySelector.selectedIndex].value;
+			var visibilityPostArg = "";
+			if(!YAHOO.profile.admin_user)
+			{
+				var visibility = dialog.visibilitySelector.options[dialog.visibilitySelector.selectedIndex].value;
+				visibilityPostArg = "&visibility=" + visibility;
+				dialog.profileDisplayBlock.visibility = visibility;
+			}
 			
 			var editForm = document.getElementById("block_edit_form");
 			YAHOO.util.Connect.setForm(editForm);
@@ -84,17 +115,15 @@ YAHOO.extend(YAHOO.profile.EditDialog, YAHOO.widget.Panel, {
 					dialog.destroy();
 				},
 				scope: this
-			}, "ajax=true&form_key=" + formKey1 + "&form_key=" + formKey2 + "&module_name=" + dialog.profileDisplayBlock.module_name() +
-				"&path=" + dialog.profileDisplayBlock.path + "&visibility=" + dialog.visibilitySelector.options[dialog.visibilitySelector.selectedIndex].value);
-				
-			dialog.profileDisplayBlock.visibility = visibility;
+			}, "ajax=true&form_key[]=" + formKey1 + "&form_key[]=" + formKey2 + "&module_name=" + dialog.profileDisplayBlock.module_name() +
+				"&path=" + dialog.profileDisplayBlock.path + visibilityPostArg);
 		}
 		
 		function refresh()
-		{
+		{			
 			dialog.disableButtons();
 			
-			YAHOO.util.Connect.asyncRequest('GET', refreshPath , new ResponseHandler({
+			YAHOO.util.Connect.asyncRequest('POST', refreshPath , new ResponseHandler({
 				success: function(o) {
 					dialog.enableButtons();
 					
@@ -106,7 +135,7 @@ YAHOO.extend(YAHOO.profile.EditDialog, YAHOO.widget.Panel, {
 					dialog.destroy();
 				},
 				scope: this
-			}), "ajax=true");
+			}), "ajax=true&form_key[]=" + formKey1 + "&form_key[]=" + formKey2);
 		}
 		
 		if (!this.profileDisplayBlock.explicit_save())
@@ -118,45 +147,58 @@ YAHOO.extend(YAHOO.profile.EditDialog, YAHOO.widget.Panel, {
 				label: "done",
 				container: this.dialogButtonBar
 			});
-							
+			this.doneButton.addClass("yui-button-spacer");
+			
 			function doneClick(e)
 			{
 				function done(response)
 				{
-					if (!dialog.afterDone)
+					if (!dialog.afterDone && !dialog.profileDisplayBlock.in_place_editable())
 					{
 						refresh();
 					}
 					else
 					{
-						dialog.afterDone(response);
-
+						if(dialog.afterDone)
+						{
+							dialog.afterDone(response);
+						}
+						
 						dialog.enableButtons();
-
 						dialog.destroy();
 					}
 				}
-				
+
+				var avail_visibility_options = YAHOO.profile.visibility_options.length - dialog.profileDisplayBlock.visibility_exclude().length;
 				
 				if (dialog.profileDisplayBlock.new_block())
 				{
 					save(done);
 				}
-				else
+				else if(avail_visibility_options > 2)
 				{
 					var formKey1 = document.getElementById("profile_block_form_key").value;
 					var formKey2 = document.getElementById("profile_form_key").value;
-					var visibility = dialog.visibilitySelector.options[dialog.visibilitySelector.selectedIndex].value;
-				
+					
+					var visibilityPostArg = "";
+					if(!YAHOO.profile.admin_user)
+					{
+						var visibility = dialog.visibilitySelector.options[dialog.visibilitySelector.selectedIndex].value;
+						visibilityPostArg = "&visibility=" + visibility;
+						dialog.profileDisplayBlock.visibility = visibility;
+					}
+					
 					YAHOO.util.Connect.asyncRequest('POST', savePath, {
 						success: function(o) {},
 						failure: function(o) {},
 						scope: this
-					}, "ajax=true&form_key=" + formKey1 + "&form_key=" + formKey2 + "&module_name=" + dialog.profileDisplayBlock.module_name() +
-						"&path=" + dialog.profileDisplayBlock.path + "&visibility=" + visibility);
+					}, "ajax=true&form_key[]=" + formKey1 + "&form_key[]=" + formKey2 + "&module_name=" + dialog.profileDisplayBlock.module_name() +
+						"&path=" + dialog.profileDisplayBlock.path + visibilityPostArg);
 					
-					dialog.profileDisplayBlock.visibility = visibility;
-					
+					done();
+				}
+				else
+				{
 					done();
 				}
 			}
@@ -172,10 +214,15 @@ YAHOO.extend(YAHOO.profile.EditDialog, YAHOO.widget.Panel, {
 				label: "cancel",
 				container: this.dialogButtonBar
 			});
+			this.cancelButton.addClass("yui-button-spacer");
 
 			function cancelClick(e)
 			{
 				dialog.destroy();
+				if (dialog.afterClose)
+				{
+					dialog.afterClose();
+				}
 			}
 
 			this.cancelButton.addListener("click", cancelClick);
@@ -187,9 +234,18 @@ YAHOO.extend(YAHOO.profile.EditDialog, YAHOO.widget.Panel, {
 				label: "save",
 				container: this.dialogButtonBar
 			});
+			this.saveButton.addClass("yui-button-spacer");
 
 			function saveClick(e)
 			{
+				if (dialog.beforeSave)
+				{
+					if (!dialog.beforeSave())
+					{
+						return;
+					}
+				}
+				
 				function onSuccess(response)
 				{
 					if (!dialog.afterSave)
@@ -204,6 +260,11 @@ YAHOO.extend(YAHOO.profile.EditDialog, YAHOO.widget.Panel, {
 
 						dialog.destroy();
 					}
+					
+					if (dialog.afterClose)
+					{
+						dialog.afterClose();
+					}
 				}
 				
 				save(onSuccess);				
@@ -217,14 +278,35 @@ YAHOO.extend(YAHOO.profile.EditDialog, YAHOO.widget.Panel, {
 		Dom.setStyle(this.dialogButtonBar, "position", "absolute");
 		Dom.setStyle(this.dialogButtonBar, "z-index", "25"); 
 
-		function openHandler(type, args, dialog)
+		function changeBodyHandler(type, args, dialog)
 		{
+			Overlord.summonMinions(dialog.innerElement);
+			
 			if (dialog.beforeOpen)
 			{
 				dialog.beforeOpen(dialog);
 			}
+			
+			var inputWrapperDiv = YAHOO.util.Dom.getElementsByClassName("edit_form", "div", dialog.body)[0];
+			if(inputWrapperDiv)
+			{
+				inputWrapperDiv.style.display = 'none';
+				
+				var bdParent = YAHOO.util.Dom.getAncestorByClassName(inputWrapperDiv, 'bd');
+				bdParent.style.overflow = 'auto';
+				setTimeout(function() {inputWrapperDiv.style.display = 'block';}, 20);
+			}
 		}
-		this.beforeShowEvent.subscribe(openHandler, this);	
+		this.changeBodyEvent.subscribe(changeBodyHandler, this);
+				
+		function afterOpenHandler(type, args, dialog)
+		{	
+			var inputWrapperDiv = YAHOO.util.Dom.getElementsByClassName("edit_form", "div", dialog.body)[0];
+			var bdParent = YAHOO.util.Dom.getAncestorByClassName(inputWrapperDiv, 'bd');
+			bdParent.style.overflow = 'auto';
+			inputWrapperDiv.style.display = 'block';
+		}
+		this.showEvent.subscribe(afterOpenHandler, this);
 	},
 	
 	

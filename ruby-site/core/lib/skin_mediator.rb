@@ -13,6 +13,12 @@ class SkinMediator
 	end
 	
 	def load_skins(skeleton)
+		if (skeleton.kind_of? SiteModuleBase)
+			skeleton = skeleton.name
+		else
+			skeleton = skeleton.to_s
+		end
+		
 		if (self.skeleton_list[skeleton])
 			return self.skeleton_list[skeleton]
 		end
@@ -27,15 +33,15 @@ class SkinMediator
 		
 		skin_file_list = Dir.entries(skin_path);
 		
-		for file in skin_file_list
-			if(/[\w\d]\.yaml$/.match(file))
-				temp = YAML.load(File.open("#{skin_path}/#{file}"));
-			end
+		Dir["#{skin_path}/*.yaml"].each {|file|
+			temp = YAML.load(File.open(file));
 			if(temp.kind_of?(Skin))
 				temp.skeleton = skel_obj
 				self.skeleton_list[skeleton][temp.skin_name] = temp;
+			else
+				$log.info("Skin #{skeleton}.#{file} did not evaluate to a skin object.", :warning, :skin)
 			end
-		end
+		}
 		return self.skeleton_list[skeleton]
 	end
 	
@@ -57,7 +63,7 @@ class SkinMediator
 	
 	def get_skin_value(skeleton, skin, property)
 		skin_list = load_skins(skeleton)
-		skin_obj = skin_list[skin];
+		skin_obj = skin_list[skin.to_s];
 		value  = skin_obj[property];
 		
 		if(value == nil)
@@ -83,7 +89,7 @@ class SkinMediator
 	
 	def set_value(skeleton, skin, property, value)
 		skin_list = load_skins(skeleton)
-		skin_obj = skin_list[skin];
+		skin_obj = skin_list[skin.to_s];
 		default_skin_obj = skin_list['default'];
 		
 		if(!default_skin_obj.exist?(property))
@@ -153,7 +159,7 @@ class SkinMediator
 	
 	def get_all_values(skeleton, skin)
 		skin_list = load_skins(skeleton)
-		skin_obj = skin_list[skin];
+		skin_obj = skin_list[skin.to_s];
 		default_skin_obj = skin_list['default'];
 		if (skin_obj == nil)
 			raise "Invalid skin '#{skin}'"

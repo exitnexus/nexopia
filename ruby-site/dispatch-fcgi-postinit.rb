@@ -54,9 +54,15 @@ def create_proc()
 				handling_request = true;
 				$0 = "#{base_child_name} [#{request_num}] active";
 				$log.reassert_stderr();
-				PageRequest.new_from_cgi(cgi) {|pageRequest|
-					PageHandler.execute(pageRequest);
-				}
+				begin
+					PageRequest.new_from_cgi(cgi) {|pageRequest|
+						PageHandler.execute(pageRequest);
+					}
+				rescue
+					$log.error
+					raise
+				end
+				
 				handling_request = false;
 				$0 = "#{base_child_name} [#{request_num}] waiting";
 

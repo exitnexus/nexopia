@@ -124,7 +124,8 @@ class MogileFS_Client {
 
 		$put_res = $this->doPut($res['path'], $data);
 		$res = $this->cmd('CREATE_CLOSE', array('key' => $key, 'class' => $class, 'devid' => $res['devid'], 'fid' => $res['fid'], 'path' => urldecode($res['path']), 'size' => strlen($data)));
-		if ($res)
+
+		if (!count($res))
 			return TRUE;
 		else
 			return FALSE;
@@ -146,9 +147,12 @@ class MogileFS_Client {
 		curl_setopt($ch, CURLOPT_INFILE, $tmp);
 		curl_setopt($ch, CURLOPT_INFILESIZE, $len);
 		curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_FAILONERROR, true);
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array('Expect:'));
 
+		ob_start();
 		$rv = curl_exec($ch);
+		ob_end_clean();
 
 		if (!$rv || curl_errno($ch) != 0) {
 			trigger_error("curl_exec(): " . curl_error($ch), E_USER_WARNING);

@@ -19,12 +19,11 @@ class textparser
 	{
 	        $this->nmsg =  trim($this->msg);
 
-		$this->nmsg = removeHTML($this->nmsg);
+		$this->nmsg = cleanHTML($this->nmsg);
 
 		$this->nmsg = parseHTML($this->nmsg);
 		$this->nmsg = smilies($this->nmsg);
 		$this->nmsg = wrap($this->nmsg);
-		$this->nmsg = nl2br($this->nmsg);
         }
 
     // $items has to be in array(id => &obj) form
@@ -74,7 +73,7 @@ class textparser
 	function getText()
 	{
 
-		return removeHTML($this->msg);
+		return cleanHTML($this->msg);
 
 	}
 
@@ -82,7 +81,7 @@ class textparser
 	{
 		$newmsg = trim($msg);
 
-		$newmsg = removeHTML($newmsg);
+		$newmsg = cleanHTML($newmsg);
 
 
 		if ($newmsg != $this->msg)

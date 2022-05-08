@@ -1,9 +1,9 @@
 
-require 'preferences/lib/preference'
-require 'preferences/pagehandlers/preferences'
+# require 'preferences/lib/preference'
+# require 'preferences/pagehandlers/preferences'
 
 class MessagesModule < SiteModuleBase
-    Preference::addModule(self, 20)
+    # Preference::addModule(self, 20)
         
     def MessagesModule.index(user, has_plus, returnHash)
     	t = Template.instance("messages", "messages_preferences");

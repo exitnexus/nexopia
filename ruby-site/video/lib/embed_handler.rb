@@ -1,6 +1,5 @@
 lib_require :Video, 'video_info';
 lib_require :Video, 'video';
-lib_require :Worker, "kernel_addon"
 module Vid
 	
 	class EmbedHandler
@@ -16,7 +15,7 @@ module Vid
 			handler = EmbedHandler.new(content);
 			handler.store_new_videos();
 		end
-	  worker_task :handle_content_from_profile;
+#	  worker_task :handle_content_from_profile;
 	
 	  def initialize(content)
 	    @content = content;

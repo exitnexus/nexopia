@@ -1,14 +1,14 @@
-<div class="freeform_text_edit">
-	<div class="title">FREEFORM TEXT</div>
+<div class="freeform_text_edit edit_block">
+	<div class="edit_title">FREEFORM</div>
 	
 	<div class="edit_form">
 		<span class="field_name">Title:</span><br/>
-		<input class="text" type="text" name="title" value="{title}"></input>
+		<input class="text" type="text" name="title" id="freeform_content_title" value="{title}"></input>
 		
 		<br/><br/>
 		
 		<span class="field_name">Content:</span><br/>
-		<textarea name="content">
+		<textarea name="content" class="enhanced_text_input show_character_count" minion_name="enhanced_text_input show_character_count" id="freeform_content" maxlength="{max_length}">
 			{content}
 		</textarea>
 	</div>

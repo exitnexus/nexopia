@@ -24,10 +24,10 @@
 	$showAnon = true;
 	if($userData['loggedIn']){
 
-		if($userData['recentvisitlistthumbs'] == 'y'){
+		if($userData['recentvisitlistthumbs']){
 			$showThumbs = true;
 		}
-		if($userData['recentvisitlistanon'] == 'n'){
+		if(!$userData['recentvisitlistanon']){
 			$showAnon = false;
 		}
 	}
@@ -107,7 +107,41 @@
 	$location = array();
 	$isOnline = array();
 	$thumbnails = array();
+	
+	// NEX-801
+	// Get any cached image paths
+	$picids = array();
+	foreach( $users as $user ) {
+		$picids[] = $user['userid'] . "-" . $user['firstpic'];
+	}	
+	$imagepaths = $cache->get_multi($picids, 'galleryimagepaths-');
+	
+	// figure out if there are any images that didn't have cached paths
+	$missingpaths = array_diff($picids, array_keys($imagepaths));
 
+	// If there are any missing paths get them from the DB.
+	if(count($missingpaths)){
+
+		// Generate a list of user id, pic id pairs for the query.	
+		$keys = array('userid' => '%', 'id' => '#');
+		$itemid = array();
+		foreach( $users as $user ) {
+			$itemid[] = array($user['userid'], $user['firstpic']);
+		}
+		
+		// Get any remaining images
+		$res = $usersdb->prepare_query("SELECT userid, revision, id FROM gallerypics WHERE ^", $usersdb->prepare_multikey($keys, $itemid));
+		while($line = $res->fetchrow()){
+
+			// Generate the uncached image paths.
+			$imagepaths[$line['userid'] . "-" . $line['id']] = $line['revision'] . '/' . weirdmap($line['userid']) . "/" . $line['id'] . ".jpg";
+
+			// Cache the paths.
+			$cache->put("galleryimagepaths-$line[userid]-$line[id]", $imagepaths[$line['userid'] . "-" . $line['id']], 86400*7);
+		}
+	
+	}
+	
 	$lines = array();
 	foreach($users as $user){
 		$line = $user;
@@ -131,7 +165,7 @@
 			if($line['firstpic'] == 0)
 				$line['thumbnail'] = 0;
 			else
-				$line['thumbnail'] = $config['thumbloc'] . floor($line['userid']/1000) . "/" . weirdmap($line['userid']) . "/{$line['firstpic']}.jpg";
+				$line['thumbnail'] = $config['thumbloc'] . $imagepaths[$line['userid'] . "-" . $line['firstpic']];
 		}
 		$lines[] = $line;
 	}

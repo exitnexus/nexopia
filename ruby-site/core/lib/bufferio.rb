@@ -1,3 +1,5 @@
+require 'zlib'
+=begin
 # I don't think this should really be necessary, but these calls actually go into
 # C code which I think bypasses our overriding of stdout.
 module Kernel
@@ -21,6 +23,7 @@ module Kernel
 		out.printf(*args);
 	end
 end
+=end
 
 # Overload IO class and realias the raw_* methods to the ones that the IO class
 # overloaded from Kernel
@@ -42,35 +45,42 @@ class StringIO
 	public :raw_puts, :raw_print, :raw_printf, :raw_ls;
 end
 
+class Array
+	alias raw_ls <<;
+	public :raw_ls;
+end
+
 # this class is .extend()ed into the IO class handed to the page handler
 # in order to overload the output functions to actually print headers before
 # the first output.
 module BufferIO
 	def initialize_buffer(&before_output)
-		@bufferio_buffer = StringIO.new;
+		@bufferio_buffer_string = StringIO.new
+
+		@bufferio_buffer_array = []#StringIO.new;
 		@bufferio_before_output = before_output;
 		@bufferio_buffered = true;
 	end
 
 	def clear_buffer()
-		@bufferio_buffer = StringIO.new;
+		@bufferio_buffer_array = []
+		@bufferio_buffer_string = StringIO.new
 	end
 
 	def deflate_buffer()
-		require 'zlib'
 		$log.info "deflating output", :debug
-		@bufferio_buffer.string = Zlib::Deflate.deflate(@bufferio_buffer.string)
+		flush_array()
+		@bufferio_buffer_string.string = Zlib::Deflate.deflate(@bufferio_buffer_string.string, $site.config.zlib_compression_level)
 	end
 
 	def gzip_buffer()
-		require 'zlib'
 		$log.info "gzipping output", :debug
+		flush_array()
 		out = StringIO.new();
 		gz = Zlib::GzipWriter.new(out)
-		gz.write(@bufferio_buffer.string)
+		gz.write(@bufferio_buffer_string.string)
 		gz.close
-		@bufferio_buffer.string = out.string
-
+		@bufferio_buffer_string = out
 	end
 
 =begin
@@ -86,21 +96,33 @@ module BufferIO
 	private :buffer_run;
 =end
 
+	def flush_array()
+		@bufferio_buffer_string << @bufferio_buffer_array.join('')
+		@bufferio_buffer_array = []		
+	end
+	
 	def flush_buffer(io = self)
+		flush_array()
 		@bufferio_before_output.call() if @bufferio_before_output;
-		io.raw_print(@bufferio_buffer.string);
+		io.raw_print(@bufferio_buffer_string.string);
 		clear_buffer();
 	end
 
 	# Returns true if IO is currently being buffered.
 	def buffer()
-		return @bufferio_buffered;
+		if (@bufferio_buffered)
+			@bufferio_buffer_string
+		else
+			false
+		end
 	end
 
 	# Set to false to flush the buffer and make it so that further writes
-	# buffer IO
+	# buffer IO.
+	# You will also want to set the Content-Encoding header to an empty string
+	# so that the page handler knows how to send the unbuffered data properly.
 	def buffer=(buffer)
-		@bufferio_buffered = buffer;
+		@bufferio_buffered_string = buffer;
 		if (!buffer)
 			flush_buffer();
 		end
@@ -111,38 +133,46 @@ module BufferIO
 		@bufferio_before_output = nil;
 	end
 
-	def capture_output(io = StringIO.new())
-		inner_buffer = io;
+	def capture_output(strio = StringIO.new(), arr = [])
+		inner_buffer_string = io;
+		inner_buffer_array = arr;
 		inner_buffered = true;
+		
 		# swap out buffering information
-		@bufferio_buffer, inner_buffer = inner_buffer, @bufferio_buffer;
+		@bufferio_buffer_string, inner_buffer_string = inner_buffer_string, @bufferio_buffer_string;
+		@bufferio_buffer_array, inner_buffer_array = inner_buffer_array, @bufferio_buffer_array;
+		
 		@bufferio_buffered, inner_buffered = inner_buffered, @bufferio_buffered;
 		begin
 			yield self;
 		ensure
-			@bufferio_buffer, inner_buffer = inner_buffer, @bufferio_buffer;
+			@bufferio_buffer_string, inner_buffer_string = inner_buffer_string, @bufferio_buffer_string;
+			@bufferio_buffer_array, inner_buffer_array = inner_buffer_array, @bufferio_buffer_array;
+			
 			@bufferio_buffered, inner_buffered = inner_buffered, @bufferio_buffered;
 		end
 		return io;
 	end
 
 	def puts(*args)
-		out = @bufferio_buffered ? @bufferio_buffer : self;
-		out.raw_puts(*args);
+		out = @bufferio_buffered ? @bufferio_buffer_array : self;
+		out.raw_ls(*args) 
+		out.raw_ls("\n")
 	end
 
 	def print(*args)
-		out = @bufferio_buffered ? @bufferio_buffer : self;
-		out.raw_print(*args);
+		out = @bufferio_buffered ? @bufferio_buffer_array : self;
+		out.raw_ls(*args)
 	end
 
 	def printf(*args)
-		out = @bufferio_buffered ? @bufferio_buffer : self;
+		out = @bufferio_buffered ? @bufferio_buffer_string : self;
+		flush_array
 		out.raw_printf(*args);
 	end
 
 	def <<(*args)
-		out = @bufferio_buffered ? @bufferio_buffer : self;
-		out.raw_ls(*args);
+		out = @bufferio_buffered ? @bufferio_buffer_array : self;
+		out.raw_ls(*args)
 	end
 end

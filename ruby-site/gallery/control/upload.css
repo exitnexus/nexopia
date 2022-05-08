@@ -8,17 +8,24 @@
 	text-align: left;
 }
 
+a.cancel_link:link{
+	font-weight: bold;
+	text-decoration: underline;
+}
+
 .gallery_upload .minor {
 	color: $minor_font_color;
 }
 
+.terms_warning {
+	font-size: 10px;
+}
+
 .gallery_upload h1{
-	color: $section_header_text_color;
-	font-size: 9pt;
-	padding-top: 5px;
-	padding-bottom: 8px;
-	margin:0px;
-	background: $section_header_background_color $section_header_background_image;
+	font-size: 14px;
+	font-weight: bold;
+	margin: 0px 0px 40px 0px;
+	color: $header_background_color;
 }
 
 .gallery_upload h2 {
@@ -34,7 +41,7 @@
 .gallery_upload li.file_upload {
 	font-family: $page_font_family;
 	font-size: $page_font_size;
-	margin: 6px;
+	margin: 0px 6px 6px 0px;
 	display: inline;
 	list-style: none;
 	background-color:#E3E3E3;
@@ -83,12 +90,45 @@
 	width: 100%;
 }
 
+.gallery_upload li.file_upload .file_info .template_description {
+	overflow: hidden;
+	height: 15px;
+	width: 170px;
+}
+
 .gallery_upload .gallery_section {
 	float:none;
 	clear:both;
-	margin: 10px;
+	padding: 0px 0px 20px 0px;
+}
+
+.gallery_upload .gallery_section2 {
+	float:none;
+	clear:both;
+	padding: 0px 0px 0px 0px;
+}
+
+.gallery_upload #terms_warning {
+	padding: 20px 0px 0px 0px;
+}
+
+.gallery_upload #gallery_browse_target {
+	padding-top: -20px;
+	& .button_bar button {
+		visibility: hidden;
+	}
+}
+
+.gallery_upload #view_album_links {
+	display: none;
+	padding-top: 20px;
 }
 
 .gallery_upload .gallery_cancel {
 	cursor: pointer;
+}
+
+#gallery_overlay {
+	left: 271px;
+	top: 315px;
 }

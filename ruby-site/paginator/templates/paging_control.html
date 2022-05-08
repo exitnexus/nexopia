@@ -1,0 +1,34 @@
+<div class="paging_container">
+	<div class="sequential_accessors">
+		<t:if t:id="paging_list.index(paging_list.current_page)-1 >= 0">
+			<a t:id="paging_list[paging_list.index(paging_list.current_page)-1]" cond:minion_name="paging_list.minion_name">
+				<img src="#{$site.colored_img_url(icon_color)/:paginator/:images/'arrow_left.gif'}"/>
+			</a>
+		</t:if>
+		
+		<t:if t:id="paging_list.index(paging_list.current_page)+1 < paging_list.length">
+			<a t:id="paging_list[paging_list.index(paging_list.current_page)+1]" cond:minion_name="paging_list.minion_name">
+				<img src="#{$site.colored_img_url(icon_color)/:paginator/:images/'arrow_right.gif'}"/>
+			</a>
+		</t:if>
+	</div>
+	
+	<div class="page_list">
+		<t:iter t:id="paging_list" t:iter="page">
+			<t:if t:id="page.current_page">
+				<span class="current_page">
+					{page.page+1}
+				</span>
+			</t:if>
+			<t:if t:id="!page.current_page">
+				<a t:id="page" cond:minion_name="paging_list.minion_name"></a>
+			</t:if>
+			<t:if t:id="page != paging_list.last && !paging_list.sequential?(page)">
+				<span class="page_separators">...</span>
+			</t:if>
+		</t:iter>
+	</div>
+	<t:if t:id="include_clear_element">
+		<br class="clear" />
+	</t:if>
+</div>

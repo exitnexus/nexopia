@@ -1,0 +1,71 @@
+.themed_select_button
+{
+	& button
+	{
+		background-image: url("$static_files_url/Core/images/menu-button-arrow.gif");
+		background-repeat: no-repeat;
+		background-position: center right;
+		padding-right: 26px;
+	}
+}
+
+.themed_select_menu
+{
+	& .bd
+	{
+		background-color: #4E4E4E;
+		color: #ffffff;
+		font-size: 10px;
+		font-family: Verdana,Arial,Helvetica,sans-serif;
+		padding-top: 6px;
+		padding-bottom: 6px;
+		line-height: 1.5;
+		margin-top: 1px;
+		border: 1px solid #808080;
+		overflow: auto;
+		
+		& .yuimenuitem
+		{
+			padding-left: 6px;
+			padding-right: 6px;
+		}
+		
+		& .yuimenuitem-selected
+		{
+			background-color: black;
+			cursor: pointer;
+			border-style: none;
+		}
+		
+		& .yuimenuitemlabel-selected
+		{
+			border-style: none;
+		}
+		
+		& .yuimenuitem-disabled, .yuimenuitemlabel-disabled
+		{
+			cursor: default;
+			color: #808080;
+		}
+		
+		& .yuimenuitemlabel
+		{
+			color: #ffffff;
+			font-size: 10px;
+			font-family: Verdana,Arial,Helvetica,sans-serif;
+			outline: 0; 
+			-moz-outline: none;
+		}
+		
+		& ul
+		{
+			margin: 0px;
+			padding: 0px;
+		}
+		
+		& li
+		{
+			list-style-type: none;
+		}
+	}
+}

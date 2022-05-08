@@ -1,11 +1,11 @@
 lib_require :Groups, 'group';
-lib_require :Core, 'visibility';
+lib_require :Core, 'visibility', 'time_format';
 lib_want :Friends, 'friend'
 
 module Groups
-	class GroupMember < Storable
+	class GroupMember < Cacheable
 		set_enums(
-			:visibility => Visibility.list
+			:visibility => Visibility.list(GroupsModule)
 		);
 		
 
@@ -13,28 +13,27 @@ module Groups
 		set_table("groupmembers");
 		init_storable();
 
-		VISIBILITY_OPTIONS = Visibility::options;
+		VISIBILITY_OPTIONS = Visibility.options(GroupsModule);
 
 
-		def initialize()
-			super();
+		def initialize(*args)
+			super(*args);
 			
 			# Just to provide a dummy value for method calls below.
 			@group = Groups::Group.new;
 		end		
 		
 		
-		def GroupMember.grouped_by_type(userid, filter_visibility_for=nil, logged_in=true)
+		def GroupMember.grouped_by_type(user, filter_visibility_for=nil, logged_in=true, admin_viewer=false)
 			categories = Hash.new;
-			members = find(:all, userid);
-			members.each { |member|
-				category = categories[member.group_type];
-				if (category.nil?)
-					category = Array.new;
-					categories[member.group_type] = category;
-				end
-				
-				if (logged_in && (filter_visibility_for.nil? || member.visible_to?(filter_visibility_for)))
+			user.group_memberships.each { |member|
+				if (logged_in && (admin_viewer || (filter_visibility_for.nil? || member.visible_to?(filter_visibility_for))))
+					category = categories[member.group_type];
+					if (category.nil?)
+						category = Array.new;
+						categories[member.group_type] = category;
+					end
+					
 					category << member;
 				end
 			};
@@ -45,10 +44,10 @@ module Groups
 		def visible_to?(viewerid)
 			user = User.find(:first, self.userid);
 
-			if ((visibility != :none && viewerid == self.userid) ||
-				(visibility == :friends && user.friend?(viewerid)) ||
-				(visibility == :friends_of_friends && (user.friend_of_friend?(viewerid) || user.friend?(viewerid))) ||
-				visibility == :all)
+			if ((self.visibility != :none && viewerid == self.userid) ||
+				(self.visibility == :friends && user.friend?(viewerid)) ||
+				(self.visibility == :friends_of_friends && (user.friend_of_friend?(viewerid) || user.friend?(viewerid))) ||
+				self.visibility == :all)
 
 				return true;
 			else
@@ -56,11 +55,20 @@ module Groups
 			end
 		end
 		
-				
+		def owner
+			return User.get_by_id(@userid);
+		end
+		
 		def after_create
 			@group = Groups::Group.find(:first, :promise, self.groupid);
 			
 			refresh_cache;
+
+			if (site_module_loaded?(:GoogleProfile))
+				self.owner.update_hash
+			end
+			
+			super
 		end
 		
 		
@@ -71,11 +79,24 @@ module Groups
 		
 		def after_update
 			refresh_cache;
+			
+			if (site_module_loaded?(:GoogleProfile))
+				self.owner.update_hash
+			end
+			
+			super
 		end
 		
 		
 		def after_delete
 			refresh_cache;
+		end
+		
+		
+		def before_delete
+			if (site_module_loaded?(:GoogleProfile))
+				self.owner.update_hash
+			end
 		end
 		
 		
@@ -116,15 +137,25 @@ module Groups
 		
 		
 		def duration
-			from_string = Time.local(self.fromyear, self.frommonth, 1).strftime("%B, %Y");
+			if (self.fromyear.nil? || self.frommonth.nil?)
+				from_string = ""
+			else
+				from_string = TimeFormat.month_and_year(Time.local(self.fromyear, self.frommonth, 1));
+			end
 			if (self.tomonth == -1 || toyear == -1)
 				to_string = "Present";
+			elsif (self.tomonth.nil? || self.toyear.nil?)
+				to_string = ""
 			else
-				to_string = Time.local(self.toyear, self.tomonth, 1).strftime("%B, %Y");
+				to_string = TimeFormat.month_and_year(Time.local(self.toyear, self.tomonth, 1));
 			end
 			
 			return from_string + " - " + to_string;
 		end
 			
 	end
+end
+
+class User < Cacheable
+	relation :multi, :group_memberships, :userid, Groups::GroupMember
 end

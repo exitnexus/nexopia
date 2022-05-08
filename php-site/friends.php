@@ -1,4 +1,5 @@
 <?
+// DEPRECATED: All friends related things should be on the Ruby side now.
 
 	$login=0;
 
@@ -15,6 +16,13 @@
 						);
 
 	$uid = getREQval('uid', 'int', ($userData['halfLoggedIn'] ? $userData['userid'] : 0));
+
+	//http redirect to the new profile in ruby-site
+	$user = getUserInfo($uid);
+	
+	header("HTTP/1.1 301 Moved Permanently");
+	header("Location: http://". $wwwdomain . "/users/". urlencode($user["username"]) ."/friends/");
+	exit;
 
 	if(empty($uid))
 		$auth->loginRedirect();
@@ -67,7 +75,7 @@
 					$msgs->addMsg("Friend has been added to your friends list.");
 
 					if($line['friendsauthorization'] == 'y')
-						$messaging->deliverMsg($id, "Friends List Notification", "[user]$userData[username]" . "[/user] has added you to " . ($userData['sex'] == 'Male' ? "his" : "her") . " friends list. You may remove yourself by clicking [url=/friends.php?action=delete&mode=2&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]here[/url], or add " . ($userData['sex'] == 'Male' ? "him" : "her") . " to yours by clicking [url=/friends.php?action=add&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]here[/url].", 0, false, false, false);
+						$messaging->deliverMsg($id, "Friends List Notification", "It looks like " . "[user]$userData[username]" . "[user]$userData[username]" . "[/user] has made you a little more popular by adding you to " . ($userData['sex'] == 'Male' ? "his" : "her") . " friends list. Do you want to [url=/friends.php?action=add&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]add them to yours[/url] or [url=/friends.php?action=delete&mode=2&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]remove yourself[/url]?", 0, false, false, false);
 
 					enqueue( "Friend", "create", $uid, array($uid, $id) );
 				}
@@ -89,7 +97,7 @@
 							$line = getUserInfo($id);
 
 							if($line['premiumexpiry'] > time() && $line['friendsauthorization'] == 'y')
-								$messaging->deliverMsg($id, "Friends List Notification", "[user]$userData[username]" . "[/user] has removed you from " . ($userData['sex'] == 'Male' ? "his" : "her") . " friends list. You may remove " . ($userData['sex'] == 'Male' ? "him" : "her") . " from yours by clicking [url=/friends.php?action=delete&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]Here[/url]", 0, false, false, false);
+								$messaging->deliverMsg($id, "Friends List Notification", "OUCH!  Looks like " . "[user]$userData[username]" . "[/user] has removed you from " . ($userData['sex'] == 'Male' ? "his" : "her") . " friends list. Do you want to return the favor by " . "[url=/friends.php?action=delete&id=$userData[userid]&k=" . makekey($userData['userid'], $id) . "]removing " . ($userData['sex'] == 'Male' ? "him" : "her") . " from yours[/url]?", 0, false, false, false);
 						}
 
 						$google->updateHash(array($id, $userData['userid']));
@@ -124,9 +132,9 @@
 					if($comment==""){
 						$usersdb->prepare_query("DELETE FROM friendscomments WHERE userid = % && friendid = #", $userData['userid'], $id);
 					}else{
-						$usersdb->prepare_query("UPDATE friendscomments SET comment = ? WHERE userid = % && friendid = #", removeHTML($comment), $userData['userid'], $id);
+						$usersdb->prepare_query("UPDATE friendscomments SET comment = ? WHERE userid = % && friendid = #", cleanHTML($comment), $userData['userid'], $id);
 						if($usersdb->affectedrows()==0)
-							$usersdb->prepare_query("INSERT IGNORE INTO friendscomments SET comment = ?, userid = %, friendid = #", removeHTML($comment), $userData['userid'], $id);
+							$usersdb->prepare_query("INSERT IGNORE INTO friendscomments SET comment = ?, userid = %, friendid = #", cleanHTML($comment), $userData['userid'], $id);
 					}
 					$msgs->addMsg("Comment updated");
 				}
@@ -209,6 +217,7 @@
 		if($line['state'] == 'frozen')
 			continue;
 
+		# NEX-801 not used, not changed to use revisions
 		$line['imagePath'] = $config['thumbloc'] . floor($line['userid']/1000) . "/" . weirdmap($line['userid']) . "/{$line['firstpic']}.jpg";
 		$line['userLocation'] = $locations->getCatName($line['loc']);
 		$line['userKey'] = makekey($line['userid']);
@@ -221,7 +230,7 @@
 
 	$template = new template('friends/index');
 	$template->setMultiple(array(
-		'injectedSkin'		=> injectSkin($user, 'friend'),
+		'injectedSkin'		=> injectSkin($user, 'friends'),
 		'profilehead'		=> incProfileHead($user),
 		'cols'				=> $cols,
 		'uid'				=> $uid,

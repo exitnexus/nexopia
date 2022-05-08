@@ -1,111 +1,174 @@
-<div t:docid="user_skin_edit" id="skin_edit_wrapper_wrapper">
-	<div id="skin_edit_wrapper">
+<div id="skin_edit_ie_wrapper">
+	<div id="skin_edit_wrapper" minion_name="skin_edit_wrapper">
 		<!--[if IE]><script type="text/javascript" src="{$site.static_files_url}/profile/skin_edit/js/excanvas-compressed.js"></script><![endif]-->
 		<!-- YUI things that are needed here -->
-		<script type="text/javascript" src="{$site.static_files_url}/yui/build/utilities/utilities.js"></script>
-		<script type="text/javascript" src="{$site.static_files_url}/yui/build/slider/slider.js"></script>
-		<script type="text/javascript" src="{$site.static_files_url}/yui/build/colorpicker/colorpicker-beta.js"></script>
-		<script type="text/javascript" src="{$site.static_files_url}/yui/build/dragdrop/dragdrop.js"></script>
-		<script type="text/javascript" src="{$site.static_files_url}/yui/build/animation/animation.js"></script>
-		<script type="text/javascript" src="{$site.static_files_url}/yui/build/json/json-beta-min.js"></script>
 		
 		<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/yui/build/colorpicker/assets/skins/sam/colorpicker.css" />
-		<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/profile/skin_edit/css/accordion_overides.css" />
-		<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/profile/skin_edit/css/yui_overides.css" />
+		<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/yui/build/menu/assets/skins/sam/menu.css" />
 		
 		#{user_skin_js}
 		
-		<div id="header">
-			<div id="save_done">CANCEL | DONE</div>
-			<h1>Skin Editor</h1>
-			Choose Skin to Edit:
-			<select name="user_skin_list">
-				<t:iter t:id="user_skin_list" t:iter="skin">
-					<t:if t:id="current_skin.skinid == skin[1]">
-						<option value="#{skin[1]}" selected="selected">{skin[0]}</option>
-					</t:if>
-					<t:if t:id="current_skin.skinid != skin[1]">
-						<option value="#{skin[1]}">{skin[0]}</option>
-					</t:if>
-				</t:iter>
-			</select>
-		Create New Skin | Duplicate Skin
-		</div>
+		<style type="text/css">
+
+			/*
+				Position and hide the Menu instance to prevent a flash of unstyled 
+				content when the page is loading.
+			*/
 		
-		<div id="right" style="z-index: 10;">
-			<div class="light_block" style="z-index: 10; padding-bottom: 12px;">
+			div.yuimenu {
+			
+				position: absolute;
+				visibility: hidden;
+			
+			}
+			
+		
+			/*
+				Set the "zoom" property to "normal" since it is set to "1" by the 
+				".example-container .bd" rule in yui.css and this causes a Menu
+				instance's width to expand to 100% of the browser viewport.
+			*/
+			
+			div.yuimenu .bd {
+			
+				zoom: normal;
+			
+			}
+
+
+			*html .yui-picker-hue-thumb 
+			{
+		  	background-image: none;
+				filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='#{$site.static_files_url}/profile/skin_edit/images/hue_thumb.png', sizingMethod='scale');
+			}
+
+			*html .yui-picker-thumb 
+			{
+				background-image: none;
+				filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='#{$site.static_files_url}/profile/skin_edit/images/picker_thumb.png', sizingMethod='scale');
+			}
+
+			*html .yui-picker-bg 
+			{
+				background-image: none;
+				filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='#{$site.static_files_url}/yui/build/colorpicker/assets/picker_mask.png', sizingMethod='scale');
+			}
+
+		
+		</style>
+		
+		<t:template-include t:module="profile" t:name="skin_edit_header"></t:template-include>
+		
+		<div id="right">
+			<div id="preview_block" class="light_block">
 				<h1>Preview</h1>
 				<div style="height: 280px; width: 100px;"></div>
 				<div id="preview_shadow"><!--[if IE]><iframe frameborder="0" scrolling="no" width="100%" height="100%" style="z-index: -1; filter: mask;"></iframe><![endif]--></div>
 				<div id="preview_wrapper">
-					<iframe src ="/my/profile/skin_edit_preview:Body" id="preview" frameborder="0" scrolling="no" width="100%" height="100%"></iframe>
+					<t:if t:id ="!current_skin.nil?() && !current_skin.skinid.nil?()">
+						<iframe src ="/my/profile/edit/skin/preview/{current_skin.skinid}:Body" id="preview" frameborder="0" scrolling="no" width="100%" height="100%"></iframe>
+					</t:if>
+					<t:if t:id="!current_skin.nil?() && current_skin.skinid.nil?() && !dup_skin_id.nil?()">
+						<iframe src ="/my/profile/edit/skin/preview/{dup_skin_id}:Body" id="preview" frameborder="0" scrolling="no" width="100%" height="100%"></iframe>
+					</t:if>
+					<t:if t:id="(current_skin.nil?() || current_skin.skinid.nil?()) && dup_skin_id.nil?()">
+						<iframe src ="/my/profile/edit/skin/preview:Body" id="preview" frameborder="0" scrolling="no" width="100%" height="100%"></iframe>
+					</t:if>
 					<div id="preview_handle"><br /></div>
 					<canvas id="preview_zoom_canvas" width="64" height="64"></canvas>
 					<div id="preview_zoom"></div>
 				</div>
 			</div>
-			<div class="light_block">
+			<div id="apply_skins_block" class="light_block">
 				<h1>
 					Apply Skins
 				</h1>
-				<t:iter t:id="skinable_areas" t:iter="area">
-					<select name="#{area}_skin" class="right_side">
-						<option value="" cond:selected="user.skin_selected(area, 0)"></option>
-						<t:iter t:id="user_skin_list" t:iter="user_skin">
-							<option value="#{user_skin[1]" cond:selected="user.skin_selected(area, user_skin[1])">
-								{user_skin[0]}
-							</option>
+				<table width="100%">
+					<tbody>
+						<t:varsub t:old="user.skin_applied_to_all?()" t:new="apply_to_all"></t:varsub>
+						<t:iter t:id="skinable_areas" t:iter="area">
+							<tr>
+								<td>
+									<select name="skin_select_#{area}" id="skin_select_#{area}" class="right_side" cond:disabled="(area != 'profile' && apply_to_all) ? 'disabled' : false">
+										<option value="0" cond:selected="user.skin_selected(area, 0)"></option>
+										<t:iter t:id="user_skin_list" t:iter="user_skin">
+											<option value="#{user_skin[1]}" cond:selected="user.skin_selected(area, user_skin[1])">
+												{user_skin[0]}
+											</option>
+										</t:iter>
+									</select>
+									<label class="list_label">
+										{area.capitalize()}:
+									</label>
+								</td>
+								<t:if t:id="area == 'profile'">
+									<td style="text-align: right">
+										Apply to all
+										<input type="checkbox" id="skin_apply_to_all" class="right_side" 
+											name="skin_apply_to_all" cond:checked="(apply_to_all) ? 'checked' : false" />
+									
+									</td>
+								</t:if>
+								<t:if t:id="area != 'profile'">
+									<td>
+										&#160;
+									</td>
+								</t:if>
+							</tr>
 						</t:iter>
-					</select>
-					<label class="list_label">
-						{area.capitalize()}
-					</label>
-					<t:if t:id="area == 'profile'">
-						<input type="checkbox" id="skin_apply_to_all" class="right_side" style="height: 12px; margin-left: 6px;" name="skin_apply_to_all" cond:checked="user.skin_applied_to_all" />
-						<label for="skin_apply_to_all" class="list_label" style="text-align: right; width: 100%;">Apply to all</label>
-					</t:if>
-				</t:iter>
+					</tbody>
+				</table>
+				<form method="post" action="/my/profile/edit/skin/apply" id="skin_chooser_form">
+					<t:iter t:id="skinable_areas" t:iter="area">
+						<input type="hidden" value="{user.send(area+'skin')}" name="{area + 'skin'}" id="{area + 'skin'}"></input>
+					</t:iter>
+				</form>
 			</div>
 		</div>
 		
 		<div id="left">
-			<div class="light_block">
-				<form method="post" action="/my/profile/skin_edit/save/">
-					<input type="hidden" value="{current_skin.skinid}" name="skin_id"></input>
-					<div class="dark_block" style="margin-bottom: 2px; padding-bottom: 0px;">
-						<input class="input_title" name="skin_name" type="text" maxlength="20" value="{current_skin.name}" />
+			<div id="edit_block" class="light_block">
+				<form id="save_skin_form" method="post" action="/my/profile/edit/skin/#{save_path}/">
+					<input type="hidden" value="{current_skin.skinid}" name="skin_id" id="skin_id"></input>
+					<div class="dark_block">
+						<span id="skin_title">
+							Skin Title:
+						</span>
+						<div class="button_bar">
+							<span class="yui-button yui-button-button">
+								<span class="first-child">
+									<button id="skin_save_submit" name="skin_save_submit" type="submit">
+										Save
+									</button>
+								</span>
+							</span>
+						</div>
+						<input class="input_title" name="skin_name" type="text" maxlength="40" value="{current_skin.name}" />
 						<div id="yui-picker-panel"><div class="yui-picker" id="yui-picker"></div></div>
 					</div>
 					
 					<div class="accordion_view" id="skin_panes">
-						<t:iter t:id="skin_display_groups.keys()" t:iter="group_key" t:index="group_index">
+						<t:iter t:id="skin_display_group_order" t:iter="group_key" t:index="group_index">
 						
 							<div id="{group_key}" class="accordion_handle">
-								{group_index+1}. {(group_key.to_s()).capitalize()}
+								{group_index+1}. {skin_display_group_names[group_key]}
 							</div>
 							
 							<div class="accordion_body">
+								<t:varsub t:new="page_background_color" t:old="current_skin.skin_attribute_list[:section_background_color].value" />
 								<t:iter t:id="skin_display_groups[group_key]" t:iter="attribute_properties">
-								
-									<div id="#{attribute_properties[0]}" class="color_unit" onclick="switchColorListener('#{attribute_properties[0]}');">
-										<div class="color_swatch"></div>
-										<div class="list_label">
-											<input name="#{attribute_properties[0]}" type="text" class="color_hex" maxlength="7"></input>
-											{attribute_properties[1]}
-										</div>
+									<t:varsub t:new="current_skin_attr" t:old="current_skin.skin_attribute_list[attribute_properties[0].to_sym()]" />
+									<div id="#{attribute_properties[0]}" class="color_unit">
+										#{current_skin_attr.generate_input(attribute_properties[0].to_sym(), attribute_properties[1], :compare_value => page_background_color, :nuts => 'tony!')}
 									</div>
-									
 								</t:iter>
 							</div>
-							
 						</t:iter>
 					</div>
 				</form>
+				<div id="hex_selected"></div>
+				<div id="hex_unselected"></div>
 			</div>
 		</div>
-		<script type="text/javascript" src="{$site.static_files_url}/profile/skin_edit/js/fancy_scrolling.js"></script>
-		<script type="text/javascript" src="{$site.static_files_url}/profile/skin_edit/js/preview_zooming.js"></script>
-		<script type="text/javascript" src="{$site.static_files_url}/profile/skin_edit/js/main.js"></script>
-		<script type="text/javascript" src="{$site.static_files_url}/profile/skin_edit/js/draw.js"></script>
 	</div>
 </div>

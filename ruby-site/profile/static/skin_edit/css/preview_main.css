@@ -32,7 +32,7 @@ body
 	width: 612px;
 }
 
-#skin_edit_wrapper h1
+#skin_edit_wrapper .block_title
 {	
 	padding: 0px;
 	margin: 0px;
@@ -161,7 +161,7 @@ body
 	cursor: pointer;
 }
 
-#skin_edit_wrapper .utility_block
+#skin_edit_wrapper .control_block
 {
 	position: relative;
 	height: 171px;

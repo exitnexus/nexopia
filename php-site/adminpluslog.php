@@ -173,9 +173,9 @@
 				echo "<td class=body>$row[id]</td>";
 				echo "<td class=body>" . userDate("D M j, Y G:i:s", $row['time']) . "</td>";
 				echo "<td class=body align=right>" . number_format($row['duration']/(86400*31),2) . " months</td>";
-				echo "<td class=body>" . ($row['from'] ? ( isset($users[$row['from']]) ? "<a class=body href=/profile.php?uid=$row[from]>" . $users[$row['from']]['username'] . "</a>" : "(deleted: $row[from])" ) : '' ) . "</td>";
-				echo "<td class=body>" . ($row['to'] ? ( isset($users[$row['to']]) ? "<a class=body href=/profile.php?uid=$row[to]>" . $users[$row['to']]['username'] . "</a>" : "(deleted: $row[to])" ) : '' ) . "</td>";
-				echo "<td class=body>" . ($row['admin'] ? ( isset($users[$row['admin']]) ? "<a class=body href=/profile.php?uid=$row[admin]>" . $users[$row['admin']]['username'] . "</a>" : "(deleted: $row[admin])" ) : '' ) . "</td>";
+				echo "<td class=body>" . ($row['from'] ? ( isset($users[$row['from']]) ? "<a class=body href=/users/". urlencode($users[$row["from"]]["username"]) .">" . $users[$row['from']]['username'] . "</a>" : "(deleted: $row[from])" ) : '' ) . "</td>";
+				echo "<td class=body>" . ($row['to'] ? ( isset($users[$row['to']]) ? "<a class=body href=/users/". urlencode($users[$row["to"]]["username"]) .">" . $users[$row['to']]['username'] . "</a>" : "(deleted: $row[to])" ) : '' ) . "</td>";
+				echo "<td class=body>" . ($row['admin'] ? ( isset($users[$row['admin']]) ? "<a class=body href=/users/". urlencode($users[$row["admin"]]["username"]) .">" . $users[$row['admin']]['username'] . "</a>" : "(deleted: $row[admin])" ) : '' ) . "</td>";
 				echo "<td class=body>";
 				if($row['trackid']){
 					if($row['to'])

@@ -1,4 +1,6 @@
-#This enum class maps 
+
+# An EnumMap acts as a MySql enum in Ruby, but is backed by a number in MySql.
+
 class EnumMap < Enum
 	attr_accessor(:hash);
 	
@@ -11,8 +13,8 @@ class EnumMap < Enum
 	def get_symbol(value)
 		#if this is already the symbol return it now no mapping necessary
 		return value if (@hash.key?(value));
-		@hash.each_pair { |key, val|
-			return key if (val == value)
+		@hash.each_key { |key|
+			return key if (@hash[key] == value)
 		}
 		raise "Invalid symbol value  lookup for EnumMap '#{value.inspect}', valid symbols are: #{@hash.keys.inspect}";
 	end

@@ -1,0 +1,20 @@
+<div class="add_new_content_container">
+
+	<t:template-include t:module="blogs" t:name="quick_post"/>
+	
+	<t:if t:id="post_count > 0">
+		<div class="show_dropdown_container">
+			<form method="get" action="/users/%{blog_user.username}/blog">
+			Show:&#160;
+			<select name="filter_type" minion_name="blog:filter">
+				<option value="" cond:selected="filter_type.nil?">All</option>
+				<option value="0" cond:selected="filter_type == 0">Freeform</option>
+				<option value="{Blogs::PhotoBlog.typeid}" cond:selected="filter_type == Blogs::PhotoBlog.typeid">Photo</option>
+				<option value="{Blogs::VideoBlog.typeid}" cond:selected="filter_type == Blogs::VideoBlog.typeid">Video</option>
+				<option value="{Blogs::BattleBlog.typeid}" cond:selected="filter_type == Blogs::BattleBlog.typeid">Battle</option>
+				<option value="{Blogs::PollBlog.typeid}" cond:selected="filter_type == Blogs::PollBlog.typeid">Poll</option>
+			</select>
+			</form>
+		</div>
+	</t:if>
+</div>

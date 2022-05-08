@@ -1,0 +1,9 @@
+--- !ruby/object:JavascriptConfig 
+module_require: 
+- core
+- panels
+- youtube_search
+- flash_detect
+yui_require:
+- element-beta
+- uploader-experimental

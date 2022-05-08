@@ -17,6 +17,6 @@
 	$forumdata = $perms['cols'];
 	$template = new template('forums/forumrules');
 	$template->set('forumRules', $entry['output']);
-	$template->set('specificRules', nl2br(parseHTML(smilies($forumdata['rules']))));
+	$template->set('specificRules', parseHTML(smilies($forumdata['rules'])));
 	$template->display();
 

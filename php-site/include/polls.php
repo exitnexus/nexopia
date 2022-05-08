@@ -13,7 +13,7 @@ tables:
 		$this->db = & $db;
 	}
 
-	function addpoll($question,$answers,$official){
+	function addpoll($question,$answers,$official, $modded = false){
 		global $msgs, $mods;
 
 		if(strlen($question) < 5){
@@ -30,13 +30,13 @@ tables:
 			return false;
 		}
 
-		$this->db->prepare_query("INSERT INTO polls SET question = ?, date = #, official = ?, moded = 'n'", removeHTML($question), time(), ($official ? 'y' : 'n'));
+		$this->db->prepare_query("INSERT INTO polls SET question = ?, date = #, official = ?, moded = ?", removeHTML($question), time(), ($official ? 'y' : 'n'), $modded ? 'y' : 'n');
 		$pollid = $this->db->insertid();
 
 		foreach($answers as $ans)
 			$this->db->prepare_query("INSERT INTO pollans SET pollid = #, answer = ?", $pollid, removeHTML($ans));
 
-		if($official)
+		if($official && !$modded)
 			$mods->newItem(MOD_POLL, $pollid);
 
 		$msgs->addMsg("Poll Added");

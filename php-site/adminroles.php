@@ -145,7 +145,7 @@ function listAdmins(){
 		}
 
 		echo "<tr>";
-		echo "<td class=$classes[$i] valign=top><a class=body href=/profile.php?uid=$uid>" . $usernames[$uid] . "</a></td>";
+		echo "<td class=$classes[$i] valign=top><a class=body href=/users/". urlencode($usernames[$uid]) .">" . $usernames[$uid] . "</a></td>";
 		echo "<td class=$classes[$i] valign=top nowrap>" . implode("<br>", $rolenames) . "</td>";
 		echo "<td class=$classes[$i] valign=top nowrap>" . implode("<br>", $titles) . "</td>";
 		echo "<td class=$classes[$i] valign=top>" . implode(", ", $perms) . "</td>";

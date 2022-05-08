@@ -1,0 +1,45 @@
+<div>
+<ul class="page" id="{page_id}">
+	<t:iter t:id="friends" t:iter="friend">
+		<t:if t:id="!friend.anonymous?()">
+			<li class="user_container secondary_block block_regular" minion_name="fpb:user_container">
+				<div class="user_thumb">
+					<a t:id="friend"><img class="friend_pic" minion_name="fpb:friend_pic" t:delay="true" t:id="friend" t:linktype="landscapemini"/></a>
+				</div>
+				<div class="online_offline">
+					<t:if t:id="friend.logged_in?"><img class="online" src="#{$site.static_files_url}/Friends/images/online.gif"/></t:if>
+					<t:if t:id="!friend.logged_in?"><img class="online" src="#{$site.static_files_url}/Friends/images/offline.gif"/></t:if>
+				</div>
+				<div class="user_info">
+					<a t:id="friend"></a>
+					<br/>
+					{friend.age}, {friend.sex}
+				</div>
+				<div t:id="!viewer.anonymous?" class="user_functions">
+					<div>
+						<t:if t:id="viewer.friend?(friend)">
+							<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:secondary_block_icon_color])/:friends/:images/'icon_friend_true.gif'}"/>
+						</t:if>
+						<t:if t:id="!viewer.friend?(friend)">
+							<a class="add_friend" minion_name="fpb:add_friend" href="/users/%{viewer.username}/friends/add/{friend.userid}?form_key[]={add_form_key}">
+								<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:secondary_block_icon_color])/:friends/:images/'icon_add_friend.gif'}"/>
+							</a>
+						</t:if>
+					</div>
+					<div>
+						<a class="send_message" minion_name="fpb:send_message" href="/messages.php?action=write&to={friend.userid}">
+							<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:secondary_block_icon_color])/:friends/:images/'icon_send_msg.gif'}"/>
+						</a>
+					</div>
+					<div>
+						<a class="comment" minion_name="fpb:comment" href="/users/%{friend.username}/comments">
+							<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:secondary_block_icon_color])/:friends/:images/'icon_comment.gif'}"/>
+						</a>
+					</div>
+				</div>
+				<br class="clear" />
+			</li>
+		</t:if>
+	</t:iter>
+</ul>
+</div>

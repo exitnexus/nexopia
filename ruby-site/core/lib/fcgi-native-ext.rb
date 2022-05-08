@@ -37,18 +37,18 @@ class CGI
 
       loop do
         head = nil
-        if 10240 < content_length
+#        if 10240 < content_length
           require "tempfile"
           body = Tempfile.new("CGI")
-        else
-          begin
-            require "stringio"
-            body = StringIO.new
-          rescue LoadError
-            require "tempfile"
-            body = Tempfile.new("CGI")
-          end
-        end
+#        else
+#          begin
+#            require "stringio"
+#            body = StringIO.new
+#          rescue LoadError
+#            require "tempfile"
+#            body = Tempfile.new("CGI")
+#          end
+#        end
         body.binmode if defined? body.binmode
         until head and /#{quoted_boundary}(?:#{EOL}|--)/n.match(buf)
 
@@ -149,9 +149,13 @@ class FCGI
 			return if (@string.length < PACKET_SIZE)
 			@string.rewind
 			while (remaining_length >= PACKET_SIZE)
+				pre_remaining_length = remaining_length
 				send()
+				if (pre_remaining_length == remaining_length)
+					raise "FCGI Send did not actually send all of its output: #{pre_remaining_length}, #{remaining_length}"
+				end
 			end
-			s = @string.read(PACKET_SIZE)
+			s = @string.read()
 			@string = StringIO.new(s)
 		end
 		
@@ -159,22 +163,30 @@ class FCGI
 			@string.<<(*data);
 			send_packet
 		end
+		alias :raw_ls :<<
 		def write(*data)
 			@string.write(*data);
 			send_packet
 		end
+		alias :raw_write :write
 		def puts(*data)
 			@string.puts(*data);
 			send_packet
 		end
+		alias :raw_puts :puts
 		def print(data)
 			@string.print(data);
 			send_packet
 		end
+		alias :raw_print :print
 		
 		def send
 			s = @string.read(PACKET_SIZE)
-			@sock.send_record GenericDataRecord.new(@type, @id, s)
+			if (s != nil) && (s != "")
+				@sock.send_record GenericDataRecord.new(@type, @id, s)
+			else			
+				raise "FCGI Send was unable to retrieve anything from string i/o buffer"
+			end
 		end
 		
 		def close()
@@ -272,33 +284,38 @@ class FCGI
 	def each_request(&block)
 	  graceful = false
 	  trap("SIGUSR1") { graceful = true }
-	  while true
-		begin
-		  session(&block)
-		rescue Errno::EPIPE, Errno::ECONNRESET, EOFError
-		  # HTTP request is canceled by the remote user
-		end
-		exit 0 if graceful
-	  end
+		catch(:graceful) {
+		  while true
+				begin
+				  session(&block)
+				rescue Errno::EPIPE, Errno::ECONNRESET, EOFError
+				  # HTTP request is canceled by the remote user
+				end
+				exit 0 if graceful
+		  end
+		}
 	end
 
 	def session
 	  sock = nil
 	  begin
-		while (!IO.select([@server], nil, nil))
-		  # just wait 'til it found a readable.
-		end
-		sock, addr = *@server.accept
+			while (!IO.select([@server], nil, nil))
+			  # just wait 'til it found a readable.
+			end
+			sock, addr = *@server.accept
 	  rescue Errno::EWOULDBLOCK, Errno::EAGAIN
-		# just continue the loop.
-		retry
+			# just continue the loop.
+			retry
 	  end
 	  return unless sock
 	  sock.fcntl(Fcntl::F_SETFL, sock.fcntl(Fcntl::F_GETFL) & ~Fcntl::O_NONBLOCK)
 	  fsock = FastCGISocket.new(sock)
 	  req = next_request(fsock)
-	  yield req
-	  respond_to req, fsock, FCGI_REQUEST_COMPLETE
+		begin
+	  	yield req
+		ensure
+	  	respond_to req, fsock, FCGI_REQUEST_COMPLETE
+		end
 	rescue Errno::EIO
 	  # Connection closed prematurely.
 	ensure
@@ -370,15 +387,19 @@ class FCGI
 	  while buf.length < clen
 		buf << @socket.read([1024, clen - buf.length].min)
 	  end
-	  @socket.read padlen if padlen
+	  @socket.readbytes(padlen) if(padlen > 0)
 	  buf
 	end
 	private :read_record_body
 
 	def send_record(rec)
-	  s = rec.serialize
-	  @socket.write s 
-	  @socket.flush
+	  if @socket and not @socket.closed?
+	  	s = rec.serialize
+	  	@socket.write s 
+	  	@socket.flush
+	  else
+		raise "FastCGISocket.send_record() attempted to write to a dead socket"
+      end
 	end
   end
 
@@ -757,6 +778,35 @@ class FCGI
           remove_const(:CGI_COOKIES)
         end
       end
+			# BEGIN JSON post body support
+			# Tynt is using JSON form posts, which is apparently something that isn't uncommon with Rails apps. We're using
+			# JSON more and more, so it wouldn't be reaching too far to think that we might want to do this as well in the
+			# near future. Plus, it's not too difficult to build in, so it makes sense to fix it here than get Tynt to use
+			# the usual methods, which we could always handle. Basically, what's happening below is this: The CGI::parse
+			# method, which is in the Ruby standard library, is getting redefined to detect a JSON-like string. It would be
+			# nice to detect the 'application/json' content-type first and use that to decide that it's a JSON string, but
+			# unfortunately, moving the logic here to a place where we could do that would result in a much messier patch
+			# without much gain (i.e. you shouldn't be beginning parameter names with the '{' character, and the only case
+			# you'd run into an issue is if you were doing that AND had a parameter value at the end with a '}' character).
+			# So, in the event that the query string has a '{' at the beginning and a '}' at the end, we assume that we're
+			# dealing with JSON and not regular parameters. We then return a parameter hash with a single parameter named
+			# 'json_obj'. In order to catch the rare but possible case noted above, we're stricter than we have to be and
+			# at the time that a PageRequest is made out of the CGI object, we raise a ruby-killing error if 'json_obj' is
+			# being used and the request content-type is not 'application/json'. It's pretty unlikely that this would ever
+			# be an issue, but hopefully all this information will help you if it does.
+			class << self
+				alias_method :parse_normal, :parse
+				def parse(query)
+					if (!query.nil? && !query.empty? && query[0,1] == "{" && query[query.length-1,query.length] == "}")
+						params = Hash.new([].freeze);
+						params['json_obj'] = query;
+						return params;
+					else
+						return parse_normal(query);
+					end
+				end
+			end
+			# END JSON post body support
     end # ::CGI class
 
     class FCGI
@@ -764,6 +814,13 @@ class FCGI
         def initialize(request, *args)
           ::CGI.remove_params
           @request = request
+					# Ultra-safe checking of the request parameter to make sure that it isn't a PUT request, which Ruby's cgi.rb does not 
+					# support (see the initialize_query method). If it is, we don't go any further with initialization because to call 'super' 
+					# would result in the child process dying. Instead, we return the CGI object as is, to be dealt with hastily in the
+					# PageRequest.new_from_cgi method.
+					if (!request.nil? && !request.env.nil? && !(['GET','POST','HEAD'].include? request.env['REQUEST_METHOD']))
+						return self;
+					end
           super(*args)
           @args = *args
         end
@@ -783,7 +840,7 @@ class FCGI
     end # FCGI class
     EOS
 
-	if FCGI::is_cgi?
+	if FCGI::is_cgi?		
 		yield ::CGI.new(*args)
 	else
 		exit_requested = false
@@ -800,7 +857,7 @@ class FCGI
 				request.finish
 
 				if ($site.config.max_requests && (handled_count % $site.config.max_requests) == 0)
-					exit;
+					throw :graceful;
 				end
 
 				$after_request.each {|name, item|

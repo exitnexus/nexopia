@@ -1,60 +1,43 @@
-.gallery{
-	padding: 0em 4em 4em 4em;
+#gallery_management
+{
+	width: 726px;
+	padding: 12px;
+	margin-left: auto;
+	margin-right: auto;
+	background-color: $primary_background_color;
+	color: $primary_text_color;
+}
+
+h1.gallery_header {
+	margin: 0px 0px 4px 0px;
+	font-size: 14px;
+	color: $header_background_color;
+}
+
+div.back_link {
+	margin-bottom: 10px;
+	
+	& a {
+		font-weight: bold;
+		text-decoration: underline;
+	}
+}
+
+.gallery {
 	text-align: left;
+	& #inline_gallery_header {
+		height: 110px;
+	}
 	& #gallery_toggle {
 		position:relative;
 		right: 10px;
 		top: 10px;
-	}
-	& .edit_bar {
-		vertical-align: top;
-		height: 0px;
-		overflow: hidden;
-		position:absolute;
-		background-color: black;
-		color: white;
-		opacity: 0.75;
-		margin: 0px;
-		padding: 0px;
-		&.gallery_pic_bar {
-			width: 75px;
-			margin-left: 2px;
-			margin-top: 2px;
-		}
-		&.gallery_folder_bar {
-			margin-left: 5px;
-			width: 100px;
-		}
-		&.profile_pic_bar {
-			width:100px;
-		}
-		& div {
-			position:relative;
-			top: -10px;
-			& .right_menu {
-				float: right;
-				& a {
-					margin: 3px;
-					position: relative;
-					top: 4px;
-					& img {
-						border: none;
-						width: auto;
-						height: auto;
-					}
-				}
-			}
-		}
 	}
 }
 
 .gallery span{
 	font-family: $page_font_family;
 	font-size: $page_font_size;
-}
-
-.gallery .album_row div{
-	text-align: center;
 }
 
 .gallery option {
@@ -72,16 +55,17 @@
 .gallery .album_row{
 	clear:both;
 	padding: 0px;
+	position: relative;
 	margin: 0px;
 	text-align: left;
 	float: left;
 	list-style:none;
 }
 
-.gallery .album_row li {
+.gallery li {
 	float: left;
-	margin:1px;
-	border:2px solid transparent;
+	margin-right: 6px;
+	margin-bottom: 6px;
 }
 
 .gallery .album_title {
@@ -91,13 +75,17 @@
 .gallery .album_page {
 	float: none;
 	clear: both;
-	margin-left: 9px;
 	text-align: left;
 	overflow-x: hidden;
-	overflow-y: auto;
+	overflow-y: hidden;
+	position: relative;
+	
+	& div.extra_width_container {
+		width: 738px;
+	}
+	
 	& .gallery_pics_page {
 		float:left;
-		width: 570px;
 		& li {
 			float: left;
 		}
@@ -125,8 +113,6 @@
 	white-space: normal; 
 	font-size: $page_font_size;
 	font-style: $page_font_style;
-	height: 15px;
-	width: 100%;
 	text-align: left;
 	padding: 1px;
 }
@@ -155,43 +141,24 @@ textarea.edit_box {
 	border-style: solid;
 }
 
-div.folder_photoframe {
-	width: 109px; 
-	height: 119px;
-	padding-top: 5px;
+.photoframe {
+	height: 132px;
+	width: 112px; 
+	height: auto;
 	overflow: hidden;
-	float:none;
-	clear:both;
-	background-color: $secondary_background_color;
-	& img {
+	text-align: center;
+	border: solid 2px $secondary_background_color; 
+
+	& .photoframe_photo {
+		margin: 6px;
 		width: 100px;
 		height: 100px;
 	}
-}
-
-#gallery_header_tabs .folder_photoframe {
-	background-color: $primary_background_color;
-}
-
-.photoframe {
-	width: 79px; 
-	height: auto;
-	overflow: hidden;
-	margin: 2px;
-	padding: 3px;
-	border: solid 2px $secondary_background_color; 
-	text-align: center;
-	
-	& .photoframe_photo {
-		margin: 2px;
-		width: 75px;
+	& input {
+		margin: 0px 0px 6px 6px;
+		padding: 0px;
 	}
 }
-
-#gallery_header_tabs .folder_photoframe {
-	border: solid 2px $primary_background_color; 
-}
-
 
 .album_row .right_menu {
 	position: relative;
@@ -210,7 +177,6 @@ div.photoframe .lower{
 
 .tab_photoframe1 {
 	float: left; 
-	margin-left: 2px;
 	border-width: 5px 5px 5px 40px; 
 	border-color: $secondary_background_color;
 }
@@ -268,8 +234,12 @@ h1#main_header{
 
 .gallery ul.action_bar li {
 	float: left;
-	margin-left: 7px;
-	margin-bottom: 7px;
+	& .button_bar {
+		display: inline;
+	}
+	& #edit_gallery_spinner {
+		display: none;
+	}
 }
 
 .action_bar input {
@@ -277,14 +247,19 @@ h1#main_header{
 	padding-bottom: 1px;
 }
 
-.action_bar #upload_images {
+.action_bar #delete_images {
 	float: right;
-	margin-right: 7px;
+	margin-right: 0px;
 }
 
 .gallery .javascript_select {
 	display: block;
-	margin:7px;
+	margin:12px 0px 10px 0px;
+}
+
+.gallery .javascript_select_bottom {
+	display: block;
+	margin: 6px 0px 10px 0px;
 }
 
 .gallery hr {
@@ -297,6 +272,7 @@ h1#main_header{
 	clear: both;
 	height: 0px;
 	width: 0px;
+	line-height: 0px;
 }
 
 .gallery .clear {
@@ -310,6 +286,7 @@ h1#main_header{
 
 .photoframe .right_menu{
 	float: right;
+	margin-right: 6px;
 }
 
 .gallery h4.header_box {
@@ -319,9 +296,6 @@ h1#main_header{
 	font-size: 8pt;
 	text-align: left;
 	overflow: hidden;
-	height:14px;
-	width: 89px;
-	display:block;
 	padding-top: 1px;
 	padding-left:5px;
 }
@@ -334,10 +308,16 @@ h1#main_header{
 	border: 0px;
 }
 
-.gallery .gallery_menu {
+.gallery_menu {
 	float: right;
 	margin-left: 7px;
-	margin-right: 7px;
+	& a {
+		color: $link_color;
+		font-size: 14px;
+		&:hover {
+			color: $link_accent_color;
+		}
+	}
 }
 
 div.gallery_quick_view {
@@ -409,6 +389,9 @@ div#gallery_select{
 		clear:both;
 		background-color: $secondary_background_color;
 	}
+	& .album_row li {
+		border: 2px solid $secondary_background_color
+	}
 }
 
 div.galleries_profile_block{
@@ -437,39 +420,6 @@ div.galleries_profile_block{
 div#gallery_block_edit{
 	margin: 1em;
 	margin-top: 3em;
-}
-
-div.gallery_profile_block{
-	& h2{
-		font-family: $page_font_family;
-		font-size: 14px;
-		letter-spacing: 0px;
-		margin: 2px;
-	}
-	& div.gallery_pics_frame{
-		margin: 4px;
-		background-color: $secondary_background_color;
-	} 
-	& .left_arrow {
-		padding-top: 30px; 
-		float: left; 
-		line-height: 75px; 
-		vertical-align: middle;
-	}
-	& .right_arrow {
-		padding-top: 30px; 
-		float: right; 
-		line-height: 75px; 
-		vertical-align: middle;
-	}
-	& .gallery_pics_scroller {
-		overflow: hidden;
-		width: 100%;
-		& img {
-			width: 53px;
-			height: 53px;
-		}
-	}
 }
 
 div#edit_photo_panel{
@@ -513,6 +463,11 @@ div#edit_photo_panel{
 			margin:auto;
 			width: 100%;
 			height: 100%;
+			&.spinner {
+				width: auto;
+				height: auto;
+				margin-left: 6px;
+			}
 		}
 		& .image-cropper{
 			margin: auto;

@@ -1,0 +1,57 @@
+<div id="friend_finder_invite_results">
+	<style>
+		/*
+			This is needed to get the max height working in IE. It has to be here because our CSS parser
+			explodes when you put an expression in it. I don't think we should use expressions all over the place
+			but in the case it's simple and it works.
+		*/
+		#friend_finder #friend_finder_invite_results .result_container .send_invite_results
+		{
+			height: expression( this.scrollHeight > 251 ? "252px" : "auto" ); /* sets max-height for IE */
+		}
+	</style>
+	<div class="skip">
+		<a href="/my/friends/find/complete">
+			Skip
+		</a>
+	</div>
+	<h1>
+		Invite Friends
+	</h1>
+	<h4>
+		These are the contacts that are not on Nexopia. Invite them to join Nexopia and add them as a friend.
+	</h4>
+	<div class="result_container">
+		<form name="user_result_form" id="user_result_form" method="post" action="{submit_url}">
+			<input name="search_type" id="search_type" type="hidden" value="{search_type}" />
+			<div class="controls">
+				<div class="submit_friends">
+					<t:button type="submit">
+						Invite
+					</t:button>
+				</div>
+				<div class="selection_controls">
+					Select:&#160;<a href="#" minion_name="friend_finder:select_all">All</a>,&#160;<a href="#" minion_name="friend_finder:select_none">None</a>
+				</div>
+				<br class="clear"/>
+			</div>
+			<div class="send_invite_results">
+				<t:iter t:id="invite_results" t:iter="contact">
+					<t:template-include t:module="friend_finder" t:name="invite_result"/>
+				</t:iter>
+			</div>
+			<div id="manual_invite">
+				<input type="text" name="manual_invite_0" id="manual_invite_0"/><a href="#" minion_name="friend_finder:add_invite_field">Add More</a><br/>
+			</div>
+			<div class="controls">
+				<div class="submit_friends">
+					<t:button type="submit">
+						Invite
+					</t:button>
+				</div>
+				<br class="clear"/>
+			</div>
+		</form>
+	</div>
+	
+</div>

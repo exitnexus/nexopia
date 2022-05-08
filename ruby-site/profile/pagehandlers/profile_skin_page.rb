@@ -1,34 +1,42 @@
-lib_require :Profile, 'profile_skin', 'php_profile_skin'
+lib_require :Profile, 'user_skin'
 
 module Profile	
 	class ProfileSkinPage < PageHandler
 		declare_handlers("/") {
 			area :User
-			handle :GetRequest, :user_css, :style, Integer, Integer, input(/^(.+)\.css$/) #users/UserName/style/skinrevision/skinname.css
+			handle :GetRequest, :user_css, "style", Integer, Integer, input(String);#input(/\d\.css$/) #users/UserName/style/site_revision/skin_revision/skinid.css
 		}
 		
-		def user_css(skin_match)
-			skin_name = skin_match[1]
-			reply.headers["Content-Type"] = PageRequest::MimeType::CSS
+		def user_css(skin_id)
+			skin_id = skin_id.to_s().gsub(".css", "");
+			
+			reply.headers["Content-Type"] = PageRequest::MimeType::CSS;
+			reply.headers["Expires"] = (Time.now + 365*24*60*60).httpdate
+			
+			# If the user does not have plus, do not output the stylesheet as it's
+			#  the ability to custom style pages is plus only.
+			if(!request.user.plus?())
+				return;
+			end
+			
+			skin = UserSkin.find(:first, [request.user.userid, skin_id.to_i()]);
 			SiteModuleBase.loaded {|name|
 				mod = SiteModuleBase.get(name)
 				layout_path = mod && mod.layout_path()
 				if (layout_path && File.directory?(layout_path) && !mod.skeleton?)
-					puts(load_user_css(layout_path, skin_name))
+					puts(load_user_css(layout_path, skin))
 				end
 				control_path = mod && mod.control_path()
 				if (control_path && File.directory?(control_path) && !mod.skeleton?)
-					puts(load_user_css(control_path, skin_name))
+					puts(load_user_css(control_path, skin))
 				end
 			}
 		end
 	
-		def load_user_css(path, user_skin_name)
+		def load_user_css(path, skin)
 			sio = StringIO.new();
 			file_selector = File.join(path, "**", "*.css");
-			#skin = ProfileSkin.find(request.user.userid, user_skin_name, :first, :name);
-			skin = UserSkin.find(:first, :conditions => ["userid = ? AND name = ?", request.user.userid, user_skin_name]);
-			$log.info("I'm getting #{user_skin_name} for #{request.user.userid} via #{path}");
+			
 			Dir[file_selector].each{|file|
 				t = CSSTrans::user_instance(file)
 				

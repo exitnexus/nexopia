@@ -1,7 +1,7 @@
 <?
 
 function openCenter($width = true){
-	echo "<table cellpadding=3 cellspacing=0 width=" . ($width === true ? "100%" : "$width align=center" ) . " style=\"border-collapse: collapse\" border=1 bordercolor=#000000>";
+	echo "<table cellpadding=3 cellspacing=0 width=" . ($width === true ? "100%" : "$width align=center" ) . " style=\"border-collapse: collapse; margin: auto;\" border=1 bordercolor=#000000>";
 	echo "<tr><td class=body>";
 }
 
@@ -9,8 +9,8 @@ function closeCenter(){
 	echo "</td></tr></table>";
 }
 
-function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false, $skeleton=false, $modules=array(), $userskinpath=false){
-	global $userData, $skindata, $cache, $config, $skinloc, $siteStats, $mods, $banner, $menus;
+function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false, $skeleton="NullSkeleton", $scripts=array(), $userskinpath=false){
+	global $userData, $skindata, $cache, $config, $skinloc, $siteStats, $mods, $banner, $menus, $_RUBY;
 
 	timeline('start header');
 
@@ -19,8 +19,13 @@ function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false,
 	timeline('- done stats');
 
 	$menus = $cache->hdget("menus", 0, 'makeMenus');
-
-	$skindata['modules'] = $modules;
+	
+	if(!isset($scripts) || count($scripts) == 0)
+	{
+		$scripts = $_RUBY["scripts"];
+	}
+	
+	$skindata['scripts'] = $scripts;
 	$skindata['skeleton'] = $skeleton;
 	$skindata['userskinpath'] = $userskinpath;
 	$skindata['incCenter'] = $incCenter;
@@ -32,7 +37,7 @@ function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false,
 
 
 	ob_start();
-	showNotification();
+	
 
 
 	echo "<table id=sitebody cellspacing=0 cellpadding=0 width=$skindata[skinWidth]" . ($skindata['skinWidth'] == '100%' ? "" : " align=center") . ">";
@@ -40,7 +45,7 @@ function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false,
 
 
 	echo "<tr>";
-		echo "<td class=header2" . ($skindata['mainbg'] == "" ? "" : ($skindata['mainbg']{0} == '#' ? "" : " background='$skinloc$skindata[mainbg]'")) . ">"; // bgcolor=$skindata[mainbg], is the correct way, but skins don't expect it.
+		echo "<td class=header2" . ($skindata['mainbg'] == "" ? "" : ($skindata['mainbg']{0} == '#' ? "" : " background='$skinloc$skindata[mainbg]'")) . " " .(array_key_exists('mainbgnorepeat', $skindata) ? ($skindata['mainbgnorepeat'] ? "style=\"background-repeat: no-repeat;\"" : "") : "")." >"; // bgcolor=$skindata[mainbg], is the correct way, but skins don't expect it.
 			echo "<table cellpadding=0 cellspacing=$skindata[cellspacing] width=100%>";
 				echo "<tr>";
 
@@ -73,7 +78,7 @@ function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false,
 }
 
 function incFooter(){
-	global $userData,$skindata,$skinloc,$siteStats,$config, $debuginfousers, $banner, $menus, $weblog, $reporev, $staticimgdomain, $staticdomain;
+	global $userData,$skindata,$skinloc,$siteStats,$config, $debuginfousers, $banner, $menus, $weblog, $reporev, $staticimgdomain, $staticdomain, $staticbasedomain, $wwwdomain;
 	echo "\n\n\n";
 
 	timeline('start footer');
@@ -183,7 +188,7 @@ if($skindata['admin']){
 //end menu2
 
 	echo "<tr>";
-		echo "<td class=footer align=center" . ($skindata['mainbg'] == "" ? "" : ($skindata['mainbg']{0} == "#" ? "" : " background='$skinloc$skindata[mainbg]'")) . ">";
+		echo "<td class=footer align=center" . ($skindata['mainbg'] == "" ? "" : ($skindata['mainbg']{0} == "#" ? "" : (array_key_exists('mainbgnorepeat', $skindata) ? ($skindata['mainbgnorepeat'] ? "" : " background='$skinloc$skindata[mainbg]'") : " background='$skinloc$skindata[mainbg]'"))) . ">";
 			echo $config['copyright'];
 		echo "</td>";
 	echo "</tr>";
@@ -201,26 +206,31 @@ if($skindata['admin']){
 	}
 
 echo "</table>\n";
-
+		showNotification();
 	debugOutput();
 
 	$bodytext = ob_get_clean();
 
 
 	$headtext = '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">';
-	$headtext.= "\n<html><head><title>$config[title]</title>\n";
+	$headtext.= "\n<html><head>\n";
+	$headtext.= "<meta name=\"verify-v1\" content=\"/88/A5pFXNbF4qL57WPM0suJJt9lcMU5iAflUN/6nzc=\" />";
+	$headtext.= "<title>$config[title]</title>";
 	$headtext.= "<link rel=stylesheet href='$skinloc" . "default.css'>\n";
-	$headtext.= "<script src=/static/$reporev/files/Yui/build/yui.js></script>\n";
-	$headtext.= "<script src=\"http://".$staticdomain."/Gallery/javascript/SWFUpload.js\"></script>\n";
-	foreach ($skindata['modules'] as $module) {
-		$file_name = $module . '.js';
-		$headtext .= "<script type=\"text/javascript\" src=\"/static/$reporev/script/$file_name\"></script>";
+	$headtext .= "<link rel=\"stylesheet\" href=\"$config[yuiloc]build/container/assets/container.css\"/>";
+	$headtext .= "<link rel=\"stylesheet\" href=\"$config[yuiloc]/yui_nexopia.css\"/>";
+	
+	foreach ($skindata['scripts'] as $script) {
+		$headtext .= "<script type=\"text/javascript\" src=\"$script\"></script>";
 	}
+	
 	if ($skindata['skeleton']) {
 		$structure_name = $skindata['skeleton'];
 		$skin_name = $skindata['name'];
-		$headtext .= "<link rel=\"stylesheet\" href=\"/static/$reporev/style/$structure_name/$skin_name.css\"/>";
+		$headtext .= "<link rel=\"stylesheet\" href=\"http://$staticbasedomain/style/$structure_name/$skin_name.css\"/>";
+		$headtext .= "<link rel=\"apple-touch-icon\" href=\"http://$staticbasedomain/files/$structure_name/nexopia_iphone.png\"/>";
 	}
+
 	if ($skindata['userskinpath']) {
 		$headtext .= "<link rel=\"stylesheet\" href=\"$skindata[userskinpath]\"/>";
 	}
@@ -262,9 +272,10 @@ echo "</table>\n";
 
 		$replies = ($newreplies? "'$newreplies Repl" . ($newreplies==1? 'y' : 'ies') . "'" : "''");
 
-		if($userData['loggedIn'])
-			echo "top.head.updateStats($userData[friendsonline],$siteStats[onlineusers],$siteStats[onlineguests],$userData[newmsgs],$replies," . ($userData['enablecomments'] == 'y' ? $userData['newcomments'] : '-1') . "," . $banner->getpageid() . ");" ;
-		else
+		if($userData['loggedIn']) {
+			$commentscount = getGalleryComments($userData['userid']) + $userData['newcomments'];
+			echo "top.head.updateStats($userData[friendsonline],$siteStats[onlineusers],$siteStats[onlineguests],$userData[newmsgs],$replies," . ($userData['enablecomments'] == 'y' ? $commentscount : '-1') . "," . $banner->getpageid() . ");" ;
+		} else
 			echo "top.head.updateStats(-1,$siteStats[onlineusers],$siteStats[onlineguests],-1,-1,-1," . $banner->getpageid() . ");" ;
 	echo "}catch(err){";
 	//can fail because there is no header, or because it's a different website and not allowed to cross domains
@@ -273,7 +284,7 @@ echo "</table>\n";
 			if($userData['halfLoggedIn'])
 				$menuheight += $skindata['menuheight'] + $skindata['menuspacersize'];
 
-			if($userData['limitads']){ //plus always has the small header
+			if($userData['limitads'] && $userData['premium']){ //plus always has the small header
 				echo "h=60;";
 			}else{
 				echo "s=getWindowSize();";
@@ -316,29 +327,87 @@ echo "</table>\n";
 	</style></noscript>";
 
 	echo $bodytext;
+
+	// Delayed loading of Google analytics script.
+	echo '<script type="text/javascript">
+		YAHOO.util.Event.addListener(this, "load", function() {
+			var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+			var objTransaction = YAHOO.util.Get.script(gaJsHost + "google-analytics.com/ga.js", {
+				onSuccess: function() {
+					var pageTracker = _gat._getTracker("UA-5204531-1");
+					pageTracker._trackPageview();
+				}
+			});
+		});
+	</script>';
+
+	// Others Online script
+	echo '<script type="text/javascript">
+		YAHOO.util.Event.addListener(this, "load", function() {
+			var head = document.getElementsByTagName("head")[0];
+			var script = document.createElement("script");
+			script.src = "http://www.othersonline.com/partner/scripts/nexopia/alice.js?autorun=true";
+			head.appendChild(script);
+		});
+	</script>';
+
 	echo "</body>\n";
 
 	echo "</html>";
 }
 
 function createHeader($size, $bodyname, $pageid){
-	global $skinloc, $skindata, $config, $siteStats, $userData, $banner, $menus, $cache, $weblog, $reporev;
-
+	global $skinloc, $skindata, $config, $siteStats, $userData, $banner, $menus, $cache, $weblog, $reporev, $_RUBY, $staticimgdomain, $staticbasedomain;
+	
 	$bodyname = preg_replace("/[^_0-9a-zA-Z]+/", "", $bodyname);
 
 	$menus = $cache->hdget("menus", 0, 'makeMenus');
-
+	
+	$scripts = array();
+	if(!isset($skindata['scripts']))
+	{
+		if(isset($_RUBY))
+		{
+			$scripts = $_RUBY['scripts'];
+		}
+	}
+	
 	updateStats();
 
 	closeAllDBs();
 
 	echo "<html><head><title>$config[title]</title><script src=$config[jsloc]general.js></script>";
 	echo "<link rel=stylesheet href='$skinloc" . "default.css'>";
-
+	/*
+	if (isset($skindata['skeleton'])) {
+		$structure_name = $skindata['skeleton'];
+	}
+	else {
+		$structure_name = "NullSkeleton";
+	}
+	
+	$skin_name = $skindata['name'];
+	echo "<link rel=\"stylesheet\" href=\"http://$staticbasedomain/style/$structure_name/$skin_name.css\"/>";
+	*/
+	echo "<meta name=\"verify-v1\" content=\"/88/A5pFXNbF4qL57WPM0suJJt9lcMU5iAflUN/6nzc=\" />";
+	
+	$headtext = "";
+/*
+	foreach ($scripts as $script) {
+		$headtext .= "<script type=\"text/javascript\" src=\"$script\"></script>";
+	}
+	$headtext .= "<link rel=\"stylesheet\" href=\"/static/$reporev/files/Yui/build/container/assets/container.css\"/>";
+	*/
+	
+	echo $headtext;
+	echo "<style>";
+	echo "#interstitial_display_head_mask{opacity:0.80;*filter:alpha(opacity=80);background-color: #252525;}";
+	echo "#interstitial_display_head{display:none;}";
+	echo "</style>";
 	echo "</head>\n";
 	echo "<body" . ($skindata['backgroundpic'] ? " background='$skinloc$skindata[backgroundpic]' " : "" ) . ">\n";
 
-	echo "<table id=sitebody cellspacing=0 cellpadding=0 width=$skindata[skinWidth]" . ($skindata['skinWidth'] == '100%' ? "" : " align=center") . ">";
+	echo "<table id=sitebody nuts=boo cellspacing=0 cellpadding=0 width=$skindata[skinWidth]" . ($skindata['skinWidth'] == '100%' ? "" : " align=center") . ">";
 
 
 	echo "<tr>";
@@ -347,13 +416,12 @@ function createHeader($size, $bodyname, $pageid){
 		if($size == 90)
 			$header = $skindata['headerbig'];
 		else
-			$header = ($userData['limitads'] ? $skindata['headerplus'] : $skindata['headersmall']);
+			$header = (($userData['limitads'] && $userData['premium']) ? $skindata['headerplus'] : $skindata['headersmall']);
 
+		
 
-
-		echo "<td bgcolor=#000000 background='$skinloc$header' align=right height=$size valign=top>";
-
-			if(!$userData['limitads']){
+		echo "<td bgcolor=".(array_key_exists('headerbackgroundcolor', $skindata) ? $skindata['headerbackgroundcolor'] : "#000000") ." background='$skinloc$header' align=right height=$size valign=top ".(array_key_exists('headernorepeat', $skindata) ? ($skindata['headernorepeat'] == "" ? "":"style=\"".$skindata['headernorepeat']."\"") : "")." >";
+			if(!($userData['limitads'] && $userData['premium'])){
 				echo "<iframe src='/bannerview.php?size=" . ($size == 90 ? BANNER_LEADERBOARD : BANNER_BANNER) . "&pageid=$pageid' marginHeight=0 marginWidth=0 frameborder=0 name=banner scrolling=no ";
 				echo ($size == 90 ? "width=728 height=90" : "width=468 height=60");
 				echo " allowtransparency=true background-color=\"transparent\"></iframe>";
@@ -434,12 +502,15 @@ function createHeader($size, $bodyname, $pageid){
 				$userblog = new userblog($weblog, $userData['userid']);
 				$newreplies = $userblog->getNewReplyCountTotal();
 				$ending = ($newreplies==1? 'y' : 'ies');
-				echo "<a href='/weblog.php?uid=$userData[userid]' target='$bodyname'>Blog</a> <a href='/weblog.php?uid=$userData[userid]&newreplies=1' target='$bodyname'>";
+				// echo "<img border='0' src='http://$staticimgdomain/icons/new_icon.gif'/>&nbsp;";
+				echo "<a href='/users/" . urlencode($userData['username']) . "/blog' target='$bodyname'>Blog</a> <a href='/my/blog/new/replies' target='$bodyname'>";
 				$replies = ($newreplies ? "$newreplies Repl$ending" : '');
 				echo "<span id=replies>$replies</span></a>";
 
-				if($userData['loggedIn'] && $userData['enablecomments'] == 'y')
-					echo $skindata['menudivider'] . "<a href='/usercomments.php' target='$bodyname'>Comments <span id=comments>$userData[newcomments]</span></a>";
+				if($userData['loggedIn'] && $userData['enablecomments'] == 'y') {
+					$commentscount = getGalleryComments($userData['userid']) + $userData['newcomments'];
+					echo $skindata['menudivider'] . "<a href='/users/". urlencode($userData['username']) ."/comments' target='$bodyname'>Comments <span id=comments>$commentscount</span></a>";
+				}
 				echo " &nbsp;";
 
 				echo "</td>";
@@ -459,7 +530,8 @@ function createHeader($size, $bodyname, $pageid){
 	}
 
 	echo "</table>";
-
+	echo "<div id='interstitial_head' minion_name='interstitial_head'></div>";
+	
 	echo "<script>";
 	echo "var timeout=-1,";
 	echo "running=false,";

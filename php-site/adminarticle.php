@@ -132,7 +132,7 @@
 		echo "<td class=body><a class=body href=\"/article.php?sortd=$sortd&sortt=$sortt&page=$page&id=$line[id]\">$line[title]</a></td>";
 
 		echo "<td class=body>";
-		echo "<a class=body href=/profile.php?uid=$line[authorid]>$line[author]</a>";
+		echo "<a class=body href=/users/". urlencode($line["author"]) .">$line[author]</a>";
 		echo "</td>";
 
 		echo "<td class=body>" . userdate("m/d/Y", $line['time']) . "</td>";
@@ -168,7 +168,7 @@ function edit($id){
 
 
 	incHeader();
-	echo "<table width=100% cellspacing=0><form action=\"$_SERVER[PHP_SELF]\" method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
+	echo "<form action=\"$_SERVER[PHP_SELF]\" method=post enctype=\"application/x-www-form-urlencoded\" name=editbox><table width=100% cellspacing=0>\n";
 
 	echo "<tr><td class=body align=center>Category: <select class=body name=category><option value=0>Choose a Category" . makeCatSelect($branch,$data['category']) . "</select></td></tr>";
 	echo "<tr><td class=body align=center>Title: <input class=body type=text name=\"title\" value=\"$data[title]\" size=40></td></tr>\n";
@@ -183,7 +183,7 @@ function edit($id){
 	echo "<input type=hidden name=sortt value=$sortt>";
 	echo "<input type=hidden name=sortd value=$sortd>";
 	echo "<tr><td class=body align=center><input class=body type=submit name=action value=Preview> <input class=body type=submit name=action value=Update></td></tr>\n";
-	echo "</form></table>\n";
+	echo "</table></form>\n";
 
 
 	incFooter();
@@ -215,10 +215,10 @@ function update($id,$category,$title,$msg,$action){
 	}
 
 	$ntitle = removeHTML($title);
-	$narticle = removeHTML($msg);
+	$narticle = cleanHTML($msg);
 	$narticle2 = smilies($narticle);
 	$narticle2 = parseHTML($narticle2);
-	$narticle3 = nl2br($narticle2);
+	$narticle3 = $narticle2;
 
 	if($action=="Preview" || (($narticle2 != $msg || $ntitle != $title) && $action=="changed")){
 		incHeader();
@@ -231,7 +231,7 @@ function update($id,$category,$title,$msg,$action){
 
 		echo "</blockquote><hr>\n";
 
-		echo "<table width=100% cellspacing=0><form action=\"$_SERVER[PHP_SELF]\" method=post enctype=\"application/x-www-form-urlencoded\" name=editbox>\n";
+		echo "<form action=\"$_SERVER[PHP_SELF]\" method=post enctype=\"application/x-www-form-urlencoded\" name=editbox><table width=100% cellspacing=0>\n";
 		echo "<tr><td class=body>You can make any changes needed below:</td></tr>\n";
 		echo "<tr><td class=body align=center>Category: <select name=category><option value=0>Choose a Category" . makeCatSelect($branch,$category) . "</select></td></tr>";
 		echo "<tr><td class=body align=center>Title: <input class=body type=text name=\"title\" value=\"$title\" size=40></td></tr>\n";
@@ -246,7 +246,7 @@ function update($id,$category,$title,$msg,$action){
 		echo "<input type=hidden name=sortt value=$sortt>";
 		echo "<input type=hidden name=sortd value=$sortd>";
 		echo "<tr><td class=body align=center><input class=body type=submit name=action value=Preview> <input class=body type=submit name=action value=Update></td></tr>\n";
-		echo "</form></table>\n";
+		echo "</table></form>\n";
 
 		incFooter();
 		exit;

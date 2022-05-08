@@ -1,6 +1,6 @@
 <?
 
-	$ips = array('10.0.', '192.168.');
+	$ips = array('10.0.', '192.168.', '127.');
 
 	foreach($ips as $ip){
 		if(strncmp($_SERVER['REMOTE_ADDR'], $ip, strlen($ip)) == 0){
@@ -10,4 +10,4 @@
 		}
 	}
 
-	echo "failed\n";
+	echo "failed for $_SERVER[REMOTE_ADDR]\n";

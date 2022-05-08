@@ -68,7 +68,7 @@
 	foreach($articledata as &$line){
 		$root = $categories->makeroot($line['category']);
 		$line['cat'] = $root;
-		$line['text'] = truncate(nl2br(smilies(parseHTML($line['text']))), 1000);
+		$line['text'] = truncate(smilies(parseHTML($line['text'])), 1000);
 	}
 
 	$template->set("articledata", $articledata);

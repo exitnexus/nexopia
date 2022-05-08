@@ -139,10 +139,10 @@ function serverbalance(){
 		$res = $udb->prepare_query("SELECT count(*) FROM users");
 		$servers[$id]['users'] = $res->fetchfield();
 
-		$res = $udb->prepare_query("SELECT count(*) FROM users WHERE activetime > #", $time - 86400*7);
+		$res = $udb->prepare_query("SELECT count(*) FROM useractivetime WHERE activetime > #", $time - 86400*7);
 		$servers[$id]['active'] = $res->fetchfield();
 
-		$res = $udb->prepare_query("SELECT count(*) FROM users WHERE online = 'y'");
+		$res = $udb->prepare_query("SELECT count(*) FROM useractivetime WHERE online = 'y'");
 		$servers[$id]['online'] = $res->fetchfield();
 
 		$res = $udb->prepare_query("SHOW TABLE STATUS");

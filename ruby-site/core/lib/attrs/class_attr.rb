@@ -23,7 +23,7 @@ class Module
 		self_name.gsub!(':', '_');
 
 		syms.flatten.each { |sym|
-			if (!class_variables.include?("@@#{self_name}_#{sym}"))
+			if (!class_variable_defined?("@@#{self_name}_#{sym}"))
 				class_variable_set(:"@@#{self_name}_#{sym}", nil);
 			end
 
@@ -32,11 +32,11 @@ class Module
 			}
 
 			Thread.current['class_attr_temp'] = [self_name, sym];
-
 			class << self
-				self_name, sym = Thread.current['class_attr_temp'];
+				self_name, sym = ::Thread.current['class_attr_temp'];
+				variable_name = :"@@#{self_name}_#{sym}"
 				self.send(:define_method, sym) {
-					class_variable_get(:"@@#{self_name}_#{sym}");
+					class_variable_get(variable_name);
 				}
 			end
 		}
@@ -55,9 +55,10 @@ class Module
 
 			Thread.current['class_attr_temp'] = [self_name, sym];
 			class << self
-				self_name, sym = Thread.current['class_attr_temp'];
+				self_name, sym = ::Thread.current['class_attr_temp'];
+				variable_name = :"@@#{self_name}_#{sym}"
 				self.send(:define_method, :"#{sym}=") { |value|
-					class_variable_set(:"@@#{self_name}_#{sym}", value);
+					class_variable_set(variable_name, value);
 				}
 			end
 		}

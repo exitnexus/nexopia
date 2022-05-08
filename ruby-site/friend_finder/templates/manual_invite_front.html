@@ -1,0 +1,26 @@
+<t:if t:id="invites_sent > 0">
+	<div id="friend_finder_notification">
+		<h2>
+			{invites_sent} invites sent.
+		</h2>
+	</div>
+</t:if>
+<div id="find_friends">
+
+	<div class="header">
+		Find and Add Friends on Nexopia
+	</div>
+	
+	<br class="clear" />
+	
+	<div class="tab_control">
+		<a href="/my/friends/find" class="first">
+			Import From Email
+		</a>
+		<a href="/my/friends/find/invite/manual/full" class="selected">
+			Invite Friends
+		</a>
+	</div>
+	
+	<t:template-include t:module="friend_finder" t:name="manual_invite_body"/>
+</div>

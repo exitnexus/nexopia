@@ -1,0 +1,38 @@
+--- !ruby/object:Skin 
+skin_name: supernova
+display_name: "Supernova"
+skin_properties:
+  side_header_height: "30px"
+   
+  page_background_color: "#14100F"
+  link_color: "#EF5997"
+  link_accent_color: "#ee2b7b"
+  primary_text_color: "#CFCFCF"
+  primary_background_color: "#1e1e1e"
+  secondary_text_color: "#CFCFCF"
+  secondary_background_color: "#0F0F0F"
+  subdued_text_color: "#7F7F7F"
+  user_message_text_color: "#fff"
+  user_message_background_color: "#0F0F0F"
+  user_message_border_color: "#3F3F3F"
+  header_text_color: "#CFCFCF"
+  header_background_color: "#fff"
+  header_link_color: "#fff"
+  header_link_accent_color: "#ee2b7b"
+
+  section_header_text_color: "#fff"
+  section_header_background_color: "#5F1719"
+  section_header_background_image: "/legacy/skins/supernova/fronthead.png"
+  user_online_color: "#00AA00"
+  user_offline_color: "#BF0E00"
+  dual_bg1_link_color: "#EF5997"
+  dual_bg2_link_color: "#ee2b7b"
+  dual_bg1_link_accent_color: "#ee2b7b"
+  dual_bg2_link_accent_color: "#EF5997"
+  
+  legacy_sidebar_text_color: "#CFCFCF"
+  legacy_sidebar_background_color: "#1e1e1e"
+  legacy_sidebar_header_text_color: "#fff"
+  legacy_sidebar_link_color: "#EF5997"
+  legacy_sidebar_link_accent_color: "#ee2b7b"
+  

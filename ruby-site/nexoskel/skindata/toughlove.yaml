@@ -1,0 +1,38 @@
+--- !ruby/object:Skin 
+skin_name: toughlove
+display_name: "Tough Love by .Pxy."
+skin_properties:
+  side_header_height: "30px"
+   
+  page_background_color: "#000"
+  link_color: "#fff"
+  link_accent_color: "#CFCFCF"
+  primary_text_color: "#191919"
+  primary_background_color: "#ad0014"
+  secondary_text_color: "#fff"
+  secondary_background_color: "#6b0009"
+  subdued_text_color: "#2a2a2a"
+  user_message_text_color: "#fff"
+  user_message_background_color: "#3c3c3c"
+  user_message_border_color: "#aaaaaa"
+  header_text_color: "#fff"
+  header_background_color: "#000"
+  header_link_color: "#CFCFCF"
+  header_link_accent_color: "#fff"
+  
+  section_header_text_color: "#fff"
+  section_header_background_color: "#5F1719"
+  section_header_background_image: "/legacy/skins/toughlove/fronthead.png"
+  user_online_color: "#00AA00"
+  user_offline_color: "#BF0E00"
+  dual_bg1_link_color: "#fff"
+  dual_bg2_link_color: "#CFCFCF"
+  dual_bg1_link_accent_color: "#CFCFCF"
+  dual_bg2_link_accent_color: "#fff"
+  
+  legacy_sidebar_text_color: "#191919"
+  legacy_sidebar_background_color: "#ad0014"
+  legacy_sidebar_header_text_color: "#000"
+  legacy_sidebar_link_color: "#fff"
+  legacy_sidebar_link_accent_color: "#CFCFCF"
+  

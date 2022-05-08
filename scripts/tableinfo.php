@@ -31,8 +31,6 @@
 		'msgs' => 'userid',
 		'msgtext' => 'userid',
 		'msgtickets' => 'userid',
-		'observablepermissions' => 'userid',
-		'observationpreferences' => 'userid',
 		'picbans' => 'userid',
 		'pics' => 'userid',
 		'picspending' => 'userid',

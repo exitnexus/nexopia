@@ -1,0 +1,88 @@
+#friends_albums {
+	width: 738px;
+	background-color: @primary_block_background_color;
+	padding: 6px 6px 12px 6px;
+	margin: 6px auto 0px auto;
+	color: @primary_block_text_color;
+
+	& .no_galleries {
+		margin-top: 6px;
+		padding: 6px 6px;
+		background-color: @secondary_block_background_color;
+		color: @secondary_block_text_color;
+		
+		& .title {
+			padding-bottom: 6px;
+			font-weight: bold;
+		}
+		
+		& .empty_friends_gallery_button {
+			margin-top: 6px;
+		}
+	}
+	
+	& a {
+		color: @primary_block_link_color;
+		&:hover {
+			color: @primary_block_link_hover_color;
+		}
+	}
+	
+	& br.clear {
+		clear: both;
+	}
+	
+	& .album_container {
+		background-color: @secondary_block_background_color;
+		height: 100px;
+		color: @secondary_block_text_color;
+		& a {
+			color: @secondary_block_link_color;
+			&:hover {
+				color: @secondary_block_link_hover_color;
+			}
+		}
+		
+		padding: 6px;
+		margin-top: 6px;
+		
+		& .album_thumbnail {
+			float: left;
+			margin-right: 6px;
+		}
+		
+		& .album_info {
+			float: left;
+			width: 370px;
+			
+			& a {
+				font-weight: bold;
+			}
+			
+			& .date_author,
+			.date_author a {
+				font-size: 10px;
+			}
+			
+			& .description {
+				margin-top: 6px;
+			}
+			
+		}
+		
+		& .preview_thumbs {
+			float: right;
+			margin-top: 25px;
+			width: 234px;
+			text-align: right;
+			height: 75px;
+			
+			& .thumbnail {
+				margin-left: 3px;
+			}
+			
+		}
+		
+	}
+	
+}

@@ -1,0 +1,395 @@
+#comments_page
+{
+	width: 738px;
+	margin-left: auto;
+	margin-right: auto;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 10px;
+	text-align: left;
+	padding: 6px;
+	padding-bottom: 12px;
+	margin-top: 6px;
+	background-color: @primary_block_background_color;
+	color: @primary_block_text_color;
+
+	& a 
+	{
+		color: @primary_block_link_color;
+		
+		&:hover 
+		{
+			color: @primary_block_link_hover_color;
+		}
+	}	
+	
+	& .secondary_block
+	{
+		background-color: @secondary_block_background_color;
+		color: @secondary_block_text_color;
+		
+		& a 
+		{
+			color: @secondary_block_link_color;
+			
+			&:hover 
+			{
+				color: @secondary_block_link_hover_color;
+			}
+		}
+		
+	}
+}
+
+.comment_view_container
+{
+	margin-top: 2px;
+	padding: 2px;
+	overflow: hidden;
+		
+		& .single_comment_table
+		{
+			color: inherit;
+		}
+		
+		& .comment_user_img {
+	/*		padding: 2px;*/
+			float: left;
+		}
+
+		& .comment_content {
+			padding-top: 2px;
+			padding-right: 2px;
+			float: right;
+		}
+
+		& .comment_username {
+			font-weight: bold;
+			font-size: 11px;
+			vertical-align: top;
+		}
+
+		& .comment_body {
+			padding: 12px 6px 6px 0px;
+			vertical-align: top;
+			overflow: hidden;
+			font-size: 11px;
+			width: 610px;
+		}
+		
+		& .comment_function_links
+		{
+			text-align: right;
+			padding-bottom: 2px;
+			padding-right: 2px;
+			font-size: 10px;
+
+			& a {
+				font-size: 10px;
+			}
+		}
+
+		& div.comment_delete
+		{
+			float: left;
+			overflow: hidden;
+			padding: 6px 0px 4px 4px;
+		}
+
+		& input.comment_delete
+		{
+			border: none;
+		}
+
+		& #select_all_comments
+		{
+			border: none;
+		}
+
+		& .comment_date {
+			float: right;
+			font-size: 10px;
+		}
+		& .comment_quick_delete_btn {
+			float: right;
+			padding: 0px 0px 0px 6px;
+			vertical-align: text-top;
+			& img{
+				border: none;
+			}
+		}
+
+		& .comment_header {
+			margin: 0px 0px 6px 0px;
+		}
+
+		& #comment_footer {
+			padding: 6px 0px 0px 2px;
+			clear: both;
+		}
+
+		& .deleted {
+			background-color: #FF0000;
+		}
+}
+
+#comments_header
+{
+	margin-bottom: 6px;
+	height: 42px;
+	
+	& .admin_links
+	{
+		float: right;
+		
+		& a
+		{
+			font-size: inherit;
+		}
+	}
+	
+	& .page_title
+	{
+		float: left;
+		font-size: 16px;
+		font-weight: bold;
+		
+		& .comments_user_pic
+		{
+			padding-right: 6px;
+		}
+		
+		& td
+		{
+			font-weight: bold;
+			color: @primary_block_header_text_color;
+			
+			&.thumbnails {
+				padding-right: 6px;
+			}
+			
+		}
+	}
+}
+
+#comment_write
+{
+	& .comment_write_table {
+		width: 100%;
+		
+		& .viewing_user_picture
+		{
+			padding-right: 8px;
+		}
+		
+		& textarea {
+			height: 76px;
+			border: 1px solid @secondary_block_background_color;
+			font-family: Verdana, Arial, Helvetica, sans-serif;
+			font-size: 10px;
+			padding: 0;
+			width: 628px;
+		}
+		
+		& #comments_editor_row
+		{
+			& #comment_write_form
+			{
+				& .enhanced_text_box_wrapper
+				{
+					& .tab_handles
+					{
+						border-color: @primary_block_text_color;
+						
+						& .tab_handle
+						{
+							background-color: @primary_block_background_color;
+							border-color: @primary_block_text_color;
+							color: @primary_block_text_color;
+						}
+					}
+
+					& .tab_bodies
+					{
+						border-color: @primary_block_text_color;
+						
+						& .tab_body
+						{
+							background-color: @primary_block_background_color;
+							color: @primary_block_text_color;
+
+							& .yui-button
+							{
+								background-color: @secondary_block_background_color;
+
+								& button
+								{
+									background-color: @secondary_block_background_color;
+									color: @secondary_block_text_color;
+								}
+							}
+						}
+					}
+
+					& #comment_text
+					{
+						background-color: @primary_block_background_color;
+						color: @primary_block_text_color;
+						border-color: @primary_block_text_color;
+					}
+				}
+			}
+		}
+	}
+	
+	& #post_comment_spinner
+	{
+		display: none;
+	}
+	
+	& #comment_post_submit
+	{	
+		display: block;
+		text-align: center;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 10px;
+		color: @secondary_block_text_color;
+		background-color: @secondary_block_background_color;
+		border: 0px;
+		padding: 0px 6px 0px 6px;
+		margin: 0px 6px 0px 0px;
+	}
+}
+
+#comments_post_error, #comments_abuse_error, #comments_post_success
+{
+	margin-bottom: 3px;
+	padding: 3px;
+	padding-left: 8px;
+	font-weight: bold;
+}
+
+#comments_post_error, #comments_abuse_error
+{
+	background-color: #FDE9EA;
+	color: #B10033;
+	border: 1px solid #B10033;
+}
+
+#comments_user_message_row #comments_post_success
+{
+	background-color: #E9FDEA;
+	color: #00B133;
+	border: 1px solid #00B133;
+	
+	& a
+	{
+		color: #00B133;
+		text-decoration: underline;
+		
+		&:hover
+		{
+			color: #073A0A;
+		}
+	}
+}
+
+
+
+
+
+
+/* COMMENT WRITING */
+
+
+
+
+
+
+
+
+
+
+/* COMMENT LIST */
+
+#profile {
+	& .comment_view_container .comment_content {
+		width: 426px;
+	}
+	& .comment_functions {
+		text-align: right;
+	}
+	
+	& td.first {
+		padding-left: 2px;
+		padding-right: 12px;
+		width: 1%;
+	}
+	
+	& #comment_text
+	{
+		width: 432px;
+	}
+}
+
+#gallery_pic_comments {
+	& .comment_view_container .comment_content {
+		width: 406px;
+	}
+	
+	& .comment_functions {
+		text-align: right;
+	}
+	
+	& #comment_text
+	{
+		width: 424px;
+	}
+	
+}
+
+#comments_stand_alone {
+	background-color: @section_background_color;
+	text-align: center;
+	
+	& .comment_view_container .comment_content {
+		width: 616px;
+	}
+}
+
+.comment_post_wrapper
+{
+	margin-top: 2px;
+	padding-bottom: 8px;
+	height: 14px;
+}
+
+#comments_page
+{	
+	& #primary_block{
+		margin: auto;
+		padding: 0px;
+	}
+
+
+	& div.block_container {
+		background-color: @primary_block_background_color;
+		padding: 6px 6px 12px 6px;
+		margin: 6px 0px 0px 0px;
+	
+	}
+	
+	& .block_container {
+		margin: 6px 0px 0px 0px;
+		position: relative;
+	}
+	
+	& .block_container_navigation {
+		padding: 6px 6px 6px 6px;
+		margin: 6px 0px 0px 0px;
+	}
+	
+	& td.first {
+		padding-right: 8px;
+		width: 1%;
+	}
+}

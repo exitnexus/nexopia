@@ -25,7 +25,7 @@ td.header		{ background-color: #f5ebbc; color: #cc6666; font-family: arial, sans
 a.header  	{ color: #ff6666; text-decoration:none;  }
 a.header:hover	{ color: #ffffff; }
 
-td.headerfront	{ color:#336666; background: #fff url(http://static.nexopia.com/skins/bigmusic/fronthead.png); height:30px; padding-bottom:8px; }
+td.headerfront	{ color:#336666; background: #fff url(http://static.nexopia.com/1/files/Legacy/skins/bigmusic/fronthead.png); height:30px; padding-bottom:8px; }
 
 
 td.header2			{ color: #323237; font-family: arial, sans-serif; font-size: 8pt}
@@ -36,7 +36,7 @@ td.body			{ background-color: #ffcccc; color: #cc6666; font-family: arial, sans-
 td.body2		{ background-color: #edbdbd; color: #cc6666; font-family: arial, sans-serif; font-size: 8pt}
 a.body { color: #ff6666; }
 a.body:hover	{ color: #ffffff; }
-body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; border:1px solid #cc6666;}
+body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; color: #000; border:1px solid #d4d6d7;}
 body textarea { font-size: 9pt; }
 
 td.menu				{ color: #cc6666; font-family: arial, sans-serif; font-size: 9pt;}

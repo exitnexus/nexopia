@@ -21,6 +21,10 @@ define('ABUSE_ACTION_LOGGED_MSG',		15);
 define('ABUSE_ACTION_BLOG_EDIT',		16);
 define('ABUSE_ACTION_TAGLINE_EDIT',		17);
 define('ABUSE_ACTION_PICMOD_WARNING',	18);
+define('ABUSE_ACTION_EDIT_GALLERY', 	19);
+define('ABUSE_ACTION_EDIT_COMMENTS', 	20);
+define('ABUSE_ACTION_EDIT_GALLERY_COMMENTS', 21);
+define('ABUSE_ACTION_EDIT_BLOG_COMMENTS', 22);
 
 define('ABUSE_REASON_NUDITY', 	1);
 define('ABUSE_REASON_RACISM', 	2);
@@ -77,6 +81,10 @@ tables
 				ABUSE_ACTION_FORUM_WARNING	=> 'Forum Warning',
 				ABUSE_ACTION_FORUM_NOTE		=> 'Forum Note',
 				ABUSE_ACTION_PICMOD_WARNING => 'Pic Mod Warning',
+				ABUSE_ACTION_EDIT_GALLERY 	=> 'Edit Gallery',
+				ABUSE_ACTION_EDIT_COMMENTS 	=> 'Edit Comments',
+				ABUSE_ACTION_EDIT_GALLERY_COMMENTS 	=> 'Edit Gallery Comments',
+				ABUSE_ACTION_EDIT_BLOG_COMMENTS 	=> 'Edit Blog Comments',
 			);
 
 		$this->forumactions = array(
@@ -139,11 +147,10 @@ tables
 
 		$subject = removeHTML($subject);
 
-		$nmsg = removeHTML($message);
+		$nmsg = cleanHTML($message);
 		$nmsg2 = parseHTML($nmsg);
 		$nmsg3 = smilies($nmsg2);
 		$nmsg3 = wrap($nmsg3);
-		$nmsg3 = nl2br($nmsg3);
 
 		$col = ($action == ABUSE_ACTION_USER_REPORT ? 'reportuserid' : 'modid');
 
@@ -167,11 +174,10 @@ tables
 
 		$msg = trim($msg);
 
-		$nmsg = removeHTML($msg);
+		$nmsg = cleanHTML($msg);
 		$nmsg2 = parseHTML($nmsg);
 		$nmsg3 = smilies($nmsg2);
 		$nmsg3 = wrap($nmsg3);
-		$nmsg3 = nl2br($nmsg3);
 
 		$time = time();
 

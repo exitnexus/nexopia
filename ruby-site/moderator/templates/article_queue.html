@@ -1,0 +1,31 @@
+<table cellpadding="3">
+	<t:for t:id="queue_items" t:iter="item" t:index="index">
+		<tr><td class="body">
+			<a name="item{index}"/>
+			{item.article.cat.to_s} 
+			&nbsp;>&nbsp;<a t:id="item.article" class="body" target="_new">{item.article.title}</a>&nbsp;
+			(<a t:id="item.article.user" class="body" target="_new"/>) 
+		</td></tr>
+		<tr><td class="body">
+			{item.article.text_preview} (<a t:id="item.article" class="body" target="_new">Full Article</a>)
+		</td></tr>
+		<tr>
+			<td class="body">
+				Submitted: {TimeFormat.date_and_time(item.article.submittime)}
+			</td>
+		</tr>
+		<tr>
+			<td class="body">
+				<input name="check[{item.id}]" id="checkidy{item.id}" value="y" onfocus="this.checked=true;setTimeout('jump({index+1})',50);" type="radio"/>
+					<label for="checkidy{item.id}" class="side">
+						<b>Accept</b>
+					</label><br/>
+				<input name="check[{item.id}]" id="checkidn{item.id}" value="n" onfocus="this.checked=true;setTimeout('jump({index+1})',50);" type="radio"/>
+					<label for="checkidn{item.id}" class="side">
+						<b>Deny</b>
+					</label>
+			</td>
+		</tr>
+		<tr><td>&nbsp;<br/>&nbsp;</td></tr>
+	</t:for>
+</table>

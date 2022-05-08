@@ -2,6 +2,16 @@
 #its purpose is to add extra functionality to array that is useful for sets of storable objects
 #most of the methods are simple wrappers to array methods that return a storableresult as opposed to an array
 class StorableResult < Array
+	attr :total_rows, true
+	
+	def total_rows
+		if (@total_rows)
+			return @total_rows
+		else
+			return self.length
+		end
+	end
+	
 	def compact
 		return StorableResult.new(super)
 	end
@@ -37,7 +47,12 @@ class StorableResult < Array
 	end
 
 	def slice(*args)
-		return StorableResult.new(super(*args))
+		result = super(*args)
+		if (result)
+			return StorableResult.new(result)
+		else
+			return result
+		end
 	end
 	
 	def [](*args)
@@ -61,8 +76,8 @@ class StorableResult < Array
 		return StorableResult.new(super(*args))
 	end
 
-	def sort_by(*args)
-		return StorableResult.new(super(*args))
+	def sort_by(*args, &block)
+		return StorableResult.new(super(*args, &block))
 	end
 	
 	def uniq

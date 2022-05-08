@@ -1,0 +1,149 @@
+#blog_mockup_container {
+	padding: 6px;
+
+	& .blog_post {
+		width: 738px;
+		padding: 6px 0px 12px 0px;
+		margin: 0px auto 0px auto;
+		background-color: @primary_block_background_color;
+		color: @primary_block_text_color;
+		
+		& .clear {
+			clear: both;
+		}
+		
+		& .item1 {
+			float: left;
+			height: 378px;
+		}
+		
+		& div.item1_results {
+			height: 390px;
+		}
+		
+		& .item2 {
+			float: right;
+		}
+		
+		& .vid1 {
+			float: left;
+		}
+		
+		& .vid2 {
+			float: right;
+		}
+		
+		& .battle_item {
+			position: relative;
+			width: 354px;
+			padding: 6px 6px 12px 6px;
+			background-color: @secondary_block_background_color;
+			color: @secondary_block_text_color;
+			
+			& .item {
+				text-align: center;
+				margin-bottom: 24px;
+			}
+			
+			& div.item_results {
+				margin-bottom: 36px;
+			}
+			
+			& .vote_button {
+				position: absolute;
+				bottom: 12px;
+				left: 6px;
+			
+				& input {
+					margin: 0px 6px 0px 0px;
+				}
+			}
+			
+			& .results_container {
+				position: absolute;
+				bottom: 12px;
+				left: 6px;
+				
+				& #result_bar {
+					background-color: @primary_block_link_color;
+					height: 9px;
+					margin: 6px 0px 0px 0px;
+					float: left;
+				}
+				
+				& .vote_number {
+					float: left;
+					padding: 4px 0px 0px 6px;
+				}
+			}
+		}
+		
+		& .poll_container {
+			
+			& .radio_button,
+				.answer_option {
+				padding-bottom: 12px;
+			}
+			
+			& .radio_button input {
+				margin-left: 0px;
+			}
+				
+			& .answer_option {
+				padding: 3px 0px 12px 6px;
+			}
+			
+			& #result_bar {
+				background-color: @primary_block_link_color;
+				height: 9px;
+				margin: 6px 0px 15px 0px;
+				float: left;
+			}
+			
+			& .option1 {
+				width: 21px;
+			}
+			
+			& .option2 {
+				width: 196px;
+			}
+			
+			& .option3 {
+				width: 64px;
+			}
+			
+			& .option4 {
+				width: 157px;
+			}
+			
+			& .vote_number {
+				float: left;
+				padding: 4px 0px 0px 6px;
+			}
+		}
+		
+		& .post_submit_btns {
+			margin-top: 24px;
+		
+			& .custom_button button {
+				font-size: 18px;
+				text-decoration: underline;
+				padding: 4px 35px 6px 35px;
+			}
+			
+			& .results {
+				padding-top: 6px;
+				
+				& a {
+					margin-right: 6px;
+					font-weight: bold;
+				}
+			}
+		}
+		
+		& .total_votes {
+			margin-top: 12px;
+		}
+	}
+
+}

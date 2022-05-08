@@ -1,0 +1,489 @@
+<div id="plus">
+	<div id="plus_details">
+		<form id="plus_form" method="post" action="/plus.php">
+
+		<img src="#{$site.static_files_url}/plus/PlusLogoLarge.png" class="plus_logo" />
+		<img src="#{$site.static_files_url}/plus/Prices.png" class="prices" />
+		
+		<div class="content">
+		
+			<div class="left_column">
+				<div class="get_more">
+					Get more with Nexopia Plus<br />
+					- See who visited your profile<br />
+					- Get spotlighted on the homepage<br />
+					- Customize your profile with skins<br />
+					- 20 times more photos
+				</div>
+				
+				<span class="bold">Compare what you get with Plus to what everyone else gets:</span>
+				<table class="feature_container" cellspacing="0" cellpadding="0">
+				<tr class="headings">
+					<td>&#160;</td>
+					<td>
+						basic
+					</td>
+					<td>
+						<img src="#{$site.static_files_url}/plus/PlusLogoSmall.png" />
+					</td>
+				</tr><tr class="alt_table_row">
+					<td class="feature">
+						Profile Pictures
+					</td>
+					<td class="free">
+						8
+					</td>
+					<td class="plus">
+						12
+					</td>
+				</tr><tr>
+					<td class="feature">
+						Albums Photos
+					</td>
+					<td class="free">
+						250
+					</td>
+					<td class="plus">
+						5,000
+					</td>
+				</tr><tr class="alt_table_row">
+					<td class="feature">
+						Message Friends
+					</td>
+					<td class="free">
+						one at a time
+					</td>
+					<td class="plus">
+						multiple
+					</td>
+				</tr><tr>
+					<td class="feature">
+						Friends
+					</td>
+					<td class="free">
+						250
+					</td>
+					<td class="plus">
+						1,000
+					</td>
+				</tr><tr class="alt_table_row">
+					<td class="feature">
+						Recent Visitors
+					</td>
+					<td class="free">
+						-
+					</td>
+					<td class="plus">
+						Yes
+					</td>
+				</tr><tr>
+					<td class="feature">
+						Profile Skins
+					</td>
+					<td class="free">
+						-
+					</td>
+					<td class="plus">
+						Yes
+					</td>
+				</tr><tr class="alt_table_row">
+					<td class="feature">
+						Fewer Ads
+					</td>
+					<td class="free">
+						-
+					</td>
+					<td class="plus">
+						Yes
+					</td>
+				</tr><tr>
+					<td class="feature">
+						Spotlight
+					</td>
+					<td class="free">
+						-
+					</td>
+					<td class="plus">
+						Yes
+					</td>
+				</tr><tr class="alt_table_row">
+					<td class="feature">
+						Visit Anonymously
+					</td>
+					<td class="free">
+						-
+					</td>
+					<td class="plus">
+						Yes
+					</td>
+				</tr><tr>
+					<td class="feature">
+						Sent Message Status
+					</td>
+					<td class="free">
+						-
+					</td>
+					<td class="plus">
+						Yes
+					</td>
+				</tr><tr class="alt_table_row">
+					<td class="feature">
+						Create a User Forum
+					</td>
+					<td class="free">
+						-
+					</td>
+					<td class="plus">
+						Yes
+					</td>
+				</tr><tr>
+					<td colspan="3" class="much_more">
+						<a href="plus/plus_more_features">... and much more</a>
+					</td>
+				</tr>
+				</table>
+				
+				All prices on the site are quoted in Canadian dollars.<br/>
+				All sales are final and nonrefundable.
+			</div>
+			
+			<div class="right_column">
+			
+				<div class="header">
+					BUY PLUS NOW<br />
+					<span class="pay_instructions">Select payment method below:</span>
+				</div>
+				
+				<div class="payment_method_container">
+					<input type="hidden" id="interac_expanded" value="0" />
+					<a href="#interac"
+					 minion_name="plus:plus:interac">
+					<img src="#{$site.static_files_url}/plus/1_Interac_min.png"
+					 id="interac_graphic_min" />
+					<img src="#{$site.static_files_url}/plus/1_Interac_max.png"
+					 id="interac_graphic_max" class="hidden" /></a>
+					<div class="hidden" id="interac">
+						<div id="interac_options">
+						<div class="interac_option" id="interac_option_1">
+						<input type="hidden" value="{username_escaped}"
+						 name="username_interac" />
+						<input type="text" class="username" value="{username}"
+						 minion_name="plus:plus:username" />
+						<select id="select_interac" name="select_interac"
+						 minion_name="plus:plus:select_interac">
+							<option selected="selected" value="0">Amount</option>
+							<option value="5">1 Month ($5.00)</option>
+							<option value="10">2 Months ($10.00)</option>
+							<option value="15">3 Months ($15.00)</option>
+							<option value="20">6 Months ($20.00)</option>
+							<option value="30">1 Year ($30.00)</option>
+						</select><br />
+						</div>
+						<div class="interac_option" id="interac_option_2">
+						<input type="hidden" value=""
+						 name="username_interac" />
+						<input type="text" class="username" value="Username"
+						 minion_name="plus:plus:username" />
+						<select id="select_interac" name="select_interac"
+						 minion_name="plus:plus:select_interac">
+							<option selected="selected" value="0">Amount</option>
+							<option value="5">1 Month ($5.00)</option>
+							<option value="10">2 Months ($10.00)</option>
+							<option value="15">3 Months ($15.00)</option>
+							<option value="20">6 Months ($20.00)</option>
+							<option value="30">1 Year ($30.00)</option>
+						</select><br />
+						</div>
+						</div>
+						
+						<a href="#add_user" class="add_user"
+						 minion_name="plus:plus:interac_add">
+						+ Add a User</a>
+						<div class="total_checkout">
+							Total: $
+							<div id="total_interac" class="total">0</div><br />
+							<div><t:button minion_name="plus:plus:buy_interac">
+								Buy Now</t:button></div>
+						</div>
+						<br class="clear" />
+						The INTERAC Online service allows you to buy PLUS using your online banking with RBC, TD-CanadaTrust, Scotiabank, or Bank of Montreal.<br />
+						<a target="_new"
+						 href="http://www.interaconline.com/learn">
+							Learn more</a>.<br />
+						<img src="#{$site.static_files_url}/plus/interac.png" />
+					</div>
+				</div>
+				
+				<div class="payment_method_container">
+					<input type="hidden" id="credit_expanded" value="0" />
+					<a href="#credit"
+					 minion_name="plus:plus:credit">
+					<img src="#{$site.static_files_url}/plus/2_CC_min.png"
+					 id="credit_graphic_min" />
+					<img src="#{$site.static_files_url}/plus/2_CC_max.png"
+					 id="credit_graphic_max" class="hidden" /></a>
+					<div class="hidden" id="credit">
+						<div id="credit_options">
+						<div class="credit_option" id="credit_option_1">
+						<input type="hidden" value="{username_escaped}"
+						 name="username_credit" />
+						<input type="text" class="username" value="{username}"
+						 minion_name="plus:plus:username" />
+						<select id="select_credit" name="select_credit"
+						 minion_name="plus:plus:select_credit">
+							<option selected="selected" value="0">Amount</option>
+							<option value="5">1 Month ($5.00)</option>
+							<option value="10">2 Months ($10.00)</option>
+							<option value="15">3 Months ($15.00)</option>
+							<option value="20">6 Months ($20.00)</option>
+							<option value="30">1 Year ($30.00)</option>
+						</select><br />
+						</div>
+						<div class="credit_option" id="credit_option_2">
+						<input type="hidden" value=""
+						 name="username_credit" />
+						<input type="text" class="username" value="Username"
+						 minion_name="plus:plus:username" />
+						<select id="select_credit" name="select_credit"
+						 minion_name="plus:plus:select_credit">
+							<option selected="selected" value="0">Amount</option>
+							<option value="5">1 Month ($5.00)</option>
+							<option value="10">2 Months ($10.00)</option>
+							<option value="15">3 Months ($15.00)</option>
+							<option value="20">6 Months ($20.00)</option>
+							<option value="30">1 Year ($30.00)</option>
+						</select><br />
+						</div>
+						</div>
+						
+						<a href="#add_user" class="add_user"
+						 minion_name="plus:plus:credit_add">
+						+ Add a User</a>
+						<div class="total_checkout">
+							Total: $
+							<div id="total_credit" class="total">0</div><br />
+							<div><t:button minion_name="plus:plus:buy_credit">
+								Buy Now</t:button></div>
+						</div>
+						<br class="clear" />
+						You can buy PLUS with Visa or Mastercard.  Keep in mind,&#160;<i>all</i>&#160;fraud will be caught.<br />
+						<img src="#{$site.static_files_url}/plus/creditcard.png" />
+					</div>
+				</div>
+				
+				<div class="payment_method_container">
+					<input type="hidden" id="mobile_expanded" value="0" />
+					<a href="#mobile"
+					 minion_name="plus:plus:mobile">
+					<img src="#{$site.static_files_url}/plus/3_Mobile_min.png"
+					 id="mobile_graphic_min" />
+					<img src="#{$site.static_files_url}/plus/3_Mobile_max.png"
+					 id="mobile_graphic_max" class="hidden" /></a>
+					<div class="hidden" id="mobile">
+						<input type="hidden" value="{username_escaped}" />
+						<input type="text" class="username mobile"
+						 value="{username}" minion_name="plus:plus:username"
+						 name="username_mobile" />
+						<div class="mobile_amount">
+							<!-- If this amount changes, it will also
+								 have to be changed in plus_pagehandler.rb -->
+							2 Weeks ($3.00)
+						</div>
+						<br class="clear" />
+						<div class="total_checkout mobile_checkout">
+							<t:button minion_name="plus:plus:buy_mobile">
+							Buy Now</t:button>
+						</div>
+						<br class="clear" />
+						You can buy PLUS by texting a pin from your mobile phone and charging it to your cellphone bill.  No credit card required.<br />
+						<img src="#{$site.static_files_url}/plus/paypin.png" />
+					</div>
+				</div>
+				
+				<div class="payment_method_container">
+					<input type="hidden" id="land_expanded" value="0" />
+					<a href="#land"
+					 minion_name="plus:plus:land">
+					<img src="#{$site.static_files_url}/plus/4_Land_min.png"
+					 id="land_graphic_min" />
+					<img src="#{$site.static_files_url}/plus/4_Land_max.png"
+					 id="land_graphic_max" class="hidden" /></a>
+					<div class="hidden" id="land">
+						<input type="hidden" value="{username_escaped}" />
+						<input type="text" class="username" value="{username}"
+						 minion_name="plus:plus:username"
+						 name="username_land" />
+						<select id="select_land" name="select_land"
+						 minion_name="plus:plus:select_land">
+							<option selected="selected" value="0">Amount</option>
+							<option value="5">1 Month ($5.00)</option>
+							<option value="10">2 Months ($10.00)</option>
+						</select><br />
+						
+						<div class="total_checkout">
+							Total: $
+							<div id="total_land" class="total">0</div><br />
+							<div><t:button minion_name="plus:plus:buy_land">
+								Buy Now</t:button></div>
+						</div>
+						<br class="clear" />
+						You can buy PLUS by simply calling a number from your land line and charging it to your bill.  No credit card required.<br />
+						<img src="#{$site.static_files_url}/plus/paypin.png" />
+					</div>
+				</div>
+				
+				<div class="payment_method_container">
+					<input type="hidden" id="mail_expanded" value="0" />
+					<a href="#mail"
+					 minion_name="plus:plus:mail">
+					<img src="#{$site.static_files_url}/plus/5_Mail_min.png"
+					 id="mail_graphic_min" />
+					<img src="#{$site.static_files_url}/plus/5_Mail_max.png"
+					 id="mail_graphic_max" class="hidden" /></a>
+					<div class="hidden" id="mail">
+						<div id="mail_options">
+						<div class="mail_option" id="mail_option_1">
+						<input type="hidden" value="{username_escaped}"
+						 name="username_mail" />
+						<input type="text" class="username" value="{username}"
+						 minion_name="plus:plus:username" />
+						<select id="select_mail" name="select_mail"
+						 minion_name="plus:plus:select_mail">
+							<option selected="selected" value="0">Amount</option>
+							<option value="5">1 Month ($5.00)</option>
+							<option value="10">2 Months ($10.00)</option>
+							<option value="15">3 Months ($15.00)</option>
+							<option value="20">6 Months ($20.00)</option>
+							<option value="30">1 Year ($30.00)</option>
+						</select><br />
+						</div>
+						<div class="mail_option" id="mail_option_2">
+						<input type="hidden" value=""
+						 name="username_mail" />
+						<input type="text" class="username" value="Username"
+						 minion_name="plus:plus:username" />
+						<select id="select_mail" name="select_mail"
+						 minion_name="plus:plus:select_mail">
+							<option selected="selected" value="0">Amount</option>
+							<option value="5">1 Month ($5.00)</option>
+							<option value="10">2 Months ($10.00)</option>
+							<option value="15">3 Months ($15.00)</option>
+							<option value="20">6 Months ($20.00)</option>
+							<option value="30">1 Year ($30.00)</option>
+						</select><br />
+						</div>
+						</div>
+						
+						<a href="#add_user" class="add_user"
+						 minion_name="plus:plus:mail_add">
+						+ Add a User</a>
+						<div class="total_checkout">
+							Total: $
+							<div id="total_mail" class="total">0</div><br />
+							<div><t:button minion_name="plus:plus:buy_mail">
+								Buy Now</t:button></div>
+						</div>
+						<br class="clear" />
+						Cheque, Money Order, and paper cash are accepted.  Please allow up to 2 weeks for delivery.
+					</div>
+				</div>
+				
+				<div class="header header_padding">
+					REDEEM VOUCHER<br />
+					<span class="pay_instructions">Enter the pin on your voucher to redeem your plus.</span>
+				</div>
+				
+				<div class="activate_container">
+					<div id="pluspin_voucher">
+					<div id="pin_0">
+						<input class="voucher" type="text" id="secret_0" value=""
+						 name="pins" minion_name="plus:pluspin:pin" />
+						<input type="hidden" name="pin_values" id="pin_value_0"
+						 value="0" minion_name="plus:plus:pluspin_value" />
+						<div class="buy_voucher">
+						<t:button minion_name="plus:plus:buy_voucher">
+							Activate</t:button></div>
+					</div>
+					</div>
+					<div id="pluspin_pins_container" class="hidden">
+					<div id="pluspin_pins">
+					<div id="pin_1">
+						<input class="pin" type="text" id="secret_1" value=""
+						 name="pins" minion_name="plus:pluspin:pin" />
+						<input type="hidden" name="pin_values" id="pin_value_1"
+						 value="0" minion_name="plus:plus:pluspin_value" />
+					</div>
+					</div>
+					<div class="addlinks_info">
+						<a href="#add_pin" class="add"
+						 minion_name="plus:plus:pluspin_add_pin">
+						+ Add a PIN</a>
+						<div>
+							<div id="pin_total">0</div>
+							<div>Amount: $</div>
+						</div>
+						<br class="clear" />
+					</div>
+					<div class="usernames_amounts">
+						<div id="pluspin_options">
+						<div class="pluspin_option" id="pluspin_option_1">
+						<input type="hidden" value="{username_escaped}"
+						 name="username_pluspin" />
+						<input type="text" class="username" value="{username}"
+						 minion_name="plus:plus:username" />
+						<select id="select_pluspin" name="select_pluspin"
+						 minion_name="plus:plus:select_pluspin">
+							<option selected="selected" value="0">Amount</option>
+							<option value="5">1 Month ($5.00)</option>
+							<option value="10">2 Months ($10.00)</option>
+							<option value="15">3 Months ($15.00)</option>
+							<option value="20">6 Months ($20.00)</option>
+							<option value="30">1 Year ($30.00)</option>
+						</select><br />
+						</div>
+						<div class="pluspin_option" id="pluspin_option_2">
+						<input type="hidden" value=""
+						 name="username_pluspin" />
+						<input type="text" class="username" value="Username"
+						 minion_name="plus:plus:username" />
+						<select id="select_pluspin" name="select_pluspin"
+						 minion_name="plus:plus:select_pluspin">
+							<option selected="selected" value="0">Amount</option>
+							<option value="5">1 Month ($5.00)</option>
+							<option value="10">2 Months ($10.00)</option>
+							<option value="15">3 Months ($15.00)</option>
+							<option value="20">6 Months ($20.00)</option>
+							<option value="30">1 Year ($30.00)</option>
+						</select><br />
+						</div>
+						</div>
+
+						<a href="#add_user" class="add_user"
+						 minion_name="plus:plus:pluspin_add">
+						+ Add a User</a>
+						<div class="total_checkout">
+							Total: $
+							<div id="total_pluspin" class="total">0</div><br />
+							<div><t:button
+								minion_name="plus:plus:buy_pluspin">
+								Activate</t:button></div>
+						</div>
+						<br class="clear" />
+					</div>
+					</div>
+				</div>
+				
+				<a target="_new"
+				 href="http://www.macs.ca/locator.asp"><img src="#{$site.static_files_url}/plus/buy_Plus_at_Macs.jpg" class="header_padding" /></a>
+				
+			</div>
+			
+			<div class="clear"></div>
+			
+		</div>
+		
+		<img src="#{$site.static_files_url}/plus/BackgroundBottom.png" />
+
+		</form>
+	</div>
+</div>

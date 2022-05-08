@@ -73,7 +73,7 @@ module MusicHelper
 	end
 	
 	def deassociate_tag_item(stream_entry, tag_id)
-		tag_item_pair = EntryTag.find(:first, tag_id, stream_entry.entryid);
+		tag_item_pair = EntryTag.find(:first, [tag_id, stream_entry.entryid]);
 		if(tag_item_pair == nil)
 			return;
 		end

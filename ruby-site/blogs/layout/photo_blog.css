@@ -1,0 +1,6 @@
+.photo_blog {
+	& img {
+		margin-top: 6px;
+		display: block;
+	}
+}

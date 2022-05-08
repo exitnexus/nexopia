@@ -1,0 +1,21 @@
+<t:doc>
+	<div class="header_accessory">
+		<a href="/users/%{user.username}/gallery">
+			view all ({gallery_count})
+		</a>
+	</div>
+	<div class="block_title">RECENT ALBUMS</div>
+	<ul id="recent_galleries">
+		<li t:id="galleries" t:iter="gallery" class="secondary_block">
+			<a class="album_cover" t:id="gallery"><img t:id="gallery" t:linktype="squaremini"/></a>
+			<div class="info">
+				<a class="name" t:id="gallery">{gallery.name}</a>
+				<br/>
+				<span class="date"><t:nice-time t:time="gallery.created" t:format="date"/></span>
+				<br/>
+				<div class="description" minion_name="recent_galleries:description">{gallery.description}</div>
+			</div>
+			<br class="clear"/>
+		</li>
+	</ul>
+</t:doc>

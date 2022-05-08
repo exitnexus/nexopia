@@ -57,7 +57,7 @@ class AdminRoleManager < PageHandler
 		}
 
 		t.modules = modules
-		t.site_modules = TypeIDItem.find(:conditions => "typename LIKE '%Module'").sort_by {|site_module| site_module.typename.upcase}
+		t.nex_site_modules = TypeIDItem.find(:conditions => "typename LIKE '%Module'").sort_by {|site_module| site_module.typename.upcase}
 
 		puts t.display
 	end

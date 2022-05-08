@@ -1,0 +1,10 @@
+<form method="post" id="new_blog"
+ action="#{PageRequest.current.area_base_uri}/blog/#{action}/submit">
+	<input type="hidden" name="typeid" value="{Blogs::BattleBlog.typeid}" />
+	<input type="hidden" name="battletype" id="battletype" value="photo" />
+	<input type="hidden" name="blog_post_content" id="blog_post_content"
+	 value="" />
+
+	<t:template-include t:module="blogs" t:name="blog_new_entry_battle_photo" />
+	<t:template-include t:module="blogs" t:name="blog_new_entry_battle_video" />
+</form>

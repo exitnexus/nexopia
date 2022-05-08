@@ -1,0 +1,33 @@
+<div id="list_view" minion_name="fpb:list_view" t:json="[list_view_data, json_viewer]">
+	<div class="pages">
+		<div t:id="friends" t:iter="friend" class="short_friend">
+			<div t:id="!viewer.anonymous?" class="functions">
+				<a class="send_message hover" minion_name="fpb:send_message" href="/messages.php?action=write&to={friend.id}">
+					<img src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:secondary_block_icon_color])/:friends/:images/'icon_send_msg.gif'}" class="color_icon"/>
+				</a>
+				<a class="comment hover" minion_name="fpb:comment" href="/users/%{friend.username}/comments">
+					<img src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:secondary_block_icon_color])/:friends/:images/'icon_comment.gif'}" class="color_icon last"/>
+				</a>
+				<t:if t:id="viewer.friend?(friend.id)">
+					<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:secondary_block_icon_color])/:friends/:images/'icon_friend_true.gif'}" />
+				</t:if>
+				<t:if t:id="!viewer.friend?(friend.id)">
+					<a class="add_friend" minion_name="fpb:add_friend" href="/users/%{viewer.username}/friends/add/{friend.id}?form_key[]={add_form_key}">
+						<img src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:secondary_block_icon_color])/:friends/:images/'icon_add_friend.gif'}" class="color_icon"/>
+					</a>
+				</t:if>
+			</div>
+			<a href="#{$site.user_url}/%{friend.username}" class="name">{friend.username}</a>
+		</div>
+	</div>
+	<input type="hidden" id="list_view_form_key" value="{add_form_key}"/>
+	<div t:id="page_count > 1" id="friends_arrow_btns" class="friends_arrow_btns">
+		<a id="arrow_up" href="#" class="page_backward friends_btns">
+			<img src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:secondary_block_icon_color])/:friends/:images/'icon_arrow_up.gif'}"/>
+		</a>
+		<a id="arrow_down" href="#" class="page_forward friends_btns">
+			<img src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:secondary_block_icon_color])/:friends/:images/'icon_arrow_down.gif'}"/>
+		</a>
+		<br class="clear" />
+	</div>
+</div>

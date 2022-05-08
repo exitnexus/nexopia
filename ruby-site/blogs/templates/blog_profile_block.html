@@ -1,23 +1,34 @@
-<div id="blog_profile_block">
-	<div class="read_more_button"><a href="/weblog.php?uid=#{blog.userid}">Read more...</a></div>
-	<h2>LATEST BLOG ENTRY</h2>
+<div id="blog_profile_block" minion_name="blog_profile_block">
+	<div>
+		<div class="header_accessory">
+			<a href="/users/%{blog_post.user.username}/blog">
+				read more
+			</a>
+		</div>
+		<div class="block_title">
+			LATEST BLOG ENTRY        
+		</div>
+	</div>
 	<div class="blog_text">
-		<h3>
-			#{blog.title}
-		</h3>
-		<div>	
-			#{UserTime.new(Time.at(blog.time)).strftime("%I:%M%p" )} | 
-			#{UserTime.new(Time.at(blog.time)).strftime("%b %d, '%y" )} |&nbsp; 
-			<t:if t:id="comments.length > 0">
-				<a href="/weblog.php?uid=#{blog.userid}">
-					Comments(#{comments.length})
+		<div class="blog_title">
+			<a href="/users/%{blog_post.user.username}/blog/{blog_post.id}">
+				#{blog_post.title}
+			</a>
+		</div>
+		<div class="blog_post_details">
+			#{UserTime.new(Time.at(blog_post.time)).strftime("%I:%M%p" )} | 
+			#{UserTime.new(Time.at(blog_post.time)).strftime("%b %d, '%y" )} |&nbsp; 
+			<t:if t:id="blog_post.comments_count > 0">
+				<a href="/users/%{blog_post.user.username}/blog/{blog_post.id}">
+					Comments(#{blog_post.comments_count})
 				</a>
 			</t:if>
-			<t:if t:id="comments.length == 0">
+			<t:if t:id="blog_post.comments_count == 0">
 				No Comments
 			</t:if>
 		</div>
+		<t:if t:id="!blog_post.extra_content.nil?">#{blog_post.extra_content.display(request)}</t:if>
 		<br/>
-		#{blog.msg.parsed}
+		#{blog_post.msg.parsed()}
 	</div>
 </div>

@@ -1,23 +1,16 @@
-<div t:docid="gallery_profile_block" class="gallery_profile_block">
-	<script type="text/javascript" src="#{$site.static_files_url}/yui/build/animation/animation-min.js"></script>
-	<h2>{gallery.name.upcase}</h2>
-
-	<div class="gallery_pics_frame">
-		<div class="left_arrow">
-			<a class="arrow_left" href="#"><img src="{$site.static_files_url}/Nexoskel/images/icon_left_arrow.gif"/></a>
+<div class="gallery_profile_block">
+	<div>
+		<div class="block_title">
+			{gallery.name.upcase}        
 		</div>
-		<div class="right_arrow">
-			<a class="arrow_right" href="#"><img src="{$site.static_files_url}/Nexoskel/images/icon_right_arrow.gif"/></a>
-		</div>
-	
-		<div class="gallery_pics_scroller">
-			<nobr><span t:id="gallerypics" t:iter="pic" id="{pic.id}">
-				<a t:id="pic.gallery">
-					<img t:id="pic.square"/>
+	</div>
+	<div class="gallery_pics_frame" minion_name="gallery_pics_frame">
+		<div class="pages">
+			<div class="thumb" t:id="gallerypics" t:json="pic" t:iter="pic" t:index="strip_index" id="{pic.id}">
+				<a t:id="pic">
+					<img t:delay="strip_index >= 7" t:linktype="squaremini" class="thumbnail" t:id="pic"/>
 				</a>
-			</span></nobr>
+			</div>		
 		</div>
-	
-		<div class="clearit"></div>
 	</div>
 </div>

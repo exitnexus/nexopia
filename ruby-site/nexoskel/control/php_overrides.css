@@ -1,0 +1,39 @@
+td.body2 {
+	
+	& a.body {
+		color: $link_accent_color;
+		
+		&:hover {
+			color: $link_color;
+		}		
+	}	
+}
+
+
+#message_list {
+	
+	& td.body {
+		& a.body {
+			color: $dual_bg1_link_color;
+			
+			&:hover {
+				color: $dual_bg1_link_accent_color;
+			}
+		}
+	}
+	
+	& td.body2 {
+		& a.body {
+			color: $dual_bg2_link_color;
+			
+			&:hover {
+				color: $dual_bg2_link_accent_color;
+			}
+		}
+	}
+}
+
+.friends_block_find_friends {
+	float: right;
+	padding-right: 4px;
+}

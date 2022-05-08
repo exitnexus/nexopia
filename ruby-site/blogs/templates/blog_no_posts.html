@@ -1,0 +1,48 @@
+<div id="blog">
+	<div class="blog_container">
+		<t:template-include t:module="blogs" t:name="blog_header" />
+
+		<t:if t:id="owner_view">
+			<t:template-include t:module="blogs" t:name="blog_add_new_buttons" />      
+		</t:if>
+		
+		<div class="blog_empty_wrapper" t:id="owner_view">
+			
+			<t:if t:id="(viewable_post_count == 0) && !filter_type.nil?">
+				You don't have any blog posts of that type.
+			</t:if>
+			
+			<t:if t:id=" (post_count == 0) && filter_type == ''">
+			<div class="empty_alert">
+				Your blog is empty!
+			</div>
+			
+			You have not created any entries. Create a new entry to get started.
+			<br />
+			<form method="get" action="/my/blog/post/new">
+				<span class="custom_button yui-button yui-button-button empty_blog_button">
+					<span class="first-child">
+						<button type="submit">
+							+ New Entry
+						</button>
+					</span>
+				</span>
+			</form>
+			</t:if>
+			
+		</div>
+		
+		<div class="blog_empty_wrapper" t:id="!owner_view">
+			<t:if t:id="(viewable_post_count == 0) && !filter_type.nil?">
+				{blog_user.username} doesn't have any blog posts of that type.
+			</t:if>
+			
+			<t:if t:id=" (post_count == 0) && filter_type == ''">
+			<div class="empty_alert">
+				{blog_user.username}'s blog is empty!
+			</div>
+			Let {blog_user.objective_pronoun} know {blog_user.pronoun} should get started.
+			</t:if>
+		</div>
+	</div>
+</div>

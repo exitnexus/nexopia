@@ -25,7 +25,7 @@ module Validation
 			@validation_results[field] = chain.validate;
 			@validation_chains[field] = chain;
 			
-			display = Display.new(field,chain.validate,show_icon_for_valid);
+			display = Display.new(field,@validation_results[field],show_icon_for_valid);
 		
 			@validation_displays[field] = display;
 		end
@@ -53,7 +53,15 @@ module Validation
 			
 			template.client_validation = javascript_string;
 		end
-	
+
+		# Tells us if we haven't really been given anything to validate.
+		def no_data?
+			@validation_results.values.each { |result|
+				return false if result.state == :error
+			}
+			
+			return true
+		end
 	
 		# Returns true if all Validation::Results in the set have either a :valid or :warning state.
 		# Returns false if any of the Validation::Results in the set have either a :none or :error state.

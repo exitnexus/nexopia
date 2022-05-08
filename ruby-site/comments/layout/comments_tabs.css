@@ -1,0 +1,28 @@
+#comment_feed, #comments_page {
+	& .secondary_tabs {
+		margin-top: 12px;
+		margin-bottom: 14px;
+
+		& a {
+			padding: 2px 8px 2px 8px;
+			margin: 0px 7px 0px 7px;
+			text-decoration: none;
+		
+			&:hover {
+				background-color: @secondary_block_background_color;
+				color: @secondary_block_text_color;
+			}
+		
+		}
+		
+		& a.first_tab {
+			margin-left: 0px;
+		}
+	
+		& .selected {
+			color: @primary_block_background_color;
+			background-color: @primary_block_text_color;
+		}
+
+	}
+}

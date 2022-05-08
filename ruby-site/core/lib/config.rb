@@ -9,6 +9,24 @@ class ConfigBase
 	# number of requests before a subprocess should commit seppuku
 	attr_reader :max_requests;
 
+	#number of worker and gearman processes
+	attr_reader :num_workers, :num_gearman;
+	
+	# rate limitations for orwell notification module.
+	# This is specified in milliseconds, so to limit email notifications
+	# to no more than 2 per second, set this to 500.
+	# This can be overridden by setting the orwell-email-rate-limit key.
+	attr_reader :orwell_email_rate_limit;
+	
+	# Merchant id used for paymentpin.com transactions.
+	attr_reader :payment_pin_merchant;
+	
+	# URL for validating phone paymentpin charges.
+	attr_reader :payment_pin_validate_phone;
+
+	# URL for validating mobile paymentpin charges.
+	attr_reader :payment_pin_validate_mobile;
+
 	# monitor all the require files, restarting if they change
 	attr_reader :monitor_files;
 
@@ -24,6 +42,10 @@ class ConfigBase
 	# If none is specified, the first one to be loaded that claims to be a default
 	# will be used.
 	attr_reader :modules_meta;
+	
+	# a list of userids that have special debug info viewing privileges.
+	# set to true to make all users debug_info_users.
+	attr_reader :debug_info_users;
 
 	# these are just plain domains as they are not used directly to specify
 	# pagehandler locations.
@@ -35,6 +57,9 @@ class ConfigBase
 	# pagehandler declaration.
 	attr_reader :www_url, :admin_url, :user_url, :static_url, :image_url,
 	            :user_files_url, :self_url, :admin_self_url, :style_url, :script_url
+
+	#this sets the config file for the php to use. If it's nil, it won't be sent.
+	attr_reader :rap_php_config;
 
 	# this is for the php passthrough, so it can translate the domain the live
 	# site sends to lighttpd into the www_domain. Other domains (if any) need to
@@ -49,21 +74,29 @@ class ConfigBase
 	# to the client with x-lighttpd-send-file. If nil, won't use a local cache
 	# dir and won't use x-lighttpd-send-file.
 	attr_reader :static_file_cache
+	
 	attr_reader :user_dump_cache
 
 	attr_reader :long_session_timeout;
-	attr_reader :svn_base_dir, :site_base_dir, :doc_base_dir, :test_base_dir, :static_root;
-	attr_reader :source_pic_dir, :user_pic_dir, :user_pic_dir, :pending_dir, :resume_dir,
+	attr_reader :svn_base_dir, :site_base_dir, :doc_base_dir, :test_base_dir
+	attr_reader :source_pic_dir, :user_pic_dir, :user_pic_dir, :resume_dir,
 				:gallery_dir, :gallery_full_dir, :gallery_thumb_dir, :uploads_dir;
+	attr_reader :generated_base_dir;
+	attr_reader :rubyinline_dir;
 	attr_reader :legacy_site;
 	attr_reader :slow_query_time, :error_logging;
 	attr_reader :banner_servers, :memcache_options, :pagecache_servers;
-	attr_reader :mogilefs_hosts, :mogilefs_domain, :mogilefs_options;
 	attr_reader :search_server;
 	attr_reader :contact_emails;
 	attr_reader :debug_info_users;
 	attr_reader :interac_info;
 	attr_reader :age_min, :age_max;
+
+	# Hash of :servername => {:hosts => ['ip1','ip2'], :domain => 'blah'}
+	# Can be :servername => false to indicate the server doesn't exist.
+	# Will fall back to :default if an unknown config name is given.
+	attr_reader :mogilefs_configs;
+	attr_reader :mogilefs_options;
 
 	attr_reader :template_base_dir, :template_files_dir, :template_parse_dir,
 	            :template_use_cached;
@@ -73,29 +106,43 @@ class ConfigBase
 	attr_reader :dumpstruct_include_dbname;
 
 	attr_reader :mail_server, :mail_port
-
+	attr_reader :override_email
+	
 	attr_reader :youtube_dev_id
 	attr_reader :min_username_length, :max_username_length
 
+	attr_reader :write_userfiles_to_disk;
+
 	#set to true to always use :nomemcache in storable finds.
 	attr_reader :storable_force_nomemcache
-
-	attr_reader :queue_identifier
+	
+	attr_reader :session_timeout;
+	attr_reader :session_active_timeout;
+	
 	attr_reader :page_skeleton
 	attr_reader :live;
 	attr_reader :gearman_servers;
 
 	attr_reader :legacy_userpic_table;
 	
-	attr_reader :gallery_image_size, :gallery_thumb_image_size, :gallery_full_image_size
+	attr_reader :gallery_image_size, :gallery_profile_image_size, :gallery_thumb_image_size, :gallery_full_image_size
 
 	attr_reader :colorize_log_output
 
-	attr_reader :gearman_protocol_id
+	attr_reader :worker_queue_name
 	
 	# pair of public/private key information for recaptcha.
 	attr_reader :recaptcha_keys
-									
+				
+	attr_reader :tynt_proxy_server, :tynt_proxy_port;
+				
+	attr_reader :zlib_compression_level
+	
+	attr_reader :webmaster_email
+	
+	attr_reader :join_ip_frequency_cap
+	
+	attr_reader :guest_buckets;
 	# returns the log minlevel for a particular facility as specified by configuration variables called
 	# @log_minlevel_#{facility}
 	def log_minlevel_for(facility)
@@ -247,7 +294,7 @@ class ConfigBase
 	end
 
 	def ConfigBase.load_config(config_name)
-		config_class = ConfigBase.get_class(config_name);
+		config_class = ConfigBase.get_class(config_name.to_s);
 		if (config_class.nil?)
 			$stderr.puts("Could not load correct config file (#{config_name})");
 			exit();

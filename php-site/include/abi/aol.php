@@ -11,7 +11,8 @@ WWW: http://www.octazen.com
 Email: support@octazen.com
 Version: 1.2
 ********************************************************************************/
-include_once("abimporter.php");
+//include_once(dirname(__FILE__).'/abimporter.php');
+if (!defined('__ABI')) die('Please include abi.php to use this importer!');
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //AolImporter
@@ -40,24 +41,39 @@ class AolImporter extends WebRequestor {
 	var $patternAOLPath = "/gSuccessPath.*?\"(.*?)\";/ims";
 	var $INVALIDLOGIN_REGEX = "/invalid screen name or password/ims";
 	var $HOST_REGEX = "/var gPreferredHost = \"?([^\";]*).*?var gTargetHost = \"?([^\";]*).*?var gSuccessPath = \"?([^\";]*)/ims";
+	//var $UID_REGEX = "/\"UserUID\":\"([^\"]*)\"/ims";
 
-	var $LOGINFORMURL_REGEX = "/goToLoginUrl.*snsRedir\\(\"([^\"]*)\"/ims";
+//	var $LOGINREDIR_REGEX = "/checkErrorAndSubmitForm.*?'(http:[^']*)'/ims";
+
+
+	
+	var $CONTACTTO_REGEX = "/(?:<span class=\"contactSelectName\">([^<]*)<\/span>\\s*)?<span class=\"contactSelectEmail\">([^<]*)<\/span>/ims";
+
+
+	var $domain;
+	//var $LOGINFORMURL_REGEX = "/goToLoginUrl.*snsRedir\\(\"([^\"]*)\"/ims";
 
 	function fetchContacts ($loginemail, $password) {
+
+		//Remove ".aol" suffix
+		$loginemail = preg_replace("/^(.*?)(\.aol)$/ims", '${1}', $loginemail);
 
 	 	$parts = $this->getEmailParts($loginemail);
 	 	$login = $loginemail;
 	 	$dom = strtolower($parts[1]);
+	 	$this->domain = $dom;
 	 	$loginurl = 'http://webmail.aol.com';
 	 	if ($dom=="aol.in") {
 			$loginurl = 'http://webmail.aol.in';
 		}
-	 	else if ($dom=="aol.it" || $dom=="aol.es") {
-			//Login is using email address
-		}
-		else {
-		 	//For other domains, force login via us site for english
+	 	else if ($dom=="aol.com" || $dom=="aol.co.uk") {
+	 	 	//Login using ID onli
 		 	$login = $parts[0];
+		}
+	 	//else if ($dom=="aol.it" || $dom=="aol.es") {
+		//}
+		else {
+			//Login is using email address
 		}
 		$html = $this->httpGet($loginurl);
 
@@ -77,10 +93,17 @@ class AolImporter extends WebRequestor {
 		}
 		$form->setField('loginId',$login);
 		$form->setField('password',$password);
+		$form->addField("_authtrkcde", "{#TRKCDE#}");
 		$postData = $form->buildPostData();
 		$html = $this->httpPost($form->action, $postData);
 
-		if (preg_match($this->INVALIDLOGIN_REGEX,$html)) {
+
+		if (strpos($html,"Account Security Question")>0) {
+		 	$this->close();
+			return abi_set_error(_ABI_USER_INPUT_REQUIRED,'AOL requires you to answer some security questions');
+		}
+
+		if (preg_match($this->INVALIDLOGIN_REGEX,$html) || strpos($html,'snsmPRDetailErr')!==FALSE) {
 		 	$this->close();
 			return abi_set_error(_ABI_AUTHENTICATION_FAILED,'Bad user name or password');
 		}
@@ -98,16 +121,27 @@ class AolImporter extends WebRequestor {
         //Maybe can optimize if we don't actually download, but just follow the forwards?
         $html = $this->httpGet($location);
         */
+        
+//		if (preg_match($this->LOGINREDIR_REGEX,$html,$matches)!=0) {
+//		 	$loginurl = $matches[1];
+//		}
 
 		//At this point, AOL may ask for a new security question to be defined.
 		//We'll just skip it and go to http://webmail.aol.com
-        $html = $this->httpGet($loginurl);
+//        $html = $this->httpGet($loginurl);
 
 		//New AOL adds 2nd level redirection
 		if (preg_match($this->patternAOLVerify,$html,$matches)!=0) {
 			$location = $matches[1];
 	        $html = $this->httpGet($location);
+	        
+			//Not sure if security question is asked here, but just in case...
+			if (strpos($html,"Account Security Question")>0) {
+			 	$this->close();
+				return abi_set_error(_ABI_USER_INPUT_REQUIRED,'AOL requires you to answer some security questions');
+			}
 		}
+		
 
         /////////////////////////////////////////////////////
         //GET HOST FOR THE WEBMAIL
@@ -127,12 +161,29 @@ class AolImporter extends WebRequestor {
 
         //Lookup the recently received header response of "set-cookie"
         //It should contain the user id there. 
+        /*
         $cookiestring = $this->cookiejar->getCookieString($homeuri);
 		if (preg_match($this->patternAOLUserID,$cookiestring,$matches)==0) {
 		 	$this->close();
 			return abi_set_error(_ABI_FAILED,'Unable to find aol user id');
 		}
         $uid = $matches[1];
+        */
+
+		/*        
+        $url = $this->makeAbsolute($homeuri, "common/settings.js.aspx");
+        $html = $this->httpGet($url);
+		if (preg_match($this->UID_REGEX,$html,$matches)!=0) {
+		 	$uid = $matches[1];
+		}
+		else {
+		 	$this->close();
+			return abi_set_error(_ABI_FAILED,'Cannot find uid');
+		}
+		*/
+
+
+		/*
 		$location = $this->makeAbsolute($homeuri,'AB/addresslist-print.aspx?command=all&undefined&sort=LastFirstNick&sortDir=Ascending&nameFormat=FirstLastNick&user='.$uid);
 
         //FETCH ADDRESS BOOK (PRINT VERSION)
@@ -172,6 +223,26 @@ class AolImporter extends WebRequestor {
 				}
 		 	}
 		}
+		*/
+		
+		$location = $this->makeAbsolute($homeuri, "Lite/PeoplePicker.aspx?type=compose");
+		$html = $this->httpGet($location);
+
+//$html .= '';
+//echo $html;		
+		
+		$al = array();
+        preg_match_all($this->CONTACTTO_REGEX, $html, $matches, PREG_SET_ORDER);
+		foreach ($matches as $val) {
+		 	$email = htmlentities2utf8($val[2]);
+		 	$name = htmlentities2utf8($val[1]);
+		 	if (empty($name)) $name=$email;
+		 	if (!empty($email)) {
+			 	if (strpos($email,'@')===false) $email.='@'.$this->domain;
+			 	if (abi_valid_email($email)) $al[] = new Contact($name,$email);
+			}
+		}
+
 		
 	 	$this->close();
 		return $al;

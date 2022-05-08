@@ -70,7 +70,7 @@ compile_php() # to from
 	tar -xzf php-5.2.4.tar.gz
 	cd "php-5.2.4"
 	print_in_blue "Running configure script..."
-	env CC=gcc ./configure --enable-embed --with-mysql --with-gd --with-jpeg --with-zlib --with-curl --prefix=$to && print_in_blue "Doing Compile..." && make && make install
+	env CC=gcc ./configure --enable-embed --with-mysql --with-gd --with-jpeg --with-zlib --with-curl --with-mcrypt --prefix=$to && print_in_blue "Doing Compile..." && make && make install
 	
 }
 

@@ -79,13 +79,13 @@
 
 			echo "<tr><td class=body valign=top align=right style=\"background-color: $bgcolor\"><img src=$picloc" . floor($line['userid']/1000) . "/" . weirdmap($line['userid']) . "/$line[picid].jpg></td>";
 			echo "<td class=body valign=top style=\"background-color: $bgcolor\">";
-			echo "<a class=body href=/profile.php?uid=$line[userid]>" . $users[$line['userid']]['username'] . "</a><br>";
+			echo "<a class=body href=/users/". urlencode($users[$line["userid"]]["username"]) .">" . $users[$line['userid']]['username'] . "</a><br>";
 			echo "Age: " . $users[$line['userid']]['age'] . "<br>";
 			echo "Sex: <b>" . $users[$line['userid']]['sex'] . "</b><br>";
 			echo "Time: " . userDate("M j, y g:i a", $line['time']) . "<br><br>";
 			echo "$line[description]<br><br>";
 			echo "Vote:<br>";
-			echo "<a class=body href=/profile.php?uid=$line[modid]>" . $users[$line['modid']]['username'] . "</a><br>";
+			echo "<a class=body href=/users/". urlencode($users[$line['modid']]["username"]) .">" . $users[$line['modid']]['username'] . "</a><br>";
 			if($line['vote']=='y')
 				echo "Accept";
 			else

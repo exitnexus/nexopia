@@ -1,0 +1,23 @@
+#error_mockup {
+	width: 724px;
+	padding: 12px;
+	margin: 0px auto 6px auto;
+	background-color: #faebc6;
+	color: #000;
+	border: 1px solid #a84145;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	
+	& * {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+	}
+	
+	& .primary_text {
+		font-size: 15px;
+		font-weight: bold;
+	}
+	
+	& .secondary_text {
+		margin-top: 2px;
+	}
+}

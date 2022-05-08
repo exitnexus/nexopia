@@ -16,6 +16,7 @@
 		'/^\/about/' => 'aboutus.php',
 		'/^\/advertis(e|ing)/' => 'advertise.php',
 		'/^\/plus/' => 'plus.php',
+		'/^\/dame/' => 'dame.php',
 
 		'/^\/video/' => 'ruby_passthru.php',
 		'/^\/test_stuff/' => 'ruby_passthru.php',
@@ -23,10 +24,14 @@
 		'/^\/music/' => 'ruby_passthru.php',
 		'/^\/content/' => 'ruby_passthru.php',
 		'/^\/admin/' => 'ruby_passthru.php',
-		'/^\/accountcreate/' => 'ruby_passthru.php',
+		'/^\/account/' => 'ruby_passthru.php',
 		'/^\/my/' => 'ruby_passthru.php',
+		'/^\/users/' => 'ruby_passthru.php',
 		'/^\/terms/' => 'terms.php',
 		'/^\/googleprofile/' => 'googleprofile.php',
+		'/^\/tynt/' => 'ruby_passthru.php',
+		'/^\/eyewonder/' => 'ruby_passthru.php',
+		'/^\/promotions/' => 'ruby_passthru.php',
 	);
 
 //lighty doesn't parse the GET variables in a 404, so we do it manually
@@ -66,7 +71,7 @@
 	{
 		include('ruby_passthru.php');
 	} else {
-
+		$_SERVER['REQUEST_URI'] = "/fourohfour.php";
 		header("Status: 404 Not Found");
 		incHeader();
 		echo "<center>404 Error. This isn't the page you're looking for.</center>"; // improve muchly.

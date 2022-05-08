@@ -1,5 +1,5 @@
 lib_require :Core, "template/template"
-lib_want :Blogs, 'blog'
+lib_want :Blogs, 'blog_post'
 
 class Components < PageHandler
 	declare_handlers("/") {

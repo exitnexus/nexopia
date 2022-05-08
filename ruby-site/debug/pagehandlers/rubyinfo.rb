@@ -1,5 +1,6 @@
 class RubyInfo < PageHandler
 	declare_handlers("/") {
+		access_level :DebugInfo
 		handle :GetRequest, :info, "rubyinfo"
 	}
 	

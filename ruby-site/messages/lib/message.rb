@@ -1,9 +1,22 @@
-lib_require :Messages, 'message_folder'#, 'ticket'
+lib_require :Messages, 'message_folder', "message_header"#, 'ticket'
+lib_require :Orwell, 'send_email'
+lib_want :user_dump, 'archive_type', 'dumpable'
+
 class Message
 	attr_accessor(:text, :subject, :sender, :receiver, :date);#, :ticket);
 
 	#If you edit these objects directly you will risk breaking the consistency of the Message object.
 	attr_reader(:header_sender, :header_receiver, :text_sender, :text_receiver);#, :ticket);
+
+	# Messages are included in UserDumps
+	if (site_module_loaded?(:UserDump))
+		extend(Dumpable)
+		def self.user_dump(uid, start=0, finish=Time.now.to_i)
+			archive = ArchiveType.new(ArchiveType::MESSAGE)
+			dump = archive.dump_archive(uid, start, finish)
+			return Dumpable.str_to_file("#{uid}-messages.txt", dump)
+		end
+	end
 
 	#If no arguments are passed this can be used to create a message stored for both sender and receiver.
 	#Otherwise it is just a wrapper for viewing a particular persons message.
@@ -34,28 +47,8 @@ class Message
 				end
 			end
 		end
-=begin
-		if (!self.header_sender.nil?)
-			self.ticket = self.header_sender.ticket;
-		else
-			self.ticket = self.header_receiver.ticket;
-		end
-=end
 	end
-=begin
-	def open_ticket()
-		if (self.ticket.nil?)
-			unless (@header_sender.nil?)
-				self.ticket = Ticket.create(@header_sender);
-			else
-				self.ticket = Ticket.create(@header_receiver);
-			end
-		else
-			self.ticket.status = :open;
-		end
-		return self.ticket;
-	end
-=end
+
 	def folder=(value)
 		raise "'value' must be of length 2. [0] => receiver_folder, [1] => sender_folder" if (!value.respond_to?(:length) || value.length != 2);
 		@header_receiver.folder = value[0]
@@ -80,6 +73,7 @@ class Message
 	end
 
 	def subject=(string)
+		string = "No Subject" if (string == "")
 		@header_sender.subject = string if (!@text_sender.nil?);
 		@header_receiver.subject = string if (!@text_receiver.nil?);
 	end
@@ -227,7 +221,46 @@ class Message
 		self.text_receiver.store() unless (self.text_receiver.nil?);
 		
 		self.header_receiver.user_to.increment_unread!() unless (self.header_receiver.nil?);
-		#self.ticket.store() unless (self.ticket.nil?);
+	end
+
+	# This is set up so that we can forward messages between users to email properly.
+	def self.forward_site_message(recipient_userid, subject, content, from)
+		user = User.find(:first, recipient_userid.to_i)
+			
+		if( from == "Nexopia")
+			from_url = $site.www_url
+		else
+			from_url = "#{$site.www_url}/users/#{urlencode(from)}"
+		end
+
+		msg = Orwell::SendEmail.new()
+		msg.subject = subject
+		msg.send(user, "site_message_plain", :html_template => "site_message", :template_module => :messages, :content => content, :from => from, :from_url => from_url)
+	end
+
+	# Let's us send messages from the PHP side through the Ruby side.
+	# Takes all the key values pairs passed in and uses the key for the
+	# name of the attribute to assign to and value for the value.
+	def self.php_send(args = {})
+
+		message = Message.new;
+
+		# Receiver is a special case since there's no User object
+		# on the PHP side we take in the user id, find the User object
+		# and then assign that.
+		if args.has_key?('receiver')
+			
+			user = User.find(:first, args['receiver'].to_i)
+			message.__send__(:receiver=, user)
+			args.delete('receiver')
+		end
+
+		# Assign all the values to their respective attributes.
+		args.each_pair { |key, value|
+			message.__send__(key + "=", value)
+		}
+		message.send()
+		
 	end
 
 	#Retrieves a message by id for the user who has the current session.
@@ -242,16 +275,7 @@ class Message
 			return Message.new(header, nil, other_header);
 		end
 	end
-=begin
-	#retrieves a ThreadID struct with members userthreadid and threadid
-	def threadid()
-		if (!self.header_sender.nil?)
-			return self.header_sender.threadid_struct;
-		else
-			return self.header_receiver.threadid_struct;
-		end
-	end
-=end
+
 	def self.delete(userid, ids)
 		MessageHeader.db.query("DELETE from #{MessageHeader.table} WHERE userid = # && id IN ?", userid, ids.split(','));
         MessageText.db.query("DELETE from #{MessageText.table} WHERE userid = # && id IN ?", userid, ids.split(','));
@@ -266,29 +290,27 @@ class Message
 		
 		self.header_receiver.othermsgid = sender_id;
 		self.header_receiver.id = receiver_id;
-		if (PageRequest && PageRequest.current)
-			self.header_receiver.sentip = PageRequest.current.session.ip
+		if (Object.const_defined?('PageRequest'))
+			if (PageRequest.current)
+				self.header_receiver.sentip = PageRequest.current.session.ip
+			end
 		end
-#		self.header_receiver.threadid = sender_id unless (self.header_receiver.threadid != 0);
-#		self.header_receiver.threaduserid = sender_uid unless (self.header_receiver.threaduserid != 0);
 		self.text_receiver.id = receiver_id;
 		unless (self.header_sender.nil?)
     		self.header_sender.othermsgid = receiver_id;
     		self.header_sender.id = sender_id;
-    		#self.header_sender.threaduserid = sender_uid unless (self.header_sender.threaduserid != 0);
-    		#self.header_sender.threadid = sender_id unless (self.header_sender.threadid != 0);
-			if (PageRequest && PageRequest.current)
-				self.header_sender.sentip = PageRequest.current.session.ip
+			if (Object.const_defined?('PageRequest'))
+				if (PageRequest.current)
+					self.header_sender.sentip = PageRequest.current.session.ip
+				end
 			end
     		self.text_sender.id = sender_id;
     	end
-   		#self.ticket.threadid_struct = self.threadid unless (self.ticket.nil?);
    end
 end
 
 class User < Cacheable
 	def unread
-		#return MessageHeader.find(:conditions => ["userid = ? && status = 'new'", @userid])
 		return self.newmsgs
 	end
 	def msgs

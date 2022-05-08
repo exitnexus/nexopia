@@ -1,0 +1,90 @@
+<div class="friend" id="friend_{person.userid}">
+	<div class="pictures_div">
+		<div class="picture_div"><img class="profile_picture" t:id="person" /></div>
+	
+	
+		<div class="online_offline">
+			<t:if t:id="person.logged_in?"><img src="#{$site.static_files_url}/Friends/images/online.gif"/></t:if>
+			<t:if t:id="!person.logged_in?"><img src="#{$site.static_files_url}/Friends/images/offline.gif"/></t:if>
+		</div>
+	</div>
+
+	<div class="content">
+
+		<div class="name">
+			<t:if t:id="friends_with[PageRequest.current.user.userid]"><div class="mutual">mutual</div></t:if>	
+			<a t:id="person"></a>
+		</div>
+	
+		<div class="message"> #{message} </div>
+	
+		<div class="clearit"/>
+	</div>
+
+	
+	<div class="actions">
+		<div>
+		<!-- If the user looking at the page is anonymous, the there shouldn't be any button in the add/remove spot. -->
+		<t:if t:id="PageRequest.current.session.user.anonymous?">
+		</t:if>
+
+		
+		<!-- If the user is looking at their own Friends page then they should be able to remove the user as a friend. -->
+		<t:if t:id="PageRequest.current.session.user.userid == PageRequest.current.user.userid">
+			<!-- If we're using this template on the Reverse Friends page then change the link to reverse remove -->
+			<t:if t:id="PageRequest.current.session.user.friend?(person.userid)">
+				<t:if t:id="!reverse">
+					<a t:json="form_key" class="remove_friend" href="#{PageRequest.current.area_base_uri}/friends/remove/%{person.userid}">
+						<img src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_remove_friend.gif'}" />
+					</a>
+				</t:if>
+				<t:if t:id="reverse">
+					<t:if t:id="!message">
+					<a t:json="form_key" class="reverse_remove_friend" href="#{PageRequest.current.area_base_uri}/friends/reverse/remove/%{person.userid}">
+						<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_remove_friend.gif'}" />
+					</a>
+					</t:if>
+				</t:if>
+			</t:if>
+			<t:if t:id="!PageRequest.current.session.user.friend?(person.userid)">
+				<t:if t:id="!reverse">
+					<a t:json="form_key" class="re_add_friend" minion_name="friends:re_add_friend" href="/users/%{PageRequest.current.session.user.username}/friends/readd/{person.userid}">
+						<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_add_friend.gif'}" />
+					</a>
+				</t:if>
+			</t:if>
+		</t:if>		
+
+		
+		<!-- If the user is looking at another user's Friends page then we either display a plus icon to add the user 
+			as a friend or a check icon if the user is already a friend -->
+		<t:if t:id="!PageRequest.current.session.user.anonymous?  && PageRequest.current.session.user.userid != PageRequest.current.user.userid">
+			<t:if t:id="!PageRequest.current.session.user.friend?(person.userid)">
+				<a t:json="form_key" class="add_friend" href="#{PageRequest.current.area_base_uri}/friends/add/%{person.userid}">
+					<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_add_friend.gif'}" />
+				</a>
+			</t:if>
+			<t:if t:id="PageRequest.current.session.user.friend?(person.userid)">
+				<a t:json="form_key" class="friend_action" href="#">
+					<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_friend_true.gif'}" />
+				</a>
+			</t:if>
+		</t:if>
+		</div>
+		
+		<!-- Send a message to the user -->
+		<div>
+		<a href="/messages.php?action=write&to={person.userid}">
+			<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_send_msg.gif'}"/>
+		</a>
+		</div>
+		
+		<!-- Go to the user's comments -->
+		<div>
+		<a href="/users/%{person.username}/comments">
+			<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_comment.gif'}"/>
+		</a>
+		</div>
+	</div>
+	<div class="clearit"/>
+</div>

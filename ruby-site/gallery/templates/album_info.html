@@ -1,0 +1,39 @@
+<div id="album_info">
+	<div class="functions">
+		<div class="button"><t:button path="/users/%{gallery.owner.username}/gallery/%{gallery.id}" minion_name="button_link">View Album</t:button></div>
+        <div class="button"><t:button path="#{PageRequest.current.area_base_uri}/gallery/upload/%{gallery.id}" minion_name="button_link">Add Photos</t:button></div>
+	</div>
+	<img class="album_cover" t:id="gallery" t:linktype="squaremini"/>
+	<div class="details">
+		<div class="summary" minion_name="album_info:summary">
+			<h2 class="album_name">{gallery.name}</h2>&nbsp;({gallery.pics.length})
+			<div class="album_description" minion_name="album_info:description">{gallery.description}</div>
+			<div class="show_edit_album">
+				<a href="#edit" minion_name="album_info:show_edit_album" class="edit_album_details_link">
+					<img src="#{$site.static_files_url/:Gallery/:images/'down_arrow.gif'}"/>&nbsp;
+					<span class="edit_album_details">Edit Album Details</span>
+				</a>
+			</div>
+		</div>
+		<div class="edit" minion_name="album_info:edit" t:json="gallery">
+			<form>
+				<input type="text" value="{gallery.name}" name="name" class="album_name" maxlength="32"/>
+				<img src="{$site.static_files_url}/nexoskel/images/spinner.gif" class="spinner" minion_name="album_info:spinner"/>
+				<br/>
+				<textarea name="description" minion_name="album_info:description_edit">{gallery.description}</textarea><br/>
+				<select id="gallery_permission_select" name="permission">
+					<option cond:selected="gallery.permission == 'anyone'" value="anyone">Visible To Anyone</option>
+					<option cond:selected="gallery.permission == 'loggedin'" value="loggedin">Visible To Logged In Users</option>
+					<option cond:selected="gallery.permission == 'friends'" value="friends">Visible To Friends</option>
+					<option cond:selected="gallery.permission == 'none'" value="none">Not Visible</option>
+				</select><br/>
+				<input type="checkbox" class="checkbox" name="allow_comments" cond:checked="gallery.allowcomments == true"/><label>Allow Comments</label><br/>
+				<div class="form_controls">
+					<t:button minion_name="album_info:save">Save Detail Changes</t:button>&nbsp;|&nbsp;
+					<a href="#cancel" minion_name="album_info:cancel_edit" class="tertiary_button">Cancel</a>
+				</div>
+			</form>
+		</div>
+	</div>
+	<div class="clearit"></div>
+</div>

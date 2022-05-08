@@ -1,12 +1,34 @@
 <?
+	
+	// Constants for "menu access".
+	// Sets the accessibility for items in the menu bar on the 2.0 profiles.
+	define("NONE", 0);
+	define("FRIENDS", 1);
+	define("FRIENDS_OF_FRIENDS", 2);
+	define("LOGGED_IN", 3);
+	define("ALL", 4);
+	define("ADMIN", 5);
 
 	$login=0.5;
 
 	require_once("include/general.lib.php");
 	$template = new Template("prefs/prefs");
 	$isAdmin = $mods->isAdmin($userData['userid'],'editpreferences');
-
+	$isSigAdmin = $mods->isAdmin($userData['userid'],'editsig');
+	$maxlengths = array(
+		'signiture' =>1000);	
 	$uid = ($isAdmin ? getREQval('uid', 'int', $userData['userid']) : $userData['userid']);
+	
+	// To access the preference page you must be logged in
+	if($uid < 1)
+	{
+		header("HTTP/1.1 301 Moved Permanently");
+		header("Location: http://". $wwwdomain . "/login.php?referer=/prefs.php");
+		exit;
+	}
+	
+	$res = $usersdb->prepare_query("SELECT userid, age, sex, premiumexpiry > # AS plus, dob, forumrank, posts FROM users WHERE userid = %", time(), $uid);
+	$user = $res->fetchrow();
 
 	switch($action){
 		case "Update Preferences":
@@ -31,9 +53,10 @@
 
 
 function delete($delpass, $reason){
-	global $userData, $msgs, $usersdb, $useraccounts, $auth;
+	global $userData, $msgs, $usersdb, $useraccounts, $auth, $Ruby;
 
 	if($auth->checkpassword($userData['userid'], $delpass)){
+		$Ruby->send('Orwell::SendEmail')->php_send($userData['userid'], 'Account Deletion', 'account_cancelation_plain', array('html_template' => 'account_cancelation', 'template_module' => 'orwell'));
 		$useraccounts->delete($userData['userid'], $reason);
 		$auth->destroySession($userData['userid'], $userData['sessionkey']);
 		header("location: /");
@@ -140,16 +163,27 @@ function update($data){
 	$commands=array();
 
 	$commands[]= "fwmsgs = " . (isset($data['fwmsgs'])? "'y'" : "'n'");
+	$commands[]= "fwsitemsgs = " . (isset($data['fwsitemsgs'])? "'y'" : "'n'");
 	$commands[]= "enablecomments = " . (isset($data['enablecomments'])? "'y'" : "'n'");
-
-	if(isset($data['onlyfriendsmsgs']) && isset($data['onlyfriendscomments']))
+	if (isset($data['enablecomments'])) {
+		if (isset($data['onlyfriendscomments'])){
+			$commands[]= "commentsmenuaccess = " . FRIENDS;			
+		} else {
+			$commands[]= "commentsmenuaccess = " . LOGGED_IN;
+		}
+	} else {
+		$commands[]= "commentsmenuaccess = " . NONE;
+	}
+	
+	if(isset($data['onlyfriendsmsgs']) && isset($data['onlyfriendscomments'])) {
 		$commands[]= "onlyfriends = 'both'";
-	elseif(isset($data['onlyfriendsmsgs']))
+	} elseif(isset($data['onlyfriendsmsgs'])) {
 		$commands[]= "onlyfriends = 'msgs'";
-	elseif(isset($data['onlyfriendscomments']))
+	} elseif(isset($data['onlyfriendscomments'])) {
 		$commands[]= "onlyfriends = 'comments'";
-	else
+	} else {
 		$commands[]= "onlyfriends = 'neither'";
+	}
 
 	if(isset($data['ignorebyagemsgs']) && isset($data['ignorebyagecomments']))
 		$commands[]= "ignorebyage = 'both'";
@@ -175,7 +209,7 @@ function update($data){
 	$commands[] = "replyjump = " . (isset($data['replyjump'])? "'forum'" : "'thread'");
 	$commands[] = "autosubscribe = " . (isset($data['autosubscribe'])? "'y'" : "'n'");
 	$commands[] = "forumjumplastpost = " . (isset($data['forumjumplastpost'])? "'y'" : "'n'");
-	$commands[] = "friendslistthumbs = " . (isset($data['friendslistthumbs'])? "'y'" : "'n'");
+	$commands[] = "profilefriendslistthumbs = " . (isset($data['profilefriendslistthumbs'])? "'y'" : "'n'");
 	$commands[] = "recentvisitlistthumbs = " . (isset($data['recentvisitlistthumbs'])? "'y'" : "'n'");
 	$commands[] = "recentvisitlistanon = " . (isset($data['recentvisitlistanon'])? "'y'" : "'n'");
 
@@ -186,11 +220,17 @@ function update($data){
 
 	if(isset($data['defaultloc']) )
 		$commands[] = $usersdb->prepare("defaultloc = #", $data['defaultloc']);
-
-	if(!isset($data['defaultminage']) || $data['defaultminage'] < $config['minAge'])
-		$data['defaultminage'] = $config['minAge'];
-	if(!isset($data['defaultmaxage']) || $data['defaultmaxage'] > $config['maxAge'])
-		$data['defaultmaxage'] = $config['maxAge'];
+	
+	$data['defaultminage'] = (int)$data['defaultminage'];
+	$data['defaultmaxage'] = (int)$data['defaultmaxage'];
+	if(($data['defaultminage'] == 0) || ($data['defaultminage'] < (int)$config['minAge']))
+		$data['defaultminage'] = (int)$config['minAge'];
+	if($data['defaultminage'] > (int)$config['maxAge'])
+		$data['defaultminage'] = (int)$config['minAge'];
+	if(($data['defaultmaxage'] == 0) || ($data['defaultmaxage'] > (int)$config['maxAge']))
+		$data['defaultmaxage'] = (int)$config['maxAge'];
+	if($data['defaultmaxage'] < (int)$config['minAge'])
+		$data['defaultmaxage'] = (int)$config['maxAge'];
 	if($data['defaultminage'] > $data['defaultmaxage']){
 		$temp = $data['defaultmaxage'];
 		$data['defaultmaxage'] = $data['defaultminage'];
@@ -228,32 +268,154 @@ function update($data){
 	$usersdb->query("UPDATE users SET " . implode(", ", $commands) . $usersdb->prepare(" WHERE userid = %", $uid));
 
 
-//profile settings
+	// Profile settings
 	$commands=array();
 
-	$commands[]= "showactivetime = " . (isset($data['showactivetime'])? "'y'" : "'n'");
-	$commands[]= "showprofileupdatetime = " . (isset($data['showprofileupdatetime'])? "'y'" : "'n'");
-	$commands[]= "showjointime = " . (isset($data['showjointime'])? "'y'" : "'n'");
-	$commands[]= "showbday = " . (isset($data['showbday'])? "'y'" : "'n'");
-	$commands[]= "showlastblogentry = " . (isset($data['showlastblogentry'])? "'y'" : "'n'");
-
-	if($line['premiumexpiry'] > time())
+	if($line['premiumexpiry'] > time()) {
 		$commands[] = "showpremium = " . (isset($data['showpremium']) ? "'y'" : "'n'");
 
+		$query = "UPDATE profile SET " . implode(", ", $commands) . $usersdb->prepare(" WHERE userid = %", $uid);
 
-	$query = "UPDATE profile SET " . implode(", ", $commands) . $usersdb->prepare(" WHERE userid = %", $uid);
+		$usersdb->query($query);
+	}
 
-	$usersdb->query($query);
-
-
+	// If the user disables profile comments then we should remove the Profile Comments block.
+	if( !isset($data['enablecomments']) ) {
+		$res = $usersdb->prepare_query("SELECT blockid FROM profiledisplayblocks WHERE userid = % AND path = 'comments'", $uid);
+		$blockid = $res->fetchrow();
+		$blockid = $blockid["blockid"];
+		$cache->remove("Profile::ProfileDisplayBlock-$uid/$blockid");
+		$usersdb->prepare_query("DELETE FROM profiledisplayblocks WHERE userid = % AND path = 'comments'", $uid);
+	}
 
 
 	$cache->remove("userprefs-$uid");
 	$cache->remove("profile-$uid");
 	$cache->remove("userinfo-$uid");
-
+	
+	updateForumDetails();
+	
 	$msgs->addMsg("Update complete");
 	return true;
+}
+
+
+function editForumDetails($template){
+	global $userData, $user, $uid, $usersdb, $forums, $profile, $maxlengths, $forums, $isSigAdmin, $abuselog;
+
+	if($userData['userid'] != $uid && !$isSigAdmin)
+		die("You don't have permission to do this");
+
+	$res = $usersdb->prepare_query("SELECT enablesignature, nsigniture, signiture FROM profile WHERE userid = %", $uid);
+	$user += $res->fetchrow();
+
+	$template->set('uid', $uid);
+	$template->set('user', $user);
+	$template->set('userData', $userData);
+	$template->set('isAdmin', $isSigAdmin);
+	$template->set('checkEnableSignature', makeCheckBox("enablesignature", "Enable Signature", $user['enablesignature'] == 'y'));
+	$template->set('allowedSignature', ($user['enablesignature'] == 'y' || $isSigAdmin));
+	$template->set('maxlengths', $maxlengths);
+	$template->set('signitureLength', strlen($user['signiture']));
+
+	$maxwidth =600;
+	$maxheight=200;
+	$maxsize = "200 KB";
+
+	$template->set('maxwidth', $maxwidth);
+	$template->set('maxheight', $maxheight);
+	$template->set('maxPreviewWidth', ($maxwidth + 4));
+	$template->set('maxPreviewHeight', ($maxheight + 4));
+	$template->set('maxsize', $maxsize);
+	$template->set('forumRank', $forums->forumrank($user['posts']));
+
+	if($isSigAdmin && $uid != $userData['userid']){
+		$template->set('displayAdmin', true);
+
+		$reminders = $forums->mutelength;
+		unset($reminders[0]);
+
+		$template->set('selectReminder', make_select_list_key($reminders));
+		$template->set('selectAbuseReason', make_select_list_key($abuselog->reasons));
+	} else {
+		$template->set('displayAdmin', false);
+	}
+}
+
+
+function updateForumDetails(){
+	global $uid, $user, $userData, $isSigAdmin, $usersdb, $cache, $mods, $abuselog, $usernotify, $msgs, $maxlengths;
+
+	if($uid != $userData['userid'] && !$isSigAdmin)
+		return;
+
+	if(!($data = getPOSTval('data', 'array')))
+		return;
+
+	if(isset($data['signiture'])){
+		if($isSigAdmin)
+			$set[] = $usersdb->prepare("enablesignature = ?", (getPOSTval('enablesignature', 'bool') ? "y" : "n") );
+
+		$signiture = cleanHTML(trim(substr($data['signiture'], 0, $maxlengths['signiture'])));
+		$nsigniture = wrap(parseHTML(smilies($signiture)));
+		$set[] = $usersdb->prepare("signiture = ?", $signiture);
+		$set[] = $usersdb->prepare("nsigniture = ?", $nsigniture);
+
+		$usersdb->query("UPDATE profile SET " . implode(", ", $set) . $usersdb->prepare(" WHERE userid = %", $uid));
+
+		$cache->remove("forumusersigs-$uid");
+	}
+
+	if($user['plus']){
+		$forumrankchoice = getPOSTval('forumrankchoice');
+		$forumrank = removeHTML(trim(getPOSTval('forumrank')));
+
+		switch($forumrankchoice){
+			case "current":
+				break;
+
+			case "default":
+				$forumrank = '';
+
+			case "new":
+				$usersdb->prepare_query("UPDATE users SET forumrank = ? WHERE userid = %", $forumrank, $uid);
+
+				if($forumrank == ""){
+					$mods->deleteItem(MOD_FORUMRANK, $uid);
+				}else{
+					$mods->newItem(MOD_FORUMRANK, $uid);
+				}
+				$user['forumrank'] = $forumrank;
+				break;
+		}
+
+		$cache->remove("userinfo-$uid");
+	}
+
+	if($uid != $userData['userid']){
+		$reportaction = ABUSE_ACTION_SIG_EDIT;
+		$reportreason = getPOSTval('reportreason', 'int');
+		$reportsubject= getPOSTval('reportsubject');
+		$reporttext   = getPOSTval('reporttext');
+
+		$msgs->addMsg("REPORTTEXT:".$reporttext);
+		$msgs->addMsg("SUBJECT:".$reportsubject);
+
+		$abuselog->addAbuse($uid, $reportaction, $reportreason, $reportsubject, $reporttext);
+
+		$reportreminder = getPOSTval('reportreminder', 'int');
+
+		if($reportreminder){
+			$message = 	"[url=/prefs.php?uid=$uid]Check/re-enable[/url] the signature for [url=/users/". urlencode(getUserName($uid)) ."]" . getUserName($uid) . "[/url].\n\n" .
+						"The report was for " . $abuselog->reasons[$reportreason] . ": $reportsubject\n[quote]" . $reporttext. "[/quote]";
+
+			$usernotify->newNotify($userData['userid'], time() + $reportreminder, 'Signature Checkup', $message);
+		}
+
+		$mods->adminlog("update signature", "Update user signature: userid $uid");
+	}
+
+	$msgs->addMsg("Updated");
 }
 
 	$locations = new category( $configdb, "locs");
@@ -270,8 +432,10 @@ function update($data){
 	$plus = $line['premiumexpiry'] > time();
 	$template->set("uid", $uid);
 
+	$locationAutocomplete = $rap_pagehandler->subrequest(null, "GetRequest", "/autocomplete/location/$line[defaultloc]", array("location_id_field_id"=>"data[defaultloc]"), "Public");
+
 	$template->set("select_list_gender", make_select_list(array("Male","Female"), $line['defaultsex']) );
-	$template->set("select_list_locations", '<option value="0">Anywhere</option>' . makeCatSelect($locations->makeBranch(), $line['defaultloc']));
+	$template->set("select_list_locations", $locationAutocomplete->get_reply_output());
 	$template->set("prefs", $line);
 	$template->set("has_plus", $plus);
 	if($plus){
@@ -293,5 +457,6 @@ function update($data){
 	$template->set("email", $useraccounts->getEmail($uid));
 	$template->set("can_edit_password",($userData['userid'] == $uid || $mods->isAdmin($userData['userid'],'editpassword')));
 
+	editForumDetails($template);
 
 	$template->display();

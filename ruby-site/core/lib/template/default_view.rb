@@ -15,6 +15,7 @@ module Template
 		end
 	end
 	
+	
 	class DefaultView < Processor
 		namespace :t
 		show_in_html false
@@ -27,39 +28,59 @@ module Template
 			end
 	
 			def _normal_handle_tid(node,code)
+				
 				obj = node.attribute("t:id").value;
-				code.add_var_to_table(obj);
+				
 				if node.attribute("t:index")
 					index = node.attribute("t:index").value;
-				else
-					index = "nil_index"
 				end
 	
 				if node.attribute("t:iter")
 					iter = node.attribute("t:iter").value;
-				else
-					iter = "nil_iter"
 				end
 	
-				code.append "[*(#{obj})].each_with_index { |#{iter}, #{index}|\n";
-				code.append "	if (#{index} > 0) \n"
-				code.append_print node.attribute('join').to_s;
-				code.append "	end;\n";
-				if node.attribute('alternating')
-					arr = node.attribute('alternating').to_s.split(",");
-					arr.each_with_index{ |klass,row_num|
-						code.append "		if (#{index}%#{arr.length}==#{row_num}) then "
-						code.append "			class_var = '#{klass}';"
-						code.append "		end;\n";
-					}
-					node.attributes['class'] = '#{class_var}';
-				end
-				#
-				#
-				yield node
-				code.append "} if (#{obj})\n";
+				code.append "if(#{obj})\n"
+					if(!iter && !index)
+						yield node
+					else
+						if(index || node.attributes['join'] || node.attributes['alternating'])
+							code.append "		(#{obj}).each_with_index { |#{iter ||= 'nil_iter'}, #{index ||= 'nil_index'}|\n";
+						else
+							code.append "		(#{obj}).each { |#{iter}|\n";
+						end
+							handle_json(node, code);
+							
+							if(node.attributes['join'])
+								code.append "			if(#{index} > 0)\n"
+								code.append_print node.attributes['join'].to_s;
+								code.append "			end\n";
+							end
+							if(node.attributes['alternating'])
+								arr = node.attributes['alternating'].to_s.split(",");
+								arr.each_with_index{ |klass,row_num|
+									code.append "			if (#{index}%#{arr.length} == #{row_num})\n"
+									code.append "				class_var = '#{klass}';\n"
+									code.append "			end\n";
+								}
+								node.attributes['class'] = '#{class_var}';
+							end
+
+							yield node
+
+						code.append "		}\n";
+					end
+				code.append "end\n";
 			end
-	
+			
+			def handle_json(node, code)
+				if (node.attribute("t:json"))
+					code.append("_json_id = #{node.attributes["t:json"]}.object_id.to_s(32)+rand(1073741823).to_s(32)\n")
+					node.attributes["json_id"] = "\#{_json_id}"
+					json = "\"<script>Nexopia.jsonTagData['\#{_json_id}'] = \#{#{node.attributes["t:json"]}.to_json};</script>\""
+					code.append_output(json)
+				end
+			end
+			
 			def _normal_translation(node,code,&block)
 				if (node.attribute("t:id"))
 					_normal_handle_tid(node,code,&block)
@@ -200,30 +221,47 @@ module Template
 				node.attributes['onclick'] = "AJAXLoadLink(this);";
 				yield node
 			end
+			
+			def translate_button(node, code)
+				set_button_id = ""
+				node.prefix = ""
+				node.attributes.each {|name,value|
+					if(name == "t:id")
+						set_button_id = "id='#{value}'"
+						node.attributes[name] = "#{value}-button"
+					end
+					node.attribute(name).prefix = ""
+				}
+				code.append_print('<span ' + set_button_id + ' class="custom_button yui-button yui-button-button"><span class="first-child">')
+				yield node
+				code.append_print('</span></span>')
+			end
 	
 	
 			# Include from an existing template
+			#
+			# When you write a processor, you have to register your variables with 
+			# code.add_to_var_table(var) if you want the variable to be available 
+			# in included templates.
 			def translate_template_include(element, code)
-				mod = element.attribute("module");
-				templ = element.attribute("name");
+				mod = element.attribute("module").value;
+				templ = element.attribute("name").value;
 				code.dependencies << "#{mod}:#{templ}";
-				#code.append %Q|\ninclude_start = Time.now.to_f; \n|;
-				code.append %Q|templ = Template::instance("#{mod}", "#{templ}");\n|;
-				Template.get_class(mod.to_s, templ.to_s)::get_vars.each{|var,type|
-					code.add_var(var, type.to_s);
-					code.append %Q|if (local_variables.include?("#{var}"))\n|;
-					code.append %Q|	templ.#{var} = #{var};\n|;
-					code.append %Q|else\n|;
-					code.append %Q|	templ.#{var} = @#{var};\n|;
-					code.append %Q|end\n|;
-				}
-				code.append_output %Q|templ.display();\n|;
-				#code.append %Q|child_time += (Time.now.to_f - include_start); \n|;
+				#code.append %Q|\ninclude_start = Time.now.to_f|;
+				code.append %Q^
+		__sub_templ = Template::instance("#{mod}", "#{templ}");
+		instance_variables.each{|var|
+			__sub_templ.instance_variable_set(var.to_sym, self.instance_variable_get(var.to_sym)) unless var[1] == 95 # unless starts with '_'
+		}
+		local_variables.each{|var|
+			__sub_templ.instance_variable_set(('@' + var).to_sym, eval(var)) unless var[0] == 95 # unless starts with '_'
+		}
+^;
+				code.append_output "__sub_templ.display()";
+				#code.append %Q|child_time += (Time.now.to_f - include_start)|;
 			end
 	
 			def _handler_include_path(element,code,path,area = nil,user = nil,params=[])
-				code.add_var_to_table(user.to_s) if user
-				
 				area = ":#{area.to_s.capitalize}" if not area.nil?  and area.to_s[0] != ':'
 				
 				area = 'nil' unless area
@@ -256,7 +294,7 @@ module Template
 			def translate_handler_include(element, code,&block)
 				vars = [];
 				REXML::XPath.each(element, 'descendant::t:var'){|tag|
-					vars << "#{CGI::unescape(tag.attribute('t:name').value)} => #{CGI::unescape(tag.attribute('t:val').value)}";
+					vars << "#{urldecode(tag.attribute('t:name').value)} => #{urldecode(tag.attribute('t:val').value)}";
 				}
 				path = element.attribute("path");
 				area = element.attribute("area");
@@ -352,8 +390,8 @@ module Template
 			end
 			
 			def translate_varsub(node, code)
-				__old = node.attribute('t:old')
-				__new = node.attribute('t:new')
+				__old = node.attribute('t:old').value
+				__new = node.attribute('t:new').value
 				code.append("#{__new} = #{__old}\n");
 			end
 			
@@ -363,47 +401,106 @@ module Template
 			
 			def translate_json(node, code)
 				code.append_print("<script>")
-				code.append_print("Nexopia.JSONData.#{node.attribute('t:handle')} = ")
-				code.append_output node.attribute('t:data').to_s + ".to_json";
+				code.append_print("Nexopia.JSONData.#{node.attribute('t:handle').value} = ")
+				code.append_output node.attribute('t:data').value + ".to_json";
 				code.append_print(";");
-				code.append_print("</script>")				
+				code.append_print("</script>")
 			end
-			
+
 			def pp_daytime(time)
-				str = "";
-				str << (time.hour > 12 ? time.hour - 12 : time.hour).to_s
-				str << ":"
-				str << time.min.to_s
-				str << time.strftime("%p").downcase
+				if(time.to_i() != 0)
+					return time.strftime("%I:%M%p").downcase
+				else
+					return "not recently";
+				end
 			end
-				
+
 			def pp_time(time)
-				if (time.to_f > Time.now.to_f - 7*86000)
-					since = Time.now.to_i - time.to_i
-					message = ""
+				now = Time.now.to_i
+
+				if (time.to_i > now - 86000)
+					since = now - time.to_i
 					case since
 					when (0...60)
 						message = "moments"
 					when (60...3600)
 						message = "#{(since/60).to_i} minute"
-						message += 's' if ((since/60).to_i > 1)
+						message += 's' if (since >= 120) # ie at least two minutes
 					when (3600...86400)
 						message = "#{(since/3600).to_i} hour"
-						message += 's' if ((since/3600).to_i > 1)
-					else
-						message = "#{(since/86400).to_i} day"
-						message += 's' if ((since/86400).to_i > 1)
+						message += 's' if (since >= 7200) # ie at least two hours
 					end
-					message = "#{message} ago"
+					message += " ago"
 					return message
+				elsif (time.to_i > now - 2*86000)
+					return "#{pp_daytime(time)} | Yesterday";
+				elsif(time.to_i != 0)
+					return "#{pp_daytime(time)} | #{time.strftime("%b %d, '%y")}";
 				else
-					return time.strftime("%m/%d/%Y");
+					return pp_daytime(time);
 				end
 			end
+
+			def make_usertime(time, gmt)
+				if (time && !time.kind_of?(UserTime))
+					ut = UserTime.at(time.to_i)
+				else
+					ut = time
+				end
+				if (gmt)
+					ut.time_zone = "GMT"
+				end
+				return ut
+			end
 			
+			#<t:nice-time t:time="sometime" t:gmt="(true|false)" t:format="format" t:result="blah">Created at {blah}.</t:nice-time>
 			def translate_nice_time(node, code)
-				__time = node.attribute('time')
-				code.append_output("Template::DefaultView::pp_time(#{__time})");
+				time = node.attribute('time')
+				time = time.value if (time)
+				format = node.attribute('format')
+				format = format.value if (format)
+				
+				if (node.attribute('gmt') && node.attribute('gmt').value)
+					gmt = node.attribute('gmt').value
+				else
+					gmt = "nil"
+				end
+				
+				out_var = node.attribute("result")
+				if (out_var)
+					out_var = out_var.value
+				end
+
+				code.append("__time = #{time}\n");
+				code.append("if (__time && !__time.to_i.zero?)\n")
+				code.append("\t__time = Template::DefaultView::make_usertime(__time, #{gmt})\n");
+				
+				case format
+				when "time"
+					output = "Template::DefaultView::pp_daytime(__time)"
+				when "date"
+					output = "__time.strftime(\"%B %d, %Y\")"
+				when "short_date"
+					output = "__time.strftime(\"%b %d, '%y\")"
+				when "date_and_time"
+					output = "Template::DefaultView::pp_daytime(__time) + \" | \" +  __time.strftime(\"%b %d, '%y\")"
+				when "month_and_year"
+					output = "__time.strftime(\"%B %Y\")"
+				when "month_and_day"
+					output = "__time.strftime(\"%B %d\")"
+				when "pretty"
+					output = "Template::DefaultView::pp_time(__time)"
+				else
+					output = "'Usage: &lt;t:nice-time t:time=\"{time_stamp}\" t:gmt=\"(true|false)\" t:format=\"(time|date|short_date|date_and_time|month_and_year|month_and_day|pretty)\" t:result=\"some_var\"&gt;blah blah {some_var}&lt;/t:nice-time&gt;'"
+				end
+
+				if(out_var)
+					code.append("\t#{out_var} = #{output}\n")
+					yield node
+				else
+					code.append_output(output)
+				end
+				code.append("end\n")
 			end
 
 			def translate_nice_daytime(node, code)
@@ -423,13 +520,14 @@ module Template
 				elsif (match = /^attribute_translate_(.*)$/.match(name))
 					return attribute_translate_default(*args,&block) #{|*yargs| yield(*yargs); };
 				else
-					raise "WTF? #{name}"
+					raise "Method Missing - `#{name}`"
 					#super(name, *args);
 				end
 			end
 	
 			def attribute_translate_default(ns,attr,code)
 				val = TemplateClass.parseVar(attr.value, code);
+				return val
 			end
 	
 		end

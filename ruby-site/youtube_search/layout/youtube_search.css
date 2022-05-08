@@ -1,0 +1,91 @@
+#youtube_search_panel {
+	width: 486px;
+	height: 486px;
+	padding: 12px;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 11px;
+	text-align: left;
+	
+	& .clear {
+		clear: both;
+	}
+	
+	& .title {
+		float: left;
+		font-size: 16px;
+		font-family: Helvetica, Arial, sans-serif;
+		font-weight: bold;
+		padding-bottom: 12px;
+	}
+	
+	& a {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+		
+		&.close {
+			float: right;
+			text-decoration: underline;
+		}
+	}
+	
+	& input {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+		
+		&.search_terms {
+			float: left;
+			width: 230px;
+			margin-top: 1px;
+		}
+	}
+	
+	& .find_video_btn {
+		float: left;
+		margin-left: 6px;
+	}
+	
+	& div.example {
+		padding-top: 6px;
+		color: #878787;
+		
+		& span {
+			font-style: italic;
+		}
+	}
+	
+	& #search_spinner {
+		display: none;
+	}
+	
+	& #youtube_search_results {
+		margin-top: 20px;
+		height: 380px;
+		padding: 0px 6px 12px 6px;
+		overflow: auto;
+		border: 1px solid #D4D6D7;
+		
+		& .video_container {
+			border-bottom: 1px dotted #d4d6d7;
+			padding: 12px 6px 12px 6px;
+			
+			& .video_thumb {
+				float: left;
+				padding-right: 6px;
+			}
+			
+			& .video_info {
+				float: left;
+				width: 307px;
+				
+				& .video_title {
+					font-weight: bold;
+				}
+				
+				& div.add_video {
+					margin-top: 6px;
+				}
+			}
+		}
+	}
+	
+}

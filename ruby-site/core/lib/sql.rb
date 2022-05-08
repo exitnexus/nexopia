@@ -1,6 +1,7 @@
 
 lib_require :Core, 'errorlog', 'data_structures/string' #for each_char
 lib_require :Core, 'mutable_time'
+lib_require :Core, 'json'
 
 # register the child sql classes
 autoload(:SqlDBdbi, 'core/lib/sql/sqldbi');
@@ -187,45 +188,48 @@ class SqlBase
 		return query;
 	end
 
-	def get_server_values(query)
-		return rb_get_server_values(query)
-	end
-	
 	#extract the keys from a query. This implementation does not edit out the comments from the query
-	def rb_get_server_values(query)
+	def get_server_values(query)
 		ids = [];
+		
+		if(!query['\\']) #simple way that works if nothing is escaped
+			#take out all strings, then parse out all the server key comments
+			ids = query.gsub(/'.*?'/, "").scan(/\/\*\*%: ([0-9,-]+) :%\*\*\//).map{|a| a[0].split(',').map{|b| b.to_i} }
 
-		quote = false;
-		escape = false;
+		else # more correct, but slower
+		
+			quote = false;
+			escape = false;
 
-		offset = -1;
-		query.each_char { |c|
-			offset += 1;
+			offset = -1;
+			query.each_char { |c|
+				offset += 1;
 
-			#only look for the comments if not in a string
-			if(!quote)
-				if(c == '"' || c == "'")
-					quote = c;
-					next;
-				end
-
-				#do c == / as an optimization, and the regex to find the actual comments
-				if(c == '/' && matches = query[offset, (query.length - offset)].match(/^(\/\*\*%: ([0-9,-]+) :%\*\*\/)/) )
-					ids.push(*(matches[2].split(',').map {|i| i.to_i})); #keep the ids list in the comment
-					query.slice!(offset, matches[1].length); #remove the comment from the query
-				end
-			else
-			#if in a string, look for its closing quote
-				if(!escape && c == '\\')
-					escape = true;
-				else
-					if(!escape && c == quote)
-						quote = false;
+				#only look for the comments if not in a string
+				if(!quote)
+					if(c == '"' || c == "'")
+						quote = c;
+						next;
 					end
-					escape = false;
+
+					#do c == / as an optimization, and the regex to find the actual comments
+					if(c == '/' && matches = query[offset, (query.length - offset)].match(/^(\/\*\*%: ([0-9,-]+) :%\*\*\/)/) )
+						ids.push(*(matches[2].split(',').map {|i| i.to_i})); #keep the ids list in the comment
+						query.slice!(offset, matches[1].length); #remove the comment from the query
+					end
+				else
+				#if in a string, look for its closing quote
+					if(!escape && c == '\\')
+						escape = true;
+					else
+						if(!escape && c == quote)
+							quote = false;
+						end
+						escape = false;
+					end
 				end
-			end
-		}
+			}
+		end
 
 		return (ids.empty? ? false : ids.uniq );
 	end
@@ -249,7 +253,7 @@ class SqlBase
 	Log = Struct.new(:db, :time, :query, :should_explain, :backtrace);
 	class Log
 		def to_s()
-			format(%Q{%s: "%s" took %.3f msec}, db, query, time * 1000);
+			format(%Q{%s [%.3f msec] "%s" }, db, time * 1000, query);
 		end
 
 		def explain()
@@ -280,6 +284,19 @@ class SqlBase
 	class ParamError < ::SiteError
 	end
 	class QueryError < ::SiteError
+		attr :errno
+		attr :error
+		def initialize(errno = 0, error = 'Unknown')
+			@errno = errno
+			@error = error
+		end
+		def to_s()
+			super() + " #{@error} [#{@errno}]"
+		end
+	end
+	class DeadlockError < QueryError
+	end
+	class CannotFindRowError < QueryError
 	end
 	class ConnectionError < ::SiteError
 	end
@@ -289,6 +306,7 @@ class SqlBase
 	#split is a stack type parameter which outputs the split comment if it is > 0
 	# it is used to output them only for the first entry in a multi-dimensional array
 	def prepare_object(obj, split)
+		obj = demand(obj)
 		str = case obj
 				when Array
 					obj = obj.dup;
@@ -302,7 +320,7 @@ class SqlBase
 				when Float
 					obj.to_s;
 				when String
-					"'" + quote(obj) + "'";
+					"'" + quote(obj.convertible_to_utf8) + "'";
 				when nil
 					"NULL";
 				when true
@@ -313,6 +331,8 @@ class SqlBase
 					"'" + quote(obj.to_s) + "'";
 				when MutableTime
 					obj.to_i.to_s;
+				when Lazy::Promise
+					return prepare_object(demand(obj), split);
 				else #try .to_s before failing?
 					raise ParamError, "Trying to escape an unknown object #{obj.class}";
 				end

@@ -1,0 +1,124 @@
+#join_page {
+	width: 726px;
+	padding: 18px 12px 12px 12px;
+	margin: 0px auto 0px auto;
+	background-color: $primary_background_color;
+	color: $primary_text_color;
+	
+	& * {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+	}
+	
+	& br.clear {
+		clear: both;
+	}
+	
+	& .login_now {
+		font-weight: bold;
+		font-size: 15px;
+		padding-bottom: 24px;
+		color: #878787;
+		
+		& a {
+			font-size: 15px;
+			text-decoration: underline;
+		}
+	}
+	
+	& .header {
+		font-weight: bold;
+		color: $header_background_color;
+		font-size: 18px;
+		padding-bottom: 12px;
+	}
+	
+	& .left_column {
+		float: left;
+		
+		& td {
+			padding-bottom: 6px;
+		}
+		
+		& .extra_space {
+			padding-top: 18px;
+		}
+		
+		& .label {
+			font-weight: bold;
+			width: 102px;
+		}
+		
+		& .field {
+			width: 180px;
+			 & .text {
+				width: 180px;
+			}
+			
+			& .month {
+				margin-right: 2px;
+				width: 64px;
+			}
+			
+			& .day {
+				margin-right: 2px;
+			}
+
+			& .year {
+				width: 60px;
+			}
+			
+			& .male {
+				margin-left: 20px;
+			}
+		}
+		
+		& .error_field {
+			font-size: 9px;
+			width: 160px;
+
+			& .error_msg {
+/*				font-size: 9px;*/
+				padding-left: 6px;
+			}
+			
+			& .good_error {
+				color: #108337;
+			}
+			
+			& .bad_error {
+				color: #e40022;
+			}
+		}
+		
+		& .terms_of_use {
+			padding-top: 30px;
+			
+			& .join_btn {
+				padding-top: 12px;
+				
+				& .custom_button button {
+					font-size: 18px;
+					text-decoration: underline;
+					padding: 4px 35px 6px 35px;
+				}
+			}
+		}
+	}
+	
+	& .right_column {
+		float: right;
+		
+		& .image_placeholder {
+			width: 234px;
+			height: 119px;
+			border: 1px solid #949494;
+			background-color: #d7d7d7;
+			margin-bottom: 12px;
+		}
+	}
+
+	& .validate_error_image
+	{
+		display: none;
+	}
+}

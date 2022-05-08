@@ -1,42 +1,49 @@
-<div t:docid="friends_profile_block" id="friends_profile_block">
-	<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.4.1/build/container/assets/container.css"></link> 
-	<script type="text/javascript" src="#{$site.static_files_url}/yui/build/animation/animation-min.js"></script>
-	<script type="text/javascript" src="#{$site.static_files_url}/yui/build/container/container-min.js"></script>
+<div id="friends_profile_block">
 	<div class="friends_header">
-		<div class="view_all">
-			<a href="/users/%{user.username}/friends">view all ({friends.length})</a>        
+		<div class="header_accessory">
+			<a href="/users/%{user.username}/friends">all ({friend_count})</a>
+			<t:if t:id="!PageRequest.current.session.user.anonymous? && PageRequest.current.session.user.userid != PageRequest.current.user.userid && PageRequest.current.session.user.plus?()">
+				&nbsp;|&nbsp;
+				<a href="/users/%{user.username}/friends/common">common ({common_friends_count})</a>
+			</t:if>
 		</div>
-		<div class="friends_title">
-			FRIENDS        
+		<div class="block_title">
+			FRIENDS
 		</div>
 	</div>
-	<ul id="friends_list">
-		<li t:id="friends" t:iter="friend" class="user_container">
-			<div class="user_thumb">
-				<a t:id="friend.user"><img class="friend_pic" t:id="friend.user" t:linktype="landscapethumb"/></a>
+	<div t:json="names" id="friends_toolbar" minion_name="fpb:friends_toolbar">
+		<a class="change_view list_view" href="">
+			<img src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:primary_block_icon_color])/:friends/:images/'list_view.gif'}"/>
+		</a>
+		<a class="change_view thumb_view selected" href="#">
+			<img src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:primary_block_icon_color])/:friends/:images/'thumb_view.gif'}"/>
+		</a>
+		<input id="friends_search" type="text"/> 
+		<img class="search" src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:primary_block_icon_color])/:friends/:images/'search.gif'}"/>
+		<div id="friends_results"></div> 
+	</div>
+	<div id="thumb_view_container" class="{viewer.profilefriendslistthumbs ? '' : 'hidden'}">
+		<div id="friends_pages" minion_name="fpb:friends_pages">
+			<input type="hidden" id="friends_pages_count" value="{page_count}"/>
+			<input type="hidden" id="friends_ajax_path" value="/users/%{user.username}/profile_blocks/Friends/list/ajax"/>
+			<div class="pages">
+				<t:handler-include t:area="user" t:user="PageRequest.current.user" t:path="/profile_blocks/Friends/list/ajax">
+					<t:var t:name="'page'" t:val="0" />
+					<t:var t:name="'add_form_key'" t:val="add_form_key" />
+				</t:handler-include>
 			</div>
-			<div class="user_info">
-				<a t:id="friend.user"></a><br/>
-				{friend.user.age}, {friend.user.sex}
+			<div t:id="page_count > 1" id="friends_arrow_btns" class="friends_arrow_btns">
+				<a id="arrow_up" href="javascript:void(0);" class="page_backward friends_btns">
+						<img src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:secondary_block_icon_color])/:friends/:images/'icon_arrow_up.gif'}"/>
+				</a>
+				<a id="arrow_down" href="javascript:void(0);" class="page_forward friends_btns">
+					<img src="#{$site.colored_img_url(PageRequest.current.user.profile_skin[:secondary_block_icon_color])/:friends/:images/'icon_arrow_down.gif'}"/>
+				</a>
+				<br class="clear" />
 			</div>
-			<div t:id="!viewer.anonymous?" class="user_functions">
-				<a class="add_friend" href="/users/%{viewer.username}/friends/add/{friend.user.userid}?form_key={add_form_key}">
-					<img src="#{$site.static_files_url}/Friends/images/icon_add_friend.gif" class="icon"/>
-				</a>
-				<a class="send_message" href="/messages.php?action=write&to={friend.user.userid}">
-					<img src="#{$site.static_files_url}/Friends/images/icon_send_msg.gif" class="icon"/>
-				</a>
-				<a class="comment" href="http://www.baxter/usercomments.php?id={friend.user.userid}">
-					<img src="#{$site.static_files_url}/Friends/images/icon_comment.gif" class="icon last" />
-				</a>
-			</div>
-			<br class="clear" />
-		</li>
-	</ul>
-	<div t:id="friends.length > 10" class="friends_arrow_btns">
-		<!--the &#160; is needed to make ie happy.-->
-		<a id="arrow_down" href="#" class="friends_btns">&#160;</a>
-		<a id="arrow_up" href="#" class="friends_btns">&#160;</a>
-		<br class="clear" />
+		</div>
+	</div>
+	<div id="list_view_container" class="{viewer.profilefriendslistthumbs ? 'hidden' : ''}">
+		<t:template-include t:module="friends" t:name="friends_profile_block_list_view"/>
 	</div>
 </div>

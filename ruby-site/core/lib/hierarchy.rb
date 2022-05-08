@@ -7,7 +7,6 @@ module Hierarchy
 #added as instance variables
 	attr :parent_node, true;
 	attr :children, true;
-	attr :depth, true;
 
 #get the list of parents
 	def get_parents
@@ -29,8 +28,25 @@ module Hierarchy
 		return self.get_children_ids(id);
 	end
 
+	def children?
+		return self.children?(id)
+	end
+
 	def to_s
 		return name
+	end
+
+	def depth
+		if(!@depth)
+			@depth = 0
+			current = self
+			while !current.parent_node.nil?
+				@depth = @depth + 1
+				current = current.parent_node
+			end
+		end
+		
+		return @depth
 	end
 
 	#add all the class functions
@@ -43,35 +59,47 @@ module Hierarchy
 				top_node = self.new;
 				top_node.id = 0;
 				top_node.parent = 0;
-				top_node.depth = 0;
 				top_node.name = label;
 				top_node.children = [];
-
-				@nodes = { 0 => top_node };
-
+				top_node.parent_node = nil
+				
+				@nodes = { 0 => top_node }
+				
 				records = self.find(:scan, :order => 'parent, name');
-				build_node_tree(top_node, records, @nodes);
+				build_node_tree(records, @nodes);
 			end
 
-			def build_node_tree(parent_node, records, nodes, depth=0)
-				children = records.select { |x| x.parent == parent_node.id };
-				children.each { |child|
-					child.parent_node = parent_node;
-					child.depth = depth+1;
-					child.children = [];
 
-					parent_node.children << child;
-					nodes[child.id] = child;
-
-					build_node_tree(child, records, nodes, depth+1);
-				};
+			def build_node_tree(records, nodes)
+				orphans = {}
+				records.each { |record|
+					nodes[record.id] = record
+					nodes[record.id].children = orphans[record.id] || []
+					
+					nodes[record.id].children.each { |child| child.parent_node = record }
+					
+					if(nodes[record.parent])
+						record.parent_node = nodes[record.parent]
+						nodes[record.parent].children << record
+					else
+						orphans[record.parent] = [] if orphans[record.parent].nil?
+						orphans[record.parent] << record
+					end
+				}
 			end
 			protected :build_node_tree;
-
+			
 
 			#get a node by id
 			def get_by_id(node_id)
 				return @nodes[node_id];
+			end
+
+			def get_id_by_name(name)
+				@nodes.each{|id, node| 
+					return id if node.name == name
+				}
+				return nil
 			end
 
 			def get_parents(node_id)
@@ -129,8 +157,12 @@ module Hierarchy
 					flatten(child, list, level);
 				};
 			end
-			
 			protected :flatten;
+						
+			def children?(node_id)
+				node = get_by_id(node_id)
+				return !node.children.nil? && !node.children.empty?
+			end
 		end
 	end
 end

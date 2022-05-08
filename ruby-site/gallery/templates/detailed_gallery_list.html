@@ -1,0 +1,45 @@
+<div id="detailed_gallery_list" class="block_container">
+	<t:varsub t:new="overview_page" t:old="true"/>
+	<div class="list_wrapper">
+		<div class="tabbed_gallery_header"> 
+			<a t:id="user" class="user_thumbnail"><img t:id="user" t:linktype="landscapemini"/></a>
+			<div class="gallery_header">
+				<div class="username">
+					{user.username}'s Gallery
+				</div>
+				<div class="gallery_tabs">
+					<a href="/users/%{user.username}/gallery" class="first_tab selected">Albums</a>
+					<a href="/users/%{user.username}/gallery/friends/updates">Friends' Albums
+						<t:if t:id="!user.friends_galleries_count.zero? && manage_gallery">&nbsp;({user.friends_galleries_count})</t:if>
+					</a>
+				</div>
+			</div>
+			<br class="clear" />
+		</div>
+		<div class="album_number_container">
+			{user.galleries(viewer).length}&#160;
+			<t:if t:id="user.galleries(viewer).length == 1">Album</t:if>
+			<t:if t:id="user.galleries(viewer).length != 1">Albums</t:if>
+		</div>
+		<div t:id="galleries" t:iter="gallery" t:alternating="gallery_container left, gallery_container right">
+			<div class="thumb">
+				<a t:id="gallery"><img t:id="gallery" t:linktype="square"/></a>
+			</div>
+			<div class="info">
+				<span class="title"><a t:id="gallery"></a></span>&#160;({gallery.size})<br />
+				<div class="uploaded uploaded_position">
+					<t:nice-time t:time="gallery.created" t:format="date" t:result="date">Created {date}</t:nice-time>&nbsp;
+				</div>
+				<div class="description" minion_name="ugo:description">
+					{gallery.description}
+				</div>
+			</div>
+			<t:if t:id="manage_gallery">
+				<div class="gallery_actions">
+					<a href="#{manage_gallery}/gallery/delete/{gallery.id}?form_key[]={form_key}" minion_name="ugo:delete_link">Delete</a>&#160;|&#160;<a href="#{manage_gallery}/gallery/{gallery.id}">Edit</a>
+				</div>
+			</t:if>
+		</div>
+		<br class="clear" />
+	</div>
+</div>

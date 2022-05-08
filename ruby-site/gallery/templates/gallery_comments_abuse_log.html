@@ -1,0 +1,26 @@
+<div class="abuse_section">
+	<t:if t:id="comments_abuse_error">
+		<div id="comments_abuse_error">
+			#{comments_abuse_error}
+		</div>
+	</t:if>
+	<div>
+		Fill in this section before hitting "delete".  This message will be logged
+		once for each author you've selected.<br/>
+	</div>
+	<div class="reason_selector">
+		<span class="field_name">Reason: </span>
+		<t:handler-include path="/profile/selector/mod_reason/{reason}" area="Admin">
+			<t:var t:name="'reason_ref'" t:val="'abuse_log_reason'" />
+		</t:handler-include>
+	</div>
+	<div>
+		<input type="text" name="abuse_log_subject" id="abuse_log_subject"></input>
+	</div>
+	<div class="message_entry">
+		<span class="field_name">Abuse Log Entry: </span><br/>
+		<textarea name="abuse_log_entry" id="abuse_log_entry"></textarea>
+	</div>
+	<input type="hidden" name="comments_admin_view" value="#{admin_view}" />
+</div>
+

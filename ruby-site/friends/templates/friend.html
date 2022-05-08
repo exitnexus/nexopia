@@ -1,0 +1,116 @@
+<div class="friend" id="friend_{person.userid}">
+	
+	<div class="actions">
+		
+		<div>
+		<!-- If the user looking at the page is anonymous, the there shouldn't be any button in the add/remove spot. -->
+		<t:if t:id="PageRequest.current.session.user.anonymous?"></t:if>
+	
+		<!-- If the user is looking at their own Friends page then they should be able to remove the user as a friend. -->
+		<t:if t:id="PageRequest.current.session.user.userid == PageRequest.current.user.userid">
+			<!-- If we're using this template on the Reverse Friends page then change the link to reverse remove -->
+			<t:if t:id="!reverse">
+			<a t:json="form_key" class="remove_friend" minion_name="friends:remove_friend" href="/users/%{PageRequest.current.session.user.username}/friends/remove/%{person.userid}">
+				<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_remove_friend.gif'}" />
+			</a>
+			</t:if>
+			<t:if t:id="reverse">
+			<a t:json="form_key" class="reverse_remove_friend" minion_name="friends:reverse_remove_friend" href="/users/%{PageRequest.current.session.user.username}/friends/reverse/remove/%{person.userid}">
+				<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_remove_friend.gif'}" />
+			</a>
+			</t:if>
+		</t:if>
+	
+		<!-- If the user is looking at another user's Friends page then we either display a plus icon to add the user 
+			as a friend or a check icon if the user is already a friend -->
+		<t:if t:id="!PageRequest.current.session.user.anonymous?  && PageRequest.current.session.user.userid != PageRequest.current.user.userid">
+			<t:if t:id="!PageRequest.current.session.user.friend?(person.userid)">
+				<a t:json="form_key" class="add_friend" minion_name="friends:add_friend" href="/users/%{PageRequest.current.session.user.username}/friends/add/%{person.userid}?form_key={form_key}">
+					<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_add_friend.gif'}" />
+				</a>
+			</t:if>
+			<t:if t:id="PageRequest.current.session.user.friend?(person.userid)">
+				<a t:json="form_key" class="friend_action" href="#">
+					<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_friend_true.gif'}" />
+				</a>
+			</t:if>
+		</t:if>
+		</div>
+		
+		<!-- Send a message to the user -->
+		<div>
+		<a href="/messages.php?action=write&to={person.userid}" class="friend_send_message">
+			<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_send_msg.gif'}"/>
+		</a>
+		</div>
+		
+		<!-- Go to the user's comments -->
+		<div>
+		<a href="/users/%{person.username}/comments" class="friend_comments">
+			<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_comment.gif'}"/>
+		</a>
+		</div>
+	</div>
+	
+	<div class="pictures_div">
+		<div class="picture_div"><a t:id="person"><img class="profile_picture" t:id="person" /></a></div>
+
+		<div class="online_offline">
+			<t:if t:id="person.logged_in?"><img class="online_offline_img friend_online" src="#{$site.static_files_url}/Friends/images/online.gif"/></t:if>
+			<t:if t:id="!person.logged_in?"><img class="online_offline_img friend_offline" src="#{$site.static_files_url}/Friends/images/offline.gif"/></t:if>
+		</div>
+	</div>
+
+	<div class="content">
+
+		<div class="name">
+			<t:if t:id="friends_with[person.userid]"><span class="mutual">mutual</span></t:if>
+			<a t:id="person"></a>
+		</div>
+	
+		<table cellpadding="0" cellspacing="0" class="content_table">
+			<tr>
+				<td class="left_side">
+					<table cellpadding="0" cellspacing="0">
+						<tr>
+							<td class="detail_title">Age:</td>
+							<td class="detail_value">{person.age}</td>
+						</tr>
+						<tr>
+							<td class="detail_title">Sex:</td>
+							<td class="detail_value">{person.sex}</td>
+						</tr>
+						<tr>
+							<td class="detail_title">Location:</td>
+							<td class="detail_value">{person.location}</td>
+						</tr>
+					</table>
+				</td>
+
+				<td class="right_side">
+					<table cellpadding="0" cellspacing="0">
+						<tr>
+							<td class="detail_title">Tag:</td>
+
+							<td class="detail_value"><div class="tag" minion_name="friends:truncated"><t:if t:id="!person.profile.nil?()">{person.profile.tagline}</t:if></div></td>
+						</tr>
+					<!-- If we're on the reverse page we don't want to see the notes -->
+						<t:if t:id="!reverse">
+							<t:varsub t:new="friendid" t:old="person.userid"/>
+							<t:template-include t:module="friends" t:name="notes"/>
+						</t:if>
+						<t:if t:id="reverse">
+							<t:varsub t:new="friendid" t:old="person.userid"/>
+							<t:template-include t:module="friends" t:name="notes"/>
+						</t:if>
+
+					</table>
+				</td>
+			</tr>
+		</table>
+
+	</div>
+
+
+	<div class="clearit"/>
+</div>

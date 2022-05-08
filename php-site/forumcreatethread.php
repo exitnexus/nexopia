@@ -46,12 +46,13 @@
 				if(strlen($ans))
 					$haveAns = true;
 
-			if($poll || (strlen($question) && !$haveAns) || ($haveAns && !strlen($question)) || (strlen($question) && strlen($question) < 5) ) {
+			if($poll || (strlen($question) && !$haveAns) || ($haveAns && !strlen($question))) {
 				$msgs->addMsg('Please enter a poll question (minimum 5 characters in length) and at least one answer, or leave the form blank to skip poll addition.');
 				createThreadPoll($fid, $title, $msg, $subscribe, $question, $answers); //exit
 			}
 
-			$tid = postThread($fid, $title, $msg, ($subscribe == 'y'), $question, $answers);
+			if(!($tid = postThread($fid, $title, $msg, ($subscribe == 'y'), $question, $answers)))
+				return;
 
 			if($userData['replyjump']=='forum')
 				header("location: forumthreads.php?fid=$fid");
@@ -60,7 +61,7 @@
 			exit;
 	}
 
-	createThread($fid, "", "", false, ($subscribe == 'y'), false);
+	createThread($fid, "", "", false, $subscribe, false);
 
 ////////////////////////////////
 
@@ -82,7 +83,7 @@ function postThread($fid, $title, $msg, $subscribe = false, $question = "", $ans
 
 //	$ntitle = censor($ntitle);
 
-	$nmsg = removeHTML($msg);
+	$nmsg = cleanHTML($msg);
 	$time = time();
 
 //spamming across multiple forums
@@ -108,10 +109,14 @@ function postThread($fid, $title, $msg, $subscribe = false, $question = "", $ans
 	$old_user_abort = ignore_user_abort(true);
 
 	$pollid=0;
-	if(!empty($question) && strlen($question) >= 5){
+	if(!empty($question)){
 		$answers = array_filter($answers);
 		if(count($answers))
-			$pollid = $polls->addPoll($question,$answers,false);
+			if(!($pollid = $polls->addPoll($question,$answers,false)))
+			{
+				$msgs->addMsg('Please enter a poll question (minimum 5 characters in length) and at least one answer, or leave the form blank to skip poll addition.');		
+				createThreadPoll($fid, $title, $msg, $subscribe, $question, $answers);
+			}
 	}
 
 	$forums->db->prepare_query("INSERT INTO forumthreads SET forumid = ?, title = ?, authorid = ?, time = ?, lastauthorid = ?, pollid = ?",
@@ -169,7 +174,7 @@ function createThread($fid, $title, $msg, $poll, $subscribe, $preview){
 
 		$msg = trim($msg);
 
-		$msg = removeHTML($msg);
+		$msg = cleanHTML($msg);
 
 		$nmsg3 = $forums->parsePost($msg);
 

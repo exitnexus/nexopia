@@ -169,11 +169,16 @@
 
 		function editPictures($uid)
 		{
-			global $usersdb, $userData, $config, $cache;
+			global $usersdb, $userData, $config, $cache, $wwwdomain;
 
 			if (!$uid)
 				$uid = $userData['userid'];
-
+			
+			//http redirect to the new picture management in ruby-site
+			header("HTTP/1.1 301 Moved Permanently");
+			header("Location: http://". $wwwdomain . "/my/gallery");
+			exit;
+			
 			$isAdmin = ($this->getActualLevel() == REQUIRE_LOGGEDIN_ADMIN);
 
 			if ($uid != $userData['userid'] && !$isAdmin)

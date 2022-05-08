@@ -1,10 +1,10 @@
 require 'stringio';
-require 'cgi'
 require 'core/lib/lazy'
 
 #Additional and overridden methods for the root Object
 class Object
 	def var_get(depth = 0, object_list = Array.new)
+		return if (depth > 100)
 		out = "";
 		#the object's to_s string followed by <id: OBJECT_ID, class: CLASS>
 		out << to_s+" <id: "+(__id__).to_s()+", class: "+self.class.to_s()+">";
@@ -21,7 +21,7 @@ class Object
 					if (evaluated?(var))
 						out << "#{tabs}\t#{var} = ";
 						if (evaluated?(instance_variable_get(var)))
-							out << instance_variable_get(var).var_get(depth+1);
+							out << (instance_variable_get(var).var_get(depth+1)).to_s;
 						else
 							out << "***PROMISED***\n";
 						end
@@ -48,7 +48,7 @@ class Object
 
 	def html_get(out = $>)
 		sout = var_get();
-		output = CGI::escapeHTML(sout);
+		output = htmlencode(sout);
 
 		output.gsub!(/(=\s*&gt;|=)\s?(.*) (&lt;id: -?\d+, class: [A-Za-z0-9:]+&gt;)/) {
 			symbol = $1;

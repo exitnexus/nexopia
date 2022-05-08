@@ -45,10 +45,15 @@ def create_proc()
 				$log.reassert_stderr();
 				require 'site_initialization';
 				initialize_site();
-				PageRequest.new_from_cgi(cgi) {|pageRequest|
-					PageHandler.execute(pageRequest);
-				}
-
+				begin
+					PageRequest.new_from_cgi(cgi) {|pageRequest|
+						PageHandler.execute(pageRequest);
+					}
+				rescue
+					$log.error
+					raise
+				end
+				
 				$0 = "#{base_child_name} quitting";
 				throw :end_fcgi; # leave the fcgi loop gracefuly.
 			}

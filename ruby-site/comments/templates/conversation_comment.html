@@ -1,0 +1,37 @@
+<!--><div id="user_comment_#{comment.userid}_#{comment.id}" class="comment_view_container secondary_block"><-->
+<div id="user_comment_#{comment.id}" class="comment_view_container secondary_block">
+	<table width="100%" cellpadding="0" cellspacing="0" class="single_comment_table">
+		<tr>
+			<td>
+				<div class="comment_user_img">
+					<a t:id="comment.author">
+						<img t:id="comment.author" t:linktype="{thumbnail_image_type}" />
+					</a>
+				</div>
+			</td>
+			<td>
+				<div class="comment_content">
+					<!-->
+					<t:if t:id="comment.quick_delete?(viewing_user)">
+						<div class="comment_quick_delete_btn">
+							<a href="#{comments_delete_url}/#{comment.id}?page=#{current_page}&userid=#{comment.userid}&key=#{viewing_user.gen_auth_key()}" class="comment_quick_delete" id="comment_quick_delete_#{comment.id}">
+								<img  src="#{$site.colored_img_url(profile_user.comments_skin[:secondary_block_icon_color])/:comments/:images/'icon_delete_comment.gif'}"/>
+							</a>
+						</div>
+					</t:if> 
+					<-->
+					<div class="comment_date">
+						<t:nice-time t:time="comment.time" t:format="date_and_time"/>
+					</div>
+					<div class="comment_username">
+						<a t:id="comment.author"/>
+					</div>
+					<div class="comment_body">
+						@{comment.nmsg}
+					</div>
+				</div>
+			</td>
+		</tr>
+	</table>
+</div>
+

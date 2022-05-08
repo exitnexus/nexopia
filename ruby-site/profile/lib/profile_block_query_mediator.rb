@@ -5,7 +5,7 @@ module Profile
 	class ProfileBlockQueryMediator
 		include Singleton
 		
-		attr_accessor :block_handler_query_cache, :full_list_cached;
+		attr_accessor :block_handler_query_cache, :full_list_cached, :menu_list_cached, :initial_list_cached;
 		
 		def initialize()
 			self.block_handler_query_cache = Hash.new();
@@ -13,6 +13,10 @@ module Profile
 		end
 		
 		def initial_blocks()
+			if(!self.initial_list_cached.nil?())
+				return self.initial_list_cached;
+			end
+			
 			if(!self.full_list_cached)
 				self.list_blocks();
 			end
@@ -33,7 +37,39 @@ module Profile
 				end
 			end
 			
+			self.initial_list_cached = initial_block_list;
+			
 			return initial_block_list;
+		end
+		
+		def menu_blocks()
+			if(!self.menu_list_cached.nil?())
+				return self.menu_list_cached;
+			end
+			
+			if(!self.full_list_cached)
+				self.list_blocks();
+			end
+			
+			menu_block_list = Array.new();
+			
+			module_list = self.block_handler_query_cache.keys();
+			for block_module in module_list
+				for block_name in self.block_handler_query_cache[block_module].keys()
+					block = block_module[block_name];
+					if(block.nil?())
+						block = self.query_block(block_module, block_name);
+					end
+					
+					if(block.kind_of?(ProfileBlockQueryInfo) && !block.page_url.nil?())
+						menu_block_list << block;
+					end
+				end
+			end
+			
+			self.menu_list_cached = menu_block_list.sort{|x,y| x.page_url[2] <=> y.page_url[2]};
+			
+			return self.menu_list_cached;
 		end
 		
 		def list_blocks(module_name = "")
@@ -79,7 +115,7 @@ module Profile
 				block_list[block_path] = block_query;
 			end
 			
-			return block_query;
+			return block_list[block_path];
 		end
 		
 		def build_list(module_name = "")

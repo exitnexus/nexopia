@@ -1,0 +1,44 @@
+<div id="comments_page" minion_name="comments:view">
+	<a name="comments_top" />
+	
+	<t:template-include t:module="comments" t:name="comments_header"/>
+	<div class="secondary_tabs">
+		<a href="/users/%{profile_user.username}/comments" class="first_tab selected">Profile</a> |
+		<a href="/users/%{profile_user.username}/comments/gallery">Gallery</a>
+	</div>
+
+	<t:if t:id="show_editor">
+		<t:template-include t:module="comments" t:name="comments_editor" />
+	</t:if>
+	
+	<t:json t:data="num_pages" t:handle="num_pages"/>
+	<t:json t:data="current_page" t:handle="current_page"/>
+	<t:json t:data="page_url" t:handle="page_url"/>
+	<t:json t:data="comments_id_list" t:handle="comments_id_list" />
+	
+	#{paging_string}
+	
+	<form id="delete_comments_form" method="post" action="{comments_delete_url}">
+		<input type="hidden" name="page" value="#{current_page}" />
+		
+		<t:iter t:id="comments_list" t:iter="comment">
+			<t:template-include t:module="comments" t:name="single_comment"/>
+		</t:iter>
+	
+		<t:if t:id="show_delete_controls">
+			<input type="checkbox" id="select_all_comments"/>&#160;Select All<br/>
+		</t:if>
+		
+		<t:if t:id="admin_viewer && (profile_user.userid != viewing_user.userid || admin_view == :admin)">
+			<t:template-include t:module="comments" t:name="comments_abuse_log_form" />
+		</t:if>
+		
+		<t:if t:id="show_delete_controls">
+			<input id="comments_delete_button" type="submit" value="Delete" class="submit" />
+		</t:if>
+	</form>
+	
+	#{paging_string}
+
+	<a name="abuse_log_anchor" />
+</div>

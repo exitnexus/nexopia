@@ -1,0 +1,41 @@
+<div class="userpoll_view" minion_name="polls:poll_vote" t:json="parentid" id="userpoll">
+	<div class="poll_right_column">
+		<div class="block_title">
+			POLL
+		</div>
+		<div class="question secondary_block block_regular">
+			{question}
+		</div>
+		<form id="userpoll_vote_form" method="POST"
+		 	action="/users/%{user.username}/profile_blocks/Polls/poll/{parentid}">
+		<table border="0" cellspacing="0" cellpadding="0">
+		<t:loop t:id="answers" t:iter="answer">
+		<tr>
+			<td class="radio_button">
+				<t:if t:id="anon">
+				<input type="radio" name="vote" value="{answer[0]}" disabled="true" />
+				</t:if>
+				<t:if t:id="!anon">
+				<input type="radio" name="vote" value="{answer[0]}"
+				 id="{answer[0]}" />
+				</t:if>
+			</td>
+			<td class="answer_option">
+				<label for="{answer[0]}">{answer[1]}</label>
+			</td>
+		</tr>
+		</t:loop>
+		</table>
+		</form>
+		<t:if t:id="!anon">
+		<t:button minion_name="polls:poll_vote:vote">Vote</t:button>
+		<a href="#skip" minion_name="polls:poll_vote:skip" class="see_results">
+			Skip to results</a>
+		</t:if>
+		<div class="number_of_votes">
+			({votes})
+		</div>
+		<a href="/reportabuse.php?type={Profile::UserAbuseQueue.queue_number}&id={user.userid}" class="report">Report</a>
+		<br class="clear" />
+	</div>
+</div>

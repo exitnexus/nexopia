@@ -1,7 +1,7 @@
 <?php
 
 function showNotification(){
-	global $wiki;
+	global $wiki, $rap_pagehandler;
 	if (!isset($wiki))
 		return;
 	global $cache, $usersdb, $userData;
@@ -11,13 +11,38 @@ function showNotification(){
 	}
 	
 	$interstitial = $cache->hdget('revision', 1, 'getRevision');
-	if($interstitial['rev'] > $userData['lastnotification']){
+	if($interstitial['rev'] && $interstitial['rev'] > $userData['lastnotification']){
 		$usersdb->prepare_query("UPDATE users SET `lastnotification` = ? WHERE userid = %", $interstitial['rev'], $userData['userid']);
+		$cache->remove("userinfo-".$userData['userid']);
 		$template = new template("sitenotifications/interstitial");
 		$template->set("text", $interstitial['output']);
 		$template->display();
 	}
 }
+
+function user_notification()
+{
+	global $userData, $wiki, $cache;
+	
+	if (!isset($wiki))
+		return false;
+	
+	if ($userData['userid'] < 0)
+	{
+		return false;
+	}
+	
+	$interstitial = $cache->hdget('revision', 1, 'getRevision');
+	if($interstitial['rev'] && $interstitial['rev'] > $userData['lastnotification'])
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}	
+}
+
 function getRevision(){
 	global $wiki;
 

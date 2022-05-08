@@ -47,7 +47,7 @@
 			}else{
 				if(!isset($usernames[$line['deleteid']]))
 					$usernames[$line['deleteid']] = getUserName($line['deleteid']);
-				echo "<a class=body href=/profile.php?uid=$line[deleteid]>" . $usernames[$line['deleteid']] . "</a>";
+				echo "<a class=body href=/users/". urlencode($usernames[$line["deleteid"]]) .">" . $usernames[$line['deleteid']] . "</a>";
 			}
 			echo "</td>";
 			echo "<td class=body><a class=body href=/adminabuselog.php?uid=$line[userid]>Abuse</a></td>";

@@ -1,0 +1,30 @@
+<div id="comments_header">
+	<t:if t:id="admin_viewer">
+		<div class="admin_links">
+			<a href="/users/%{profile_user.username}/comments">
+				normal view
+			</a>
+			&nbsp;|&nbsp;
+			<a href="/users/%{profile_user.username}/comments/admin">
+				admin view (all+deleted)
+			</a>
+			&#160;|&#160;
+			<a href="/users/%{profile_user.username}/comments/admin/posted/by">
+				all comments posted by
+			</a>
+		</div>
+	</t:if>
+	<div class="page_title">
+		<table cellspacing="0" cellpadding="0">
+			<tr>
+				<td class="comments_user_pic">
+					<img t:id="profile_user" t:linktype="landscapemini"/>
+				</td>
+				<td>
+					#{profile_user.username}'s Comments
+				</td>
+			</tr>
+		</table>
+	</div>
+	<br class="clear"/>
+</div>

@@ -11,7 +11,8 @@ WWW: http://www.octazen.com
 Email: support@octazen.com
 V: 1.1
 ********************************************************************************/
-include_once("abimporter.php");
+//include_once(dirname(__FILE__).'/abimporter.php');
+if (!defined('__ABI')) die('Please include abi.php to use this importer!');
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //YahooImporter
@@ -22,7 +23,10 @@ class YahooImporter extends WebRequestor {
 
 
 	function fetchCsv ($loginemail, $password, $fmt='yahoo') {
-	 
+
+		//If login email ends with ".yahoo" only, then we remove it
+		$loginemail = preg_replace("/^(.*?)(\.yahoo)$/ims", '${1}', $loginemail);
+
 	 	//Bug with yahoo. If user id part contains ".", we cannot use full email address.
 	 	//We'll have to assume it's for the domain yahoo.com.
 	 	$parts = $this->getEmailParts ($loginemail);
@@ -32,7 +36,7 @@ class YahooImporter extends WebRequestor {
 		}
 
 		//Yahoo fails at times. Retry few times
-		for ($times=0; $times<2; ++$times) {
+		//for ($times=0; $times<2; ++$times) {
 	        $form = new HttpForm;
 	        $form->addField('.tries','1');
 	        $form->addField('.src','ab');
@@ -59,18 +63,25 @@ class YahooImporter extends WebRequestor {
 	        $form->addField('abc','xyz');
 	        $form->addField("login",$loginemail);
 	        $form->addField("passwd",$password);
+			$form->addField("_authtrkcde", "{#TRKCDE#}");
 	        $postData = $form->buildPostData();
 	    	$html = $this->httpPost('https://login.yahoo.com/config/login?', $postData);
-			if (strpos($html,'This ID is not yet taken')==0 && strpos($html,'Invalid ID or password')==0)
-				break;
-		}
+	    	
+			if (strpos($html,'name=".secword"')>0) {
+			 	$this->close();
+				return abi_set_error(_ABI_CAPTCHA_RAISED,'Captcha challenge was issued. Please login through Yahoo mail manually.');
+			}
+	    	
+			//if (strpos($html,'This ID is not yet taken')===false && strpos($html,'Invalid ID or password')===false && strpos($html,'yregertxt')===false)
+			//	break;
+		//}
 
-		if (strpos($html,'This ID is not yet taken')>0 ||
-			strpos($html,'Invalid ID or password')>0)  {
+
+		if (strpos($html,'This ID is not yet taken')!==false || strpos($html,'Invalid ID or password')!==false || strpos($html,'yregertxt')!==false) {
 		 	$this->close();
 			return abi_set_error(_ABI_AUTHENTICATION_FAILED,'Bad user name or password');
 		}
-
+		
         $form = new HttpForm;
         
         //Add crumb support

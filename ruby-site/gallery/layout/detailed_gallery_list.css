@@ -1,0 +1,80 @@
+#detailed_gallery_list {
+	& #user_gallery_header {
+		position: relative;
+		top: 6px;
+		float: none;
+	}
+	& .list_wrapper {
+		background-color: @primary_block_background_color;
+		color: @primary_block_text_color;
+		width: 738px;
+		padding: 6px 6px 12px 6px;
+		margin: 6px auto 0px auto;
+		
+		& .album_number_container {
+			padding-top: 6px;
+		}
+	}
+	& div.gallery_container {
+		float: left;
+		background-color: @secondary_block_background_color;
+		color: @secondary_block_text_color;
+		margin: 6px 0px 0px 0px;
+		padding: 6px;
+		width: 354px;
+		position: relative;
+		
+		&.left {
+			margin-right: 3px;
+		}
+		&.right {
+			/* this column is positioning incorrectly in ie6, there is an ie6 specific hack at the EOF to correct this */
+			margin-left: 3px;
+		}
+		& a {
+			color: @secondary_block_link_color;
+			text-decoration: none;
+			&:hover {
+				color: @secondary_block_link_hover_color;
+			}
+		}
+		& .thumb {
+			float: left;
+			& img {
+				border: 0px;
+				height: 100px;
+				width: 100px;
+			}
+		}
+		& .info {
+			position: relative;
+			float: left;
+			padding-left: 6px;
+			width: 235px;
+/*			height: 100px;*/
+			& .title {
+				font-weight: bold;
+			}
+		}
+		& .gallery_actions {
+			float: right;
+			padding-right: 3px;
+		}
+		& .uploaded {
+			font-size: 10px;
+		}
+		& .description {
+			height: 50px;
+			width: 235px;
+			margin-top: 6px;
+			overflow: hidden;
+		}
+	
+	}
+}
+
+/* ie6 hack to make the divs align properly on the right hand side. */
+*html #detailed_gallery_list div.gallery_container.right {
+	position: relative;
+	right: -10px;
+}

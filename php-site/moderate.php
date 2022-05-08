@@ -12,6 +12,9 @@
 
 	$mode = getREQval('mode', 'int');
 
+//	if ($mode == MOD_PICS || $mode == MOD_SIGNPICS || $mode == MOD_QUESTIONABLEPICS)
+//		die("Picture moderation temporarily disabled. Please try again later.");
+
 	$id = getREQval('id', 'int');
 	$for_uid = ($mods->isAdmin($userData['userid'])? getREQval('uid', 'int', null) : null);
 
@@ -21,6 +24,10 @@
 //		echo "mode: $mode<br>";
 
 		$checkID = getPOSTval('checkID', 'array');
+		$newCheckID = array();
+		foreach ($checkID as $id => $a)
+			$newCheckID[$id] = $a;
+		$checkID = $newCheckID;
 
 		switch($mode){
 			case MOD_PICS:
@@ -70,20 +77,18 @@
 		displayTypes($moditemcounts); // exit
 
 	switch($mode){
-		case MOD_PICS:				if(isset($moditemcounts[MOD_PICS]))				displayPic(MOD_PICS);						break;
-		case MOD_SIGNPICS:			if(isset($moditemcounts[MOD_SIGNPICS]))			displaySignPics();							break;
-		case MOD_QUESTIONABLEPICS:	if(isset($moditemcounts[MOD_QUESTIONABLEPICS]))	displayPic(MOD_QUESTIONABLEPICS);			break;
-		case MOD_FORUMRANK:			if(isset($moditemcounts[MOD_FORUMRANK]))		displayForumRanks();						break;
+		case MOD_PICS:				if(isset($moditemcounts[MOD_PICS]))				displayRubySite($mode);						break;
+		case MOD_SIGNPICS:			if(isset($moditemcounts[MOD_SIGNPICS]))			displayRubySite($mode);						break;
+		case MOD_QUESTIONABLEPICS:	if(isset($moditemcounts[MOD_QUESTIONABLEPICS]))	displayRubySite($mode);						break;
+		case MOD_FORUMRANK:			if(isset($moditemcounts[MOD_FORUMRANK]))		displayRubySite($mode);						break;
 		case MOD_FORUMPOST:			if(isset($moditemcounts[MOD_FORUMPOST]))		forumPostAbuse();							break;
 		case MOD_FORUMBAN:			if(isset($moditemcounts[MOD_FORUMBAN]))			forumBans();								break;
-		case MOD_GALLERY:			if(isset($moditemcounts[MOD_GALLERY]))			displayGallery();							break;
-		case MOD_GALLERYABUSE:		if(isset($moditemcounts[MOD_GALLERYABUSE]))		displayGalleryAbuse();						break;
+		case MOD_GALLERY:			if(isset($moditemcounts[MOD_GALLERY]))			displayRubySite($mode);						break;
+		case MOD_GALLERYABUSE:		if(isset($moditemcounts[MOD_GALLERYABUSE]))		displayRubySite($mode);						break;
 		case MOD_USERABUSE:			if(isset($moditemcounts[MOD_USERABUSE]))		displayUserAbuse(MOD_USERABUSE);			break;
 		case MOD_USERABUSE_CONFIRM:	if(isset($moditemcounts[MOD_USERABUSE_CONFIRM]))displayUserAbuse(MOD_USERABUSE_CONFIRM);	break;
-		case MOD_BANNER:			if(isset($moditemcounts[MOD_BANNER]))			displayBanners();							break;
-		case MOD_ARTICLE:			if(isset($moditemcounts[MOD_ARTICLE]))			displayArticles($id);						break;
-		case MOD_POLL:				if(isset($moditemcounts[MOD_POLL]))				displayPolls($id);							break;
-		case MOD_VIDEO:				if(isset($moditemcounts[MOD_VIDEO]))			displayVideos($id);
+		case MOD_ARTICLE:			if(isset($moditemcounts[MOD_ARTICLE]))			displayRubySite($mode);						break;
+		case MOD_POLL:				if(isset($moditemcounts[MOD_POLL]))				displayRubySite($mode);						break;
 	}
 	displayTypes($moditemcounts); // exit
 
@@ -109,6 +114,11 @@ function displayTypes($moditemcounts){
 	exit;
 }
 
+function displayRubySite($type){// redirects to ruby queue
+	header("Location: /moderate/queue/$type");
+	exit();
+}
+
 function displayPic($type){ //pics or questionable
 	global $config, $usersdb, $userData, $mods, $wwwdomain, $for_uid;
 
@@ -123,10 +133,10 @@ function displayPic($type){ //pics or questionable
 
 	$keys = array('userid' => '%', 'id' => '#');
 	
-//	$res = $usersdb->prepare_query("SELECT id, userid, description, time FROM picspending WHERE ^",
-//		$usersdb->prepare_multikey($keys, $ids));
-	$res = $usersdb->prepare_query("SELECT id, userid, description FROM gallerypics WHERE ^",
+	$res = $usersdb->prepare_query("SELECT id, userid, description, created AS time FROM gallerypics WHERE ^",
 		$usersdb->prepare_multikey($keys, $ids));
+	// $res = $usersdb->prepare_query("SELECT id, userid, description FROM gallerypics WHERE ^",
+	// 	$usersdb->prepare_multikey($keys, $ids));
 		
 	$rows = array();
 	$uids = array();
@@ -195,7 +205,7 @@ function displaySignPics(){
 		return;
 
 	$keys = array('userid' => '%', 'id' => '#');
-	$res = $usersdb->prepare_query("SELECT id, userid, description FROM pics WHERE ^",
+	$res = $usersdb->prepare_query("SELECT id, userid, description FROM gallerypics WHERE ^",
 		$usersdb->prepare_multikey($keys, $ids));
 
 	$rows = array();
@@ -219,7 +229,8 @@ function displaySignPics(){
 	//later if desired.
 	$template = new template('moderate/displayPic');
 	$template->set('prefs', $prefs);
-	$picloc = $config['picloc'];
+	//$picloc = $config['picloc'];
+	$picloc = $config['gallerypicloc'];
 	$template->set('picloc', $picloc);
 	$template->set('users', $users);
 	$template->set('type', MOD_SIGNPICS);
@@ -767,8 +778,8 @@ function forumBans(){
 										globalreq,
 										forums.name as forumname,
 										forumthreads.title as threadname
-								FROM 	forummute,
-										forummutereason
+								FROM 	forummute
+									INNER JOIN forummutereason
 									LEFT JOIN forums ON forummute.forumid = forums.id
 									LEFT JOIN forumthreads ON forummutereason.threadid = forumthreads.id
 								WHERE 	forummute.id = forummutereason.id &&
@@ -800,8 +811,8 @@ function forumBans(){
 										threadid,
 										globalreq,
 										forums.name as forumname
-								FROM 	forummute,
-										forummutereason
+								FROM 	forummute
+									INNER JOIN forummutereason
 									LEFT JOIN forums ON forummute.forumid = forums.id
 								WHERE 	forummute.id = forummutereason.id &&
 										forummute.userid IN (#)
@@ -905,7 +916,7 @@ function displayArticles($id){
 		$template->set('categories', implode(" > ",$cats));
 		$template->set('line', $line);
 		$template->set('isAdmin', $mods->isAdmin($userData['userid'],'articles'));
-		$template->set('text', nl2br(smilies(parseHTML($line['text']))));
+		$template->set('text', smilies(parseHTML($line['text'])));
 		$template->display();
 		exit;
 	}else{

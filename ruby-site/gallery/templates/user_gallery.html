@@ -1,0 +1,42 @@
+<div id="user_gallery" minion_name="user_gallery">
+	<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.6.0/build/tabview/assets/skins/sam/tabview.css"></link> 
+
+	<div class="page_container yui-navset">
+		<t:template-include t:module="gallery" t:name="user_gallery_header"/>
+		<div class="primary_block">
+			<div class="current_gallery_header">
+				<div class="gallery_name">
+					<div class="gallery_name_text">
+						{gallery.name}
+					</div>
+					<div class="uploaded">
+						<t:nice-time t:time="gallery.created" t:format="date" t:result="date">Created {date}</t:nice-time>
+					</div>
+				</div>
+				<div class="gallery_view">
+					<ul class="yui-nav">
+						<li class="selected">
+							View: <a id="film_view_link" href="#film_view">
+								<img src="#{$site.colored_img_url(PageRequest.current.user.gallery_skin[:secondary_block_icon_color])/:gallery/:images/'11x7_gallery_view_full.gif'}"/>
+							</a>
+						</li>
+						<li> 
+							<a id="thumb_view_link" minion_name="thumb_view_link" href="#thumb_view">
+								<img src="#{$site.colored_img_url(PageRequest.current.user.gallery_skin[:secondary_block_icon_color])/:gallery/:images/'11x7_gallery_view_thumb.gif'}"/>
+							</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		<div class="yui-content">
+			<div id="film_view">
+				<t:template-include t:module="gallery" t:name="user_gallery_film_view"/>
+			</div>
+			<div id="thumb_view">
+				<t:template-include t:module="gallery" t:name="user_gallery_normal_view"/>
+			</div>
+			<div class="clearit"/>
+		</div>
+	</div>
+</div>

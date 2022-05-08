@@ -23,11 +23,8 @@
 
 $databases = array(
 	'dbserv' => array(
-//		'login' => 'nexopia',
-//		'passwd' => 'CierlU$I',
-
-		'login' => 'root',
-		'passwd' => 'pRlUvi$t',
+		'login' => 'php-site',
+		'passwd' => 'xXAuVm2U',
 	),
 	'devdb' => array(
 		'inherit' => 'dbserv',
@@ -47,15 +44,13 @@ $databases = array(
 	),
 
 	'general' => array(
-		'host' => '10.0.4.100',
+		'host' => 'masterdb',
 		'inherit' => 'devdbmulti',
 	),
 
-	/* new dbs */
-
 	'masterdb' => array(
 		'instance' => true,
-		'db' => 'newmaster',
+		'db' => 'master',
 		'inherit' => 'general',
 	),
 	
@@ -71,70 +66,57 @@ $databases = array(
 		'splitfunc' => 'split_db_user',
 		'sources' => array(
 			array( // anonymous server
-				'db' => 'newusersanon',
-				'host' => '10.0.4.100',
+				'host' => 'masterdb',
+				'db' => 'usersanon',
 				'inherit' => 'devdb',
 				'seqtable' => 'usercounter',
 			),
-			array( 'db' => 'userdb1_1', 'host' => '10.0.5.1',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-			array( 'db' => 'userdb1_2', 'host' => '10.0.5.1',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-
-			array( 'db' => 'userdb2_1', 'host' => '10.0.5.2',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-			array( 'db' => 'userdb2_2', 'host' => '10.0.5.2',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-
-			array( 'db' => 'userdb3_1', 'host' => '10.0.5.3',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-			array( 'db' => 'userdb3_2', 'host' => '10.0.5.3',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-
-			array( 'db' => 'userdb4_1', 'host' => '10.0.5.4',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-			array( 'db' => 'userdb4_2', 'host' => '10.0.5.4',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-
-			array( 'db' => 'userdb5_1', 'host' => '10.0.5.5',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-			array( 'db' => 'userdb5_2', 'host' => '10.0.5.5',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-
-			array( 'db' => 'userdb6_1', 'host' => '10.0.5.6',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-			array( 'db' => 'userdb6_2', 'host' => '10.0.5.6',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-
-			array( 'db' => 'userdb7_1', 'host' => '10.0.5.7',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-			array( 'db' => 'userdb7_2', 'host' => '10.0.5.7',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-
-			array( 'db' => 'userdb8_1', 'host' => '10.0.5.8',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-			array( 'db' => 'userdb8_2', 'host' => '10.0.5.8',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-
-			array( 'db' => 'userdb9_1', 'host' => '10.0.5.9',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-			array( 'db' => 'userdb9_2', 'host' => '10.0.5.9',   'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-
-			array( 'db' => 'userdb10_1', 'host' => '10.0.5.10', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-			array( 'db' => 'userdb10_2', 'host' => '10.0.5.10', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-
-			array( 'db' => 'userdb11_1', 'host' => '10.0.5.11', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-			array( 'db' => 'userdb11_2', 'host' => '10.0.5.11', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-
-			array( 'db' => 'userdb12_1', 'host' => '10.0.5.12', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-			array( 'db' => 'userdb12_2', 'host' => '10.0.5.12', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-
-			array( 'db' => 'userdb13_1', 'host' => '10.0.5.13', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-			array( 'db' => 'userdb13_2', 'host' => '10.0.5.13', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-
-			array( 'db' => 'userdb14_1', 'host' => '10.0.5.14', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
-			array( 'db' => 'userdb14_2', 'host' => '10.0.5.14', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb1',  'db' => 'userdb1_1',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb1',  'db' => 'userdb1_2',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb2',  'db' => 'userdb2_1',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb2',  'db' => 'userdb2_2',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb3',  'db' => 'userdb3_1',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb3',  'db' => 'userdb3_2',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb4',  'db' => 'userdb4_1',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb4',  'db' => 'userdb4_2',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb5',  'db' => 'userdb5_1',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb5',  'db' => 'userdb5_2',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb6',  'db' => 'userdb6_1',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb6',  'db' => 'userdb6_2',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb7',  'db' => 'userdb7_1',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb7',  'db' => 'userdb7_2',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb8',  'db' => 'userdb8_1',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb8',  'db' => 'userdb8_2',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb9',  'db' => 'userdb9_1',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb9',  'db' => 'userdb9_2',  'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb10', 'db' => 'userdb10_1', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb10', 'db' => 'userdb10_2', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb11', 'db' => 'userdb11_1', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb11', 'db' => 'userdb11_2', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb12', 'db' => 'userdb12_1', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb12', 'db' => 'userdb12_2', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb13', 'db' => 'userdb13_1', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb13', 'db' => 'userdb13_2', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb14', 'db' => 'userdb14_1', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
+			array( 'host' => 'userdb14', 'db' => 'userdb14_2', 'inherit' => 'userdb_template', 'seqtable' => 'usercounter' ),
 		),
 	),
 
 	'configdb' => array(
 		'instance' => true,
-		'db' => 'newconfig',
+		'db' => 'config',
 		'inherit' => 'general',
 	),
 
 	'db' => array(
-		'db' => 'newgeneral',
+		'db' => 'general',
 		'inherit' => 'general',
 		'instance' => true,
 	),
 
 	'moddb' => array(
 		'instance' => true,
-		'db' => 'newmods',
+		'db' => 'mods',
 		'inherit' => 'general'
 	),
 
@@ -142,44 +124,44 @@ $databases = array(
 
 	'polldb' => array(
 		'instance' => true,
-		'db' => 'newpolls',
+		'db' => 'polls',
 		'inherit' => 'general',
 	),
 	'shopdb' => array(
 		'instance' => true,
-		'db' => 'newshop',
+		'db' => 'shop',
 		'inherit' => 'general',
 	),
 	'filesdb' => array(
 		'instance' => true,
-		'db' => 'newfileupdates',
+		'db' => 'fileupdates',
 		'inherit' => 'general',
 	),
 	'bannerdb' => array(
 		'instance' => true,
-		'db' => 'newbanners',
+		'db' => 'banners',
 		'inherit' => 'general',
 		'debuglevel' => 0,
 	),
 	'contestdb' => array(
 		'instance' => true,
-		'db' => 'newcontest',
+		'db' => 'contest',
 		'inherit' => 'general',
 	),
 	'forumdb' => array(
 		'instance' => true,
-		'db' => 'newforum',
-		'host' => '10.0.4.101',
+		'db' => 'forum',
+		'host' => 'forumdb',
 		'inherit' => 'devdb',
 	),
 	'articlesdb' => array(
 		'instance' => true,
-		'db' => 'newarticles',
+		'db' => 'articles',
 		'inherit' => 'general',
 	),
 	'wikidb' => array(
 		'instance' => true,
-		'db' => 'newwiki',
+		'db' => 'wiki',
 		'inherit' => 'general',
 	),
 /*

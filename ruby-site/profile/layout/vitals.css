@@ -1,0 +1,36 @@
+.vitals_edit 
+{
+	& .edit_content
+	{
+		margin-top: 20px;
+		margin-bottom: 40px
+	}
+	
+	& .date_selector select {
+		margin-right: 2px;
+	}
+	
+	& .date_selector .month {
+		width: 99px;
+	}
+	
+	& .date_selector .day {
+		width: 55px;
+	}
+	
+	& .date_selector .year {
+		width: 62px;
+	}
+	
+	& input {
+		margin-right: 2px;
+	}
+	
+	& input.gender_female {
+		margin-left: 10px;
+	}
+	
+	& select#location {
+		width: 220px;
+	}
+}

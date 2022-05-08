@@ -1,0 +1,32 @@
+#user_gallery_header {
+	margin: auto;
+	padding: 6px;
+	width: 738px;
+	float: left;
+	background-color: @primary_block_background_color;
+	color: @primary_block_text_color;
+	
+	& div.gallery_user_thumb {
+		float: left;
+		margin-right: 6px;
+	}
+	
+	& .page_title {
+		color: @primary_block_header_text_color;
+		margin: 0px;
+		font-size: 16px;
+		font-weight: bold;
+	}
+	
+	& .navigation_links {
+		& a { 
+			color: @primary_block_link_color;
+			font-weight: bold;
+			text-decoration: underline;
+		}
+		
+		& a:hover { 
+			color: @primary_block_link_hover_color;
+		}
+	}
+}

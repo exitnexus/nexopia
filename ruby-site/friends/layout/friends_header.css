@@ -1,0 +1,75 @@
+#friends_layout
+{
+	& .header
+	{
+		color: @primary_block_header_text_color;
+		font-weight: bold;
+		font-size: 16px;
+		
+	
+		& .header_picture, .header_content
+		{
+			display: inline;
+			float: left;
+		}
+	
+		& .header_picture
+		{
+			font-size: 10px;
+			font-weight: normal;
+		}
+		& .header_content
+		{
+			width: 681px;
+			padding-left: 6px;
+		
+			& .username
+			{
+				height: 25px;
+			}
+		
+			& .friends_tabs
+			{
+				border-bottom: solid 1px @secondary_block_background_color;
+				font-size: 11px;
+				font-weight: normal;
+				padding-bottom: 2px;
+			
+				& a
+				{
+					border-right: solid 1px @secondary_block_background_color;
+					border-top: solid 1px @secondary_block_background_color;
+				
+					padding: 2px 12px 3px 12px;
+				
+					text-decoration: none;
+				
+					color: @primary_block_link_color;
+				
+					&:hover
+					{
+						color: @primary_block_link_hover_color;
+					}
+
+					&.first
+					{
+						border-left: solid 1px @secondary_block_background_color;
+					}
+				
+					&.selected
+					{
+						font-weight: bold;
+						background-color: @primary_block_background_color;
+					}
+				
+				}
+			
+			}
+		}
+	
+		& .header_picture
+		{
+			height: 41px;
+		}
+	}
+}

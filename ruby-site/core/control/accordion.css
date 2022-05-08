@@ -9,9 +9,11 @@
 	padding: 2px;
 	padding-left: 6px;
 	
-	font-size: 16px;
+	font-size: 14px;
 	color: $secondary_text_color;
 	text-decoration: none;
+	font-family: Arial, Helvetica, sans-serif;
+	font-weight: bold;
 	
 	background-color: $secondary_background_color;
 	
@@ -33,6 +35,9 @@
 	overflow: hidden;
 	
 	border-bottom: solid 2px transparent;
+	
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 10px;
 }
 .accordion_view .accordion_body.accordion_body_active
 {

@@ -53,7 +53,7 @@ class Template
 //	                                'date'              =>  'date( $2, $1)',
 	                                'lowercase'         =>  'strtolower($1)',
 	                                'userdate'          =>  'userdate($2, $1)',
-	                                'htmlformattext'    =>  'nl2br(smilies(parseHTML($1)))',
+	                                'htmlformattext'    =>  'smilies(parseHTML($1))',
 	                                'implode'           =>  'implode( $2, $1)',
 	                                'alternate'         =>  '$1 = !$1',
 	                                'assign'            =>  '$1 = $2',

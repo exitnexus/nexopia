@@ -1,92 +1,285 @@
-#friend_finder
-{
-	min-width: 600px;
-	width:600px;
+#friend_finder_notification{
+	width: 726px;
+	padding: 12px 12px 12px 12px;
+	margin: 0px auto 6px auto;
+	background-color: $user_message_background_color;
+	color: $user_message_text_color;
+	border: 1px solid $user_message_border_color;
+	
+	& * {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+	}
+	
+	& h2
+	{
+		font-size: 15px;
+		font-weight: bold;
+		margin: 0px;
+	}
+	
+	& .message
+	{
+		margin-top: 8px;
+	}
+	
+}
+
+#find_friends {
+	width: 726px;
+	padding: 18px 12px 12px 12px;
+	margin: 0px auto 0px auto;
 	background-color: $primary_background_color;
 	color: $primary_text_color;
-	margin-left: auto;
-	margin-right: auto;
-	padding-bottom: 50px;
-}
-
-#friend_finder .label
-{
-	color: $primary_text_color;
-}
-
-#friend_finder a
-{
-	color: $primary_link_color;
-}
-
-#friend_finder #email_import
-{
-	margin-right: 70px;
-	margin-left: 70px;
-}
 	
-#email_import .email_import_block
-{
-	padding-top: 10px;
-	padding-bottom: 10px;
-	border-bottom: 2px solid $secondary_background_color;
+	& * {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+	}
+	
+	& br.clear {
+		clear: both;
+	}
+	
+	& .header {
+		font-weight: bold;
+		color: $header_background_color;
+		font-size: 18px;
+		padding-bottom: 30px;
+		float: left;
+	}
+	
+	& .tab_control
+	{
+		border-bottom: 1px solid $secondary_background_color;
+		padding-bottom: 2px;
+		margin-bottom: 20px;
+		
+		& a
+		{
+			border-right: 1px solid $secondary_background_color;
+			border-top: 1px solid $secondary_background_color;
+			padding: 2px 12px 3px;
+			
+			&.first
+			{
+				border-left: 1px solid $secondary_background_color;
+			}
+			
+			&.selected
+			{
+				font-weight: bold;
+				background-color: $primary_background_color;
+			}
+		}
+	}
+	
+	& .controls {
+		& .submit_friends {
+			text-align: right;
+		}
+	}
+	
+	& a.skip_link {
+		float: right;
+	}
+	
+	& .content {
+		width: 475px;
+	
+		& .bold {
+			font-weight: bold;
+		}
+	}
+	
+	& .email_providers {
+		float: left;
+		margin-top: 30px;
+		margin-right: 24px;
+	}
+	
+	& table {
+		float: left;
+		margin-top: 30px;
+	
+		& td {
+			padding-bottom: 6px;
+		}
+		
+		& .label {
+			font-weight: bold;
+			width: 102px;
+		}
+		
+		& .field {
+		
+			 & .text {
+				width: 225px;
+			}
+		}
+		
+		& .will_not_store {
+			color: $subdued_text_color;
+			
+			& .btn {
+				padding-top: 12px;
+			}
+		}
+		
+		& .error_message {
+			background-color: #FDE9EA;
+			color: #B10033;
+			border: 1px solid #B10033;
+			padding: 4px;
+		}
+	}
+	
+	& #friend_finder_input_container {
+		margin-top: 52px;
+	}
 }
 
-#email_import div.email_import_block_last
+#find_friends
 {
-	border-bottom: none;
-}
-
-#email_import .more_info_body {
-	display: none;
-}
-
-#email_import .page_description
-{
-	font-size: 12px;
-	font-weight: bold;
-	padding-bottom: 6px;
-}
-
-#email_import .block_title
-{
-	font-size: 12px;
-	font-weight: bold;
-	padding-bottom: 8px;
-}
-
-#email_import .fine_print
-{
-	font-size: 9px;
-	color: $minor_font_color;
-}
-
-.more_info_body
-{
-	margin-top: 4px;
-	margin-bottom: 6px;
-}
-
-.more_info_body .webmail_support_list
-{
-	list-style-type: none;
-	padding-left: 10px;
-	font-weight: bold;
-}
-
-.more_info_body .info_import_title
-{
-	font-weight: bold;
-}
-
-#info_csv_body ul
-{
-	padding-left: 23px;
-	margin-top: 3px;
-	margin-bottom: 13px;
-}
-
-#info_csv_body ul li
-{
-	list-style-type: decimal;
+	& #friend_finder_user_results, #friend_finder_invite_results
+	{
+		
+		padding: 15px 10px;
+		
+		& .skip
+		{
+			float: right;
+			& a
+			{
+				text-decoration: underline;
+			}
+		}
+		
+		& h1
+		{
+			font-size: 16px;
+			margin-top: 0px;
+		}
+		
+		& h4
+		{
+			font-size: 11px;
+			margin: 0px;
+			font-weight: normal;
+		}
+		
+		& .result_container
+		{
+			margin-top: 20px;
+			
+			& .selection_controls
+			{
+				padding-top: 4px;
+			}
+			
+			& .submit_friends
+			{
+				float: right;
+			}
+			
+			& #invite_notification_container
+			{
+				& input
+				{
+					margin-left: 0px;
+				}
+			}
+			
+			& #manual_invite
+			{
+				margin-bottom: 10px;
+				& input
+				{
+					width: 205px;
+					margin: 1px 10px 1px 0px;
+				}
+			}
+			
+			& .send_invite_results
+			{
+				border: 1px solid $primary_text_color;
+				max-height: 252px; /* sets max-height value for all standards-compliant browsers */
+				overflow-y: auto;
+				margin-bottom: 10px;
+				
+				& .invite_result
+				{
+					height: 25px;
+					border-bottom: 1px dotted $secondary_background_color;
+					
+					& .invite_details
+					{
+						vertical-align: middle;
+					}
+					
+					& input
+					{
+						vertical-align: middle;
+						margin: 4px 8px 4px 4px;
+					}
+				}
+			}
+			
+			
+			& .add_friends_results, .send_invite_results
+			{
+				padding-bottom: 10px;
+				
+				& .user_friend_result
+				{
+					width: 100%;
+					background-color: $secondary_background_color;
+					color: $secondary_text_color;
+					margin: 2px 0px;
+					
+					& table
+					{
+						width: 100%;
+						margin-top: 0px;
+						
+						& .friend_checkbox
+						{
+							vertical-align: middle;
+							width: 23px;
+						}
+						
+						& .friend_thumb
+						{
+							width: 51px;
+						}
+						
+						& .friend_details
+						{
+							padding-left: 10px;
+							
+							& .user_name
+							{
+								font-weight: bold;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	& #manual_invite
+	{
+		margin-bottom: 10px;
+		
+		& .invite_message {
+			margin-bottom: 20px;
+		}
+		
+		& input
+		{
+			width: 205px;
+			margin: 1px 10px 1px 0px;
+		}
+	}
 }

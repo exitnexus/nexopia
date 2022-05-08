@@ -1,0 +1,21 @@
+<div id="profile_admin_block">
+	<div class="block_title 4margin">
+		ADMINISTRATOR
+	</div>
+	<t:if t:id="frozen">
+		<b>
+			Account Frozen!
+		</b>
+	</t:if>
+	<t:iter t:id="menu_groups" t:iter="menu_group">
+		<div class="admin_menu_group">
+			<t:iter t:id="menu_group" t:iter="menu_item">
+				<div>
+					<a href="{menu_item[1]}">
+						{menu_item[0]}
+					</a>
+				</div>
+			</t:iter>
+		</div>
+	</t:iter>
+</div>

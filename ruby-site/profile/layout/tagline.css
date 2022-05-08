@@ -1,0 +1,9 @@
+#profile
+{
+	& .tagline_display
+	{
+		padding: 6px;
+		font-weight: bold;
+		overflow: hidden;
+	}
+}

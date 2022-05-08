@@ -17,7 +17,7 @@ class Task
     @func = func.to_s
     @arg = arg or ''  # TODO: use something more ref-like?
     %w{uniq on_complete on_fail on_retry on_status retry_count
-       high_priority}.map {|s| s.to_sym }.each do |k|
+       high_priority timeout}.map {|s| s.to_sym }.each do |k|
       instance_variable_set "@#{k}", opts[k]
       opts.delete k
     end
@@ -25,11 +25,12 @@ class Task
       raise InvalidArgsError, 'Invalid task args: ' + opts.keys.sort.join(', ')
     end
     @retry_count ||= 0
+		@timeout ||= 10
     @successful = false
     @retries_done = 0
     @hash = nil
   end
-  attr_accessor :uniq, :retry_count, :high_priority
+  attr_accessor :uniq, :retry_count, :high_priority, :timeout
   attr_reader :successful
 
   ##

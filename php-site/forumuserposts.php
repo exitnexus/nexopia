@@ -28,8 +28,10 @@
 
 	if($uid){
 		if($action == "Delete" && $delete && ($checkID = getPOSTval('checkID', 'array'))){
-			foreach($checkID as $id)
-				$forums->deletePost($id);
+			$res = $forums->db->prepare_query("SELECT forumposts.id as id, forumposts.threadid as threadid, forumthreads.forumid as forumid FROM forumposts, forumthreads WHERE forumposts.threadid = forumthreads.id && forumposts.id IN(#) && forumposts.authorid = #", $checkID, $uid);
+		
+			while($line = $res->fetchrow())
+				$forums->deletePost($line['id'], $line['threadid'], $line['forumid']);
 		}
 
 

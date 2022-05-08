@@ -1,0 +1,57 @@
+<div id="blog_poll">
+<div class="blog_post">
+	
+	<div class="battle_item item1">
+		<div class="item">
+			<img src="#{battle_blog.link1}" />
+		</div>
+		<div class="vote_button">
+			<input type="radio" name="vote_#{battle_blog.blogid}"
+			 id="vote_#{battle_blog.blogid}_{answers[0][0]}"
+			 value="{answers[0][0]}" />
+			<label for="vote_#{battle_blog.blogid}_{answers[0][0]}">
+				{battle_blog.caption1}</label>
+		</div>
+	</div>
+	
+	<div class="battle_item item2">
+		<div class="item">
+			<img src="#{battle_blog.link2}" />
+		</div>
+		<div class="vote_button">
+			<input type="radio" name="vote_#{battle_blog.blogid}"
+			 id="vote_#{battle_blog.blogid}_{answers[1][0]}"
+			 value="{answers[1][0]}" />
+			<label for="vote_#{battle_blog.blogid}_{answers[1][0]}">
+				{battle_blog.caption2}</label>
+		</div>
+	</div>
+	<div class="clear"></div>
+	
+	<div class="post_submit_btns">
+		<t:if t:id="!anon">
+		<t:button minion_name="blogs:battle_vote:vote"
+		 value="#{battle_blog.blogid}">
+		VOTE</t:button>
+		</t:if>
+		<t:if t:id="anon">
+		<t:button minion_name="blogs:poll_vote:vote_login"
+		 value="#{battle_blog.blogid}">
+		VOTE</t:button>
+		</t:if>
+		<div class="results">
+			<t:if t:id="!anon">
+			<a href="blog/#{battle_blog.blogid}/battle_skip"
+			 minion_name="blogs:battle_vote:skip">
+				Skip to results</a> ({votes})
+			</t:if>
+			<t:if t:id="anon">
+			<a href="blog/#{battle_blog.blogid}/battle_skip"
+			 minion_name="blogs:poll_vote:login">
+				Skip to results</a> ({votes})
+			</t:if>
+		</div>
+	</div>
+	
+</div>
+</div>

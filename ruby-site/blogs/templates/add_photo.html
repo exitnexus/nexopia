@@ -1,0 +1,25 @@
+<t:wrapper>
+	<div class="photo_uploader_container">
+	<div class="section_title">
+		<input type="hidden" name="swf_upload_path" value="#{$site.upload_url}/swfupload" id="swf_upload_path{photo_id}"/>
+		<input type="hidden" name="session" id="session{photo_id}" value="#{session}"/>
+		<div id="blog_uploading_spinner{photo_id}" class="blog_upload_spinner">
+			<img src="#{$site.static_files_url}/nexoskel/images/large_spinner.gif"/>
+			<br/>
+			Please wait while your photo loads...
+		</div>
+		<div class="title">
+			Photo link
+		</div>
+		<div class="get_a_photo">
+			<div id="uploader_overlay{photo_id}" class="uploader_overlay"></div>
+			<t:button minion_name="blogs:photo_uploader" id="{photo_id}">Get a Photo</t:button>
+		</div>
+		<div class="or">
+			or
+		</div>
+		<div class="clear"></div>
+	</div>
+	<t:template-include t:module="blogs" t:name="photo_link" />
+	</div>
+</t:wrapper>

@@ -3,9 +3,7 @@ tr {vertical-align: top;}
 
 BODY 		{	SCROLLBAR-FACE-COLOR: black; FONT-SIZE: 8pt; MARGIN: 0px; SCROLLBAR-HIGHLIGHT-COLOR: #cccccc; SCROLLBAR-SHADOW-COLOR: #cccccc; SCROLLBAR-3DLIGHT-COLOR: #cccccc; SCROLLBAR-ARROW-COLOR: #cccccc; SCROLLBAR-TRACK-COLOR: #cccccc; FONT-FAMILY: arial, sans-serif; SCROLLBAR-DARKSHADOW-COLOR: #cccccc; BACKGROUND-COLOR: #6E86B4;}
 
-INPUT 		{	FONT: 10pt arial, sans-serif; COLOR: #000000}
-SELECT 		{	FONT: 10pt arial, sans-serif; COLOR: #000000}
-TEXTAREA 	{	FONT: 10pt arial, sans-serif; COLOR: #000000}
+body input, select, textarea	{ font-family: arial, sans-serif; font-size: 8pt; color: #000; border:1px solid #d4d6d7;}
 
 a:active, a:link, a:visited 	{	FONT-SIZE: 8pt; COLOR: #000000; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}
 A:hover 	{	FONT-SIZE: 8pt; COLOR: #9E9E9E; FONT-FAMILY: arial, sans-serif; TEXT-DECORATION: none}

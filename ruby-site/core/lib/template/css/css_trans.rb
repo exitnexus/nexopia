@@ -6,30 +6,24 @@ lib_require :core, 'template/generated_cache'
 
 module CSSTrans
 
-	@@instantiatedClasses = Hash.new;
-	def self.instantiatedClasses
-		return @@instantiatedClasses;
-	end
-
-	@@instantiatedUserClasses = Hash.new;
-	def self.instantiatedUserClasses
-		return @@instantiatedUserClasses;
-	end
-
 	def self.get_file_path(mod, css_file)
 		f = "#{$site.config.site_base_dir}/#{mod.to_s.downcase}/#{css_file}.css";
 	end
 
 	def self.get_name(mod, css_file)
-		name = "CSSTemplate_" + mod.to_s.upcase + "_" + css_file.gsub(/[^a-zA-Z0-9]/, "_").upcase;
+		name = Cache.prefix + "_" + mod.to_s.upcase + "_" + css_file.gsub(/[^a-zA-Z0-9]/, "_").upcase;
 	end
 
 	class Cache < GeneratedCodeCache
+		def self.instance(*args)
+			return CSSTrans::from_file(*args)
+		end
+
 		def self.library
 			Dir["core/lib/template/css/*.rb"];
 		end
 		def self.prefix
-			"CSSTemplate_";
+			"CSS";
 		end
 		
 		def self.parse_dependency(dependency)
@@ -41,28 +35,26 @@ module CSSTrans
 		end
 		
 		def self.class_name(_module, file_base)
-			"CSSTemplate_#{_module.to_s.upcase}_#{file_base.gsub(/[^\w]/, '_').upcase}"
+			"#{prefix}_#{_module.to_s.upcase}_#{file_base.gsub(/[^\w]/, '_').upcase}"
 		end
 
 		def self.output_file(_module, file_base)
-			"generated/CSSTemplate_#{_module.to_s.upcase}_#{file_base.gsub(/[^\w]/, '_').upcase}.gen.rb"
+			"generated/#{prefix}_#{_module.to_s.upcase}_#{file_base.gsub(/[^\w]/, '_').upcase}.gen.rb"
 		end
 		
 		def self.source_dirs(mod)
 			["#{mod.directory_name}"]
 		end
 		def self.source_regexp()
-			/((?:layout|control)\/[^.\/]+).css/
+			/((?:layout|control)\/[^.\/]+).css$/
 		end
 
 		@@instantiatedClasses = {};
-		@@instantiatedUserClasses = {};
-		@@times = {}
 		def self.instantiatedClasses
 			return @@instantiatedClasses;
 		end
 
-		@@instantiatedUserClasses = Hash.new;
+		@@instantiatedUserClasses = {};
 		def self.instantiatedUserClasses
 			return @@instantiatedUserClasses;
 		end
@@ -82,7 +74,7 @@ module CSSTrans
 	public; def self.instance(css_file)
 		css_file =~ /^(\w+)\/(.+).css$/
 		mod,file = $1,$2
-		if (!@@instantiatedClasses[[mod, file]])
+		if (!Cache.instantiatedClasses[[mod, file]])
 			$log.info("Creating... #{css_file}", :info, :template);
 			CSSTrans.from_file(mod,file);
 		elsif (!$site.config.live)
@@ -95,16 +87,16 @@ module CSSTrans
 			end
 		end
 		$log.info("Instantiating... #{css_file}", :debug, :template);
-		@@instantiatedClasses[[mod, file]].new();
+		return Cache.instantiatedClasses[[mod, file]].new();
 	end
 	
 	public; def self.user_instance(css_file)
 		css_file =~ /^(\w+)\/(.+).css$/
 		mod,file = $1,$2
-		if !@@instantiatedUserClasses[[mod, file]]
+		if(!Cache.instantiatedUserClasses[[mod, file]])
 			CSSTrans.from_file(mod, file);
 		end
-		return @@instantiatedUserClasses[[mod, file]].new();
+		return Cache.instantiatedUserClasses[[mod, file]].new();
 	end
 
 	def self.parse_css(str)
@@ -127,8 +119,8 @@ module CSSTrans
 			
 			@vars = Hash.new;
 			parse();
-			CSSTrans.instantiatedClasses[symbol] = CSSTrans.const_get(@name);
-			CSSTrans.instantiatedUserClasses[symbol] = CSSTrans.const_get(:"#{@name}_user_skin");
+			Cache.instantiatedClasses[symbol] = CSSTrans.const_get(@name);
+			Cache.instantiatedUserClasses[symbol] = CSSTrans.const_get(:"#{@name}_user_skin");
 		end
 
 		# Completely parse the CSS document and generate the class associated with it.
@@ -153,12 +145,48 @@ module CSSTrans
 					prop, v = rule;
 					user_skin_rule = false
 					rule_name = "	#{prop}:"
+
+					#TODO: Make this more generic so it can be applied to properties other than background image. For today, this is good enough.
+					if(prop.to_s() == "ext-background")
+						rule_name = " background-color:"
+						@code.append_conditional_print("@page_background_image", "background-image:", "@page_background_image");
+					end
+					if(prop.to_s() == "opacity")
+						ie_val = v.to_s.to_f*100
+						@code.append_print("\tfilter: alpha(opacity = #{ie_val.to_i});\n")
+					end
+					if(prop.to_s() == "min-height")
+						min_height = v.to_s[0, -2].to_i #the min-height without px at the end
+						@code.append_print("\t_height: expression( this.scrollHeight < #{min_height} ? \"#{min_height}\" : \"auto\" );\n")
+					end
+					if(prop.to_s() == "max-height")
+						max_height = v.to_s[0, -2].to_i #the max-height without px at the end
+						@code.append_print("\t_height: expression( this.scrollHeight < #{max_height} ? \"#{max_height}\" : \"auto\" );\n")
+					end
+					if(prop.to_s() == "min-width")
+						min_width = v.to_s[0, -2].to_i #the min-width without px at the end
+						@code.append_print("\t_width: expression( this.scrollWidth < #{min_width} ? \"#{min_width}\" : \"auto\" );\n")
+					end
+					if(prop.to_s() == "max-width")
+						max_width = v.to_s[0, -2].to_i #the max-width without px at the end
+						@code.append_print("\t_width: expression( this.scrollWidth < #{max_width} ? \"#{max_width}\" : \"auto\" );\n")
+					end
+					
+					#hack to make inline-block work cross browser
+					if(prop.to_s == "display" && v.to_s == "inline-block")
+						@code.append_print("\tdisplay: -moz-inline-block;\n")
+						@code.append_print("\tzoom: 1;\n")
+						@code.append_print("\tdisplay: inline-block;\n")
+						@code.append_print("\t_display: inline;\n")
+						next #jump out here because we know there is nothing else to do for this rule
+					end
+					
 					@code.append_print rule_name
 					
 					rule_value = ""
 					v.each_with_index{|value,index|
 						if (index > 0)
-							rule_value += %Q|","|
+							rule_value += ","
 						end
 						value.each{|sub_value|
 							sub_value = sub_value.join(" ")
@@ -167,25 +195,25 @@ module CSSTrans
 								'#{@' + m[1..-1] + '}';
 							}
 							sub_value.gsub!('"', '\"');
-							rule_value += %Q|" #{sub_value}"|;
+							rule_value += " #{sub_value}";
 						}
 					}
 					if (user_skin_rule)
 						unless (user_skin_in_selector)
-							@user_skin_code.append_print selector_string
+							@user_skin_code.append_print(selector_string)
 							user_skin_in_selector = true
 						end
 						@user_skin_code.append_print(rule_name)
-						@user_skin_code.append_output(rule_value)
-						@user_skin_code.append_print ";\n";
+						@user_skin_code.append_print(rule_value)
+						@user_skin_code.append_print(";\n")
 					end
-					@code.append_output rule_value
-					@code.append_print ";\n";
+					@code.append_print(rule_value)
+					@code.append_print(";\n")
 				}
 				if (user_skin_in_selector)
-					@user_skin_code.append_print "}\n"
+					@user_skin_code.append_print("}\n")
 				end
-				@code.append_print "}\n"
+				@code.append_print("}\n")
 			}
 			@code.generate(@source_name);
 			@user_skin_code.generate(@source_name)

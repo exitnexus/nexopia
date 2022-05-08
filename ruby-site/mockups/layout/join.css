@@ -1,0 +1,111 @@
+#join_mockup {
+	width: 726px;
+	padding: 18px 12px 12px 12px;
+	margin: 0px auto 0px auto;
+	background-color: $primary_background_color;
+	color: $primary_text_color;
+	
+	& * {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+	}
+	
+	& br.clear {
+		clear: both;
+	}
+	
+	& .login_now {
+		font-weight: bold;
+		font-size: 15px;
+		padding-bottom: 24px;
+		color: $subdued_text_color;
+		
+		& a {
+			font-size: 15px;
+			text-decoration: underline;
+		}
+	}
+	
+	& .header {
+		font-weight: bold;
+		color: $header_background_color;
+		font-size: 18px;
+		padding-bottom: 12px;
+	}
+	
+	& .left_column {
+		float: left;
+		
+		& td {
+			padding-bottom: 6px;
+		}
+		
+		& .extra_space {
+			padding-top: 18px;
+		}
+		
+		& .label {
+			font-weight: bold;
+			width: 102px;
+		}
+		
+		& .field {
+		
+			 & .text {
+				width: 160px;
+			}
+			
+			& .month {
+				margin-right: 6px;
+			}
+			
+			& .day {
+				margin-right: 6px;
+			}
+			
+			& .male {
+				margin-left: 20px;
+			}
+			
+			& .error_msg {
+				font-size: 9px;
+				padding-left: 6px;
+			}
+			
+			& .good_error {
+				color: #108337;
+			}
+			
+			& .bad_error {
+				color: #e40022;
+			}
+		}
+		
+		& .terms_of_use {
+			padding-top: 30px;
+			
+			& .join_btn {
+				padding-top: 12px;
+				
+				& .custom_button button {
+					font-size: 18px;
+					text-decoration: underline;
+					padding: 4px 35px 6px 35px;
+				}
+			}
+		}
+	}
+	
+	& .right_column {
+		float: right;
+		
+		& .image_placeholder {
+			width: 234px;
+			height: 119px;
+			border: 1px solid #949494;
+			background-color: #d7d7d7;
+			margin-bottom: 12px;
+		}
+	}
+	
+}

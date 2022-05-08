@@ -1,4 +1,20 @@
-#skin_edit_wrapper_wrapper
+body.skin_edit_preview_body_background
+{
+	background-color: @section_background_color;
+	
+	& .ruby_content
+	{
+		background-color: transparent;
+		width: 770px;
+		
+		& #profile
+		{
+			background-color: transparent;
+		}
+	}
+}
+
+#skin_edit_ie_wrapper
 {
 	text-align: center;
 }
@@ -7,10 +23,10 @@
 {
 	position: relative;
 
-	width: 600px;
+	width: 750px;
 
 	font-size: 8pt;
-	color: #5D5D5D;
+	color: $primary_text_color;
 	
 	font-family: Verdana, Arial, sans-serif;
 	text-align: left;
@@ -19,237 +35,433 @@
 	margin-bottom: 6px;
 	margin-left: auto;
 	margin-right: auto;
-}
 
-#skin_edit_wrapper h1
-{	
-	padding: 0px;
-	margin: 0px;
-	padding-bottom: 6px;
+	& h1
+	{	
+		padding: 0px;
+		margin: 0px;
+		padding-bottom: 6px;
 
-	text-transform: uppercase;
+		text-transform: uppercase;
 
-	font-family: Helvetica, Verdana, Arial, sans-serif;
-	font-size: 10.5pt;
-	font-weight: bold;
+		font-family: Arial, sans-serif;
+		font-size: 14px;
+		font-weight: bold;
 	
-	color: #000;
-}
+		color: $primary_text_color;
+	}
+	
+	& .list_label
+	{
+		display: block;
+		height: 18px;
+		line-height: 12pt;
 
-#skin_edit_wrapper .input_title
-{
-	padding: 0px;
-	margin: 0px;
-	margin-bottom: 6px;
+		cursor: default;
+	}
 	
-	width: 215px;
+	& select
+	{
+		font-size: 10px;
+		/* background-color: #fff; */
+		border: 1px solid #929292;
+		height: 16px;
+		width: 205px;
+		color: #000;
+	}
+	
+	& #header
+	{
+		position: relative;
+		z-index: 1;
+		
+		padding: 6px;
+		margin-bottom: 6px;
 
-	text-transform: uppercase;
+		top: 0px;
+		left: 0px;
+		right: 0px;
 
-	font-family: Helvetica, Verdana, Arial, sans-serif;
-	font-size: 10.5pt;
-	font-weight: bold;
+		background-color: $primary_background_color;
+		
+		& .button_bar
+		{
+			display: inline;
+			height: 14px;
+			overflow: hidden;
+		}
+		
+		& .editor_nav_secondary
+		{
+			position: relative;
+			float: right;
+			
+			& a
+			{
+				font-size: 12px;
+				color: $link_color;
+				text-transform: uppercase;
+				font-family: Verdana, Helvetica, Arial, sans-serif;
+			}
+			
+		}
+		
+		& #create_new_skin
+		{
+			display:inline;
+			float: right;
+			width: 150px;
+			position: relative;
+			
+			& .button_bar
+			{
+				float: right;
+			}
+		}
+		
+		& #skin_selector_controls
+		{
+			width: 480px;
+			vertical-align: middle;
+			float: left;
+			position: relative;
+			
+			& .button_bar
+			{
+				margin-right: 2px;
+				float: left;
+			}
+			
+			& .secondary_buttons
+			{
+			
+				font-size: 11px;
+				
+				& a
+				{
+					font-size: 11px;
+					padding-left: 3px;
+					padding-right: 3px;
+					
+					&:hover
+					{
+						font-size: 11px;
+					}
+				}
+			}
+		}
+	}
 	
-	color: #000;
-	
-	border-color: #dfdfdf;
-	background-color: transparent;
-}
-#skin_edit_wrapper .input_title.focus
-{
-	border-color: #bebebe;
-	background-color: #fff;
-}
+	& #left
+	{
+		/* Need to set this to avoid color picker elements from poking through the dropdown skin menu. */
+		z-index: 0;
+		
+		position: relative;
+		width: 234px;
+		
+		& #skin_title
+		{
+			font-size: 11px;
+			padding-bottom: 10px;
+		}
+		
+		& #edit_block
+		{
+			padding-bottom: 12px;
+			
+			& .dark_block
+			{
+				margin-bottom: 2px;
+				padding-bottom: 0px;
+				
+				& .button_bar
+				{
+					right: 6px;
+					top: 6px;
+					position: absolute;
+					z-index: 1;
+					display: block;
+				}
+			}
+			
+			& #skin_panes
+			{
+				background-color: $primary_background_color;
+				
+				& .accordion_handle, .accordion_body
+				{
+					background-color: $secondary_background_color;
+					color: $secondary_text_color;
+				}
+				
+				& .accordion_body
+				{
+					border-bottom: 2px solid $primary_background_color;
+				}
+			}
+			
+			& .color_unit
+			{
+				margin-bottom: 1px;
+			}
+			
+			& #hex_selected
+			{
+				color: $primary_text_color;
+				background-color: $primary_background_color;
+		
+				display: none;
+			}
+			
+			& #hex_unselected
+			{
+				color: $secondary_text_color;
+				background-color: transparent;
+				
+				display: none;
+			}
+		}
+		& .color_hex
+		{
+			height: 14px;
+			width: 55px;
+			font-family: Verdana, Helvetica, Arial, sans-serif;
+			font-size: 9px;
+			background-color: transparent;
+			border: 1px solid $primary_background_color;
+			color: $secondary_text_color;
+			padding-left: 2px;
 
-#skin_edit_wrapper select
-{
-	font-size: 10px;
-	background-color: #fff;
-	border: 1px solid #929292;
-	height: 16px;
-	width: 205px;
-	color: #5d5d5d;
-}
+			float: right;
+			
+			&:focus
+			{
+				outline: none;
+			}
+		}
+		
+		& .skin_data_error
+		{
+			text-decoration: line-through;
+		}
+		
+		& .color_swatch
+		{
+			position: relative;
+			top: 0px;
+			height: 14px;
+			left: 0px;
+			width: 18px;
 
-#skin_edit_wrapper .list_label
-{
-	display: block;
-	height: 18px;
-	line-height: 12pt;
-	
-	cursor: default;
-}
+			border: solid 1px $primary_background_color;
 
-#skin_edit_wrapper #header
-{
-	position: relative;
-	
-	padding: 6px;
-	margin-bottom: 6px;
-	
-	top: 0px;
-	left: 0px;
-	right: 0px;
-	
-	background-color: #fff;
-}
+			background-color: #fff;
 
-#skin_edit_wrapper #left
-{
-	position: relative;
-	width: 237px;
-}
+			margin-left: 4px;
+			margin-right: 4px;
+			margin-bottom: 2px;
 
-#skin_edit_wrapper #right
-{
-	position: relative;
-	width: 357px;
-	
-	float: right;
-}
+			float: left;
+		}
+		
+		& .input_title
+		{
+			margin: 0px;
+			margin-bottom: 6px;
+			margin-top: 8px;
+			padding-left: 2px;
+			
+			width: 207px;
 
-#skin_edit_wrapper #preview_wrapper
-{
-	position: absolute;
-	top: 2.2em;
-	height: 280px;
-	left: 3px;
-	width: 341px;
-	
-	display: block;
-	
-	z-index: 10;
-	
-	border: solid 2px #bebebe;
-}
+			font-family: Verdana, Helvetica, Arial, sans-serif;
+			font-size: 12px;
+			font-weight: bold;
 
-#skin_edit_wrapper #preview_shadow
-{
-	position: absolute;
+			border-color: $primary_text_color;
+		}
+	}
 	
-	display: none;
-	
-	z-index: 9;
-	
-	background-color: #000;
-	
-	opacity: 0;
-}
+	& #right
+	{
+		position: relative;
+		width: 510px;
 
-#skin_edit_wrapper #preview_handle
-{
-	position: absolute;
-	top: 0px;
-	bottom: 0px;
-	height: 100%;
-	left: 0px;
-	right: 0px;
-	width: 100%;
+		float: right;
+		z-index: 3;
 	
-	line-height: 280px;
-	
-	background-color: #fff;
-	
-	cursor: move;
-}
+		& #preview_wrapper
+		{
+			position: absolute;
+			top: 2.2em;
+			height: 280px;
+			left: 3px;
+			width: 494px;
 
-#skin_edit_wrapper #preview_zoom
-{
-	position: absolute;
-	bottom: 0px;
-	height: 64px;
-	right: 0px;
-	width: 64px;
-	
-	cursor: pointer;
-}
+			display: block;
 
-#skin_edit_wrapper #preview_zoom_canvas
-{
-	position: absolute;
-	bottom: 0px;
-	height: 64px;
-	right: 0px;
-	width: 64px;
-	
-	cursor: pointer;
-}
+			z-index: 10;
 
-#skin_edit_wrapper .actions
-{
-	position: relative;
-	height: 171px;
-	
-	margin-bottom: 6px;
-	padding: 6px;
-	
-	background-color: #fff;
-	color: #000;
-}
+			border: solid 2px #bebebe;
+			
+			& #preview_handle
+			{
+				position: absolute;
+				top: 0px;
+				bottom: 0px;
+				height: 100%;
+				left: 0px;
+				right: 0px;
+				width: 100%;
 
-#skin_edit_wrapper .light_block
-{
-	position: relative;
-	
-	margin-bottom: 6px;
-	padding: 6px;
-	
-	background-color: #fff;
-}
+				line-height: 280px;
 
-#skin_edit_wrapper .dark_block
-{
-	position: relative;
+				background-color: #fff;
 
-	margin-bottom: 6px;
-	padding: 4px;
+				cursor: move;
+			}
+			
+			& #preview_zoom
+			{
+				position: absolute;
+				bottom: 0px;
+				height: 64px;
+				right: 0px;
+				width: 64px;
 
-	background-color: #dfdfdf;
-}
+				cursor: pointer;
+			}
 
-#skin_edit_wrapper .right_side
-{
-	float: right;
-}
+			& #preview_zoom_canvas
+			{
+				position: absolute;
+				bottom: 0px;
+				height: 64px;
+				right: 0px;
+				width: 64px;
 
-#skin_edit_wrapper #save_done
-{
-	float: right;
-}
+				cursor: pointer;
+			}
+		}
+		
+		& #preview_shadow
+		{
+			position: absolute;
+			display: none;
+			z-index: 9;
 
-#skin_edit_wrapper .color_swatch
-{
-	position: relative;
-	top: 0px;
-	height: 14px;
-	left: 0px;
-	width: 18px;
+			background-color: #000;
+			opacity: 0;
+		}
+		
+		& #apply_skins_block
+		{
+			padding-bottom: 12px;
+			
+			& #apply_skin_save_bar, #apply_skin_spinner
+			{
+				right: 6px;
+				top: 6px;
+				position: absolute;
+				z-index: 1;
+			}
+			
+			& #apply_skin_save_bar
+			{
+				display: block;
+			}
+			
+			& #apply_skin_spinner
+			{
+				display: none;
+			}
+			
+			& #skin_apply_to_all
+			{
+				border: none;
+				float: none;
+				vertical-align: middle;
+			}
+			
+			& .apply_all_label
+			{
+				text-align: right;
+				width: 100%;
+			}
+		}
+		
+		& #preview_block
+		{
+			z-index: 5;
+			padding-bottom: 12px;
+		}
+		
+	}
 	
-	border: solid 1px #bebebe;
-	
-	background-color: #fff;
-	
-	margin-left: 4px;
-	margin-right: 4px;
-	margin-bottom: 2px;
-	
-	float: left;
-}
+	& .light_block
+	{
+		position: relative;
 
-#skin_edit_wrapper .color_hex
-{
-	height: 14px;
-	width: 5.4em;
-	font-family: Verdana, Arial, Helvetica, sans-serif;
-	font-size: 9px;
-	background-color: transparent;
-	border: 1px solid #dfdfdf;
-	color: #5d5d5d;
-	padding-left: 2px;
+		margin-bottom: 6px;
+		padding: 6px;
+
+		background-color: $primary_background_color;
+		color: $primary_text_color;
+	}
 	
-	float: right;
-}
-#skin_edit_wrapper .color_hex:focus
-{
-	outline: none;
+	& .dark_block
+	{
+		position: relative;
+
+		margin-bottom: 6px;
+		padding: 4px;
+
+		background-color: $secondary_background_color;
+		color: $secondary_text_color;
+	}
+	
+	& .right_side
+	{
+		float: right;
+	}
+	
+	/* IE Button fixes 
+			The widths need to be explicitly set or they grow too big.
+			The text has to be centered because if not, they are left aligned.
+	*/
+	& #create_skin_submit
+	{
+		*width: 73px;
+		*text-align: center;
+	}
+	
+	& #load_user_skin
+	{
+		*width: 37px;
+		*text-align: center;
+	}
+	
+	& #duplicate_submit
+	{
+		*width: 63px;
+		*text-align: center;
+	}
+	
+	& #remove_submit
+	{
+		*width: 49px;
+		*text-align: center;
+	}
+	
+	& #skin_save_submit
+	{
+		*width: 41px;
+		*text-align: center;
+	}
+	
+	& #apply_skin_save
+	{
+		*width: 49px;
+		*text-align: center;
+	}
 }

@@ -1,0 +1,17 @@
+<div id="nexmas">
+	<form method="POST" action="/admin/nexmas/send">
+		<label>Batch ID:</label>
+		<input name="batch_id" type="text"/>
+		<br/>
+	 	The plus voucher batch id.
+		<br/>
+		<br/>
+		<label>Offset:</label>
+		<input name="offset" type="text"/>
+		<br/>
+	 	How many users we have previously sent plus to. (day 1 = 1, day 2 = 1001, ...)
+		<br/>
+		<br/>
+		<input type="submit" value="Send Messages"/>
+	</form>
+</div>

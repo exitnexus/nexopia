@@ -1,0 +1,41 @@
+<div class="comments_body">
+	<div class="block_container">
+
+		<t:json t:data="num_pages" t:handle="numPages"/>
+		<t:json t:data="page" t:handle="startingPage"/>
+		<t:json t:data="page_url" t:handle="commentListUrl"/>
+		
+		<t:if t:id="comments"></t:if>
+		<div class="comments_pager">
+			<div class="page">
+				<t:handler-include t:path="/#{page_path}" t:area="user" t:user="PageRequest.current.user">
+					<t:var t:name="'page'" t:val="page||0"/>
+					<t:var t:name="'comments'" t:val="comments"/>
+				</t:handler-include>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+<t:doc>
+	<t:loop t:id="comments.compact" t:iter="comment">
+		<t:template-include t:module="comments" t:name="single_comment"/>
+	</t:loop>
+	<t:json t:data="num_comments" t:handle="numComments"/>
+	<t:if t:id="delete_link">
+		<div id="comment_footer">
+			<form id="delete_comments_form">
+				<input type="hidden" name="ajax_delete_url" value="{ajax_delete_url}"/>
+				<input type="hidden" name="form_key[]" value="{post_form_key}" />
+				
+				<t:if t:id="!profile_block">
+					<input type="checkbox" id="select_all_comments"/>
+					<!--<t:template-include t:module="comments" t:name="abuselog"/> -->
+					<input id="comments_delete_button" type="submit" value="Delete" class="submit" />
+				</t:if>
+			</form>
+		</div>
+	</t:if>
+</t:doc>

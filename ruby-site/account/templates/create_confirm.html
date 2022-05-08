@@ -1,0 +1,26 @@
+<div id="confirm_email">
+
+	<div class="header">
+		Confirm Your Email Address
+	</div>
+	
+	<div class="content">
+		Your account activation has been sent to&#160;<span class="email">{email}</span>, activate your account to continue.
+		
+		<div class="big_btn">
+			<t:if t:id="known_host">
+				<form method="GET" target="_top" action="{known_host.url}">
+					<t:button>GO TO {known_host.name.upcase}</t:button>
+				</form>
+			</t:if>
+		</div>
+		
+		<div class="extra_tips">
+			Click the link in your email to activate your account.<br />
+			This email could take a few minutes, check your spam or junk mail folder if you still can't find it.
+			<br /><br />
+			Or try&#160;<a href="/account/reactivate?email=%{email}">resending</a>&#160;the activation.
+		</div>
+	</div>
+	
+</div>

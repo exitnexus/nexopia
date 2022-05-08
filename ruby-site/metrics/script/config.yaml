@@ -1,0 +1,16 @@
+--- !ruby/object:JavascriptConfig 
+module_require: 
+- core
+- enhanced_text_input
+- themed_select
+yui_require:
+- container
+- dragdrop
+- slider
+- element-beta
+- button
+- animation
+- colorpicker
+- selector-beta
+- json
+- calendar

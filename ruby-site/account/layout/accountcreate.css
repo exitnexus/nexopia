@@ -1,0 +1,414 @@
+.account_content_container div.clearit 
+{
+	float:none;
+	clear:both;
+}
+
+.account_content_container div.section
+{
+	font-size: 11px;
+}
+
+.account_content_container h1
+{
+	font-size: 16px;
+	font-weight: 700;
+}
+
+.account_content_container h2
+{
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.account_content_container div.section td.label {
+	width: 70px;
+}
+
+.account_content_container div.section th 
+{
+	font-size: 11px;
+	font-weight: 700;
+	text-align: left;
+	padding-right: 8px;
+}
+
+
+.account_content_container div.section td
+{
+	font-size: 11px;
+	text-align: left;
+}
+
+
+.account_content_container div.section input.text
+{
+	font-size: 11px;
+	width: 200px;
+}
+
+.account_content_container div.section input.text_small
+{
+	font-size: 11px;
+	width: 120px;
+}
+
+.account_content_container div.section select
+{
+	font-size: 11px;
+}
+
+.account_content_container div.section input.radio_next
+{
+	margin-left: 16px;
+}
+
+
+div.account_content_container
+{
+	font-size: 11px;
+	text-align: center;
+	width: 100%;
+}
+
+
+.account_content_container div.content
+{
+	width: 726px;
+	text-align: left;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.account_content_container div.post_response
+{
+	width: 724px;
+	padding: 12px;
+	margin: 0px auto 6px auto;
+	background-color: #faebc6;
+	color: #000;
+	border: 1px solid #a84145;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	
+	& * {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+	}
+	
+	& .primary_text {
+		font-size: 15px;
+		font-weight: bold;
+	}
+	
+	& .secondary_text {
+		margin-top: 2px;
+	}
+}
+
+.account_content_container div.error
+{
+	background-color: #faebc6;
+}
+
+.account_content_container div.valid
+{
+	background-color: #e8e8e8;
+}
+
+.account_content_container div.terms_warning {
+	font-size: 10px;
+	padding: 20px 0px 0px 0px;
+}
+
+
+#over18div
+{
+	margin-top: 4px;
+}
+
+
+#under18div
+{
+	margin-top: 14px;
+}
+
+
+#statement_warning
+{
+	text-align: center;
+	margin-bottom: 14px;
+}
+
+
+#agree_to_terms
+{
+	
+}
+
+#captcha
+{
+	width: 318px;
+	text-align: center;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 5px;
+}
+
+#captcha_container
+{
+	margin-top: 10px;
+	margin-bottom: 10px;	
+}
+
+#terms_box
+{
+	border: 1px solid #000000; 
+	padding: 4px; 
+	overflow: auto; 
+	height: 250px; 
+	color: $primary_text_color; 
+	background-color: #ffffff;
+	margin-top: 4px;
+	font-size: 11px;
+}
+
+#terms_box a, #terms_box a:hover
+{
+	font-weight: 700;
+}
+
+
+.account_content_container .section
+{
+	padding-top: 10px;
+	color: $primary_text_color;
+	background-color: $primary_background_color;
+	padding-left: 60px;
+	padding-right: 60px;
+	padding-bottom: 100px;
+	min-height: 550px;
+}
+
+
+.account_content_container .header_box
+{
+	background-color: $section_header_background_color;
+	color: $section_header_text_color;
+	font-weight: bold;
+	font-family: $header_font_family;
+	font-size: 14px;
+}
+
+
+.account_content_container .header_text
+{
+	padding-top: 3px;
+	padding-bottom: 2px;
+	padding-left: 14px;
+	padding-right: 14px;
+}
+
+
+.account_content_container a
+{
+	color: $link_color;
+	text-decoration: $link_text_decoration;
+	font-size: 11px;
+}
+
+
+.account_content_container a:hover 
+{
+	font-size: 11px;
+	color: $link_accent_color;
+	text-decoration: $link_accent_text_decoration;
+}
+
+
+.account_content_container input.button 
+{
+	font-size: 11px;
+	margin-top: 10px;
+	margin-right: 5px;
+	width: 100px;
+	font-weight: 700;
+	text-align: center;
+}
+
+
+.account_content_container input.resend_button 
+{
+	font-size: 11px;
+	margin-top: 10px;
+	margin-right: 5px;
+	font-weight: 700;
+	text-align: center;
+}
+
+
+.account_content_container div.form_separator
+{
+	height: 10px;
+}
+
+
+#activation_links
+{
+	margin-top: 40px;
+	font-weight: 700;
+}
+
+.account_content_container div.validation_error_text
+{
+	display: inline;
+	color: #e40022;
+}
+
+.account_content_container div.validation_valid_text
+{
+	display: inline;
+	color: #108337;
+}
+
+.account_content_container div.validation_warning_text
+{
+	display: inline;
+	color: #ff8000;
+}
+
+.account_content_container div.validation_none_text
+{
+	display: inline;
+	color: #000000;
+}
+
+.account_content_container .validate_valid_image
+{
+	margin-top: 2px;
+	width: 15px;
+	height: 15px;
+}
+
+.account_content_container .validate_error_image
+{
+	width: 15px;
+	height: 15px;
+}
+
+.account_content_container .validate_warning_image
+{
+	width: 15px;
+	height: 15px;
+}
+
+#create_profile select
+{
+	width: 240px;
+}
+
+#create_profile textarea
+{
+	width: 340px;
+	height: 80px;
+}
+
+#create_profile th
+{
+	vertical-align: top;
+}
+
+#invite_friends textarea
+{
+	width: 340px;
+	height: 80px;
+}
+
+#invite_friends th
+{
+	vertical-align: top;
+}
+
+#invite_instructions
+{
+	margin-bottom: 6px;
+	width: 340px;
+}
+
+.account_content_container .existing_friend
+{
+	float: none;
+	clear: both;
+	padding-bottom: 10px;
+}
+
+.account_content_container .existing_friend_image
+{
+	position: relative;
+	float: left;
+	width: 100px;
+}
+
+.account_content_container .existing_friend_info_block
+{
+	position: relative;
+	float: left;
+	margin-left: 10px;
+	line-height: 1.4em;
+}
+
+.account_content_container .existing_friend_username
+{
+	font-weight: 700;
+}
+
+.account_content_container .existing_friend_email
+{
+	
+}
+
+.account_content_container .existing_friend_link
+{
+
+}
+
+.account_content_container .existing_friend_add
+{
+	margin-top: 10px;
+}
+
+.account_content_container .invite_friend
+{
+	padding-bottom: 10px;
+}
+
+.account_content_container .invite_friend_name
+{
+	font-weight: 700;
+}
+
+.account_content_container .invite_friend_send
+{
+	
+}
+
+.account_content_container .existing_friends_block
+{
+	margin-bottom: 30px;
+}
+
+.account_content_container .invite_friends_block
+{
+	margin-bottom: 20px;
+}
+
+.account_content_container .minor
+{
+	font-size: 9px;
+}
+
+.account_content_container div.message
+{
+	background-color: $section_header_background_color;
+	color: $section_header_text_color;
+	padding: 10px 60px 0px;
+}

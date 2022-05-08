@@ -242,7 +242,7 @@ module Music
 		end
 		
 		def build_type_obj_list(icon_id = nil)
-			types_list = TypeIDItem.find(:all);
+			types_list = TypeIDItem.find(:scan);
 			
 			if(icon_id != nil)
 				icon_types_list = StreamIconType.find(icon_id, :iconid);

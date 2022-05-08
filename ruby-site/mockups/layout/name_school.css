@@ -1,0 +1,56 @@
+#name_school_mockup {
+	width: 486px;
+	padding: 12px;
+	margin: 0px auto 0px auto;
+	background-color: #fff;
+	color: #323237;
+	
+	& * {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+	}
+	
+	& br.clear {
+		clear: both;
+	}
+	
+	& .header {
+		font-weight: bold;
+		color: #000;
+		font-size: 16px;
+		
+		& span {
+			color: #000;
+			font-size: 16px;
+			font-weight: normal;
+		}
+	}
+	
+	& table {
+		margin-top: 18px;
+		
+		& td {
+			padding-bottom: 6px;
+		}
+		
+		& .label {
+			font-weight: bold;
+			width: 102px;
+		}
+		
+		& .optional_msg {
+			padding-left: 12px;
+			color: #878787;
+		}
+	}
+	
+	& .continue_btns_container {
+		float: right;
+		margin-top: 40px;
+		
+		& span.right_btn {
+			padding-left: 6px;
+		}
+	}
+	
+}

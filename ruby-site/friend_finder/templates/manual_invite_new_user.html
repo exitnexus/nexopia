@@ -1,0 +1,19 @@
+<t:template>
+	<t:if t:id="invites_found < 0">
+		<div id="friend_finder_notification">
+			<div class="message">
+				We didn't find any eligible contacts on that account.
+			</div>
+		</div>
+	</t:if>
+	<div id="find_friends">
+		<div class="header">
+			Invite Friends
+		</div>
+
+		<a href="/my/profile" class="skip_link">Skip</a>
+		<br class="clear" />
+
+		<t:template-include t:module="friend_finder" t:name="manual_invite_body"/>
+	</div>
+</t:template>

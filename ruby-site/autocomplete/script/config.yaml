@@ -1,0 +1,4 @@
+--- !ruby/object:JavascriptConfig 
+yui_require:
+- datasource
+- autocomplete

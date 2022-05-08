@@ -6,10 +6,15 @@
 
 	if(!$mods->isadmin($userData['userid'],"polls"))
 		die("Permission denied");
-
+		
 	switch($action){
 		case "add":
-			addPoll();
+			$questions = getGETval('question');
+			$answers = getGETval('answers', 'array');
+			if ($questions && $answers)
+				addPoll($questions, $answers);
+			else
+				addPoll();
 			break;
 
 		case "Add Poll":
@@ -18,7 +23,7 @@
 			$answers = getPOSTval('answers', 'array');
 
 			if($question && $answers){
-				if(!$polls->addPoll($question, $answers, true))
+				if(!$polls->addPoll($question, $answers, true, true))
 					addPoll($question, $answers);
 
 				$mods->adminlog("add poll","Add poll: $question");
@@ -99,7 +104,7 @@ function addPoll($question = "", $answers = array(), $numAnswers = 4){
 		$numAnswers = 10;
 
 	echo "<form action=$_SERVER[PHP_SELF] method=post><table align=center id=mytable>";
-	echo "<tr><td colspan=2 class=header align=center>Suggest a Poll</td></tr>";
+	echo "<tr><td colspan=2 class=header align=center>Add a Poll</td></tr>";
 	echo "<tr><td class=body>Question:</td><td class=body><input class=body type=text size=40 name=question maxlength=128 value=\"" . htmlentities($question) . "\"></td></tr>";
 
 	echo "<tr><td class=body>Answers:</td><td class=body align=right><input class=body type=text size=30 name=answers[] maxlength=64 value=\"" . htmlentities($answers[0]) . "\"></td></tr>";

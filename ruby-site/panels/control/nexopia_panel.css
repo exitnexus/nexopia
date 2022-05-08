@@ -1,0 +1,29 @@
+#nexopia_panel_mask {
+	background-color: #000000;
+	opacity: 0.8;
+}
+
+#nexopia_panel {
+	background-color: transparent;
+	border: 0px;
+	margin-left: auto;
+	margin-right: auto;
+	
+	& .bd {
+		padding: 0px;
+		& div {
+			background-color: #ffffff;
+			color: #000000;
+		}
+		& a {
+			color: #ee2b7b;
+
+			&:hover {
+				color: #516068;
+			}
+		}
+	}
+	& #nexopia_panel_spinner {
+		background-color: transparent;
+	}
+}

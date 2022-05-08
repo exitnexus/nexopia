@@ -28,31 +28,31 @@ YAHOO.profile.DraggableBlock = function(id, handleID, noDrag, profileDisplayBloc
 	{
 		this.setHandleElId(handleID);
 		Dom.setStyle(handleID, "cursor", "move");
-		
+	
 		if (noDrag == null) { noDrag = false; } 
 
 		if (!noDrag)
 		{
 			// Build overlay to show an indication that the object in question can be dragged and dropped.
 			var overlay = new YAHOO.widget.Overlay("overlay", { height: 22, width: 22, visible: false });
-		
+	
 			overlay.setBody("<div style='background-color: white; border-width: 1px; border-style: solid; width: 20px; height: 20px; overflow: hidden'><img src='" +
 				Site.staticFilesURL + 
 				"/profile/images/icon_movable.gif' width='20px' height='20px'/></div>");
-		
+	
 			overlay.render(document.body);
-		
+	
 			function overlayOn(e, obj)
 			{
 				obj.cfg.setProperty("context", [id, "tl", "tl"]);
 				obj.cfg.setProperty("visible", true);
 			}
-		
+	
 			function overlayOff(e, obj)
 			{
 				obj.cfg.setProperty("visible", false);
 			}
-		
+	
 			YAHOO.util.Event.addListener(handleID, "mouseover", overlayOn, overlay);
 			YAHOO.util.Event.addListener(handleID, "mouseout", overlayOff, overlay);
 		}
@@ -89,16 +89,14 @@ YAHOO.extend(YAHOO.profile.DraggableBlock, YAHOO.util.DDProxy, {
 		Dom.setStyle(clickEl, "visibility", "hidden");
 
 		dragEl.innerHTML = clickEl.innerHTML;
+		dragEl.className = clickEl.className;
+		clickEl.parentNode.appendChild(dragEl);
 
-		Dom.setStyle(dragEl, "color", Dom.getStyle(clickEl, "color"));
-		Dom.setStyle(dragEl, "backgroundColor", Dom.getStyle(clickEl, "backgroundColor"));
-		Dom.setStyle(dragEl, "border", "2px solid gray");
-		Dom.setStyle(dragEl, "text-align", Dom.getStyle(clickEl, "text-align"));
-		Dom.setStyle(dragEl, "font-size", Dom.getStyle(clickEl, "font-size"));
-		Dom.setStyle(dragEl, "padding-left", Dom.getStyle(clickEl, "padding-left"));
-		Dom.setStyle(dragEl, "padding-top", Dom.getStyle(clickEl, "padding-top"));
-
+		Dom.addClass(dragEl, "drag_block");
+				
 		this.fireDragListeners(clickEl);
+		
+		YAHOO.profile.DraggableBlockMgr.resizeColumnBottomMarkers(dragEl.offsetHeight);
 	},
 
 
@@ -133,12 +131,27 @@ YAHOO.extend(YAHOO.profile.DraggableBlock, YAHOO.util.DDProxy, {
 			});
 		a.animate();
 
+		var glassDiv = Dom.getElementsByClassName("glass_div", "div", srcEl)[0];
+		if (glassDiv)
+		{
+			Dom.setStyle(glassDiv, "width", srcEl.offsetWidth + "px");
+			Dom.setStyle(glassDiv, "height", srcEl.offsetHeight + "px");
+		}
+
+		var glassIframe = Dom.getElementsByClassName("glass_iframe", "iframe", srcEl)[0];
+		if (glassIframe)
+		{
+			Dom.setStyle(glassIframe, "width", srcEl.offsetWidth + "px");
+			Dom.setStyle(glassIframe, "height", srcEl.offsetHeight + "px");
+		}
+
 		// At the end of the drag, we no longer need a visual cue as to where the
 		// block can be dropped, so we hide the drop spot border.
 		this.dropSpotBorder.cfg.setProperty("visible", false);
 		
 		this.fireDragListeners(this.getEl());
 		this.saveDrop(srcEl);
+		YAHOO.profile.DraggableBlockMgr.resizeColumnBottomMarkers();	
 	},
 
 
@@ -185,28 +198,35 @@ YAHOO.extend(YAHOO.profile.DraggableBlock, YAHOO.util.DDProxy, {
 			// Particularly, we are only concerned with "block_container" items
 			// Note: This will need to be changed to whatever the actual class
 			// of the div blocks is.
-			if (destEl.className.toLowerCase() == "block_container")
+			if (YAHOO.util.Dom.hasClass(destEl, "block_container"))
 			{
 				if (this.profileDisplayBlock.form_factor() == "both" ||
 					this.profileDisplayBlock.form_factor() == this.columnFormFactor(destEl))
 				{
-					if (this.goingUp)
+					if (ProfileDisplayBlock.getBlockById(id).moveable())
 					{
-						p.insertBefore(srcEl, destEl); // insert above
-					} 
-					else 
+						if (this.goingUp)
+						{
+							p.insertBefore(srcEl, destEl); // insert above
+						} 
+						else 
+						{
+							p.insertBefore(srcEl, destEl.nextSibling); // insert below
+						}
+			
+						this.fireDragListeners(destEl);
+						this.fireDragListeners(this.getDragEl());
+					}
+					else if (YAHOO.util.Dom.hasClass(destEl.nextSibling, "column_bottom_marker"))
 					{
 						p.insertBefore(srcEl, destEl.nextSibling); // insert below
 					}
-			
-					this.fireDragListeners(destEl);
-					this.fireDragListeners(this.getDragEl());
 				}
 			}
 			// Handle the case where there are no draggable blocks in a column, but we want
 			// to drag a block from another column into it. For this, we're putting invisible
 			// placeholder marker divs at the bottoms of the columns.
-			else if (destEl.className.toLowerCase() == "column_bottom_marker")
+			else if (YAHOO.util.Dom.hasClass(destEl, "column_bottom_marker"))
 			{
 				if (this.profileDisplayBlock.form_factor() == "both" ||
 					this.profileDisplayBlock.form_factor() == this.columnFormFactor(destEl))
@@ -226,7 +246,7 @@ YAHOO.extend(YAHOO.profile.DraggableBlock, YAHOO.util.DDProxy, {
 		var destColumn = this.getColumn(srcEl);
 		var destPosition = this.getPosition(srcEl);
 
-		var formKey1 = document.getElementById("profile_block_form_key").value;
+		//var formKey1 = document.getElementById("profile_block_form_key").value;
 		var formKey2 = document.getElementById("profile_form_key").value;
 		
 		YAHOO.util.Connect.asyncRequest('POST', "/my/profile/edit/" + srcBlockID + "/position", {
@@ -235,7 +255,7 @@ YAHOO.extend(YAHOO.profile.DraggableBlock, YAHOO.util.DDProxy, {
 			failure: function(o) {
 			},
 			scope: this
-		}, "ajax=true&column=" + destColumn + "&position=" + destPosition + "&form_key=" + formKey1 + "&form_key=" + formKey2);
+		}, "ajax=true&column=" + destColumn + "&position=" + destPosition + /*"&form_key[]=" + formKey1 +*/ "&form_key[]=" + formKey2);
 	},
 	
 	
@@ -274,7 +294,7 @@ YAHOO.extend(YAHOO.profile.DraggableBlock, YAHOO.util.DDProxy, {
 		{
 			position = position + 1;
 
-			if (currentEl.className == "block_container")
+			if (YAHOO.util.Dom.hasClass(currentEl, "block_container"))
 			{
 				currentEl = currentEl.previousSibling;
 			}
@@ -302,3 +322,35 @@ YAHOO.extend(YAHOO.profile.DraggableBlock, YAHOO.util.DDProxy, {
 		this.dragListeners.push([listener, object]);
 	}
 });
+
+
+YAHOO.profile.DraggableBlockMgr = 
+{
+	resizeColumnBottomMarkers: function(offset)
+	{
+		if (!offset) { offset = 10; }
+	
+		var leftBottomMarker = document.getElementById("column_bottom_marker_0");
+		var rightBottomMarker = document.getElementById("column_bottom_marker_1");
+	
+		var leftRegion = YAHOO.util.Region.getRegion(leftBottomMarker);
+		var rightRegion = YAHOO.util.Region.getRegion(rightBottomMarker);
+	
+		if (leftRegion.top > rightRegion.top)
+		{
+			YAHOO.util.Dom.setStyle(leftBottomMarker, "height", offset + "px");
+			var newHeight = leftRegion.top - rightRegion.top + offset;
+			if (newHeight < offset) { newHeight = offset };
+			YAHOO.util.Dom.setStyle(rightBottomMarker, "height", newHeight + "px");
+		
+		}
+		else if (rightRegion.top > leftRegion.top)
+		{
+			YAHOO.util.Dom.setStyle(rightBottomMarker, "height", offset + "px");
+			var newHeight = rightRegion.top - leftRegion.top + offset;
+			if (newHeight < 10) { newHeight = 10 };
+			YAHOO.util.Dom.setStyle(leftBottomMarker, "height", newHeight + "px");
+		
+		}
+	}
+};

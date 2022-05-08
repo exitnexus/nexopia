@@ -1,0 +1,111 @@
+#skin_contest_thumbs
+{
+	& .clear {
+		clear: both;
+	}
+
+	& .bold {
+		  font-weight: bold;
+	}
+
+	& .italic {
+		font-style: italic;
+	}
+	
+	& .big_text {
+		font-size: 16px;
+	}
+
+	& li {
+		margin-bottom: 6px;
+	}
+
+	& .page_wrapper1 {
+		text-align: center;
+		background-color: #eaeaea;
+	}
+
+	& .page_wrapper2 {
+		width: 800px;
+		margin: 0px auto 0px auto;
+		padding: 0px;
+		background: url($static_files_url/Vote/images/skin_header.gif) no-repeat top center;
+		background-color: #fff;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+		color: #2d2d2d;
+		text-align: left;
+	}
+
+	& .content_container {
+		padding: 160px 100px 50px 100px;
+		width: 600px;	
+	}
+	
+	& .short_content {
+		height: 300px;
+	}
+
+	& .content_container p {
+		margin-bottom: 18px;	
+	}
+	
+	& .entry_container {
+		padding-bottom: 40px;
+	
+		& div.vote_button,
+		div.username {
+			float: left;
+		}
+	
+		& div.vote_button {
+			padding: 6px 6px 0px 0px;
+		}
+	
+		& div.username {
+			padding: 5px 0px 0px 0px;
+		}
+	
+		& div.vote_button input.entry_button {
+			padding: 0px;
+			margin: 0px;
+			border: 0;
+		}
+	
+	}
+
+	& div.content_container a:link, div.content_container a:visited {
+		text-decoration: none;
+		color: #ed2c8c;
+		font-weight: bold;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+	}
+
+	& div.content_container a:hover {
+		text-decoration: none;
+		color: #636467;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+	}
+
+	& div.content_container h2 {
+		  font-size: 12pt;
+		  font-weight: bolder;
+		  color: #000;
+	}
+
+	& div.content_container h2 a:link, div.content_container h2 a:visited {
+		text-decoration: none;
+		color: #ed2c8c;
+		font-size: 12pt;
+		font-weight: bolder;
+	}
+
+	& div.content_container h2 a:hover {
+		text-decoration: none;
+		color: #636467;
+		font-size: 12pt;
+		font-weight: bolder;
+	}
+}

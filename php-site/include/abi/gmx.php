@@ -11,14 +11,15 @@ WWW: http://www.octazen.com
 Email: support@octazen.com
 V: 1.1
 ********************************************************************************/
-include_once("abimporter.php");
+//include_once(dirname(__FILE__).'/abimporter.php');
+if (!defined('__ABI')) die('Please include abi.php to use this importer!');
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //GmxImporter
 /////////////////////////////////////////////////////////////////////////////////////////
 class GmxImporter extends WebRequestor {
  
- 	var $DETAIL_REGEX = "/CUSTOMERNO=(\\d+).*?&t=([^&]+)/ims";
+ 	var $DETAIL_REGEX = "/CUSTOMERNO=(\\d+).*?&(?:amp;)?t=([^&]+)/ims";
 
 	function logout () 
 	{
@@ -33,20 +34,25 @@ class GmxImporter extends WebRequestor {
 		$form->addField("EXT2", "");
 		$form->addField("id", $loginemail);
 		$form->addField("p", $password);
+		$form->addField("_authtrkcde", "{#TRKCDE#}");
 		$postData = $form->buildPostData();
 		$html = $this->httpPost("http://service.gmx.net/de/cgi/login", $postData);
 		if (strpos($html, 'Diese Kennung wurde vom Systembetreiber gesperrt')!=false) {
 		 	$this->close();
 			return abi_set_error(_ABI_AUTHENTICATION_FAILED,'Account closed by system operator');
 		}
-		if (strpos($html, '<div class="error">')!=false) {
+		if (strpos($html, '<div class="error">')!=false ||
+			strpos($html, 'errormodule')!=false) {
 		 	$this->close();
 			return abi_set_error(_ABI_AUTHENTICATION_FAILED,'Bad user name or password');
 		}
 
         if (preg_match($this->DETAIL_REGEX,$this->lastUrl,$matches)==0) {
-		 	$this->close();
-			return abi_set_error(_ABI_FAILED,'Cannot find CUSTOMERNO and t');
+         	//The last url may not be pointing to mainbox, but it may be an advertisement.
+	        if (preg_match($this->DETAIL_REGEX,$html,$matches)==0) {
+			 	$this->close();
+				return abi_set_error(_ABI_FAILED,'Cannot find CUSTOMERNO and t');
+	        }
 		}
 
 		$customerNo = urldecode($matches[1]);
@@ -76,8 +82,8 @@ class GmxImporter extends WebRequestor {
 		
 
 	 	$this->close();
-	 	*/
 		return $res;
+	 	*/
 	}	
 	
 	function fetchContacts ($loginemail, $password) {

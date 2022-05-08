@@ -10,11 +10,11 @@ module Core
 		# this passes requests to the area Skeleton into the appropriate
 		# skeleton for the current request
 		def current(remain)
-			rewrite(request.method, url/request.skeleton/remain, params.to_hash, :Skeleton)
+			rewrite(request.method, url/request.skeleton/remain, nil, :Skeleton)
 		end
 		
 		def default(remain)
-			rewrite(request.method, url/$site.default_skeleton/remain, params.to_hash, :Skeleton)
+			rewrite(request.method, url/$site.default_skeleton/remain, nil, :Skeleton)
 		end
 	end
 end

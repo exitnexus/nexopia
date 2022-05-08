@@ -1,0 +1,73 @@
+<div id="blog">
+	<div class="blog_container">
+		<t:template-include t:module="blogs" t:name="blog_header"/>      
+		
+		<t:if t:id="!blog_post_list.nil?() && !blog_post_list.empty?">
+			<div class="paging_container">
+				<div class="sequential_accessors">
+					<t:if t:id="show_prev_page">
+						<a href="/users/%{blog_user.username}/blog/friends?first=%{prev_page_get_param}">
+							&#60;Newer
+						</a>
+					</t:if>
+					<t:if t:id="show_next_page">
+						<a href="/users/%{blog_user.username}/blog/friends?last=%{next_page_get_param}">
+							Older&#62;
+						</a>
+					</t:if>
+				</div>
+				<br class="clear"/>
+			</div>
+		</t:if>
+		<div class="block_container">
+			<t:iter t:id="blog_post_list" t:iter="blog_post">
+				<t:template-include t:module="blogs" t:name="blog_friend_entry"/>
+			</t:iter>
+			<t:if t:id="blog_post_list.nil?() || blog_post_list.empty?()">
+				<t:if t:id="blog_user == viewing_user">
+					<div class="blog_empty_wrapper">
+						<div class="empty_alert">
+							You have no friends entries!
+						</div>
+						Find and add your friends to see some.
+						<br />
+						<form method="get" action="/my/friends/find">
+							<span class="custom_button yui-button yui-button-button empty_blog_button">
+								<span class="first-child">
+									<button type="submit">
+										+ Add Friends
+									</button>
+								</span>
+							</span>
+						</form>
+					</div>
+				</t:if>
+			</t:if>
+		</div>
+		
+		<t:if t:id="!blog_post_list.nil?() && !blog_post_list.empty?">
+			<div class="paging_container">
+				<div class="sequential_accessors">
+					<t:if t:id="show_prev_page">
+					<a href="/users/%{blog_user.username}/blog/friends?first=%{prev_page_get_param}">
+						&#60;Newer
+					</a>
+					</t:if>
+					<t:if t:id="show_next_page">
+						<a href="/users/%{blog_user.username}/blog/friends?last=%{next_page_get_param}">
+							Older&#62;
+						</a>
+					</t:if>
+				</div>
+				<br class="clear"/>
+			</div>
+		</t:if>
+		<t:json t:data="navigation_list" t:handle="navigation_list" />
+		<input type="hidden" name="viewer_navigation_form_key" id="viewer_navigation_form_key" value="{viewer_navigation_form_key}"></input>
+	</div>
+	<script>
+		// Needs to be included on the page so that the collapsing elements don't flash closed after
+		// the page is drawn.
+		YAHOO.blog.BlogView.initializePostCollapsing();
+	</script>
+</div>

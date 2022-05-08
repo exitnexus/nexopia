@@ -1,0 +1,22 @@
+<t:template>
+	<t:if t:id="friends_added > 0">
+		<div id="friend_finder_notification">
+			<h2>
+				<t:if t:id="friends_added > 1">
+					{friends_added} Friends Added
+				</t:if>
+				<t:if t:id="friends_added == 1">
+					{friends_added} Friend Added
+				</t:if>
+			</h2>
+		</div>
+	</t:if>
+	<t:if t:id="friends_added < 0">
+	<div id="friend_finder_notification">
+		We did not find any contacts on Nexopia from that account.
+	</div>
+	</t:if>
+	<div id="find_friends">
+		<t:template-include t:module="friend_finder" t:name="invite_results_body"></t:template-include>
+	</div>
+</t:template>

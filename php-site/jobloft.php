@@ -34,7 +34,7 @@
 		$bodyname = strtoupper(substr(base_convert(md5(gettime()), 16, 36), 0, 8));
 
 	echo "if(self==top){\n";
-		if($userData['limitads']){ //plus always has the small header
+		if($userData['limitads'] && $userData['premium']){ //plus always has the small header
 			echo "h=60;\n";
 		}else{
 			echo "s=getWindowSize();\n";

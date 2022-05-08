@@ -8,20 +8,35 @@
 	$section = getREQval('section');
 	$id = getREQval('id', 'int');
 	$uid = getREQval('uid', 'int', 0);
+	$reasonBody = getREQval('reasonBody', 'string', '');
+	$link = getREQval('link', 'string', '');
 
 	if($action == "Report" && $id && ($reason = getPOSTval('reason')) && $type){
 
 		if($reasonid = getREQval('reasonid', 'int'))
-			$reason = $abuselog->reasons[$reasonid] . "\n\n$reason";
+			$reasonText = $abuselog->reasons[$reasonid];
+		if($link != '')
+		{
+			// url encode the link
+			$link = str_replace("http://".$wwwdomain, "", $link);
+			$linkParts = split("/", $link);
+			$encodedLinkParts = array();
+			foreach ($linkParts as $linkPart) {
+				$encodedLinkParts[] = urlencode($linkPart);
+			}
+			$link = "http://".$wwwdomain.implode("/", $encodedLinkParts);
+		
+			$reasonText .= ": <a href='$link' class='body'>$link</a>";
+		}
+		
+		$reasonText .= "\n\n$reason";
 
-		$reason2 = removeHTML($reason);
-		$reason2 = parseHTML($reason2);
-		$reason2 = nl2br($reason2);
-
+		$reasonText = cleanHTML($reasonText);
+		$reasonText = parseHTML($reasonText);
 
 		switch($type){
 			case MOD_USERABUSE:
-				$abuselogid = $abuselog->addAbuse($id, ABUSE_ACTION_USER_REPORT, $reasonid, "User Reported", $reason);
+				$abuselogid = $abuselog->addAbuse($id, ABUSE_ACTION_USER_REPORT, $reasonid, "User Reported", $reasonText);
 				break;
 
 			case MOD_FORUMPOST:
@@ -41,7 +56,7 @@
 
 		}
 
-		$db->prepare_query("INSERT INTO abuse SET itemid = #, reason = ?, userid = #, type = ?, time = #, abuselogid = #", $id, $reason2, $userData['userid'], $type, time(), $abuselogid);
+		$db->prepare_query("INSERT INTO abuse SET itemid = #, reason = ?, userid = #, type = ?, time = #, abuselogid = #", $id, $reasonText, $userData['userid'], $type, time(), $abuselogid);
 
 		$mods->newSplitItem($type, array($uid => $id));
 
@@ -120,5 +135,7 @@
 		'section'		=> $section,
 		'id'			=> $id,
 		'uid'			=> $uid,
+		'reasonBody'	=> $reasonBody,
+		'link'			=> $link,
 	));
 	$template->display();

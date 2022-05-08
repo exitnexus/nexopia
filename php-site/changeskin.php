@@ -2,6 +2,12 @@
 
 	$login=0;
 	$simplepage = 1;
+	$deprecated_skins = array(
+		"orange",
+		"halloween",
+		"newflowers",
+		"verypink"
+	);
 
 	require_once("include/general.lib.php");
 
@@ -39,6 +45,9 @@ function chooseSkin(name){
 	}
 
 	foreach($skins as $name => $skin){
+		if (array_intersect(array($name), $deprecated_skins)) {
+			continue;
+		}
 		if($i % $cols == 0)
 			echo "<tr>";
 		echo "<td class=body align=center>";

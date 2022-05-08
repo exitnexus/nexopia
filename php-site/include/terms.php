@@ -33,7 +33,7 @@ BY PARTICIPATING IN ANY OFFLINE NEXOPIA EVENT, YOU AGREE TO RELEASE AND HOLD NEX
 
 ELIGIBILITY
 
-In order to register as a member of Nexopia or use this site you must be <font style='background-color: yellow'>OVER THE AGE OF 18</font> or <font style='background-color: yellow'>BE OVER THE AGE OF 14</font> AND <font style='background-color: yellow'>OBTAIN PERMISSION FROM YOUR PARENT OR LEGAL GUARDIAN WHO ACCEPTS THE TERMS OF THIS AGREEMENT</font>. Membership is void where prohibited. By using Nexopia you represent and warrant that you have the right, authority and capacity to enter into this Agreement and to abide by all of the terms and conditions contained within this Agreement.
+In order to register as a member of Nexopia or use this site you must be <font style='background-color: yellow'>OVER THE AGE OF 18</font> or <font style='background-color: yellow'>BE OVER THE AGE OF 13</font> AND <font style='background-color: yellow'>OBTAIN PERMISSION FROM YOUR PARENT OR LEGAL GUARDIAN WHO ACCEPTS THE TERMS OF THIS AGREEMENT</font>. Membership is void where prohibited. By using Nexopia you represent and warrant that you have the right, authority and capacity to enter into this Agreement and to abide by all of the terms and conditions contained within this Agreement.
 
 
 STATUS OF PARTIES
@@ -113,12 +113,13 @@ Nexopia may amend these Website Terms of Use at any time. Accordingly, you shoul
 function getterms(){
 
 return <<<END
+
 <b>Abbreviated Terms of Use (the "Terms")</b>
-<font color=#0000FF>The following is provided as a summary of Nexopia.com Inc.'s Terms and is not legally binding. If you intend to access this site or use the Services you must read the legally binding version of the Terms immediately following  these Abbreviated Terms of Use or alternatively you can view them at <a class=terms href=/terms.php#legal>www.nexopia.com/terms.php#legal</a>.</font>
+The following is provided as a summary of Nexopia.com Inc.'s Terms and is not legally binding. If you intend to access this site or use the Services you must read the legally binding version of the Terms immediately following  these Abbreviated Terms of Use or alternatively you can view them at <a class="body" href="/terms.php#legal">www.nexopia.com/terms.php#legal</a>.
 
 You must agree to abide by the following Terms to use the Services.
 
-You must be at LEAST 18 YEARS OF AGE, OR BE AT LEAST 14 YEARS OF AGE AND HAVE EITHER YOUR PARENT'S OR GUARDIAN'S PERMISSION, to access the Nexopia.com website or use the Services of Nexopia.com Inc. ("Nexopia"). 
+You must be at LEAST 18 YEARS OF AGE, OR BE AT LEAST 13 YEARS OF AGE AND HAVE EITHER YOUR PARENT'S OR GUARDIAN'S PERMISSION, to access the Nexopia.com website or use the Services of Nexopia.com Inc. ("Nexopia"). 
 
 Protect your password. You should not give it to anyone, directly or indirectly, other than to a parent or guardian. Nexopia will not be held responsible for anything that happens to your account due to a shared, lost or stolen password. 
 
@@ -149,24 +150,24 @@ Any user found in violation of these Terms may have their account terminated and
 
 <a name=legal></a><b>TERMS OF USE FOR NEXOPIA.COM</b>
 
-These Terms of Use ("Terms") were last updated on June 11, 2007.
+These Terms of Use ("Terms") were last updated on June 4, 2008.
 
 <b>Acceptance of Terms</b>
-By accessing the Nexopia.com Inc. ("Nexopia.") website (including all Content available on or through the Nexopia.com domain name, the "Website" or "Nexopia.com Website") or using the features, applications and services offered by Nexopia.com on the Website (the "Nexopia Services" or "Services") you agree and acknowledge to be bound by these Terms of Service ("Terms") and the terms and conditions of Nexopia.com's privacy policy, which are published at <a class=terms href=/privacy.php>www.nexopia.com/privacy.php</a> (the "Privacy Policy"), and which are incorporated into these Terms by this reference. If you do not agree to these Terms or to our Privacy Policy, please do not access the Website or use the Services. Nexopia.com reserves the right to change these Terms at any time. Nexopia.com reserves the right to amend the Terms at any time.  Your continued access to and use of the Website or the Services, or both, after we amend the Terms will mean that you agree with the Terms as amended. We recommend that you periodically check this Website for amendments to the Terms.  
+By accessing the Nexopia.com Inc. ("Nexopia.") website (including all Content available on or through the Nexopia.com domain name, the "Website" or "Nexopia.com Website") or using the features, applications and services offered by Nexopia.com on the Website (the "Nexopia Services" or "Services") you agree and acknowledge to be bound by these Terms of Service ("Terms") and the terms and conditions of Nexopia.com's privacy policy, which are published at <a class=body href=/privacy.php>www.nexopia.com/privacy.php</a> (the "Privacy Policy"), and which are incorporated into these Terms by this reference. If you do not agree to these Terms or to our Privacy Policy, please do not access the Website or use the Services. Nexopia.com reserves the right to change these Terms at any time. Nexopia.com reserves the right to amend the Terms at any time.  Your continued access to and use of the Website or the Services, or both, after we amend the Terms will mean that you agree with the Terms as amended. We recommend that you periodically check this Website for amendments to the Terms.  
 
 
 <b>Membership and Eligibility</b>
 
 Nexopia.com is a social networking service that allows those individuals who register to become members to receive the Nexopia Services (the "Members") and to create unique personal profiles online in order to find and communicate with friends.  If you wish to become a Member, communicate with other Members and make use of the Nexopia Services, you must read these Terms and communicate your acceptance of these Terms (which also includes any other terms and conditions associated with your use of the Nexopia Services for which you have subscribed during or any time following the Member registration process). 
 
-In order to register as a Member of Nexopia.com or access and use this Website you must be OVER THE AGE OF 18 OR BE OVER THE AGE OF 14 AND OBTAIN PERMISSION FOR USE OF THE SERVICES FROM A PARENT OR LEGAL GUARDIAN WHO ACCEPTS THE TERMS AND CONDITIONS OF THESE TERMS.  By using the Website or the Services you represent and warrant that you are at least 18 years old or that you are the parent or legal guardian of a person that is 14 years of age or older that is accessing the Nexopia Website or receiving Nexopia Services, and you have the right, authority and capacity to enter into and abide by all of these Terms.  Your profile may be deleted and membership may be terminated without warning, if we have reason to believe that you are less than 14 years of age.  
+In order to register as a Member of Nexopia.com or access and use this Website you must be OVER THE AGE OF 18 OR BE OVER THE AGE OF 13 AND OBTAIN PERMISSION FOR USE OF THE SERVICES FROM A PARENT OR LEGAL GUARDIAN WHO ACCEPTS THE TERMS AND CONDITIONS OF THESE TERMS.  By using the Website or the Services you represent and warrant that you are at least 18 years old or that you are the parent or legal guardian of a person that is 13 years of age or older that is accessing the Nexopia Website or receiving Nexopia Services, and you have the right, authority and capacity to enter into and abide by all of these Terms.  Your profile may be deleted and membership may be terminated without warning, if we have reason to believe that you are less than 13 years of age.  
 
-Throughout these Terms the terms "us", "we" and "our" refer to Nexopia.com Inc., including its successors and assigns; the terms "your" and "you" refer to the individual that has accepted these Terms, and includes any user operating under your Membership ID and password, or in the case where the person accessing the Nexopia Website or receiving Nexopia Services is 14 or older, but younger than 18, "you" refers to such person and his or her parent or legal guardian.  As a parent or legal guardian, you agree to be responsible for any act or omission of any user older than 14 but younger than 18 that you permit to access and use the Nexopia Website or receive the Nexopia Services, or both.
+Throughout these Terms the terms "us", "we" and "our" refer to Nexopia.com Inc., including its successors and assigns; the terms "your" and "you" refer to the individual that has accepted these Terms, and includes any user operating under your Membership ID and password, or in the case where the person accessing the Nexopia Website or receiving Nexopia Services is 13 or older, but younger than 18, "you" refers to such person and his or her parent or legal guardian.  As a parent or legal guardian, you agree to be responsible for any act or omission of any user older than 13 but younger than 18 that you permit to access and use the Nexopia Website or receive the Nexopia Services, or both.
 
 
 <b>Password</b>
 
-When you sign up to become a Member, you will be asked to choose a username and password.  You are entirely responsible for maintaining the confidentiality of your password.  You agree not to use the account, user name or password of another Member at any time or to disclose your password to any other person (except a parent or guardian if you are a user 14 years of age or older and less than 18 years old).  You agree to notify Nexopia.com immediately if you suspect any unauthorized use of your account or access to your password.  You agree to hold Nexopia.com harmless for any damage arising from a third party accessing the Services using a password you disclosed, lost, had stolen, etc.)
+When you sign up to become a Member, you will be asked to choose a username and password.  You are entirely responsible for maintaining the confidentiality of your password.  You agree not to use the account, user name or password of another Member at any time or to disclose your password to any other person (except a parent or guardian if you are a user 13 years of age or older and less than 18 years old).  You agree to notify Nexopia.com immediately if you suspect any unauthorized use of your account or access to your password.  You agree to hold Nexopia.com harmless for any damage arising from a third party accessing the Services using a password you disclosed, lost, had stolen, etc.)
 
 
 <b>Non-Commercial Use by Members</b>
@@ -195,6 +196,10 @@ Nexopia.com hereby grants you a limited, revocable, non-sublicensable license to
 <b><i>Third Party Content</i></b>
 
 The Nexopia Services and Nexopia Website may also contain text, files, images, designs, graphics, photos, video, sounds, musical works, page layouts, works of authorship, or any other materials of other Nexopia.com licensors, suppliers or advertisers ("Third Party Content").  Except for Your Content and as otherwise expressly stated in these Terms, you may not copy, modify, translate, publish, broadcast, transmit, distribute, perform, display, or sell or otherwise distribute, any Content appearing on or through the Nexopia Services.  For the purpose of these Terms, "Content" refers to Your Content, Nexopia.com Content and Third Party Content.
+
+<b>Copyright Policy</b>
+
+Nexopia.com respects the intellectual property rights of others and we prohibit users from uploading, posting or otherwise transmitting on the Nexopia Website or Nexopia Service any text, files, images, designs, graphics, photos, video, sounds, musical works, page layouts, works of authorship, or any other content that violates another party's intellectual property rights. According to the Digital Millennium Copyright Act, all notifications of alleged copyright infringements will result in the immediate removal of the content and the termination of the account of repeat offenders.  You may submit any notice of alleged copyright infringement by contacting our <a class=body href=/content/dmca>Designated Agent</a>.
 
 
 <b>Monitoring Content</b>
@@ -311,9 +316,8 @@ You do not have the right to assign these Terms or any of your rights to the Ser
 
 These Terms constitute the entire agreement between you and Nexopia.com regarding the use of the Nexopia Services and the Website.  The failure of Nexopia.com to exercise or enforce any right or provision of these Terms shall not operate as a waiver of such right or provision.  The section titles in the Terms are for convenience only and have no legal or contractual effect.  If any provision of these Terms is unlawful, void or unenforceable, that provision is deemed severable from the Terms and does not affect the validity and enforceability of any remaining provisions.  
 
-Please contact us at <a class=terms href=mailto:webmaster@nexopia.com>webmaster@nexopia.com</a> with any questions you may have regarding these Terms.
+Please contact us at <a class=body href=mailto:webmaster@nexopia.com>webmaster@nexopia.com</a> with any questions you may have regarding these Terms.
 
-<style>a.terms {color: #0000FF }</style>
 END;
 }
 //*/

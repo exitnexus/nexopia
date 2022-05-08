@@ -1,0 +1,50 @@
+.control_bar {
+	& .paging_buttons {
+		position: relative;
+		float: right;
+		margin-top: 0px;
+		& a {
+			&.page_backward {
+				right: 20px;
+			}
+			&.page_forward {
+				right: 3px;
+			}
+			position: absolute;
+			color: $link_color;
+			&:hover {
+				color: $link_accent_color;
+			}
+			& img {
+				border: 0px;
+			}
+			margin: 5px;
+		}
+	}
+	& .page_list {
+		text-align: center !important;
+		margin:auto;
+		& img, canvas {
+			display: inline;
+			margin: 6px 2px;
+		}
+	}
+}
+
+.paginator {
+/*	overflow: hidden;*/
+	position: relative;
+}
+
+.strike_zone_left {
+	background-position: center center;
+	background-repeat: no-repeat;
+	background-color: transparent;
+	background-image: url("$static_files_url/Core/images/arrow_left.gif");
+}
+.strike_zone_right {
+	background-position: center center;
+	background-repeat: no-repeat;
+	background-color: transparent;
+	background-image: url("$static_files_url/Core/images/arrow_right.gif");
+}

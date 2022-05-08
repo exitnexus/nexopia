@@ -1,0 +1,19 @@
+#help_panel {
+	width: 200px;
+	border: 1px solid #FFCC33;
+	background-color: #FFFF99;
+	padding: 6px;
+	font-size: 11px;
+	text-align: left;
+	& h1 {
+		font-size: 12px;
+		margin: 0px 0px 6px;
+		padding: 0px;
+	}
+	& a {
+		float: right;
+		& img {
+			border: 0px;
+		}
+	}
+}

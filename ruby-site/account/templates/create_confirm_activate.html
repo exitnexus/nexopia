@@ -1,0 +1,12 @@
+<div>
+	<p>
+		Congratulations! You've finished setting up your new account. If you want to edit your profile in more detail,&#160; 
+		<a href="#{$site.www_url}/my/profile/edit">click here</a>. You can find out more about using Nexopia.com in
+		the&#160; <a href="#{$site.www_url}/help">help section</a>. Once you've activated you can search for your friends on Nexopia, or
+		 invite friends to join Nexopia.
+		
+		<t:if t:id="PageRequest.current.session.user.nil? || !PageRequest.current.session.user.activated?">
+			&#160;Activating will allow you to use all the features!
+		</t:if>
+	</p>
+</div>

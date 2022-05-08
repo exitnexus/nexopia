@@ -1,50 +1,109 @@
 FriendFinder = {
-	init: function() {
-		YAHOO.util.Dom.getElementsByClassName('more_info', null, 'email_import', function(element) {
-			new Revealer(element, null, {toggleInnerHTML: ""});
-		});
-		this.lastEmailRow = YAHOO.util.Dom.get('search_email_row_1');
-		this.newEmailRow = this.lastEmailRow.cloneNode(true);
-		YAHOO.util.Event.on('add_email_row', 'click', this.addEmailRow, this, true);
-		YAHOO.util.Event.on('remove_email_row_1', 'click', this.removeEmailRow, this, true);
-	},
-	addEmailRow: function(event) {
-		if (event) {
-			YAHOO.util.Event.preventDefault(event);
-		}
+	update_checkbox: function(checkbox_value)
+	{		
+		var checkbox_list = YAHOO.util.Dom.getElementsByClassName("friend_add_result", "input", "find_friends", null);
 		
-		
-		var row_id_parts = (this.lastEmailRow.attributes['id'].value).split('_');
-		var id_number = row_id_parts[3];
-		
-		id_number = parseInt(id_number) + 1;
-		
-		var new_row  = this.newEmailRow.cloneNode(true);
-		new_row.attributes['id'].value = ("search_email_row").concat("_", id_number);
-		new_row.value = "";
-		var column = YAHOO.util.Dom.getLastChild(new_row);
-		var link = YAHOO.util.Dom.getLastChild(column);
-		
-		link.attributes['id'].value = "remove_email_row_".concat(id_number);
-		this.lastEmailRow = this.lastEmailRow.parentNode.insertBefore(new_row, this.lastEmailRow.nextSibling);
-		YAHOO.util.Event.on("remove_email_row_".concat(id_number), 'click', this.removeEmailRow, this, true);
-	},
-	removeEmailRow: function(event)	{
-		
-		if(event)
+		if(checkbox_list.length < 1)
 		{
-			YAHOO.util.Event.preventDefault(event);
+			checkbox_list = YAHOO.util.Dom.getElementsByClassName("invite_result", "input", "find_friends", null);
 		}
-		var target = YAHOO.util.Event.getTarget(event, true);
 		
-		var target_id_parts = target.attributes['id'].value.split('_');
-		var id_number = target_id_parts[3];
-		var search_row = YAHOO.util.Dom.get("search_email_row_".concat(id_number));
-		if(search_row.attributes['id'].value == this.lastEmailRow.attributes['id'].value){
-			this.lastEmailRow = search_row.previousSibling;
+		var i;
+		for(i=0; i<checkbox_list.length; i++)
+		{
+			checkbox_list[i].checked = checkbox_value;
 		}
-		search_row.parentNode.removeChild(search_row);
+	},
+	
+	add_invite_field: function()
+	{
+		var invite_container = document.getElementById("manual_invite");
+		
+		var i;
+		var temp;
+		var max_id = 0;
+		for(i=0; i<invite_container.childNodes.length; i++)
+		{
+			temp = invite_container.childNodes[i];
+			if(temp.id.match(/^manual_invite_\d{1,2}$/))
+			{
+				var temp_parts = temp.id.split("_");
+				var temp_id_num = parseInt(temp_parts[2], 10);
+				
+				if(temp_id_num > max_id)
+				{
+					max_id = temp_id_num;
+				}
+			}
+		}
+		
+		if(max_id == 19)
+		{
+			return;
+		}
+		
+		var new_input = document.createElement("input");
+		new_input.type = "text";
+		new_input.name = "manual_invite_" + (max_id+1);
+		new_input.id = new_input.name;
+		
+		invite_container.appendChild(new_input);
+		
+		invite_container.appendChild(document.createElement("br"));
+	},
+	
+	hotmail_override: function()
+	{
+		var email_input = document.getElementById("import_email");
+		var password_input = document.getElementById("import_password");
+		var password_input_live = document.getElementById("import_password_live");
+		email_parts = email_input.value.split("@");
+		if(email_parts.length != 2)
+		{
+			return;
+		}
+		
+		email_domain = email_parts[1];
+		if(email_domain.match(/^hotmail\.(com|fr|co\.uk){1}$/) || email_domain.match(/^live\.(com|ca|co\.uk|fr|com\.au|nl|jp){1}$/))
+		{
+			YAHOO.util.Dom.setStyle(password_input, 'display', 'none');
+			YAHOO.util.Dom.setStyle(password_input_live, 'display', 'block');
+		}
+		else
+		{
+			YAHOO.util.Dom.setStyle(password_input, 'display', 'block');
+			YAHOO.util.Dom.setStyle(password_input_live, 'display', 'none');
+		}
 	}
 };
 
-GlobalRegistry.register_handler('email_import', FriendFinder.init, FriendFinder, true);
+Overlord.assign({
+	minion: "friend_finder:select_all",
+	click: function(event, element){
+		YAHOO.util.Event.preventDefault(event);
+		FriendFinder.update_checkbox(true);
+	}
+});
+
+Overlord.assign({
+	minion: "friend_finder:select_none",
+	click: function(event, element){
+		YAHOO.util.Event.preventDefault(event);
+		FriendFinder.update_checkbox(false);
+	}
+});
+
+Overlord.assign({
+	minion: "friend_finder:add_invite_field",
+	click: function(event, element){
+		YAHOO.util.Event.preventDefault(event);
+		FriendFinder.add_invite_field();
+	}
+});
+
+Overlord.assign({
+	minion: "friend_finder:hotmail_override",
+	load: function(element){
+		YAHOO.util.Event.addListener(element, "keyup", FriendFinder.hotmail_override, this);
+	}
+});

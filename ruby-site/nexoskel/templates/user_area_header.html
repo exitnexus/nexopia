@@ -1,0 +1,28 @@
+<div id="user_area_header">
+	<div class="nav_secondary">
+		<t:if t:id="owner_view">
+			#{edit_control}
+		</t:if>
+	</div>
+	<div class="navigation">
+		<table cellpadding="0" cellspacing="0">
+			<tbody>
+				<tr>
+					<t:iter t:id="menu_items" t:iter="menu_item">
+						<td class="{menu_item.styles.join(' ')}">
+							<t:if t:id="menu_item.active">
+								<a href="{menu_item.link}">
+									{menu_item.title}
+								</a>
+							</t:if>
+							<t:if t:id="!menu_item.active">
+								{menu_item.title}
+							</t:if>
+						</td>
+					</t:iter>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<br class="clear"/>
+</div>

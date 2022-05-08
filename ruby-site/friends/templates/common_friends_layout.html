@@ -1,0 +1,16 @@
+<div id="friends_layout">
+	<div class="header">
+		<div class="header_picture"><img t:id="user" t:linktype="landscapemini" class="picture" /></div>
+
+		<div class="header_content">
+			<div class="username">{user.username}'s Friends in Common</div>
+		
+			<div class="friends_tabs">
+				<a href="#{PageRequest.current.area_base_uri}/friends/" class="first {friends}">Friends</a>
+			</div>
+		</div>
+		<div class="clearit"/>
+	</div>
+	
+	#{inner.display}
+</div>

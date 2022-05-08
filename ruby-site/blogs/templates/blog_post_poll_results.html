@@ -1,0 +1,23 @@
+<div id="blog_poll">
+<div class="blog_post">
+	
+	<div class="poll_container">
+		<div class="extra_content">
+			<img style="#{poll_blog.align_style}" src="#{poll_blog.link}"
+			 width="#{poll_blog.size_percent}"/>
+		</div>
+		
+		<t:loop t:id="answers" t:iter="answer">
+		{answer[1]}
+		<div id="result_bar" style="width: {answer[3]}px;"></div>
+		<div class="vote_number">{answer[2]}</div>
+		<br class="clear" />
+		</t:loop>
+	</div>
+	
+	<div class="total_votes">
+		({votes})
+	</div>
+	
+</div>
+</div>

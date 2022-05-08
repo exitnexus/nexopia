@@ -50,28 +50,28 @@ function censor($text){
 global $video_regexes;
 $video_regexes = array(
 	// youtube
-	'/(<object width="[0-9]+" height="[0-9]+"><param name="movie" value="http:\/\/www\.youtube\.com\/v\/([\w\-]+)(&rel=1)?"><\/param><param name="wmode" value="transparent"><\/param><embed src="http:\/\/www\.youtube\.com\/v\/[\w\-]+(&rel=1)?" type="application\/x\-shockwave\-flash" wmode="transparent" width="[0-9]+" height="[0-9]+"><\/embed><\/object>)/' => array('YouTube video', 'http://www.youtube.com/watch?v=%s'),
+	'/(<object width="[0-9]{1,3}" height="[0-9]{1,3}"><param name="movie" value="http:\/\/www\.youtube\.com\/v\/([\w\-]+)(&hl=\w\w)?(&fs=[01])?(&rel=[01])?(&color1=[0-9a-zA-Z]{1,8})?(&color2=[0-9a-zA-Z]{1,8})?(&border=[01])?"><\/param>(<param name="wmode" value="transparent"><\/param>)?(<param name="allowFullScreen" value="true"><\/param>)?<embed src="http:\/\/www\.youtube\.com\/v\/[\w\-]+(&hl=\w\w)?(&fs=[01])?(&rel=[01])?(&color1=[0-9a-zA-Z]{1,8})?(&color2=[0-9a-zA-Z]{1,8})?(&border=[01])?" type="application\/x\-shockwave\-flash" (wmode="transparent" )?(allowfullscreen="true" )?width="[0-9]{1,3}" height="[0-9]{1,3}"><\/embed><\/object>)/' => array('YouTube video', 'http://www.youtube.com/watch?v=%s'),
 
 	// break.com
-	'/(<object width="[0-9]+" height="[0-9]+"><param name="movie" value="(http:\/\/embed\.break\.com\/[\w=\/]+)"><\/param><embed src="http:\/\/embed\.break\.com\/[\w=\/]+" type="application\/x\-shockwave\-flash" width="[0-9]+" height="[0-9]+"><\/embed><\/object>)(?:<br><font.*?<\/font>)?/s' => array('Break.com video', '%s'),
+	'/(<object width="[0-9]{1,3}" height="[0-9]{1,3}"><param name="movie" value="(http:\/\/embed\.break\.com\/[\w=\/]+)"><\/param><embed src="http:\/\/embed\.break\.com\/[\w=\/]+" type="application\/x\-shockwave\-flash" width="[0-9]{1,3}" height="[0-9]{1,3}"><\/embed><\/object>)(?:<br><font.*?<\/font>)?/s' => array('Break.com video', '%s'),
 
 	// google
-	'/(<embed style="width:[0-9]+px; height:[0-9]+px;" id="VideoPlayback" type="application\/x\-shockwave\-flash" src="(http:\/\/video.google.com\/)googleplayer\.swf\?docId=(\-?\d+)[&\w=\-]+" flashvars="(?:&subtitle=on)?">\s*<\/embed>)/' => array('Google video', '%svideoplay?docid=%s'),
+	'/(<embed style="width:[0-9]{1,3}px; height:[0-9]{1,3}px;" id="VideoPlayback" type="application\/x\-shockwave\-flash" src="(http:\/\/video.google.com\/)googleplayer\.swf\?docId=(\-?\d+)[&\w=\-]+" flashvars="(?:&subtitle=on)?">\s*<\/embed>)/' => array('Google video', '%svideoplay?docid=%s'),
 
 	// photobucket
-	'/(?:<a .*?'.'>)?(<embed width="[0-9]+" height="[0-9]+" type="application\/x\-shockwave\-flash" wmode="transparent" src="(http:\/\/(?:\w+\.)?photobucket\.com)\/player\.swf\?file=http:\/\/\w+\.photobucket\.com(\/albums\/(?:[\w%\-]+\/)+)([\w%\-]+\.flv)"><\/embed>)(?:<\/a>)?/' => array('Photobucket video', '%s%s?action=view&current=%s'),
-	'/(<embed width="[0-9]+" height="[0-9]+" type="application\/x\-shockwave\-flash" wmode="transparent" src="(http:\/\/\w+\.photobucket\.com)\/remix\/player\.swf\?videoURL=http%3A%2F%2F\w+\.photobucket\.com(%2Falbums%2F(?:[\w\-]+%2F)+)([\w\-]+\.(?:flv|pbr))&amp;hostname=\w+\.photobucket\.com"><\/embed>)/' => array('Photobucket video', '%s%s?action=view&current=%s'),
+	'/(?:<a .*?'.'>)?(<embed width="[0-9]{1,3}" height="[0-9]{1,3}" type="application\/x\-shockwave\-flash" wmode="transparent" src="(http:\/\/(?:\w+\.)?photobucket\.com)\/(?:flash\/)?player\.swf\?file=http:\/\/\w+\.photobucket\.com(\/albums\/(?:[\w%\-]+\/)+)([\w%\-]+\.flv)">(<\/embed>)?)(?:<\/a>)?/' => array('Photobucket video', '%s%s?action=view&current=%s'),
+	'/(<embed width="[0-9]{1,3}" height="[0-9]{1,3}" type="application\/x\-shockwave\-flash" wmode="transparent" src="(http:\/\/\w+\.photobucket\.com)\/remix\/player\.swf\?videoURL=http%3A%2F%2F\w+\.photobucket\.com%2F[^"]+&amp;hostname=\w+\.photobucket\.com(&amp;sr=1)?">(<\/embed>)?)/' => array('Photobucket video', '%s%s?action=view&current=%s'),
 
 	// vimeo
 	'/(<embed src="http:\/\/www\.vimeo\.com\/moogaloop\.swf\?clip_id=\d+" quality="best" scale="exactfit" width="400" height="300" type="application\/x\-shockwave\-flash"><\/embed>)(\s*<br \/>\s*<a href="http:\/\/www\.vimeo\.com\/clip:\d+">.*?<\/a> from <a href="http:\/\/www\.vimeo\.com\/user:\w+">.*?<\/a> on <a href="http:\/\/www\.vimeo\.com\/">Vimeo<\/a>)?/' => array('Vimeo Video', 'hello'),
 	// vimeo new
-	'/(<object type="application\/x\-shockwave\-flash" width="[0-9]+" height="[0-9]+" data="http:\/\/vimeo\.com\/moogaloop\.swf\?clip_id=\d+&(amp;)?server=vimeo\.com&(amp;)?fullscreen=1(&(amp;)?show_title=1)?(&(amp;)?show_byline=1)?(&(amp;)?show_portrait=1)?(&(amp;)?color=\w+)?">\s*<param name="quality" value="best" \/>\s*<param name="allowfullscreen" value="true" \/>\s*<param name="scale" value="showAll" \/>\s*<param name="movie" value="http:\/\/vimeo\.com\/moogaloop.swf\?clip_id=\d+&(amp;)?server=vimeo.com&(amp;)?fullscreen=1(&(amp;)?show_title=1)?(&(amp;)?show_byline=1)?(&(amp;)?show_portrait=1)?(&(amp;)?color=\w+)?" \/><\/object>)(\s*<br \/><br \/><a href="http:\/\/vimeo.com\/\d+">.*?<\/a> from <a href="http:\/\/vimeo.com\/\w+">\w+<\/a> and <a href="http:\/\/vimeo.com">Vimeo<\/a>\.)?/' => array('Vimeo Video (new)', 'hello'),
-
-	// last.fm
-	'/(<style type="text\/css">table\.lfmWidget\d+ td {margin:0 !important;padding:0 !important;border:0 !important;}table.lfmWidget\d+ tr.lfmHead a:hover {background:url\(http:\/\/panther1\.last\.fm\/widgets\/images\/en\/header\/chart\/recenttracks_regular_blue\.png\) no\-repeat 0 0 !important;}table.lfmWidget\d+ tr.lfmEmbed object {float:left;}table.lfmWidget\d+ tr.lfmFoot td.lfmConfig a:hover {background:url\(http:\/\/panther1.last.fm\/widgets\/images\/en\/footer\/blue\.png\) no\-repeat 0px 0 !important;;}table\.lfmWidget\d+ tr.lfmFoot td.lfmView a:hover {background:url\(http:\/\/panther1.last.fm\/widgets\/images\/en\/footer\/blue\.png\) no\-repeat \-85px 0 !important;}table.lfmWidget\d+ tr\.lfmFoot td\.lfmPopup a:hover {background:url\(http:\/\/panther1\.last\.fm\/widgets\/images\/en\/footer\/blue\.png\) no\-repeat \-159px 0 !important;}<\/style>\s+<table class="lfmWidget\d+" cellpadding="0" cellspacing="0" border="0" style="width:184px;"><tr class="lfmHead"><td><a title="[^"]+" href="http:\/\/www.last.fm\/user\/\w+\/" target="_blank" style="display:block;overflow:hidden;height:20px;width:184px;background:url\(http:\/\/panther1.last.fm\/widgets\/images\/en\/header\/chart\/recenttracks_regular_blue.png\) no\-repeat 0 \-20px;text\-decoration:none;"><\/a><\/td><\/tr><tr class="lfmEmbed"><td><object classid="clsid:d27cdb6e\-ae6d\-11cf\-96b8\-444553540000" width="184" height="199" codebase="http:\/\/fpdownload.macromedia.com\/pub\/shockwave\/cabs\/flash\/swflash.cab%23version=7,0,0,0" style="float:left;"><param name="bgcolor" value="6598cd" \/><param name="movie" value="http:\/\/panther1.last.fm\/widgets\/chart\/friends_[0-9]+.swf" \/><param name="quality" value="high" \/><param name="allowScriptAccess" value="sameDomain" \/><param name="FlashVars" value="type=recenttracks&amp;user=\w+&amp;theme=blue&amp;lang=en" \/><embed src="http:\/\/panther1.last.fm\/widgets\/chart\/friends_[0-9]+.swf" type="application\/x\-shockwave\-flash" name="widgetPlayer" bgcolor="6598cd" width="184" height="199" quality="high" pluginspage="http:\/\/www.macromedia.com\/go\/getflashplayer"  FlashVars="type=recenttracks&amp;user=\w+&amp;theme=blue&amp;lang=en" allowScriptAccess="sameDomain"><\/embed><\/object><\/td><\/tr><tr class="lfmFoot"><td style="background:url\(http:\/\/panther1.last.fm\/widgets\/images\/footer_bg\/blue.png\) repeat\-x 0 0;text\-align:right;"><table cellspacing="0" cellpadding="0" border="0" style="width:184px;"><tr><td class="lfmConfig"><a href="http:\/\/www.last.fm\/widgets\/\?widget=chart&amp;colour=blue&amp;chartType=recenttracks&amp;user=\w+&amp;chartFriends=[0-9]+(&amp;path=\w*)?&amp;from=code" title="Get your own widget" target="_blank" style="display:block;overflow:hidden;width:85px;height:20px;float:right;background:url\(http:\/\/panther1.last.fm\/widgets\/images\/en\/footer\/blue.png\) no\-repeat 0px \-20px;text\-decoration:none;"><\/a><\/td><td class="lfmView" style="width:74px;"><a href="http:\/\/www.last.fm\/user\/\w+\/" title="View [^"]+\'s profile" target="_blank" style="display:block;overflow:hidden;width:74px;height:20px;background:url\(http:\/\/panther1.last.fm\/widgets\/images\/en\/footer\/blue.png\) no\-repeat \-85px \-20px;text\-decoration:none;"><\/a><\/td><td class="lfmPopup"style="width:25px;"><a href="http:\/\/www.last.fm\/widgets\/popup\/\?widget=chart&amp;colour=blue&amp;chartType=recenttracks&amp;user=\w+&amp;chartFriends=[0-9]+(&amp;path=\w*)?&amp;from=code&amp;resize=1" title="Load this chart in a pop up" target="_blank" style="display:block;overflow:hidden;width:25px;height:20px;background:url\(http:\/\/panther1.last.fm\/widgets\/images\/en\/footer\/blue.png\) no\-repeat \-159px \-20px;text-decoration:none;" onclick="window.open\(this.href \+ \'&amp;resize=0\',\'lfm_popup\',\'height=299,width=234,resizable=yes,scrollbars=yes\'\); return false;"><\/a><\/td><\/tr><\/table><\/td><\/tr><\/table>)/' => array('Last.fm', 'hello'),
+	'/(<object type="application\/x\-shockwave\-flash" width="[0-9]{1,3}" height="[0-9]{1,3}" data="http:\/\/vimeo\.com\/moogaloop\.swf\?clip_id=\d+&(amp;)?server=vimeo\.com&(amp;)?fullscreen=1(&(amp;)?show_title=1)?(&(amp;)?show_byline=1)?(&(amp;)?show_portrait=1)?(&(amp;)?color=\w+)?">\s*<param name="quality" value="best" \/>\s*<param name="allowfullscreen" value="true" \/>\s*<param name="scale" value="showAll" \/>\s*<param name="movie" value="http:\/\/vimeo\.com\/moogaloop.swf\?clip_id=\d+&(amp;)?server=vimeo.com&(amp;)?fullscreen=1(&(amp;)?show_title=1)?(&(amp;)?show_byline=1)?(&(amp;)?show_portrait=1)?(&(amp;)?color=\w+)?" \/><\/object>)(\s*<br \/><br \/><a href="http:\/\/vimeo.com\/\d+">.*?<\/a> from <a href="http:\/\/vimeo.com\/\w+">\w+<\/a> and <a href="http:\/\/vimeo.com">Vimeo<\/a>\.)?/' => array('Vimeo Video (new)', 'hello'),
 
 	// imeem
-	'/(<object width="\d{1,3}" height="\d{1,3}"><param name="movie" value="http:\/\/media.imeem.com\/\w+\/[^\/]+\/aus=false\/"><\/param>(<param name="wmode" value="transparent"><\/param>)?<embed src="http:\/\/media.imeem.com\/\w+\/[^\/]+\/aus=false\/" type="application\/x-shockwave-flash" width="\d{1,3}" height="\d{1,3}"( wmode="transparent")?'.'><\/embed><\/object>)/' => array('imeem', 'boo'),
+	'/(<object width="\d{1,3}" height="\d{1,3}"><param name="movie" value="http:\/\/media.imeem.com\/\w+\/[^\/]+\/aus=false\/"><\/param>(<param name="wmode" value="transparent"><\/param>)?(<param name="FlashVars" value="[^"]+"><\/param>)?<embed src="http:\/\/media.imeem.com\/\w+\/[^\/]+\/aus=false\/" type="application\/x-shockwave-flash" width="\d{1,3}" height="\d{1,3}"( wmode="transparent")?( FlashVars="[^"]+")?'.'><\/embed>(<a href=\"http:\/\/www\.imeem\.com\/[^"]+">.*?<\/a>)?<\/object>)/' => array('imeem', 'boo'),
+	
+	// metrolyrics
+	'/(?:<div width="[0-9]{1,3}" height="[0-9]{1,3}" align="center">)?(<embed src="http:\/\/www\.metrolyrics\.com\/scroller\/[a-zA-Z0-9]+\.swf\?lyricid=[0-9]+(?:&border=[.0-9]+)?(?:&bordert=[.0-9]+)?(?:&bgfont=0x[A-F0-9]{1,8})?(?:&bg=http:\/\/www\.metrolyrics\.com\/scroller\/\w+\/[\w_\-]+\.(?:je?pg|gif|png)(?:&filter=0x[A-F0-9]{1,8})?(?:&filtert=[.0-9]+)?(?:&txt=0x[A-F0-9]{1,8})?(?:&fontname=\w+)?(?:&fontsize=[.0-9]+)?(?:&speed=[.0-9]+)?)?" quality="high"(?: wmode="transparent")?(?: bgcolor="#[0-9A-F]{6,6}")? width="\d{1,3}" height="\d{1,3}" name="scroll" align="middle"(?: allowScriptAccess="sameDomain")? type="application\/x-shockwave-flash" pluginspage="http:\/\/www\.macromedia\.com\/go\/getflashplayer" \/>(?:<br \/>(?: - )?<a href="http:\/\/www\.metrolyrics\.com\/[^"]*"(?: title="[^"]+")?'.'>[\w\s\'-_\(\)]+<\/a>)*<\/embed>)(?:<\/div>)?/' => array('metrolyrics', 'boo'),
 );
 
 // look through the string for bits of information we want to collect for whatever
@@ -95,6 +95,21 @@ function scan_string_for_notables($str){
 		post_process_queue("Vid::EmbedHandler", "handle_content_from_profile", array($video));
 	}
 }
+
+function cleanHTML($str)
+{
+	global $RAP, $rap_pagehandler, $ruby_site_obj;
+	
+	if(isset($ruby_site_obj) && isset($rap_pagehandler)) 
+	{
+		return $str;
+	}
+	else
+	{
+		return removeHTML($str);
+	}
+}
+
 
 function removeHTML($str){
 	global $video_regexes;
@@ -139,6 +154,19 @@ function removeHTML($str){
 }
 
 function smilies($str){
+	global $RAP, $rap_pagehandler, $ruby_site_obj;
+	
+	if(isset($ruby_site_obj) && isset($rap_pagehandler)) 
+	{
+		return $RAP->smilies($str);		
+	}
+	else
+	{
+		return oldSmilies($str);
+	}
+}
+
+function oldSmilies($str){
 	global $config, $cache;
 
 	$smilies = $cache->hdget("smilieslength", 0, 'getSmiliesLength');
@@ -151,6 +179,19 @@ function smilies($str){
 }
 
 function wrap($text, $length = 50){ //called after parseHTML and smilies!
+	global $RAP, $rap_pagehandler, $ruby_site_obj;
+		
+	if(isset($ruby_site_obj) && isset($rap_pagehandler)) 
+	{
+		return $RAP->wrap($text, $length);
+	}
+	else
+	{
+		return nl2br(oldWrap($text, $length));
+	}
+}
+
+function oldWrap($text, $length = 50){ //called after parseHTML and smilies!
 	$len = strlen($text);
 	$wordlen=0;
 	$html=false;
@@ -274,6 +315,19 @@ function spamfilter($msg){
 }
 
 function parseHTML($str){
+	global $RAP, $rap_pagehandler, $ruby_site_obj;
+
+	if(isset($ruby_site_obj) && isset($rap_pagehandler)) 
+	{
+		return $RAP->html_escape($RAP->bbcode($str));
+	}
+	else
+	{
+		return oldParseHTML($str);
+	}
+}
+
+function oldParseHTML($str){
 	global $config;
 
 	if(strpos($str,'[')===false)
@@ -330,7 +384,7 @@ function parseHTML($str){
 	$str = str_replace("&#91;", "[", $str);
 	$str= parseLists($str);
 
-	return $str;
+	return $str;	
 }
 /*
 function videotag_parse ($str) {
@@ -358,8 +412,7 @@ function videotag_parse ($str) {
 }
  */
 function forumcode_safeurl($url){
-	$replace = array(	'%' => '%25',
-						'"' => '%22',
+	$replace = array(	'"' => '%22',
 						"'" => '%27',
 						'<' => '%3C',
 						'>' => '%3E',
@@ -398,7 +451,7 @@ function forumcode_img($matches){
 }
 
 function forumcode_user($matches){
-	return "<a class=body target=_new href=\"/profile.php?uid=" . urlencode(forumcode_safeurl($matches[1])) . "\">$matches[1]</a>";
+	return "<a class=body target=_new href=\"/users/" . urlencode(forumcode_safeurl($matches[1])) . "\">$matches[1]</a>";
 }
 
 function forumcode_email1($matches){

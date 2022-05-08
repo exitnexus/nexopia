@@ -1,0 +1,45 @@
+<div id="blog_new_entry_options">
+
+	<a href="#" minion_name="blogs:options" class="expand">More Options</a>
+	<div class="blog_options">
+		<div class="option_section">
+			<span class="bold">Privacy:</span><br />
+			<t:handler-include path="/current/selector/visibility/{blog_post_visibility}" area="Skeleton">
+				<t:var t:name="'field'" t:val="'blog_post_visibility'" />
+			</t:handler-include>
+		</div>
+	
+		<div class="option_section">
+			<input type="checkbox" class="checkbox" id="blog_post_comments" name="blog_post_comments" cond:checked="blog_post_allow_comments"/>
+			<label for="blog_post_comments">Allow Comments</label>
+		</div>
+	
+		<div t:id="action != 'new'" class="option_section">
+			<input type="checkbox" class="checkbox" name="reset_timestamp" id="reset_timestamp"/>
+			<label for="reset_timestamp">Reset Timestamp</label>
+		</div>
+		
+		<div class="option_section">
+			<input id="size_original" type="radio" name="blog_post_photo_size" class="radio" value="{Blogs::PhotoBlog.enums[:size][:size_original]}" cond:checked="size == :size_original" />
+			<label for="size_original">Original Size</label><br />
+			<input id="size_100" type="radio" name="blog_post_photo_size" class="radio" value="{Blogs::PhotoBlog.enums[:size][:size_100]}" cond:checked="size == :size_100" />
+			<label for="size_100">100%</label><br />
+			<input id="size_75" type="radio" name="blog_post_photo_size" class="radio" value="{Blogs::PhotoBlog.enums[:size][:size_75]}" cond:checked="size == :size_75"/>
+			<label for="size_75">75%</label><br />
+			<input id="size_50" type="radio" name="blog_post_photo_size" class="radio" value="{Blogs::PhotoBlog.enums[:size][:size_50]}" cond:checked="size == :size_50"/>
+			<label for="size_50">50%</label><br />
+			<input id="size_25" type="radio" name="blog_post_photo_size" class="radio" value="{Blogs::PhotoBlog.enums[:size][:size_25]}" cond:checked="size == :size_25"/>
+			<label for="size_25">25%</label><br />
+		</div>
+	
+		<div class="option_section">
+			<input id="align_center" type="radio" name="blog_post_photo_align" class="radio" value="{Blogs::PhotoBlog.enums[:align][:center]}" cond:checked="align == :center" />
+			<label for="align_center">Center</label><br />
+			<input id="align_left" type="radio" name="blog_post_photo_align" class="radio" value="{Blogs::PhotoBlog.enums[:align][:left]}" cond:checked="align == :left"/>
+			<label for="align_left">Left</label><br />
+			<input id="align_right" type="radio" name="blog_post_photo_align" class="radio" value="{Blogs::PhotoBlog.enums[:align][:right]}" cond:checked="align == :right"/>
+			<label for="align_right">Right</label>
+		</div>
+	</div>
+
+</div>

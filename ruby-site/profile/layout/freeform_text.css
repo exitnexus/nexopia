@@ -23,11 +23,12 @@
 	& .edit_form
 	{
 		margin-top: 20px;
+		margin-bottom: 10px;
 		
 		& textarea
 		{
 			height: 200px;
-			width: 100%;
+			width: 554px;
 		}
 	}
 	
@@ -47,20 +48,38 @@
 	}
 }
 
-.freeform_text
+#profile
 {
-	& .title
+	& .freeform_text
 	{
-		font-weight: bold;
-		text-align: left;
-		font-family: $header_font_family;
-		font-size: 14px;
-		letter-spacing: 0px;		
-	}
+		& .title
+		{
+			font-weight: bold;
+			text-align: left;
+			font-family: $header_font_family;
+			font-size: 14px;
+			letter-spacing: 0px;		
+		}
 	
-	
-	& .content
-	{
-		
+		& .content
+		{
+			& a
+			{
+				font-family: inherit !important;
+				font-size: inherit !important;
+			}
+		}
 	}
 }
+
+/* 
+	Fix gaps between images in IE. The net effect of the following is to put "vertical-align: bottom" for IE 6 and 7
+	and "vertical-align: sub" for all other browsers on the <img> tag.
+*/
+
+/* Targets all browsers including IE 6 */
+#profile .freeform_text .content img { vertical-align: bottom; }
+/* Targets all browsers but IE 6 */
+html>body #profile .freeform_text .content img { vertical-align: sub; }
+/* Targets IE 7 only */
+html body #profile .freeform_text .content img { *vertical-align: bottom !important; }

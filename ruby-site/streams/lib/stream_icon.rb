@@ -21,9 +21,9 @@ class StreamIcon < Cacheable
 		if(/^(http:\/\/).+\.((jpg)|(gif)|(png)|(jpeg))$/.match(in_image))
 			return in_image;
 		elsif(/^\w+\.((jpg)|(gif)|(png)|(jpeg))$/.match(in_image))
-			return "#{$site.static_files_url}/music/images/#{in_image}";
+			return "#{$site.static_files_url}/streams/images/#{in_image}";
 		else
-			return "#{$site.static_files_url}/music/images/#{in_image}.png";
+			return "#{$site.static_files_url}/streams/images/#{in_image}.png";
 		end
 	end
 end

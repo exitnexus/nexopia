@@ -140,8 +140,8 @@ function uploadPic($uploadFile,$picID){
 	$filesystem->add($picName);
 	$filesystem->add($thumbName);
 
-	$mogfs->add(FS_USERPICS, "{$userData['userid']}/${picID}.jpg", file_get_contents("${staticRoot}${picName}"));
-	$mogfs->add(FS_USERPICSTHUMB, "{$userData['userid']}/${picID}.jpg", file_get_contents("${staticRoot}${thumbName}"));
+	$mogfs->add(FS_USERPICS, "{$userData['userid']}/${picID}", file_get_contents("${staticRoot}${picName}"));
+	$mogfs->add(FS_USERPICSTHUMB, "{$userData['userid']}/${picID}", file_get_contents("${staticRoot}${thumbName}"));
 
 	return true;
 }
@@ -260,8 +260,8 @@ function deletePic($uid, $id){
 	$filesystem->delete($picName);
 	$filesystem->delete($thumbName);
 
-	$mogfs->delete(FS_USERPICS, "${uid}/${id}.jpg");
-	$mogfs->delete(FS_USERPICSTHUMB, "${uid}/{$id}.jpg");
+	$mogfs->delete(FS_USERPICS, "${uid}/${id}");
+	$mogfs->delete(FS_USERPICSTHUMB, "${uid}/{$id}");
 
 	if(file_exists($staticRoot . $picName))
 			@unlink($staticRoot . $picName);

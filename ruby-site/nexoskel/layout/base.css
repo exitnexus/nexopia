@@ -1,0 +1,23 @@
+.ruby_content {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	
+	& a {
+		color: @primary_block_link_color;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		text-decoration: none;
+		&:hover {
+			color: @primary_block_link_hover_color;
+		}
+	}
+}
+
+a.user_content
+{
+	font-family: inherit;
+	font-size: inherit;
+}
+
+a img
+{
+	border-style: none;
+}

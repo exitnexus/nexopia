@@ -7,11 +7,13 @@
 	padding: 0px;
 	margin: 0px;
 	padding-top: 17px;
-	border-bottom: solid 1px $secondary_text_color;
+	border-bottom: solid 1px #b8b8b8;
+	
+	background-color: #fff;
 }
 *html .enhanced_text_input_wrapper .tab_view
 {
-	padding-top: 18px;
+	padding-top: 5px;
 }
 
 .enhanced_text_input_wrapper .tab_view .tab_handle
@@ -30,15 +32,15 @@
 	text-decoration: none;
 	text-align: center;
 	
-	border: solid 1px $secondary_text_color;
+	border: solid 1px #b8b8b8;
 	border-bottom-width: 0px;
 	border-left-width: 0px;
 	
-	color: $secondary_text_color;
+	color: #333;
 	
 	cursor: pointer;
 	
-	background-color: $secondary_background_color;
+	background-color: #fff;
 	
 	z-index: 0;
 	
@@ -50,9 +52,6 @@
 	
 	z-index: 1;
 	font-weight: bold;
-	
-	color: $secondary_text_color;
-	background-color: $primary_background_color;
 }
 
 .enhanced_text_input_wrapper .tab_view .tab_body
@@ -61,10 +60,12 @@
 
 	padding: 2px;
 	
-	border: solid 1px $secondary_text_color;;
+	border: solid 1px #b8b8b8;
 	
 	border-top-width: 0px;
 	border-bottom-width: 0px;
+	
+	background-color: #fff;
 }
 .enhanced_text_input_wrapper .tab_view .tab_body.tab_body_active
 {

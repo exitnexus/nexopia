@@ -1,0 +1,24 @@
+<div class="friend" id="friend_%{friend.userid}">
+	<div class="name">
+		<a t:id="friend"></a>
+	</div>
+		
+	<div class="message"> You've been removed from this person's Friends list. </div>
+	
+	<div class="actions">
+		<div>
+			<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'10x10_clear.gif'"/>
+		</div>
+		<div>
+			<a href="/messages.php?action=write&to={friend.userid}">
+				<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_send_msg.gif'"/>
+			</a>
+		</div>
+		<div>
+			<a href="/users/%{friend.username}/comments">
+				<img class="color_icon" src="#{$site.colored_img_url(PageRequest.current.user.friends_skin[:secondary_block_icon_color])/:friends/:images/'icon_comment.gif'"/>
+			</a>
+		</div>
+	</div>
+	<img class="picture" t:id="friend" />
+</div>

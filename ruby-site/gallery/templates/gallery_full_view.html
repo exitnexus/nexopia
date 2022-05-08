@@ -1,25 +1,12 @@
-<div t:docid="gallery_management" class="gallery">
+<div id="gallery_management">
 	<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/yui/build/container/assets/container.css"></link> 
 	<link rel="stylesheet" type="text/css" href="{$site.static_files_url}/yui/build/menu/assets/skins/sam/menu.css"></link> 
 
-	<h1 id="main_header">GALLERY MANAGER</h1>
-	<!-- <a class="script" id="gallery_toggle" href="/my/gallery/" class="body">[-]</a> -->
-	<br clear="both"/>
-	<div id="gallery_header_tabs">
-		<ul class="yui-nav">
-			<li class="selected"><a class="tab_link" href="#tab1">Profile Pictures</a></li>
-			<li><a class="tab_link" href="#tab2">Galleries</a></li>
-		</ul>
-		<div class="yui-content">
-			<div>
-				<t:template-include module="gallery" name="manage_profile_pictures"/>
-			</div>
-			<div id="gallery_list">
-				<t:template-include module="gallery" name="index"/>
-			</div>
+	<t:template-include module="gallery" name="gallery_manager_title"/>
+	<div class="gallery">
+		<t:template-include module="gallery" name="album_info"/>
+		<div id="gallery_information">
+			<t:template-include module="gallery" name="gallery"/>
 		</div>
-	</div>
-	<div id="gallery_information">
-		<t:template-include module="gallery" name="gallery"/>
 	</div>
 </div>

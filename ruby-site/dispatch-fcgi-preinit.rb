@@ -47,9 +47,24 @@ def create_proc()
 				handling_request = true;
 				$0 = "#{base_child_name} [#{request_num}] active";
 				$log.reassert_stderr();
-				PageRequest.new_from_cgi(cgi) {|pageRequest|
-					PageHandler.execute(pageRequest);
-				}
+				if(!PageRequest.stack.empty?())
+					$log.info "PageRequest stack not empty, has #{PageRequest.stack.length} items", :critical;
+					PageRequest.stack.each{|old_req, i|
+						$log.info "In position #{i} old request to #{old_req.uri}", :critical
+					};
+					
+					PageRequest.stack.clear();
+				end
+				
+				begin
+					PageRequest.new_from_cgi(cgi) {|pageRequest|
+						PageHandler.execute(pageRequest);
+					}
+				rescue
+					$log.error
+					raise
+				end
+				
 				handling_request = false;
 				$0 = "#{base_child_name} [#{request_num}] waiting";
 

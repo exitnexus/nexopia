@@ -1,0 +1,9 @@
+--- !ruby/object:JavascriptConfig 
+module_require: 
+- core
+- paginator
+- truncator
+yui_require:
+- container
+- datasource
+- autocomplete

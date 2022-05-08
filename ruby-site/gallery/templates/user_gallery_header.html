@@ -1,0 +1,21 @@
+<t:wrapper>
+	<div id="user_gallery_header">
+		<div class="gallery_user_thumb">
+			<a t:id="user"><img t:id="user" t:linktype="landscapemini"/></a>
+		</div>
+		<h1 class="page_title">
+			{user.username}'s Gallery
+		</h1>
+		<t:if t:id="gallery">
+			<div style="height:6px"/>
+			<div class="navigation_links">
+				<div style="float: left">Back to&#160;<a class="body" 
+					href="/users/%{PageRequest.current.user.username}/gallery">{PageRequest.current.user.username}'s Gallery</a></div>
+				<t:if t:id="PageRequest.current.session.user == PageRequest.current.user">
+					<div style="float: right"><a href="/my/gallery/{gallery.id}">Edit Album</a></div>
+				</t:if>
+			</div>
+		</t:if>
+		<br class="clear" />
+	</div>
+</t:wrapper>

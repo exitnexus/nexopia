@@ -1,4 +1,4 @@
-lib_require :Core, "typesafehash", "handlertree", "bufferio";
+lib_require :Core, "typesafehash", "handlertree", "bufferio", 'lrucache'
 require 'yaml'
 require 'fileutils'
 class PageError < SiteError
@@ -52,6 +52,18 @@ class PageHandler
 
 	public
 
+	def puts(*args)
+		request.reply.out.puts(*args)
+	end
+
+	def print(*args)
+		request.reply.out.print(*args)
+	end
+
+	def printf(*args)
+		request.reply.out.puts(*args)
+	end
+
 	# Use to get from the PageHandler Local Storage (like Thread LS) from an arbitrary
 	# key.
 	def [](key)
@@ -78,7 +90,7 @@ class PageHandler
 	def session()
 		return request.session;
 	end
-
+	
 	# Does an internal, user-invisible rewrite to a different handler
 	# given the inputs specified.
 	# If area is nil (default), uses the currently set domain.
@@ -101,7 +113,7 @@ class PageHandler
 	# Does an internal, user-invisible, subrequest to a different handler
 	# given the inputs specified. Outputs to the out stream object.
 	# If area is nil (default), uses the currently set domain.
-	def subrequest(out, method, path, params = {}, *area_and_user)
+	def subrequest(out, method, path, params = nil, *area_and_user)
 		# to support passing the last argument as an explicit array or individuals
 		area_and_user = area_and_user.flatten
 		area = area_and_user[0];
@@ -148,12 +160,26 @@ class PageHandler
 		else
 			file_path = "#{$site.static_file_cache}#{url}"
 			if (!File.file?(file_path))
-				FileUtils.mkdir_p(File.dirname(file_path))
-				File.open(file_path, "w") {|file|
-					yield(file)
+				dir_path = File.dirname(file_path)
+				FileUtils.mkdir_p($site.static_file_cache)
+				Tempfile.open(File.basename(file_path), $site.static_file_cache) {|file|
+					begin
+						yield(file)
+					rescue
+						if (!$!.kind_of?(PageError))
+							$log.error
+						end
+						raise
+					end
+					FileUtils.mkdir_p(dir_path)
+					begin
+						FileUtils.ln(file.path, file_path, :force => true)
+					rescue Errno::EEXIST
+						# Sometimes, even though :force => true is passed, it still errors that the file exists. Ignore it.
+					end
 				}
 			end
-			etag = Digest::MD5.hexdigest(file_path)
+#			etag = Digest::MD5.hexdigest(file_path)
 			stat = File.stat(file_path)
 			# since we're getting mtime off the cached file, this could lead to
 			# spurious changed-sinces.
@@ -161,27 +187,29 @@ class PageHandler
 
 			reply.headers['Expires'] = (Time.now + 365*24*60*60).httpdate
 			reply.headers['Last-Modified'] = last_modified.httpdate
-			reply.headers['Etag'] = etag
+#			reply.headers['Etag'] = etag
+			#TODO: Make this do the right thing instead of just turning off gzip
+#			reply.headers['Content-Encoding'] = "identity"
 
 			reply.body {
 				modified_since = request.headers['HTTP_IF_MODIFIED_SINCE']
 				modified_since &&= Time.parse(modified_since)
-				client_etag_neg = request.headers['HTTP_IF_NONE_MATCH']
-				client_etag_neg &&= client_etag_neg.sub(/^"(.*)"$/, '\1')
-				client_etag_pos = request.headers['HTTP_IF_MATCH']
-				client_etag_pos &&= client_etag_pos.sub(/^"(.*)"$/, '\1')
+#				client_etag_neg = request.headers['HTTP_IF_NONE_MATCH']
+#				client_etag_neg &&= client_etag_neg.sub(/^"(.*)"$/, '\1')
+#				client_etag_pos = request.headers['HTTP_IF_MATCH']
+#				client_etag_pos &&= client_etag_pos.sub(/^"(.*)"$/, '\1')
 
-				if ((client_etag_neg && client_etag_neg == etag) ||
-					(client_etag_pos && client_etag_pos != etag) ||
-					(modified_since && last_modified < modified_since))
+#				if ((client_etag_neg && client_etag_neg == etag) ||
+#					(client_etag_pos && client_etag_pos != etag) ||
+				if(modified_since && last_modified < modified_since) #)
 					reply.headers['Status'] = '304 Not Modified'
-					print("<h2>304 Not Modified</h2>")
+					reply.out.print("<h2>304 Not Modified</h2>")
 				else
-					if (request.headers['SERVER_SOFTWARE'].include?('lighttpd'))
-						reply.headers['X-LIGHTTPD-send-file'] = "#{file_path}"
-					else
-						puts(File.read(file_path))
-					end
+#					if (request.headers['SERVER_SOFTWARE'].include?('lighttpd'))
+#						reply.headers['X-LIGHTTPD-send-file'] = "#{file_path}"
+#					else
+						reply.out.puts(File.read(file_path))
+#					end
 				end
 			}
 		end
@@ -193,7 +221,7 @@ class PageHandler
 	def run_handler(handler, inputs)
 		if (request.has_access(handler))
 			method_name = handler.methods[request.selector];
-			$log.info("Calling handler #{method_name} on #{self.class}", :debug, :pagehandler);
+			$log.info("Calling handler #{method_name} on #{self.class}", :spam, :pagehandler);
 			send(method_name, *inputs); # add other arguments.
 		else
 			#request.html_dump();
@@ -312,7 +340,7 @@ class PageHandler
 
 	#returns a form key for the current time, current sessions user, and current pagehandlers default base path
 	def form_key
-		return SecureForm.encrypt(request.session.user, Time.now, (url/self.current_base_path).to_s)
+		return SecureForm.encrypt(request.session.user, (url/self.current_base_path).to_s)
 	end
 	public :form_key
 	
@@ -339,12 +367,12 @@ class PageHandler
 	end
 
 	# The access level required to view the page. :Any, :NotLoggedIn, :LoggedIn,
-	# :Plus, or :Admin, :IsUser. These are fairly self-explanatory except :IsUser,
+	# :Plus, :Admin, :DebugInfo, :IsUser. These are fairly self-explanatory except :IsUser,
 	# which will be set if the user viewing the page is also the user being viewed
-	# (for the :User area).
+	# (for the :User area). :DebugInfo is only available to uids in $site.config.debug_info_users.
 	def PageHandler.access_level(level_marker, admin_module = nil, admin_priv = nil)
 		@cur_level = case level_marker
-			when :Any, :NotLoggedIn, :LoggedIn, :Activated, :Plus, :Admin, :IsUser, :IsFriend
+			when :Any, :NotLoggedIn, :LoggedIn, :Activated, :Plus, :Admin, :DebugInfo, :IsUser, :IsFriend
 				level_marker;
 			else
 				@cur_level;
@@ -457,6 +485,7 @@ class PageHandler
 			end
 			rewrite(request.method, *result);
 		}
+		
 		handle(type, rewrite_method, *path_components);
 	end
 
@@ -531,7 +560,7 @@ class PageHandler
 	end
 
 	def PageHandler.modules()
-		return PageHandler.top[:modules].uniq
+		return PageHandler.top[:modules].uniq.compact
 	end
 
 	# Finds a handlertree node that can actually handle the given request.
@@ -544,27 +573,43 @@ class PageHandler
 	# - inputs, the variables captured as input into the request.
 	def PageHandler.find(request)
 		path = request.uri || "/";
+		
 		valid_key = false
 		if (!path.kind_of? Array)
 			path = path[1, path.length - 1]; # trim off leading /
 			path = path && path.chomp('/'); # trim off trailing /
-			path = path && path.split('/').collect {|component| CGI::unescape(component) };
+			path = path && path.split('/').collect {|component| urldecode(component) };
 		end
+		
 		form_keys = request.params['form_key', Array, []]
 		valid_key = false
 		form_keys.each {|form_key|
-			if (SecureForm.validate_key(request.session.userid, form_key, (url/request.area/path).to_s))
+			
+			# path.clone may seem a little strange, but we just realized that url will clobber path and we need it to not do that.
+			if (SecureForm.validate_key(request.session.userid, form_key, (url/request.area.to_s/path.clone).to_s))
 				valid_key = true
 			end
 		}
 		
+		bad_post_form_key = false
 		found = @@handler_tree.find_node([request.area.to_s] + path) { |possibility|
 			if (possibility.type == :PostRequest && !valid_key)
 				$log.info "Possible PostRequest '#{possibility.class_name}##{possibility.methods['Default']}' found but form key was invalid.", :warning
+				bad_post_form_key = true
 			end
 			(possibility.type == :GetRequest) || (possibility.type == :PostRequest && valid_key) ||
 			(possibility.type == :OpenPostRequest && request.method == :PostRequest)
 		};
+		if(bad_post_form_key)
+		  # Check to see if a valid handler was found; if not, we should return 403 instead of 404
+  		handlers = found.detect {|f| f.class == PageHandler::PageHandlerInfo}
+  		if(handlers.nil?)
+  		  # Set the 'inputs' part of the array to 403, since actually raising a PageError here
+  		  # does not work properly
+  		  found[-1] = "403"
+  		end
+		end
+
 		return [path] + found
 	end
 
@@ -577,6 +622,7 @@ class PageHandler
 			handler = handler.dup
 			func = handler.methods[request.selector] || handler.methods[:Default]
 			func = func.to_s + "_query"
+			
 			if (handler.klass.respond_to?(func.to_sym))
 				return handler.klass.send(func.to_sym, handler)
 			end
@@ -600,7 +646,7 @@ class PageHandler
 	
 	# Returns an object that contains information about the uri specified.
 	def PageHandler.query_uri(method, uri, area = nil)
-		PageRequest.current.dup_modify(:method => method, :uri => uri, :area => area) {|req|
+		PageRequest.current.dup_modify(:method => method, :uri => uri.to_s(), :area => area, :selector => ":Body") {|req|
 			return PageHandler.query(req)
 		}
 	end
@@ -617,6 +663,7 @@ class PageHandler
 			Thread.current[:output] = request.reply.out;
 
 			path, remain, handler, inputs = PageHandler.find(request);
+			inputs = inputs.clone
 
 			catch(:page_done) {
 				begin
@@ -625,9 +672,11 @@ class PageHandler
 							request.reply.headers['Status'] = '500 Internal Server Error';
 							request.reply.out.puts("<h1>500 Internal Server Error</h1>Missing #{path[1]} Error Handler");
 							throw :page_done;
-						else
+						elsif (inputs == "403")
+              raise PageError.new(403), "Invalid form key on post request"
+					  else
 							raise PageError.new(404), "Handler not found for #{request.area}/#{path.join '/'}";
-						end
+					  end
 					else
 						# find the object for the class given
 						generator = @@handler_classes[handler.class_name];
@@ -637,7 +686,11 @@ class PageHandler
 						
 						Thread.current[:current_pagehandlers].push(object);
 						PageHandler.top[:modules] ||= [];
-						PageHandler.top[:modules].push(self.pagehandler_module(object.class));
+						unless (self.pagehandler_module(object.class).nil?)
+							PageHandler.top[:modules].push(self.pagehandler_module(object.class));
+						else
+							$log.object "Unable to load pagehandler_module for #{object.class}.", :error
+						end
 						begin
 							# call the method on it
 							if (handler.pass_remain)
@@ -653,7 +706,14 @@ class PageHandler
 					raise; # Just let it go, mostly.
 				rescue PageError
 					raise; # Handled below as a rewrite.
+				rescue Timeout::Error
+					raise; # Handled by PageRequest
 				rescue Object # handle *anything*
+					if (!$!.respond_to?(:page_request))
+						def $!.page_request()
+							@page_request ||= PageRequest.current
+						end
+					end
 					$log.error($!, $@);
 					raise ExceptionPageError.new($!, $@), "Internal Server Error";
 				end

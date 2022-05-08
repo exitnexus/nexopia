@@ -1,0 +1,33 @@
+
+<div>
+	<t:if t:id="edit_mode">
+		<div class="block_title 4margin">
+			PROFILE PICTURES
+		</div>
+	</t:if>
+	<t:if t:id="!sorted_pictures.empty?">
+		<div id="classic_film_strip" minion_name="userpics:classic_film_strip" t:json="json_pictures">
+			<t:if t:id="sorted_pictures.length > 1">
+				<div class="left_panel">
+					<div class="arrow_panel">
+						<img src="#{$site.colored_img_url(user.profile_skin[:primary_block_icon_color])/:userpics/:images/'6x9_arrow_left.gif'}" hover_src="#{$site.colored_img_url(user.profile_skin[:secondary_block_icon_color])/:userpics/:images/'6x9_arrow_left.gif'}"/>
+					</div>
+				</div>
+				<div class="right_panel">
+					<div class="arrow_panel">
+						<img src="#{$site.colored_img_url(user.profile_skin[:primary_block_icon_color])/:userpics/:images/'6x9_arrow_right.gif'}" hover_src="#{$site.colored_img_url(user.profile_skin[:secondary_block_icon_color])/:userpics/:images/'6x9_arrow_right.gif'}"/>
+					</div>
+				</div>
+			</t:if>
+			<table><tr><td>
+				<img class="profile_picture" t:id="sorted_pictures.first" t:linktype="classicprofile"/>
+			</td></tr></table>
+			<div class="profile_picture_count"><span class="current_profile_picture">1</span>&nbsp;of {sorted_pictures.length}</div>
+			<div class="spacer">&nbsp;</div>
+			<span class="profile_picture_description">{sorted_pictures.first.description}</span>
+		</div>
+	</t:if>
+	<div id="empty_classic_film_strip" t:id="sorted_pictures.empty?">
+		This user has no profile pictures.
+	</div>
+</div>

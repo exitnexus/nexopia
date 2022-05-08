@@ -176,7 +176,7 @@ function listMods($type){
 
 	foreach($rows as $line){
 		echo "<tr>";
-		echo "<td class=" . $classes[$i = !$i] . "><a class=body href=/profile.php?uid=$line[userid]>$line[username]</a></td>";
+		echo "<td class=" . $classes[$i = !$i] . "><a class=body href=/users/". urlencode($line["username"]) .">$line[username]</a></td>";
 		echo "<td class=" . $classes[$i] . ">";
 		if($isAdmin){
 			$newlevel = $mods->suggestedModLevel($line['right'], $line['percent'], $line['level']);
@@ -310,7 +310,7 @@ function editMod($userid){
 
 	echo "<tr><td class=header colspan=2 align=center>Edit Mod</td></tr>";
 
-	echo "<tr><td class=body>Username:</td><td class=body><a class=body href=/profile.php?uid=$userid>$line[username]</a></td></tr>";
+	echo "<tr><td class=body>Username:</td><td class=body><a class=body href=/users/". urlencode($line["username"]) . ">$line[username]</a></td></tr>";
 	echo "<tr><td class=body>Total:</td><td class=body>$line[total]</td></tr>";
 	echo "<tr><td class=body>Right:</td><td class=body>$line[right]</td></tr>";
 	echo "<tr><td class=body>Wrong:</td><td class=body>$line[wrong]</td></tr>";

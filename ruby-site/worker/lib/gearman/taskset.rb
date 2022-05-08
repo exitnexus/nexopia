@@ -160,8 +160,10 @@ class TaskSet
   def wait(timeout=1)
     end_time = Time.now.to_f + timeout
     while not @tasks_in_progress.empty?
+	  instance_timeout = end_time - Time.now.to_f
+	  instance_timeout = instance_timeout > 0.0 ? instance_timeout : 0.0
       ready_socks = IO::select(
-        @sockets.values, nil, nil, end_time-Time.now.to_f)
+        @sockets.values, nil, nil, instance_timeout)
       if not ready_socks or not ready_socks[0]
         Util.log "Timed out while waiting for tasks to finish"
         # not sure what state the connections are in, so just be lame and

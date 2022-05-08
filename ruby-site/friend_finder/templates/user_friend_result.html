@@ -1,0 +1,19 @@
+<div class="user_friend_result">
+	<table>
+		<tbody>
+			<tr>
+				<td class="friend_checkbox" style="vertical-align: middle">
+					<input type="checkbox" name="friend_{user_contact.user_id}" id="friend_{user_contact.user_id}" class="friend_add_result" checked="checked"/>
+				</td>
+				<td class="friend_thumb">
+					<img t:id="user_contact.user" t:linktype="landscapemini"/>
+				</td>
+				<td class="friend_details">
+					<span class="user_name">{user_contact.user.username}</span>&#160;{user_contact.user.age}, {user_contact.user.sex}<br/>
+					{user_contact.name} &#60;{user_contact.email}&#62;
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	<br class="clear"/>
+</div>

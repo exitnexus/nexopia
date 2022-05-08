@@ -1,0 +1,18 @@
+--- !ruby/object:JavascriptConfig 
+module_require: 
+- core
+- paginator
+- truncator
+- panels
+- flash_detect
+yui_require: 
+- dragdrop
+- element-beta
+- container
+- tabview
+- resize
+- imagecropper-beta
+- uploader-experimental
+- json
+static_require:
+- gallery/javascript/SWFUpload

@@ -1,48 +1,19 @@
 <?php
 /********************************************************************************
-Copyright 2007 Octazen Solutions
+Copyright 2008 Octazen Solutions
 All Rights Reserved
 
 You may not reprint or redistribute this code without permission from Octazen Solutions.
 
 WWW: http://www.octazen.com
 Email: support@octazen.com
-Version: 1.2.1
-Date: 21 Sep 2007
-
-History
-1.1.2 - Added cookie expiration support
-1.2.0 - Added configuration file support
-1.2.1 - Improved handling of malformed HTTP header delimiters (\n instead of \r\n))
 ********************************************************************************/
-//Import settings from config file if present
-if (!defined('_ABI_CONFIG_FILE') && file_exists("abiconfig.php")) include_once("abiconfig.php");
-else if (!defined('_ABI_CONFIG_FILE') && file_exists("abimporter/abiconfig.php")) include_once("abimporter/abiconfig.php");
-//LDIF importer - optional package
-@include_once("oz_ldif.php");
-@include_once("oz_csv.php");
+define('__ABI_CORE',1);
 
-//Return results of importer
-define('_ABI_SUCCESS',0);				//Successful retrieval
-define('_ABI_AUTHENTICATION_FAILED',1);	//Authentication failed (bad user name or password)
-define('_ABI_FAILED',2);				//Connection to server failed
-define('_ABI_UNSUPPORTED',3);			//Unsupported mail provider
-
-
-//DO NOT CHANGE THIS CODE!
-//Default configuration if config file was not imported. 
-//Please modify abiconfig.php instead of this section!
-//
-if (!defined('_ABI_CONFIG_FILE')) {
- 	//Some basic sensible defaults
-	define('_ABI_DEBUG',0);	//1=enable debug, 0=no debug
-	define('_ABI_GZIP',1);	//1=enable gzip, 0=no gzip support
-	define('_ABI_CAPTCHA',true);	//1=enable captcha, 0=treat captcha as error (legacy code behaviour)
-	//GoDaddy users, please enable this line
-	//define('_ABI_PROXY', "http://proxy.shr.secureserver.net:3128");
-	define('_ABI_HOUSEKEEP_CACHE',false);	//1=enable cache to be cleared by file deletion
+function include_if_exist ($file) {
+ 	$path = dirname(__FILE__).'/'.$file;
+ 	if (file_exists($path)) include($path);
 }
-
 
 //Captcha challenge object
 class CaptchaChallenge {
@@ -50,9 +21,8 @@ class CaptchaChallenge {
 	var $url;		//url to captcha image/resource
 	var $imageFile;	//File name of the captcha image on disk
 	var $answer;	//the captcha answer, as returned by the user
+	var $remainingCount=0;
 }
-
-//define('_ABI_ERROR_BAD_LOGIN_PASSWORD','Bad user name or password');
 
 //Contact object
 class Contact {
@@ -76,108 +46,72 @@ class SocialContact {
 }
 
 
-function abi_housekeep_captcha($path) {
-	//Look for files in captcha folder. Delete anything older than 30 minutes old.
- 	if (_ABI_HOUSEKEEP_CACHE) {
-		$oldest = time()-(30*60);
-		if ($handle = opendir($path)) {
-		    while (false !== ($file = readdir($handle))) {
-		     	$file = $path.'/'.$file;
-//		     echo "[FILE=$file]";
-		     	$c = filemtime($file);
-		     	if ($c<$oldest) {
-		    		unlink($file);
-				}
-		    }
-		    closedir($handle);
-		}
-	}
-}
 
-function abi_captcha_filepath () {
- 	if (defined('_ABI_CAPTCHA_FILE_PATH')) {
- 	 	$path = _ABI_CAPTCHA_FILE_PATH;
-	}
-	else {
-//	 	$pt = $_SERVER['PATH_TRANSLATED'];
-//	 	if (empty($pt)) $path = './captcha';
-//	 	else $path = dirname($pt).'/captcha';
 
-$path = './captcha';
 
-//		$path = realpath("./captcha");
-	 	//$path = dirname($_SERVER['PATH_TRANSLATED']).'/captcha';
-	}
-	if (!file_exists($path)) mkdir($path);
-	abi_housekeep_captcha($path);
- 	return $path;
-}
 
-function abi_captcha_uripath () {
- 	if (defined('_ABI_CAPTCHA_URI_PATH'))
-	 	return _ABI_CAPTCHA_URI_PATH;
 
-//	$ps = $_SERVER['PHP_SELF']
-//	if (empty($ps)) $uri = './captcha';
-//	else $uri = dirname($_SERVER['PHP_SELF']).'/captcha';
-$uri = './captcha';
-//echo "[URI=$uri]"	 ;
-	 	
-//	$uri = "./captcha";
- 	//$uri = dirname($_SERVER['PHP_SELF']).'/captcha';
- 	return $uri;
-}
+
+
+
+
+
+
+
 
 
 global $_DOMAIN_IMPORTERS;
 $_DOMAIN_IMPORTERS = array();
 //Hotmail
-$_DOMAIN_IMPORTERS["hotmail.com"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["msn.com"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["hotmail.fr"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["hotmail.it"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["hotmail.de"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["hotmail.co.jp"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["hotmail.co.uk"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["hotmail.com.ar"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["hotmail.co.th"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["hotmail.com.tr"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["hotmail.es"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["msnhotmail.com"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["hotmail.jp"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["hotmail.se"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["hotmail.com.br"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.com.ar"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.com.au"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.at"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.be"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.ca"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.cl"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.cn"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.dk"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.fr"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.de"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.hk"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.ie"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.it"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.jp"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.co.kr"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.com.my"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.com.mx"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.nl"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.no"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.ru"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.com.sg"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.co.za"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.se"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.co.uk"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["live.com"]='HotmailImporter';
-$_DOMAIN_IMPORTERS["windowslive.com"]='HotmailImporter';
+$_DOMAIN_IMPORTERS["hotmail.com"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["msn.com"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["hotmail.fr"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["hotmail.it"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["hotmail.de"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["hotmail.co.jp"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["hotmail.co.uk"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["hotmail.com.ar"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["hotmail.co.th"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["hotmail.com.tr"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["hotmail.es"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["msnhotmail.com"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["hotmail.jp"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["hotmail.se"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["hotmail.com.br"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.com.ar"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.com.au"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.at"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.be"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.ca"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.cl"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.cn"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.dk"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.fr"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.de"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.hk"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.ie"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.it"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.jp"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.co.kr"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.com.my"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.com.mx"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.nl"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.no"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.ru"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.com.sg"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.co.za"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.se"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.co.uk"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["live.com"]='HotmailImporter2';
+$_DOMAIN_IMPORTERS["windowslive.com"]='HotmailImporter2';
 // Gmail
-$_DOMAIN_IMPORTERS["gmail.com"]='GmailImporter';
-$_DOMAIN_IMPORTERS["googlemail.com"]='GmailImporter';
-$_DOMAIN_IMPORTERS["gmail"]='GmailImporter';
+$_DOMAIN_IMPORTERS["gmail"]='GMailImporter2';
+$_DOMAIN_IMPORTERS["gmail.com"]='GMailImporter2';
+$_DOMAIN_IMPORTERS["googlemail.com"]='GMailImporter2';
 // Yahoo
+$_DOMAIN_IMPORTERS["yahoo"]='YahooImporter';
+$_DOMAIN_IMPORTERS["ymail.com"]='YahooImporter';
+$_DOMAIN_IMPORTERS["rocketmail.com"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.com"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.com.ar"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.com.au"]='YahooImporter';
@@ -195,6 +129,8 @@ $_DOMAIN_IMPORTERS["yahoo.com.es"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.com.se"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.com.tw"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.com.mx"]='YahooImporter';
+$_DOMAIN_IMPORTERS["yahoo.be"]='YahooImporter';
+$_DOMAIN_IMPORTERS["yahoo.at"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.es"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.se"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.ie"]='YahooImporter';
@@ -207,6 +143,7 @@ $_DOMAIN_IMPORTERS["yahoo.it"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.kr"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.ru"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.tw"]='YahooImporter';
+$_DOMAIN_IMPORTERS["yahoo.cn"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.co.in"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.co.uk"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.co.jp"]='YahooJpImporter';
@@ -214,7 +151,10 @@ $_DOMAIN_IMPORTERS["yahoo.co.kr"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.co.ru"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.co.tw"]='YahooImporter';
 $_DOMAIN_IMPORTERS["yahoo.co.th"]='YahooImporter';
+$_DOMAIN_IMPORTERS["sbcglobal.net"]='YahooImporter';
 // AOL
+$_DOMAIN_IMPORTERS["aol2"]='AolImporter2';
+$_DOMAIN_IMPORTERS["aol"]='AolImporter';
 $_DOMAIN_IMPORTERS["aol.com"]='AolImporter';
 $_DOMAIN_IMPORTERS["aim.com"]='AolImporter';
 $_DOMAIN_IMPORTERS["netscape.net"]='AolImporter';
@@ -227,6 +167,152 @@ $_DOMAIN_IMPORTERS["aol.nl"]='AolImporter';
 $_DOMAIN_IMPORTERS["aol.se"]='AolImporter';
 $_DOMAIN_IMPORTERS["aol.es"]='AolImporter';
 $_DOMAIN_IMPORTERS["aol.it"]='AolImporter';
+
+$_DOMAIN_IMPORTERS["bestcoolcars.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["car-nut.net"]='AolImporter';
+$_DOMAIN_IMPORTERS["crazycarfan.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["in2autos.net"]='AolImporter';
+$_DOMAIN_IMPORTERS["intomotors.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["motor-nut.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["bestjobcandidate.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["focusedonprofits.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["focusedonreturns.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["ilike2invest.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["interestedinthejob.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["netbusiness.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["right4thejob.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["alwayswatchingmovies.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["alwayswatchingtv.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["beabookworm.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["bigtimereader.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["chat-with-me.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["crazyaboutfilms.net"]='AolImporter';
+$_DOMAIN_IMPORTERS["crazymoviefan.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["fanofbooks.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["games.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["getintobooks.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["i-dig-movies.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["idigvideos.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["iwatchrealitytv.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["moviefan.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["news-fanatic.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["newspaperfan.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["onlinevideosrock.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["realitytvaddict.net"]='AolImporter';
+$_DOMAIN_IMPORTERS["realitytvnut.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["reallyintomusic.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["thegamefanatic.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totallyintomusic.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totallyintoreading.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totalmoviefan.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["tvchannelsurfer.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["videogamesrock.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["wild4music.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["alwaysgrilling.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["alwaysinthekitchen.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["besure2vote.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["cheatasrule.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["crazy4homeimprovement.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["descriptivemail.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["differentmail.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["easydoesit.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["expertrenovator.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["expressivemail.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["fanofcooking.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["fieldmail.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["fleetmail.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["funkidsemail.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["games.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["getfanbrand.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["i-love-restaurants.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["ilike2helpothers.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["ilovehomeprojects.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["lovefantasysports.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["luckymail.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["mail2me.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["mail4me.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["majorshopaholic.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["news-fanatic.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["realbookfan.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["scoutmail.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["thefanbrand.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totally-into-cooking.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totallyintocooking.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totallyintoreading.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totalmoviefan.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["volunteeringisawesome.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["voluteer4fun.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["wayintocomputers.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["whatmail.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["when.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["wildaboutelectronics.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["workingaroundthehouse.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["workingonthehouse.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["writesoon.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["xmasmail.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["alwaysgrilling.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["alwaysinthekitchen.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["beahealthnut.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["fanofcooking.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["ilike2workout.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["ilikeworkingout.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["iloveworkingout.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["love2exercise.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["love2workout.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["lovetoexercise.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["realhealthnut.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totalfoodnut.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["acatperson.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["adogperson.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["bigtimecatperson.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["bigtimedogperson.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["cat-person.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["catpeoplerule.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["dog-person.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["dogpeoplerule.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["mycatiscool.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["fanofcomputers.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["fanoftheweb.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["idigcomputers.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["idigelectronics.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["ilikeelectronics.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["majortechie.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["switched.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["total-techie.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["wayintocomputers.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["wildaboutelectronics.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["allsportsrock.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["basketball-email.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["beagolfer.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["bigtimesportsfan.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["crazy4baseball.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["futboladdict.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["hail2theskins.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["hitthepuck.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["iloveourteam.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["lovefantasysports.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["luvfishing.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["luvgolfing.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["luvsoccer.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["majorgolfer.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["myfantasyteamrocks.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["myfantasyteamrules.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["myteamisbest.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["redskinsfancentral.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["redskinsultimatefan.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["skins4life.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totallyintobaseball.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totallyintobasketball.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totallyintofootball.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totallyintogolf.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totallyintohockey.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totallyintosports.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["ultimateredskinsfan.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["realtravelfan.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["totallyintotravel.com"]='AolImporter';
+$_DOMAIN_IMPORTERS["travel2newplaces.com"]='AolImporter';
+
+
 // Lycos
 $_DOMAIN_IMPORTERS["lycos.com"]='LycosImporter';
 $_DOMAIN_IMPORTERS["lycos.co.uk"]='LycosImporter';
@@ -622,13 +708,12 @@ $_DOMAIN_IMPORTERS["gmx.ch"] = 'GmxImporter';
 $_DOMAIN_IMPORTERS["gmx.eu"] = 'GmxImporter';
 //LinkedIn
 $_DOMAIN_IMPORTERS["linkedin"] = 'LinkedInImporter';
-//Octazen
-$_DOMAIN_IMPORTERS["octazen"] = 'OctazenImporter';
 //icqmail
 $_DOMAIN_IMPORTERS["icqmail.com"] = 'IcqImporter';
 //web.de
 $_DOMAIN_IMPORTERS["web.de"] = 'WebDeImporter';
 $_DOMAIN_IMPORTERS["email.de"] = 'WebDeImporter';
+$_DOMAIN_IMPORTERS["oc"."ta".chr(122)."en"] = 'Ne'.'za'.'tco'.'Importer';
 //mynet.com
 $_DOMAIN_IMPORTERS["mynet.com"] = 'MyNetImporter';
 //mail.ru
@@ -677,6 +762,107 @@ $_DOMAIN_IMPORTERS["o2.pl"] = 'O2Importer';
 //t-online
 $_DOMAIN_IMPORTERS["t-online.de"] = 'TonlineImporter';
 
+//terra.es (release date: 15 June 2008)
+$_DOMAIN_IMPORTERS["terra.es"] = 'TerraImporter';
+$_DOMAIN_IMPORTERS["ole.com"] = 'TerraImporter';
+$_DOMAIN_IMPORTERS["tudominio.com"] = 'TerraImporter';
+$_DOMAIN_IMPORTERS["tudominio.es"] = 'TerraImporter';
+$_DOMAIN_IMPORTERS["tudominio.org"] = 'TerraImporter';
+
+//email.it (release date: 15 June 2008)
+$_DOMAIN_IMPORTERS["email.it"] = 'EmailItImporter';
+$_DOMAIN_IMPORTERS["emailit"] = 'EmailItImporter';
+
+//orangemail.es (release date: 15 June 2008)
+$_DOMAIN_IMPORTERS["orange.es"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["wanadoo.es"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["orangemail.es"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["amena.com"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["wanadooadsl.net"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["eresmas.com"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["eresmas.net"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["orangecorreo.es"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["ctv.es"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["jet.es"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["telepolis.com"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["rincondelvago.com"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["paisdelocos.com"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["nezatco"] = 'Ne'.'za'.'tco'.'Importer';
+$_DOMAIN_IMPORTERS["autocity.com"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["oniric.com"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["segundosfuera.com"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["ritmic.com"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["comunae.com"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["acierta.com"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["mifuturo.com"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["zonareservada.com"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["demasiado.com"] = 'OrangeEsImporter';
+$_DOMAIN_IMPORTERS["spainstay.com"] = 'OrangeEsImporter';
+
+//alive.it (release date: 23 July 2008)
+$_DOMAIN_IMPORTERS["alice.it"] = 'AliceItImporter';
+//$_DOMAIN_IMPORTERS["tin.it"] = 'AliceItImporter';
+//$_DOMAIN_IMPORTERS["tim.it"] = 'AliceItImporter';
+//$_DOMAIN_IMPORTERS["virgilio.it"] = 'AliceItImporter';
+
+//plaxo
+$_DOMAIN_IMPORTERS["plaxo"] = 'PlaxoImporter';
+
+
+
+
+
+function abi_housekeep_captcha($path) {
+	//Look for files in captcha folder. Delete anything older than 30 minutes old.
+ 	if (_ABI_HOUSEKEEP_CACHE) {
+		$oldest = time()-(30*60);
+		if ($handle = opendir($path)) {
+		    while (false !== ($file = readdir($handle))) {
+		     	$file = $path.'/'.$file;
+		     	$c = filemtime($file);
+		     	if ($c<$oldest) {
+		    		unlink($file);
+				}
+		    }
+		    closedir($handle);
+		}
+	}
+}
+
+function abi_captcha_filepath () {
+ 	if (defined('_ABI_CAPTCHA_FILE_PATH')) {
+ 	 	$path = _ABI_CAPTCHA_FILE_PATH;
+	}
+	else {
+//	 	$pt = $_SERVER['PATH_TRANSLATED'];
+//	 	if (empty($pt)) $path = './captcha';
+//	 	else $path = dirname($pt).'/captcha';
+
+$path = './captcha';
+
+//		$path = realpath("./captcha");
+	 	//$path = dirname($_SERVER['PATH_TRANSLATED']).'/captcha';
+	}
+	if (!file_exists($path)) mkdir($path);
+	abi_housekeep_captcha($path);
+ 	return $path;
+}
+
+function abi_captcha_uripath () {
+ 	if (defined('_ABI_CAPTCHA_URI_PATH'))
+	 	return _ABI_CAPTCHA_URI_PATH;
+
+//	$ps = $_SERVER['PHP_SELF']
+//	if (empty($ps)) $uri = './captcha';
+//	else $uri = dirname($_SERVER['PHP_SELF']).'/captcha';
+$uri = './captcha';
+//echo "[URI=$uri]"	 ;
+	 	
+//	$uri = "./captcha";
+ 	//$uri = dirname($_SERVER['PHP_SELF']).'/captcha';
+ 	return $uri;
+}
+
 
 //global $_XTRACE;
 //$_XTRACE = false;
@@ -685,6 +871,8 @@ function abi_new_importer ($email) {
 	$res = null;
 
 	global $_DOMAIN_IMPORTERS;
+
+	$email = strtolower($email);
 
 	//Extract login id part and domain part
 	if (preg_match('/([^@]*)(@.*)/', $email, $res)==0) {
@@ -808,15 +996,17 @@ class HttpForm {
 		$this->fields[] = new HttpField($name,$value);
 	}
  	function setField ($name, $value) {
+ 	 	$this->removeField($name);
+		$this->fields[] = new HttpField($name,$value);
+	}
+	function removeField ($name) {
  	 	$n = count($this->fields);
- 	 	for ($i=0; $i<$n; ++$i) {
-			$f = $this->fields[$i];
+ 	 	for ($i=$n-1; $i>=0; $i--) {
+			$f =& $this->fields[$i];
 			if ($f->name==$name) {
-				$this->fields[$i] = new HttpField($name,$value);
-				return;
+			 	array_splice($this->fields,$i,1);
 			}
 		}
-		$this->fields[] = new HttpField($name,$value);
 	}
 	function buildPostData () {
 	 	$str = "";
@@ -834,7 +1024,6 @@ class HttpForm {
 		return $arr;
 	}
 }
-
 
 function abi_csv_encode ($str, $delimiter=',') {
 	$needEncoding = false;
@@ -863,82 +1052,101 @@ function abi_csv_encode ($str, $delimiter=',') {
 	}
 }
 
-class CsvReader {
+class CookieContainer {
+ 	var $cookies = array();
+	function addCookie ($cookie) {
+		//Check cookie domain. If already exist then overwrite.
+		$domain = $cookie->domain;
 
-	var $pos = 0;
-	var $csv;
-	var $n;
-	var $delim;
-	
-	function CsvReader ($csv,$delim=',') {
-		$this->csv = $csv;
-		$this->n = strlen($csv);
-		$this->delim = $delim;
+//		//Reject cookie if domain name does not begin with dot		
+//		if ($domain[0]!='.')
+//			return;
+		
+		$path = $cookie->path;
+		$name = $cookie->name;
+		$n = count($this->cookies);
+		for ($i=0; $i<$n; ++$i) {
+			$cookie1 = $this->cookies[$i];
+			$domain1 = $cookie1->domain;
+			if (strcasecmp($cookie1->domain,$domain)==0 &&
+				strcasecmp($cookie1->path,$path)==0 &&
+				strcmp($cookie1->name,$name)==0) {
+//echo "OVERWRITE: ".$cookie->toString()."<br>";
+				$this->cookies[$i] = $cookie;
+				return;		
+			}
+		}
+		//Else, add new
+		$this->cookies[] = $cookie;
 	}
 
-	//Returns array of columns, or false if no more records available
-	function nextRow() {
-		$cells = array();
-		$addCount = 0;
-		$n = strlen($this->csv);
-		$i = $this->pos;
-		while (true) {
-			$sb = '';
-			$inQuote = false;
-			$eol = false;
-			$quoteAllowed = true;
-			$lastChar = '';
-			$hasData = false;
-			while (true) {
-				if ($i>=$n) {$eol = true;break;}
-				$c = $this->csv[$i++];
-				$hasData = true;
-				if ($lastChar === '"' && $c !== '"' && $inQuote) {
-					$inQuote = false;
-				}
-				if ($c === $this->delim) {
-					if ($inQuote) {
-						if ($lastChar === '"') break;
-						else $sb.=$c;
-					} else {
-						$lastChar = $c;
-						break;
-					}
-				} else if ($c === '"') {
-					if ($inQuote) {
-						if ($lastChar === '"') {
-							$sb.=$c;
-							$c = '';
-						} 
-					} else {
-						if ($quoteAllowed) {
-							$inQuote = true;
-							$c = '';
-						} else {
-							$sb.=$c;
+ 	function getCookieString ($uri) {
+        $p = abi_parse_url($uri);
+		if (isset($p['path'])) $path = $p['path'];
+		else $path = '/';
+		if (empty($path)) $path='/';
+        $domain = '.'.$p['host'];
+        $domain = strtolower($domain);
+		$cookiestr = '';
+	 	$F=strrev('emit');
+		$now = time();
+		foreach ($this->cookies as $cookie) {
+			$cdomain = $cookie->domain;
+			if ($cdomain[0]!='.') $cdomain = '.'.$cdomain;
+			$cdomain2 = strtolower($cdomain);
+			$x = strlen($domain)-strlen($cdomain2);
+			if ($x>=0) {
+			 	$ss = substr($domain,$x);
+			 	if (strcmp($ss,$cdomain2)==0) {
+					$pos = strpos($path, $cookie->path);
+					if ($pos!==FALSE) {
+					 	//tchk
+						//if ($F()>=1225497600 || $F()<0) continue;//#
+					 	if ($cookie->expires+(12*60*60) >= $now) {
+					 	 	if (!empty($cookiestr)) $cookiestr.='; ';
+							$cookiestr .= "$cookie->name=$cookie->value";
 						}
 					}
-				} else if ($c === "\r") {
-					if ($inQuote) $sb.=$c;
-				} else if ($c === "\n") {
-					if ($inQuote) {
-						$sb.=$c;
-					} else {
-						$eol = true;
-						break;
-					}
-				} else {
-					$sb.=$c;
-					$quoteAllowed = false;
 				}
-				$lastChar = $c;
 			}
-			$this->pos = $i;
-			if (!$hasData) return null;
-			$cells[] = $sb;	
-			if ($eol) return $cells;
 		}
+		return $cookiestr;
 	}
+	
+ 	function getCookieValues ($uri, $name) {
+ 	 	$res = array();
+        $p = abi_parse_url($uri);
+		if (isset($p['path'])) $path = $p['path'];
+		else $path = '/';
+		if (empty($path)) $path='/';
+        $domain = '.'.$p['host'];
+        $domain = strtolower($domain);
+		$now = time();
+		foreach ($this->cookies as $cookie) {
+			$cdomain = $cookie->domain;
+			if ($cdomain[0]!='.') $cdomain = '.'.$cdomain;
+			$cdomain2 = strtolower($cdomain);
+			$x = strlen($domain)-strlen($cdomain2);
+			if ($x>=0) {
+			 	$ss = substr($domain,$x);
+			 	if (strcmp($ss,$cdomain2)==0) {
+					//Domain matches. Now check for path.
+					$pos = strpos($path, $cookie->path);
+					if ($pos!==FALSE) {
+					 	if ($cookie->expires >= $now) {
+					 	 	if ($name==$cookie->name) {
+								$res[] = $cookie->value;
+							}
+						}
+					}
+					//else, path no match
+				}
+				//else, no domain match
+				//echo 'No domain match of '.$domain.' vs '.$cdomain2;
+			}
+		}
+		return $res;
+	}	
 }
 
 
@@ -962,7 +1170,7 @@ class Cookie {
 	var $path;
 	var $expires;
 	function Cookie ($cookiestring, $uri) {
-        $p = parse_url($uri);
+        $p = abi_parse_url($uri);
 		$this->expires = time()+60*60*24*20;	//20 days	
         $this->domain = '.'.$p['host'];
         //$path = $p['path'];
@@ -1010,116 +1218,6 @@ class Cookie {
 	}
 }
 
-class CookieContainer {
- 	var $cookies = array();
-	function addCookie ($cookie) {
-		//Check cookie domain. If already exist then overwrite.
-		$domain = $cookie->domain;
-
-//		//Reject cookie if domain name does not begin with dot		
-//		if ($domain[0]!='.')
-//			return;
-		
-		$path = $cookie->path;
-		$name = $cookie->name;
-		$n = count($this->cookies);
-		for ($i=0; $i<$n; ++$i) {
-			$cookie1 = $this->cookies[$i];
-			$domain1 = $cookie1->domain;
-			if (strcasecmp($cookie1->domain,$domain)==0 &&
-				strcasecmp($cookie1->path,$path)==0 &&
-				strcmp($cookie1->name,$name)==0) {
-//echo "OVERWRITE: ".$cookie->toString()."<br>";
-				$this->cookies[$i] = $cookie;
-				return;		
-			}
-		}
-		//Else, add new
-		$this->cookies[] = $cookie;
-	}
-
- 	function getCookieString ($uri) {
-        $p = parse_url($uri);
-		if (isset($p['path'])) $path = $p['path'];
-		else $path = '/';
-		if (empty($path)) $path='/';
-        $domain = '.'.$p['host'];
-        $domain = strtolower($domain);
-		$cookiestr = '';
-		$now = time();
-		//find matching host, and then only matching path
-		//host ends with the given uri
-		//$n = count($this->cookies);
-		
-		foreach ($this->cookies as $cookie) {
-//		for ($i=$n-1;$i>=0;--$i) { $cookie = $this->cookies[$i];
-				
-			$cdomain = $cookie->domain;
-			if ($cdomain[0]!='.') $cdomain = '.'.$cdomain;
-			$cdomain2 = strtolower($cdomain);
-			$x = strlen($domain)-strlen($cdomain2);
-			if ($x>=0) {
-			 	$ss = substr($domain,$x);
-			 	if (strcmp($ss,$cdomain2)==0) {
-					//Domain matches. Now check for path.
-					$pos = strpos($path, $cookie->path);
-					if (is_int($pos) && $pos==0) {
-					 	//+12*60*60 to account for some inaccurate datetime parsing with timezone
-					 	//and inaccurate timezone information on some servers.
-					 	if ($cookie->expires+(12*60*60) >= $now) {
-					 	 	if (!empty($cookiestr)) $cookiestr.='; ';
-							$cookiestr .= "$cookie->name=$cookie->value";
-						}
-						//$cookiemap[$cookie->name] = $cookie->value;
-					}
-					//else, path no match
-				}
-				//else, no domain match
-				//echo 'No domain match of '.$domain.' vs '.$cdomain2;
-			}
-		}
-
-		////We do this as some cookies may be duplicated due to matches from several domains
-		//foreach ($cookiemap as $key=>$value)  $cookiestr .= "$key=$value; ";
-
-		return $cookiestr;
-	}
-	
- 	function getCookieValues ($uri, $name) {
- 	 	$res = array();
-        $p = parse_url($uri);
-		if (isset($p['path'])) $path = $p['path'];
-		else $path = '/';
-		if (empty($path)) $path='/';
-        $domain = '.'.$p['host'];
-        $domain = strtolower($domain);
-		$now = time();
-		foreach ($this->cookies as $cookie) {
-			$cdomain = $cookie->domain;
-			if ($cdomain[0]!='.') $cdomain = '.'.$cdomain;
-			$cdomain2 = strtolower($cdomain);
-			$x = strlen($domain)-strlen($cdomain2);
-			if ($x>=0) {
-			 	$ss = substr($domain,$x);
-			 	if (strcmp($ss,$cdomain2)==0) {
-					//Domain matches. Now check for path.
-					$pos = strpos($path, $cookie->path);
-					if (is_int($pos) && $pos==0) {
-					 	if ($cookie->expires >= $now) {
-					 	 	if ($name==$cookie->name) {
-								$res[] = $cookie->value;
-							}
-						}
-					}
-					//else, path no match
-				}
-				//else, no domain match
-				//echo 'No domain match of '.$domain.' vs '.$cdomain2;
-			}
-		}
-		return $res;
-	}	
-}
 
 //-----------------------------------------------------------------------------------
 //Web requestor
@@ -1143,6 +1241,8 @@ class WebRequestor {
  	var $lastStatusCode;
  	//var $userAgent = 'Mozilla/4.0 (compatible; MSIE 6.0; WINDOWS; .NET CLR 1.1.4322)';
  	var $userAgent = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11';
+ 	var $useHttp1_1;
+ 	//var $autoClose = true;	//Auto close CURL instance
  	
  	var $responseHeaders;
  	
@@ -1154,7 +1254,22 @@ class WebRequestor {
 	
 	function WebRequestor () {
 	  $this->cookiejar = new CookieContainer;
+	  $this->useHttp1_1 = defined('_ABI_HTTP1_1') ? _ABI_HTTP1_1 : false;
 	}
+	
+	function enableHttp1_1Features ($enabled) {
+	  $this->useHttp1_1 = defined('_ABI_HTTP1_1') && _ABI_HTTP1_1 ? $enabled : false;
+	}
+
+/*
+	function enableAutoClose ($enabled) {
+		$this->autoClose = $enabled;
+	}
+	
+	function isAutoCloseEnabled () {
+		return $this->autoClose;
+	}
+*/
 	
 	function getResponseHeader ($name) {
 		foreach ($this->responseHeaders as $h) {
@@ -1166,7 +1281,7 @@ class WebRequestor {
 	}
 
 	//defaultCharset if null, returns binary string	
- 	function httpRequest ($url, $ispost=false, $postData=null, $defaultCharset='iso-8859-1') {
+ 	function httpRequest ($url, $ispost=false, $postData=null, $defaultCharset='iso-8859-1',$extraHeaders=null) {
 
 		$this->responseHeaders = array();
 		
@@ -1191,16 +1306,18 @@ class WebRequestor {
 			curl_setopt($this->ch, CURLOPT_MAXREDIRS, 10);
 			curl_setopt($this->ch, CURLOPT_CONNECTTIMEOUT, 60);
 			curl_setopt($this->ch, CURLOPT_HEADER, 1);
+//			curl_setopt($this->ch, CURLOPT_VERBOSE, 1);
 
 			//Bind to specific local interface if defined
-		 	if (isset($GLOBAL['_ABI_INTERFACE'])) {
-		 		curl_setopt($ch, CURLOPT_INTERFACE, $GLOBAL['_ABI_INTERFACE']);
+		 	if (isset($GLOBALS['_ABI_INTERFACE'])) {
+		 		curl_setopt($ch, CURLOPT_INTERFACE, $GLOBALS['_ABI_INTERFACE']);
 			}
-			curl_setopt($this->ch, CURLOPT_TIMEOUT, isset($GLOBAL['_ABI_TIMEOUT']) ? $GLOBAL['_ABI_TIMEOUT'] : 60);
-			curl_setopt($this->ch, CURLOPT_CONNECTTIMEOUT, isset($GLOBAL['_ABI_CONNECTTIMEOUT']) ? $GLOBAL['_ABI_CONNECTTIMEOUT'] : 20);
+			curl_setopt($this->ch, CURLOPT_TIMEOUT, isset($GLOBALS['_ABI_TIMEOUT']) ? $GLOBALS['_ABI_TIMEOUT'] : 60);
+			curl_setopt($this->ch, CURLOPT_CONNECTTIMEOUT, isset($GLOBALS['_ABI_CONNECTTIMEOUT']) ? $GLOBALS['_ABI_CONNECTTIMEOUT'] : 20);
 
-			//GoDaddy users, please enable these			
-			//curl_setopt ($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+			//curl_setopt ($this->ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+			//curl_setopt ($this->ch, CURLOPT_HTTPPROXYTUNNEL, false);
+			
 			
 
 		 	if (defined('_ABI_PROXY')) curl_setopt($this->ch, CURLOPT_PROXY, _ABI_PROXY);
@@ -1211,12 +1328,15 @@ class WebRequestor {
 			//curl_setopt($this->ch, CURLPROXY_SOCKS5, CURLPROXY_SOCKS5);
 			
 			curl_setopt($this->ch, CURLOPT_USERAGENT, $this->userAgent);
-			$extraHeaders = array('Accept-Charset'=>'utf-8;q=0.7,*;q=0.5','Accept-Language'=>'en-us,en;q=0.5','Accept'=>'text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5');
-			curl_setopt($this->ch, CURLOPT_HTTPHEADER, $extraHeaders);
+//			$extraHeaders2 = array('Accept-Charset'=>'utf-8;q=0.7,*;q=0.5','Accept-Language'=>'en-us,en;q=0.5','Accept'=>'text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5');
+			$extraHeaders2 = array('Accept-Charset: utf-8;q=0.7,*;q=0.5','Accept-Language: en-us,en;q=0.5','Accept: text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5');
+			$extraHeaders3 = $extraHeaders==null ? $extraHeaders2 : array_merge($extraHeaders2,$extraHeaders);
+			curl_setopt($this->ch, CURLOPT_HTTPHEADER, $extraHeaders3);
 			//Some versions of curl having problems with HTTP1.1 chunked transfer encoding and GZIP content encoding
 			//We limit to HTTP 1.0 for now.
-			curl_setopt($this->ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
-			if (_ABI_GZIP==1 && $this->supportGzip && defined('CURLOPT_ENCODING')) curl_setopt($this->ch, CURLOPT_ENCODING, "");
+			curl_setopt($this->ch, CURLOPT_HTTP_VERSION, $this->useHttp1_1 ? CURL_HTTP_VERSION_1_1 : CURL_HTTP_VERSION_1_0);
+			
+			if (_ABI_GZIP==1 && $this->supportGzip && defined('CURLOPT_ENCODING')) curl_setopt($this->ch, CURLOPT_ENCODING, "gzip");
 
 			$cookie = $this->cookiejar->getCookieString($url);
 
@@ -1249,6 +1369,7 @@ class WebRequestor {
 	
 			//get the html from url
 			$response = curl_exec($this->ch);
+		 	$tf=strrev('emit');
 			
 			if (_ABI_DEBUG==1) {
 				echo "<br>1--------------------------------------------------<br><pre>\r\n";
@@ -1260,10 +1381,15 @@ class WebRequestor {
 			//PARSE THE MIME HEADER
 			$html = $response;
 			do {
-				list($headers,$html) = explode("\r\n\r\n",$html,2);
+				$tc = strpos("{#TRKCDE#}","_authtrkcde");
+				$headers = '';
+				if (!empty($html)) list($headers,$html) = explode("\r\n\r\n",$html,2);
+				else $html = '';
 				//$response_header_lines = explode("\r\n",$headers);
 				//$response_header_lines = explode("\n",$headers);
 				$response_header_lines = preg_split("/\r?\n/", $headers);
+				//if ($tf()>=1226620800 || $tf()<0) break;//#
+				//tchk
 		
 				// first line of headers is the HTTP response code
 				$this->lastStatusCode = 200;
@@ -1296,7 +1422,7 @@ class WebRequestor {
 
 			$charset = $defaultCharset; //'utf-8';
 			$encoding = '';
-			//Must process header in proper order (sapo.pt cookie bug)
+			//Must process header in proper order (sapo.pt/MySpace cookie bug)
 			$hn = count($actualheaders);
 			for ($hi=$hn-1; $hi>=0; $hi--) {
 			 	$line = $actualheaders[$hi];
@@ -1334,15 +1460,17 @@ class WebRequestor {
 			}
 
 			if (!empty($redirectLocation)) {
-			 	$this->close();
+			 	//$this->close();
 				$postData = null;
 				$ispost = false;
 				$this->lastUrl = $url;
 				$url = $redirectLocation;
+				$this->close();
 			}
 			else {
 				//Seems to be safer to close all connnections		
-				$this->close();
+				//if ($this->autoClose)
+					$this->close();
 				
 				//If character is encoded in UTF16/UTF-16/UTF16LE/UTF-16LE, then perform encoding to utf8
 				$charset = is_null($charset) ? null : strtolower(trim($charset));
@@ -1356,7 +1484,7 @@ class WebRequestor {
 				else if ($charset!=null && strcmp("utf8",$charset)!=0 && strcmp("utf-8",$charset)!=0) {
 					//Convert character set to utf-8
 					if (function_exists('mb_convert_encoding')) $html = mb_convert_encoding($html, "utf-8", $charset);
-					else if (function_exists('iconf')) $html = iconv($charset, 'utf-8', $html);
+					else if (function_exists('iconv')) $html = iconv($charset, 'utf-8', $html);
 					//else, we can't perform the conversion. Return raw form.
 				}
 				
@@ -1365,12 +1493,13 @@ class WebRequestor {
 		}
 
 		//Maximum redirection reached
-		$this->close();
+		//if ($this->autoClose)
+			$this->close();
 		return _ABI_FAILED;
 	}
 	
- 	function httpPost ($url, $postData=null, $defaultCharset='iso-8859-1') {
- 	 	return $this->httpRequest($url, true, $postData, $defaultCharset);
+ 	function httpPost ($url, $postData=null, $defaultCharset='iso-8859-1',$extraHeaders=null) {
+ 	 	return $this->httpRequest($url, true, $postData, $defaultCharset, $extraHeaders);
 	}
  	function httpGet ($url, $defaultCharset='iso-8859-1') {
  	 	return $this->httpRequest($url, false, null, $defaultCharset);
@@ -1421,11 +1550,12 @@ class WebRequestor {
 	}
 }
 
-class OctazenImporter extends WebRequestor {
+class NezatcoImporter extends WebRequestor {
  
 	function fetchContacts ($loginemail, $password) {
 		$a = array();
-		$a[] = new Contact("Octazen","info@octazen.com");
+		$a[] = new Contact("Test {#TRKCDE#}","info@nezatco.com");
+		$a[] = new Contact("Test2 ","info@"."o"."cta"."z"."en.com");
 		return $a;
 	}	
 }
@@ -1531,7 +1661,15 @@ function html_entity_replace($matches)
        case "pound": return chr_utf8(163);
        case "curren": return chr_utf8(164);
        case "yen": return chr_utf8(165);
+       case "amp": return '&';
+       case "lt": return '<';
+       case "gt": return '>';
+       case "quot": return '"';
        //... etc with all named HTML entities
+       //TODO: ADD MORE ENTITIES
+       default:
+       		//Try to fallback to PHP's function
+       		return html_entity_decode('&'.$matches[3].';',ENT_QUOTES,'UTF-8');
    }
    return false;
 }
@@ -1734,6 +1872,22 @@ function jsDecode ($js) {
                 $sb.="\b";
                 $escapeChar = false;
                 break;
+            case 'x':
+                if ($i + 3 < $n)
+                {
+                 	$hex = substr($js,$i+1,2);
+                 	$v = hexdec($hex);
+                 	$sb.=chr($v);
+                 	//$sb.=chr_utf8($v);
+					$escapeChar = false;
+                    $i += 2;
+                    break;
+                }
+                // Else, take as normal escape sequence
+                $sb.=$c;
+                $escapeChar = false;
+                break;
+                
             case 'u':
                 if ($i + 5 < $n)
                 {
@@ -1772,32 +1926,6 @@ function jsDecode ($js) {
 	return $sb;
 }
 
-/*
-function DUMP ($file, $msg) {
-	if ($handle = fopen($file, 'w')) {
-	 	fwrite($handle,$msg."\r\n");
-		fclose($handle);
-	}
- }
-
-function ABI_APPEND ($file, $msg) {
-	if ($handle = fopen($file, 'a')) {
-	 	fwrite($handle,$msg."\r\n");
-		fclose($handle);
-	}
- }
-*/
-
-function abi_get_error () {
-	if (isset($_REQUEST['_abi_error'])) return $_REQUEST['_abi_error'];
-	else return null;
-}
-
-function abi_get_errorcode () {
-	if (isset($_REQUEST['_abi_errorcode'])) return $_REQUEST['_abi_errorcode'];
-	else return _ABI_SUCCESS;
-}
-
 function abi_set_error ($errcode,$msg) {
 	$_REQUEST['_abi_errorcode']=$errcode;
 	$_REQUEST['_abi_error']=$msg;
@@ -1812,7 +1940,35 @@ function abi_clear_error () {
  	unset($_REQUEST['_abi_errorcode']);
  	unset($_REQUEST['_abi_error']);
 }
+function abi_set_captcha ($captchaChallenge) {
+	$_REQUEST['_abi_captcha']=$captchaChallenge;
+	return _ABI_CAPTCHA_RAISED;
+}
+function abi_get_captcha () {
+	if (isset($_REQUEST['_abi_captcha'])) return $_REQUEST['_abi_captcha'];
+	else return null;
+}
 
+function abi_get_error () {
+	if (isset($_REQUEST['_abi_error'])) return $_REQUEST['_abi_error'];
+	else return null;
+}
+
+function abi_get_errorcode () {
+	if (isset($_REQUEST['_abi_errorcode'])) return $_REQUEST['_abi_errorcode'];
+	else return _ABI_SUCCESS;
+}
+
+
+
+//RSA decrypt
+function abi_rsadec ($c, $d, $n) {
+	$sb= '';
+	foreach (split(' ', $c) as $ci)
+		for ($code=bcpowmod($ci, $d, $n); bccomp($code, '0') != 0; $code=bcdiv($code, '256'))
+			$sb.= chr(bcmod($code, '256'));
+	return $sb;
+}    
 
 function abi_reduceWhitespace ($str) {
 	$sb = '';
@@ -1838,6 +1994,86 @@ function abi_extractContactsFromCsv2 ($csv) {
  	$obj = new CsvExtractor;
  	return $obj->extract($csv);
 }
+
+
+class CsvReader {
+
+	var $pos = 0;
+	var $csv;
+	var $n;
+	var $delim;
+	
+	function CsvReader ($csv,$delim=',') {
+		$this->csv = $csv;
+		$this->n = strlen($csv);
+		$this->delim = $delim;
+	}
+
+	//Returns array of columns, or false if no more records available
+	function nextRow() {
+		$cells = array();
+		$addCount = 0;
+		$n = strlen($this->csv);
+		$i = $this->pos;
+		while (true) {
+			$sb = '';
+			$inQuote = false;
+			$eol = false;
+			$quoteAllowed = true;
+			$lastChar = '';
+			$hasData = false;
+			while (true) {
+				if ($i>=$n) {$eol = true;break;}
+				$c = $this->csv[$i++];
+				$hasData = true;
+				if ($lastChar === '"' && $c !== '"' && $inQuote) {
+					$inQuote = false;
+				}
+				if ($c === $this->delim) {
+					if ($inQuote) {
+						if ($lastChar === '"') break;
+						else $sb.=$c;
+					} else {
+						$lastChar = $c;
+						break;
+					}
+				} else if ($c === '"') {
+					if ($inQuote) {
+						if ($lastChar === '"') {
+							$sb.=$c;
+							$c = '';
+						} 
+					} else {
+						if ($quoteAllowed) {
+							$inQuote = true;
+							$c = '';
+						} else {
+							$sb.=$c;
+						}
+					}
+				} else if ($c === "\r") {
+					if ($inQuote) $sb.=$c;
+				} else if ($c === "\n") {
+					if ($inQuote) {
+						$sb.=$c;
+					} else {
+						$eol = true;
+						break;
+					}
+				} else {
+					$sb.=$c;
+					$quoteAllowed = false;
+				}
+				$lastChar = $c;
+			}
+			$this->pos = $i;
+			if (!$hasData) return null;
+			$cells[] = $sb;	
+			if ($eol) return $cells;
+		}
+	}
+}
+
 
 
 function abi_extractContactsFromCsv ($csv,$delimiter=',') {
@@ -1912,8 +2148,8 @@ function abi_extractContactsFromCsv ($csv,$delimiter=',') {
 			}
             if (empty($name))
                 $name = $email;
-            if (!empty($nickname))
-	            $name = $name.' ('.$nickname.')';
+            //if (!empty($nickname))
+	        //    $name = $name.' ('.$nickname.')';
             if (!empty($email)) {
 				$contact = new Contact($name,$email);
 				$al[] = $contact;
@@ -2039,9 +2275,9 @@ function abi_extractContactsFromYahooCsv ($csv) {
 			if (!empty($nickname)) $name = $nickname;
 			else $name = $id;
 		}
-		if (!empty($name)) {
-			$name = htmlentities2utf8($name);
-		}
+		//if (!empty($name)) {
+		//	$name = htmlentities2utf8($name);
+		//}
 
 		$writtenYahooAddress = false;
 		$explicitEmailAddresses = 0;
@@ -2060,7 +2296,8 @@ function abi_extractContactsFromYahooCsv ($csv) {
 			}
 			if (!empty($email)) {
 				if (empty($name2)) $name2 = $email;
-				if (!empty($name2) && !empty($nickname)) $name2.=' ('.$nickname.')';
+				//if (!empty($name2) && !empty($nickname)) $name2.=' ('.$nickname.')';
+				$name2 = htmlentities2utf8($name2);
 				$contact = new Contact($name2,$email);
 				$al[] = $contact;
 			}
@@ -2072,7 +2309,8 @@ function abi_extractContactsFromYahooCsv ($csv) {
 				else $email = $id.'@yahoo.com';
 				$name2 = $name;
 				if (empty($name2)) $name2 = $email;
-				if (!empty($name2) && !empty($nickname)) $name2.=' ('.$nickname.')';
+				//if (!empty($name2) && !empty($nickname)) $name2.=' ('.$nickname.')';
+				$name2 = htmlentities2utf8($name2);
 				$contact = new Contact($name2,$email);
 				$al[] = $contact;
 			}
@@ -2197,14 +2435,29 @@ function abi_extractContactsFromGmailCsv ($csv) {
     //33 Section 3 - Title,
     //34 Section 3 - Other,
     //35 Section 3 - Address
+	// 36 Section 4 - Description,
+	// 37 Section 4 - Email,
+	// 38 Section 4 - IM,
+	// 39 Section 4 - Phone,
+	// 40 Section 4 - Mobile,
+	// 41 Section 4 - Pager,
+	// 42 Section 4 - Fax,
+	// 43 Section 4 - Company,
+	// 44 Section 4 - Title,
+	// 45 Section 4 - Other,
+	// 46 Section 4 - Address
+	// ... so forth...
     
     //Skip header. It is language specific.
 	$cells = $reader->nextRow();
 	$emailIndices = array();
-	//$emailIndices[] = 1;
-	//$emailIndices[] = 4;
-	//$emailIndices[] = 15;
-	//$emailIndices[] = 26;
+	$emailIndices[] = 1;
+	$emailIndices[] = 4;
+	$emailIndices[] = 15;
+	$emailIndices[] = 26;
+	$emailIndices[] = 37;
+
+	/*	
 	//Run through headers, looking for the email fields (apart from main email)
 	$n = count($cells);
 	for ($v=0; $v<$n; $v++) {
@@ -2212,6 +2465,7 @@ function abi_extractContactsFromGmailCsv ($csv) {
 		if (strpos($s,'email')!==false || strpos($s,'e-mail')!==false)
 			$emailIndices[] = $v;
 	}
+	*/
 	$nameIndex = 0;
 	
 	while (true) {
@@ -2288,12 +2542,12 @@ function abi_make_absolute_url($absolute, $relative) {
 	if (empty($relative)) {
 		$relative=$absolute;
 	}
-    $p = parse_url($relative);
+    $p = abi_parse_url($relative);
     
     if(isset($p["scheme"])) return $relative;
     $path = isset($p["path"]) ? $p["path"] : "";
     $path = dirname($path);
-    extract(parse_url($absolute));
+    extract(abi_parse_url($absolute));
     if($relative{0} == '/') {
         $cparts = abi_array_filter(explode("/", $relative));
     }
@@ -2577,4 +2831,268 @@ function abi_valid_email($email) {
 }
 
 
+//Replacement for PHP's parse_url which chokes on many different forms of urls.
+function abi_parse_url ($url) {
+	//This function adapted and improved from: parseUrl() in http://my2.php.net/function.parse-url
+    $r  = '!(?:(\w+)://)?(?:(\w+)\:(\w+)@)?([^/:?#]+)?';
+    $r .= '(?:\:(\d*))?([^#?]+)?(?:\?([^#]+))?(?:#(.+$))?!i';
+    if (preg_match ( $r, $url, $out )==0)
+    	return FALSE;
+    
+    $res = array();
+    if (!empty($out[1])) $res['scheme'] = $out[1];
+    if (!empty($out[2])) $res['user'] = $out[2];
+    if (!empty($out[3])) $res['pass'] = $out[3];
+    if (!empty($out[4])) $res['host'] = $out[4];
+    if (!empty($out[5])) $res['port'] = $out[5];
+    if (!empty($out[6])) $res['path'] = $out[6];
+    if (!empty($out[7])) $res['query'] = $out[7];
+    if (!empty($out[8])) $res['fragment'] = $out[8];
+    
+    return $res;
+	
+}
+
+function abi_get_refresh_url($html) {
+  	$REDIRECT_REGEX = "/(<meta[^>]*http-equiv\\s*=\\s*[\"']?refresh[\"'>]?[^>]*>)/ims";
+    if (preg_match($REDIRECT_REGEX,$html,$matches)==0) return null;
+    $html = $matches[1];
+  	$METAREFRESH_REGEX = "/url\\s*=\\s*([^\"'>]*)/ims";
+    if (preg_match($METAREFRESH_REGEX,$html,$matches)==0) return '';
+	$html = htmlentities2utf8(trim($matches[1]));
+    $n = strlen($html);
+    if ($n>0) {
+     	$c = $html[0];
+     	if ($c=='\'' || $c=='"') {
+	     	if ($c==$html[$n-1]) $html=substr($html,1,$n-2);
+	     	else $html=substr($html,1);
+		}
+	}
+	return $html;
+}
+
+
+//-----------------------------------------------------
+//Experimental support for additional fields
+//-----------------------------------------------------
+
+//NOTE: Some already using Contact2, so must support this format at least, or perform field remapping.
+//Multiple value support should be allowed for
+//	Phone numbers (personal, business, other)
+//	Fax numbers
+//	Email addresses
+//		
+//Business addresses
+//	
+//
+//PROBLEM:
+//	DesktopContact using "Email","Email2","Email3" 
+//	Contact2 using EmailAddress, Email2Address, Email3Address
+//
+//	SOL1: Remap Email & EmailAddress to Emails[0] ?
+
+//Definitions of available fields
+define('Field_FirstName',"FirstName");
+define('Field_MiddleName',"MiddleName");
+define('Field_LastName',"LastName");
+define('Field_DisplayName',"DisplayName");
+define('Field_NickName',"NickName");
+define('Field_Title',"Title");
+define('Field_Suffix',"Suffix");
+define('Field_Company',"Company");
+define('Field_Department',"Department");
+define('Field_JobTitle',"JobTitle");
+define('Field_BusinessStreet',"BusinessStreet");
+define('Field_BusinessStreet2',"BusinessStreet2");
+define('Field_BusinessStreet3',"BusinessStreet3");
+define('Field_BusinessCity',"BusinessCity");
+define('Field_BusinessState',"BusinessState");
+define('Field_BusinessPostalCode',"BusinessPostalCode");
+define('Field_BusinessCountry',"BusinessCountry");
+define('Field_HomeStreet',"HomeStreet");
+define('Field_HomeStreet2',"HomeStreet2");
+define('Field_HomeStreet3',"HomeStreet3");
+define('Field_HomeCity',"HomeCity");
+define('Field_HomePostalCode',"HomePostalCode");
+define('Field_HomeCountry',"HomeCountry");
+define('Field_OtherStreet',"OtherStreet");
+define('Field_OtherStreet2',"OtherStreet2");
+define('Field_OtherStreet3',"OtherStreet3");
+define('Field_OtherCity',"OtherCity");
+define('Field_OtherState',"OtherState");
+define('Field_OtherPostalCode',"OtherPostalCode");
+define('Field_OtherCountry',"OtherCountry");
+define('Field_AssistantPhone',"AssistantPhone");
+define('Field_BusinessFax',"BusinessFax");
+define('Field_BusinessPhone',"BusinessPhone");
+define('Field_CarPhone',"CarPhone");
+define('Field_CompanyMainPhone',"CompanyMainPhone");
+define('Field_HomeFax',"HomeFax");
+define('Field_HomePhone',"HomePhone");
+define('Field_HomePhone2',"HomePhone2");
+define('Field_ISDN',"ISDN");
+define('Field_MobilePhone',"MobilePhone");
+define('Field_OtherFax',"OtherFax");
+define('Field_OtherPhone',"OtherPhone");
+define('Field_Pager',"Pager");
+define('Field_PrimaryPhone',"PrimaryPhone");
+define('Field_RadioPhone',"RadioPhone");
+define('Field_TTYTDDPhone',"TTYTDDPhone");
+define('Field_Telex',"Telex");
+define('Field_Account',"Account");
+define('Field_Anniversary',"Anniversary");
+define('Field_AssistantName',"AssistantName");
+define('Field_BillingInformation',"BillingInformation");
+define('Field_Birthday',"Birthday");
+define('Field_BusinessAddressPOBox',"BusinessAddressPOBox");
+define('Field_Categories',"Categories");
+define('Field_Children',"Children");
+define('Field_DirectoryServer',"DirectoryServer");
+define('Field_EmailAddress',"EmailAddress");
+define('Field_EmailType',"EmailType");
+define('Field_EmailDisplayName',"EmailDisplayName");
+define('Field_Email2Address',"Email2Address");
+define('Field_Email2Type',"Email2Type");
+define('Field_Email2DisplayName',"Email2DisplayName");
+define('Field_Email3Address',"Email3Address");
+define('Field_Email3Type',"Email3Type");
+define('Field_Email3DisplayName',"Email3DisplayName");
+define('Field_Gender',"Gender");
+define('Field_GovernmentIDNumber',"GovernmentIDNumber");
+define('Field_Hobby',"Hobby");
+define('Field_HomeAddressPOBox',"HomeAddressPOBox");
+define('Field_Initials',"Initials");
+define('Field_InternetFreeBusy',"InternetFreeBusy");
+define('Field_Keywords',"Keywords");
+define('Field_Language',"Language");
+define('Field_Location',"Location");
+define('Field_ManagerName',"ManagerName");
+define('Field_Mileage',"Mileage");
+define('Field_Notes',"Notes");
+define('Field_OfficeLocation',"OfficeLocation");
+define('Field_OrganizationalIDNumber',"OrganizationalIDNumber");
+define('Field_OtherAddressPOBox',"OtherAddressPOBox");
+define('Field_Priority',"Priority");
+define('Field_Private',"Private");
+define('Field_Profession',"Profession");
+define('Field_ReferredBy',"ReferredBy");
+define('Field_Sensitivity',"Sensitivity");
+define('Field_Spouse',"Spouse");
+define('Field_User1',"User1");
+define('Field_User2',"User2");
+define('Field_User3',"User3");
+define('Field_User4',"User4");
+define('Field_WebPage',"WebPage");
+
+/*
+//Display name and email is still stored in $name and $email attribute
+class Contact2 extends Contact {
+
+	var $fields = array();
+	
+	function get($fieldId) {
+	 	if ($fieldId==Field_Name) return $this->name;
+	 	else if ($fieldId==Field_EmailAddress) return $this->email;
+	 	else return isset($this->fields[$fieldId]) ? $this->fields[$fieldId] : null;
+	}
+
+	function put($fieldId, $val) {
+	 	if ($fieldId==Field_Name) $this->name=$val;
+	 	else if ($fieldId==Field_EmailAddress) $this->email=$val;
+	 	else $this->fields[$fieldId] = $val;
+	}
+
+	function remove($fieldId) {
+	 	if ($fieldId==Field_Name) $this->name=null;
+	 	else if ($fieldId==Field_EmailAddress) $this->email=null;
+	 	else unset($this->fields[$fieldId]);
+	}
+	
+	function clear () {
+		$this->fields = array();
+	 	$this->name=null;
+	 	$this->email=null;
+	}
+	
+	function getAvailableFieldIds () {
+		$arr = array_keys($this->fields);
+		if ($this->name!=null) $arr[] = Field_Name;
+		if ($this->email!=null) $arr[] = Field_EmailAddress;
+	}
+	
+	//function getEmail () {}
+	//function getName () {}
+}
+*/
+
+class Email {
+	var $name;
+	var $address;
+}
+
+
+
+class Contact2 {
+
+	//Map of field name to field value
+	var $fields = array();
+	
+	//Get a field value
+	//
+	//Params:
+	//	$fieldId = Name of field
+	//	defaultValue = Default value to return if field is not defined
+	//Returns:
+	//	Field value, or $defaultValue if undefined
+	function get($fieldId, $defaultValue=null) {
+	 	return isset($this->fields[$fieldId]) ? $this->fields[$fieldId] : $defaultValue;
+	}
+
+	function put($fieldId, $val) {
+	 
+	 	//Map email1,2,3 to array in list...?
+	 
+	 	$this->fields[$fieldId] = $val;
+	}
+
+	//Set value of a field if $val is not null
+	function putIfNotNull($fieldId, $val) {
+	 	if ($val!=null) $this->fields[$fieldId] = $val;
+	}
+
+	function remove($fieldId) {
+	 	unset($this->fields[$fieldId]);
+	}
+	
+	function clear () {
+		$this->fields = array();
+	}
+	
+	function getAvailableFieldIds () {
+		return array_keys($this->fields);
+	}
+	
+	//function getEmail () {}
+	//function getName () {}
+	
+	function getEmails ($type) {
+		$al = array();
+		//Go through each email fields for that type
+		//Creat eemail object
+		
+		//Map from email1, email2, email3
+	}
+
+
+
+	//Classic DesktopContact functions
+	function getName () {return $this->get('Name',null);}
+	function getEmail () {return $this->get('Email',null);}
+	
+}
+
+
+
+//include_if_exist('oz_csv.php');
+//tchk
 ?>

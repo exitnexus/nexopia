@@ -1,0 +1,22 @@
+<div id="blog">
+	<div class="blog_container">
+		<t:template-include t:module="blogs" t:name="blog_header" />
+		
+		<t:template-include t:module="blogs" t:name="blog_post"/>
+	</div>
+	
+	<t:if t:id="blog_post.allowcomments">
+		<div class="blog_container">	
+			<t:handler-include t:path="/blog/%{blog_post.id}/comments" t:area="User" t:user="blog_user" />
+		</div>
+	</t:if>
+	
+	<t:if t:id="request_blog_view_info">
+		<form id="request_blog_view" name="request_blog_view" minion_name="request_blog_view" method="post" action="/users/%{user.username}/blog/views/update">
+			<input type="hidden" name="userid" value="{request_blog_view_info['userid']}"></input>
+			<input type="hidden" name="anon" value="{request_blog_view_info['anon']}"></input>
+			<input type="hidden" name="key" value="{request_blog_view_info['key']}"></input>
+			<input type="hidden" name="time" value="{request_blog_view_info['time']}"></input>
+		</form>
+	</t:if>
+</div>

@@ -10,7 +10,7 @@ var smileyloc = "/images/smilies/";
 String.prototype.trim = function()
 {
 	return this.replace(/^\s+|\s+$/g, '');
-}
+};
 
 function confirmLink(link,message){
 	if(confirm("Are you sure you want to " + message + "?"))
@@ -30,28 +30,10 @@ function goOpener(url) {
 	}
 }
 
-function notice() { return false }
+function notice() { return false; }
 //document.oncontextmenu=notice;
 
-function doInterstitial(){
-	var interstitial = document.getElementById("interstitial_background");
-	if (interstitial){
-		var docHeight;
-		if (typeof document.height != 'undefined'){
-			docHeight = document.height;
-		}
-		else if (document.compatMode && document.compatMode != 'BackCompat'){
-			docHeight = document.documentElement.scrollHeight;
-		}
-		else if (document.body && typeof document.body.scrollHeight != 'undefined'){
-			docHeight = document.body.scrollHeight;
-		}
-		interstitial.style.height = "" + docHeight + "px";
-	}
-}
-
 function initFrames(){
-	doInterstitial();
 }
 
 function init(){
@@ -59,9 +41,6 @@ function init(){
 //		if(confirm("You may not login while in frames.\nWould you like to be removed from frames?"))
 			top.location.href = self.location.href;
 	}
-	
-	doInterstitial();
-	
 }
 
 function getWindowSize(){
@@ -133,7 +112,7 @@ var theSelection = false;
 
 
 var clientPC = navigator.userAgent.toLowerCase(); // Get client info
-var clientVer = parseInt(navigator.appVersion); // Get browser version
+var clientVer = parseInt(navigator.appVersion, 10); // Get browser version
 var is_ie = ((clientPC.indexOf("msie") != -1) && (clientPC.indexOf("opera") == -1));
 var is_nav  = ((clientPC.indexOf('mozilla')!=-1) && (clientPC.indexOf('spoofer')==-1)
                 && (clientPC.indexOf('compatible') == -1) && (clientPC.indexOf('opera')==-1)
@@ -616,9 +595,9 @@ function collapseTableRows(catid, tableid, textexpanded, textcollapsed, ajaxurl)
 		{
 			timeout = setTimeout("AjaxSendURL('" + ajaxurl + "&timeout', true)", 2000);
 			if (window.onbeforeunload)
-				window.onbeforeunload = function() { window.onunload = function() {}; AjaxSendURL(ajaxurl + "&onbeforeunload", false) };
+				window.onbeforeunload = function() { window.onunload = function() {}; AjaxSendURL(ajaxurl + "&onbeforeunload", false); };
 			if (window.onunload)
-				window.onunload = function() { clearTimeout(timeout); AjaxSendURL(ajaxurl + "&onunload", false) };
+				window.onunload = function() { clearTimeout(timeout); AjaxSendURL(ajaxurl + "&onunload", false); };
 		}
 	}
 }
@@ -742,31 +721,12 @@ function moveRow(tablename, rowtomove, insertafter)
 
 }
 
-
-function loadEditor(tableName, insertAfter) {
+var loadEditorEnhancedTextEditorObject = null;
+var lastEditorRow = null;
+var editorLoaded = false;
+function loadEditor(tableName, insertAfter, preload) {
 	var table = document.getElementById(tableName);
-	if (editorLoaded == true) {
-		var clearRow = table.rows[lastEditorRow];
-		clearRow.cells[0].innerHTML = "";
-		table.deleteRow(lastEditorRow);
-		editorLoaded = false;
-		lastEditorRow = "";
-		__FCKeditorNS = false;
-		FCK_EDITMODE_SOURCE = false;
-		FCK_EDITMODE_WYSIWYG = false;
-		FCK_STATUS_ACTIVE = false;
-		FCK_STATUS_COMPLETE = false;
-		FCK_STATUS_NOTLOADED = false;
-		FCK_TOOLBARITEM_ICONTEXT = false;
-		FCK_TOOLBARITEM_ONLYICON = false;
-		FCK_TOOLBARITEM_ONLYTEXT = false;
-		FCK_TRISTATE_DISABLED = false;
-		FCK_TRISTATE_OFF = false;
-		FCK_TRISTATE_ON = false;
-		FCK_UNKNOWN = false;
-		FCKeditorAPI = false;
-	}
-
+	clearEditorRow(table);
 
 	var insertAfterRowObj = document.getElementById(insertAfter);
 	var insertIndex = insertAfterRowObj.rowIndex + 1;
@@ -780,10 +740,70 @@ function loadEditor(tableName, insertAfter) {
 	cell.colSpan = 2;
 	cell.innerHTML = returnEditorTrContent();
 	var editorTd = document.getElementById('editor_td');
+	if (editorTd == null)
+		return;
 
-	editorTd.innerHTML = returnEditor();
+	if (!loadEditorEnhancedTextEditorObject)
+	{
+		var editBox = document.createElement("textarea");
+		editBox.id = "msg";
+		editBox.name = "msg";
+		editBox.className = "enhanced_text_input";
+		editBox.style.width = "450px";
+		editBox.rows = 14;
 
+		editorTd.appendChild(editBox);
+		var tmp = new EnhancedTextInput(editBox);
+		
+		Overlord.summonMinions(editorTd);
+		loadEditorEnhancedTextEditorObject = editBox.parentNode;
+		
+		// Set width of the enhanced editor explicitly to help IE figure it out.
+		YAHOO.util.Dom.setStyle(loadEditorEnhancedTextEditorObject, "width", "452px");
+	}
+	else
+	{
+		editorTd.appendChild(loadEditorEnhancedTextEditorObject);
+	}
+	
+	// Clears the table row where the editor was just place, like it would if the editor were being
+	// moved to a different table row. This allows doing the work to initialize the editor on page
+	// load, which isn't as strange as doing it when the user hits the reply link.
+	if (preload)
+	{
+		clearEditorRow(table);
+	}
 }
+function clearEditorRow(table)
+{
+	if (editorLoaded == true) {
+		var clearRow = table.rows[lastEditorRow];
+		if (loadEditorEnhancedTextEditorObject)
+		{
+			var editorTd = document.getElementById('editor_td');
+			editorTd.removeChild(loadEditorEnhancedTextEditorObject);
+		}
+		clearRow.cells[0].innerHTML = "";
+		table.deleteRow(lastEditorRow);
+		editorLoaded = false;
+		lastEditorRow = "";
+		// __FCKeditorNS = false;
+		// 		FCK_EDITMODE_SOURCE = false;
+		// 		FCK_EDITMODE_WYSIWYG = false;
+		// 		FCK_STATUS_ACTIVE = false;
+		// 		FCK_STATUS_COMPLETE = false;
+		// 		FCK_STATUS_NOTLOADED = false;
+		// 		FCK_TOOLBARITEM_ICONTEXT = false;
+		// 		FCK_TOOLBARITEM_ONLYICON = false;
+		// 		FCK_TOOLBARITEM_ONLYTEXT = false;
+		// 		FCK_TRISTATE_DISABLED = false;
+		// 		FCK_TRISTATE_OFF = false;
+		// 		FCK_TRISTATE_ON = false;
+		// 		FCK_UNKNOWN = false;
+		// 		FCKeditorAPI = false;
+	}
+}
+
 
 function switchElement(div_id, text_area_name)
 {

@@ -147,7 +147,7 @@ EditGroups =
 			var url = '/my/groups/remove/' + id;
 			if (username)
 			{
-				url = '/admin/self/' + escape(username) + '/groups/remove/' + id; 
+				url = '/admin/self/' + encodeURIComponent(username) + '/groups/remove/' + id; 
 			}
 			
 			//YAHOO.util.Connect.setForm("multi_group_edit_form");
@@ -165,7 +165,7 @@ EditGroups =
 	{
 		if (confirm("Delete entire group?")) 
 		{
-			var url = '/admin/groups/remove_group/' + id + '/' + escape(username); 
+			var url = '/admin/groups/remove_group/' + id + '/' + encodeURIComponent(username); 
 			
 			//YAHOO.util.Connect.setForm("multi_group_edit_form");
 			YAHOO.util.Connect.asyncRequest('GET', url , new ResponseHandler({
@@ -202,7 +202,7 @@ EditGroups =
 	initAutoLookup: function()
 	{
 	    // DataSource setup
-	    this.groupDataSource = new YAHOO.widget.DS_XHR("/groups/query",
+	    this.groupDataSource = new YAHOO.widget.DS_XHR("/my/groups/query",
 	        ["group", "name", "location", "type", "location-id", "type-id"]);
 	    this.groupDataSource.scriptQueryParam = "name";
 	    this.groupDataSource.responseType = YAHOO.widget.DS_XHR.TYPE_XML;
@@ -225,7 +225,10 @@ EditGroups =
 		this.groupAutoLookup.queryDelay = 0.5;
 	
 		// Fix silly IE6 bug
-		this.groupAutoLookup.useIFrame = true;
+		if (YAHOO.env.ua.ie > 5 && YAHOO.env.ua.ie <= 7)
+		{
+			this.groupAutoLookup.useIFrame = true;
+		}
 	
 		// HTML display of results
 	    this.groupAutoLookup.formatResult = function(result, sQuery) {

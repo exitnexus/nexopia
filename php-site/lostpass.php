@@ -1,5 +1,5 @@
 <?
-
+	global $Ruby;
 	$login=-1;
 
 	require_once("include/general.lib.php");
@@ -45,16 +45,8 @@
 
 				$subject = "Change your password at $wwwdomain.";
 
-$urlencoded = urlencode($username);
-$message =
-"To change your password at $config[title] you'll need your
-username: $username
-and the activation key: $key
-Click the following link to change your password: http://$wwwdomain/lostpass.php?username=$urlencoded&actkey=$key
+				$Ruby->send('Orwell::SendEmail')->php_send($uid, $subject, 'lost_password_plain', array('html_template' => 'lost_password', 'template_module' => 'account', 'username' => $username, 'key' => $key));
 
-If you didn't request this email, you can safely ignore it.";
-
-				smtpmail("$line[email]", $subject, $message, "From: $config[title] <no-reply@$emaildomain>") or die("Error sending email");
 				$msgs->addMsg("Email sent");
 			}else{
 				$msgs->addMsg("Either that account doesn't exist, or that email isn't registered to that account.");

@@ -1,0 +1,20 @@
+<div id="comments_page" minion_name="comments:view">
+	<t:template-include t:module="comments" t:name="conversation_header"/>
+
+	<t:if t:id="show_editor">
+		<t:template-include t:module="comments" t:name="comments_editor" />
+	</t:if>
+	
+	<t:json t:data="num_pages" t:handle="num_pages"/>
+	<t:json t:data="current_page" t:handle="current_page"/>
+	<t:json t:data="page_url" t:handle="page_url"/>
+	<t:json t:data="comments_id_list" t:handle="comments_id_list" />
+	
+	#{paging_string}
+	<div id="conversation_wrapper">
+		<t:iter t:id="comments_list" t:iter="comment">
+			<t:template-include t:module="comments" t:name="conversation_comment"/>
+		</t:iter>
+	</div>
+	#{paging_string}
+</div>

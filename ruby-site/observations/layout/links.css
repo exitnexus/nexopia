@@ -1,7 +1,0 @@
-div.updates a {
-	color: $link_color;
-}
-
-div.updates a:hover {
-	color: $link_accent_color;
-}

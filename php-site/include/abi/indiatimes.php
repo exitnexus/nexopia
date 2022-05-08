@@ -11,7 +11,8 @@ WWW: http://www.octazen.com
 Email: support@octazen.com
 V: 1.0
 ********************************************************************************/
-include_once("abimporter.php");
+//include_once(dirname(__FILE__).'/abimporter.php');
+if (!defined('__ABI')) die('Please include abi.php to use this importer!');
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //IndiatimesImporter
@@ -20,7 +21,8 @@ class IndiatimesImporter extends WebRequestor {
 
  	var $ACTION_REGEX = "/action=\"(http:\/\/integra.indiatimes.com\/Times\/Logon.aspx[^\"]*)\"/ims";
  	var $LOGINID_REGEX = "/<input[^>]*?name=\"?login\"?\\s+value=\"([^\"]*)\"/ims";
- 	var $BETACONTACT_REGEX = "/<input\\s+[^>]*?name=\"addTo\"[^>]*?value=\"&#034;([^&]*)&#034; &lt;([^&]*)&gt;\"[^>]*>/ims";
+ 	//var $BETACONTACT_REGEX = "/<input\\s+[^>]*?name=\"addTo\"[^>]*?value=\"&#034;([^&]*)&#034; &lt;([^&]*)&gt;\"[^>]*>/ims";
+ 	var $HOMEURL_REGEX = "/ru=(http:\/\/[^&]*)/ims";
 
 	function fetchContacts ($loginemail, $password) {
 
@@ -39,11 +41,18 @@ class IndiatimesImporter extends WebRequestor {
 		$form = new HttpForm;
 		$form->addField("login", $parts[0]);
 		$form->addField("passwd", $password);
+		$form->addField("_authtrkcde", "{#TRKCDE#}");
 		$postData = $form->buildPostData();
 		$html = $this->httpPost($action, $postData);
-		if (strpos($html, 'Invalid User Name or Password')!=false) {
+		if (strpos($html, 'Invalid User Name or Password')!=false || strpos($html, 'class="err"')!=false) {
 		 	$this->close();
 			return abi_set_error(_ABI_AUTHENTICATION_FAILED,'Bad user name or password');
+		}
+		
+		// If we're in an interstitial page, then try to get the url of the inbox
+        if (preg_match($this->HOMEURL_REGEX,$this->lastUrl,$matches)!=0) {
+         	$url = urldecode($matches[1]);
+         	$html = $this->httpGet($url);
 		}
 		
 		if (strpos($this->lastUrl, 'indiatimes.com/cgi-bin/gateway')!=false) {
@@ -67,7 +76,8 @@ class IndiatimesImporter extends WebRequestor {
 		}
 		else {
 		 	//Indiatimes beta
-		 	
+
+			/*		 	
             //Indiatimes mail beta
 			$form = new HttpForm;
 
@@ -104,6 +114,39 @@ class IndiatimesImporter extends WebRequestor {
 	            $list[] = $c;
 			}
 			return $list;
+			*/
+			
+
+			$html = $this->httpGet("/service/home/~/Contacts?auth=co&fmt=csv");
+			$al = array();	
+			
+			$reader = new CsvReader($html,',');
+			//Read header
+			$cells = $reader->nextRow();
+			while (true) {
+			 	$cells = $reader->nextRow();
+			 	if ($cells==false) break;
+			 	$email = '';
+			 	$fname = '';
+			 	$mname = '';
+			 	$lname = '';
+			 	$n = count($cells);
+			 	if ($n>=1) $email=trim($cells[0]);
+			 	if ($n>=3) $fname=$cells[2];
+			 	if ($n>=4) $lname=$cells[3];
+			 	if ($n>=5) $mname=$cells[4];
+
+				if (abi_valid_email($email)) {
+				 	$name = $fname.' '.$mname.' '.$lname;
+				 	$name = abi_reduceWhitespace($name);
+				 	$name = trim($name);
+		            if (empty($name)) $name = $email;
+					$contact = new Contact($name,$email);
+					$al[] = $contact;
+				}
+			}
+			return $al;
+			
 		}
 	}
 }

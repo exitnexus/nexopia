@@ -6,14 +6,18 @@ lib_require :Core, "validateinput";
 # validate_input member to determine if the value is valid and then uses it.
 class TypeSafeHash
 	attr_reader :real_hash
-	attr_reader :original_hash
 	
 	include Enumerable;
 
 	# Initializes the type safe hash based on an existing normal hash.
 	def initialize(cgi_hash)
-		@original_hash = cgi_hash
-		@real_hash = convert_to_nested_hash(cgi_hash)
+		if (cgi_hash.kind_of? TypeSafeHash)
+			@real_hash = cgi_hash.to_hash
+		elsif (cgi_hash.kind_of? Hash)
+			@real_hash = cgi_hash
+		else
+			raise ArgumentError.new("Bad argument to TypeSafeHash.")
+		end
 	end
 	
 	# Compares a type safe hash with another.
@@ -32,7 +36,7 @@ class TypeSafeHash
 			value = real_hash[key];
 
 			# if type is not an array, but value is, flatten it.
-			if (type != Array && value.kind_of?(Array))
+			if (type != Array && !type.kind_of?(Array) && value.kind_of?(Array))
 				value = value[0];
 			end
 
@@ -114,14 +118,8 @@ class TypeSafeHash
 	end
 
 	# Returns the inner hash.
-	def to_hash()
-		result = real_hash
-		
-		result.each_value do |value|
-			value = value.to_hash if value.is_a? TypeSafeHash
-		end
-		
-		return result
+	def to_hash
+		return @real_hash
 	end
 	
 	def self.validate_input(value)
@@ -137,45 +135,4 @@ class TypeSafeHash
 		return real_hash.to_s;
 	end
 	
-	private
-	def convert_to_nested_hash(cgi_hash)
-		new_hash = {};
-		cgi_hash.each_pair {|key, value|
-			if ((value.kind_of? Array) && key !~ /\[(.*)\]$/)
-				value = value.first
-			end
-			while (key =~ /(.*)\[(\w+)?\]$/)
-				key = $1;
-				if ($2)
-					value = {$2 => value}
-				else
-					new_hash[key] ||= {}
-					max_key = new_hash.keys.reject{|a| !a.kind_of? Integer}.max || -1 #muahahahahaha!
-					[*value].each{|v|
-						max_key += 1
-						value = {max_key => v}
-					}
-				end
-			end
-			if (new_hash[key].kind_of?(Hash) && value.kind_of?(Hash))
-				new_hash[key] = recursive_merge(value, new_hash[key]);
-			else
-				new_hash[key] = value;
-			end
-		}
-		return new_hash
-	end
-	
-	#This changes hash2 and its subhashes in place, it's private for a reason, 
-	#not meant to be used outside of convert_to_nested_hash.
-	def recursive_merge(hash1, hash2)
-		hash1.each_pair { |key, value|
-			if (!hash2[key])
-				hash2[key] = value;
-			elsif (hash2[key].kind_of?(Hash) && value.kind_of?(Hash))
-				hash2[key] = recursive_merge(value, hash2[key]);
-			end
-		}
-		return hash2;
-	end	
 end

@@ -22,9 +22,14 @@ FCGI.each_cgi { |cgi|
 	end
 
 	$threads << Thread.new(cgi) { |cgi|
-		PageRequest.new_from_cgi(cgi) {|req|
-			PageHandler.execute(req);
-		}
+		begin
+			PageRequest.new_from_cgi(cgi) {|req|
+				PageHandler.execute(req);
+			}
+		rescue
+			$log.error
+			raise
+		end
 
 		$log.info("Page done");
 	}

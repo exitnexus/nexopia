@@ -1,0 +1,45 @@
+<div id="skin_contest_thumbs">
+	
+	<div class="page_wrapper1">
+	<div class="page_wrapper2">
+
+		<div class="content_container">
+			<p class="bold">
+				So we received tons of amazing&nbsp;<a href="http://www.nexopia.com/forumviewthread.php?tid=7079864">skin entries</a>&nbsp;from everyone, but in the end these twelve finalists made the cut and are that much closer to getting their skin featured here on Nex (not to mention score an 8GB iPod Touch and other sweet prizes.)
+			</p>
+		
+			<p class="bold">
+				So now it's up to you to decide which skins you want to see up on the Nexopia skins page -- vote for your favorite, but you can only vote once so make sure you choose carefully!  Voting closes on Monday, February 9th.  We'll be posting the four winning skins soon after.
+			</p>
+		
+			<p>&nbsp;</p>
+			<p><h2>TOP 12 SKINS</h2></p>
+		
+			<form class="vote_form" method="post" action="/vote/submit" id="plus_vote">
+		
+				<t:loop t:id="group1" t:iter="plus_skin">
+					<div class="entry_container">
+						<img border="0" width="600" height="250" src="#{$site.static_files_url}/Vote/images/{plus_skin.filename}_thumb.jpg" />
+						<div class="vote_button">
+							<input type="radio" class="entry_button" name="plus_skin" value="{plus_skin.skinid}" />
+						</div>
+						<div class="username">
+							 <a href="/users/%{plus_skin.designername}">{plus_skin.designername}</a>
+						</div>
+						<div class="clear"></div>
+					</div>
+				</t:loop>
+
+				<p>&nbsp;</p>
+				<t:if t:id="FirstVote.can_vote?(PageRequest.current.session.user.userid)">
+					<a href="javascript: pyp_submit1();">
+						<img border="0" src="#{$site.static_files_url}/Vote/images/vote_btn.gif"/>
+					</a>
+				</t:if>
+			</form>
+
+		</div>
+
+	</div>
+	</div>
+</div>

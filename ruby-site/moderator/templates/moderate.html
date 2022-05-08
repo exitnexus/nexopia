@@ -1,0 +1,14 @@
+<script>
+	function jump(i) { return true; }
+</script>
+<script t:id="prefs.autoscroll">
+	function jump(i) { location.href='#item' + i; return true;}
+</script>
+<form method="post" action="/moderate/queue/%{queue.queue_number}/vote">
+	<div>
+		#{item_output}
+	</div>
+	
+	<input class="body" id="stopModding" name="stopModding" value="y" type="checkbox"/> <label for="stopModding">Do not show more after voting.</label><br/><br/>
+	<input class="body" style="width: 200px;" name="vote" value="Vote" type="submit"/>
+</form>

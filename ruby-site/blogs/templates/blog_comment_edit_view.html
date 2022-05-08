@@ -1,0 +1,40 @@
+<div id="blog">
+	<div class="blog_container">
+		<div class="blog_comments_container">
+			<a name="comments_top"/>
+			<div class="blog_comments_header">
+				COMMENT REPLY
+			</div>
+		
+			<t:if t:id="parent_comment">
+				<t:varsub t:new="blog_comment" t:old="parent_comment" />
+				<t:template-include t:module="blogs" t:name="blog_comment" />
+			</t:if>
+			<div id="static_blog_comment_editor">
+				<table>
+					<tbody>
+						<tr>
+							<td>
+								<a t:id="viewing_user">
+									<img t:id="viewing_user" t:linktype="landscapethumb" />
+								</a>
+							</td>
+							<td>
+								<form method="post" action="/users/%{blog_user.username}/blog/{blog_post.id}/comment/{parent_comment.id}/submit">
+									<textarea name="blog_comment_content" id="blog_comment_content" minion_name="enhanced_text_input"/>
+									<span class="custom_button yui-button yui-button-button">
+										<span class="first-child">
+												<button type="submit" accesskey="s">
+													Post
+												</button>
+											</span>
+										</span>
+								</form>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>

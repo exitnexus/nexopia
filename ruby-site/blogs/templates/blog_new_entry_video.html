@@ -1,0 +1,48 @@
+<div id="blog_new_entry_container">
+
+	<t:template-include t:module="blogs" t:name="blog_new_entry_header" />
+	
+	<form method="post" id="new_blog" action="#{PageRequest.current.area_base_uri}/blog/#{action}/submit">
+		<input type="hidden" name="typeid" value="{Blogs::VideoBlog.typeid}"/>
+
+		<div class="left_column">
+			<div class="post_title">
+				Video Post Title
+			</div>
+			<input name="blog_post_title" type="text" class="text" value="{title}" maxlength="128"/>
+		
+			<div class="section_title">
+				<div class="title">
+					Video embed code
+				</div>
+				<div class="get_a_photo">
+					<input type="image" src="{$site.static_files_url}/blogs/find_on_you_tube_button.jpg" path="/youtube/search_panel?return_location=blog_post_video_embed" minion_name="async_panel"/>
+				</div>
+				<div class="or">
+					or
+				</div>
+				<div class="clear"></div>
+			</div>
+			<input type="text" class="text" name="blog_post_video_embed" id="blog_post_video_embed" value="{embed_code}"/>
+			<div class="video_sites">
+				(YouTube, Vimeo, Break, ...)
+			</div>
+		
+			<div class="section_title">
+				Caption&#160;<span class="optional">(optional)</span>
+			</div>
+			<textarea class="textarea" name="blog_post_content">{caption}</textarea>
+		
+			<t:template-include t:module="blogs" t:name="new_blog_submit_buttons"/>
+		</div>
+	
+		<div class="right_column">
+			<t:template-include t:module="blogs" t:name="blog_new_entry_options" />
+			<t:template-include t:module="blogs" t:name="blog_tip_video" />
+		</div>
+		<div class="clear"></div>
+	
+	</form>
+	
+
+</div>

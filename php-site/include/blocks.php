@@ -64,7 +64,7 @@ function incJobloftBlock($side){
 function incMyTreatBlock($side){
 	global $config, $userData;
 
-	if($userData['limitads'])
+	if($userData['limitads'] && $userData['premium'])
 		return;
 
 	blockContainer('My Treat', $side, "<center><a href=/wiki/UserGuides/Plus/MyTreat><img src=$config[imageloc]/mytreatfront.png border=0 style=\"padding-bottom: 5px\"></a></center>");
@@ -73,8 +73,8 @@ function incMyTreatBlock($side){
 function incPollBlock($side){
 	global $userData, $config, $cache, $polls;
 
-	if(!$userData['loggedIn'])
-		return;
+	// if(!$userData['loggedIn'])
+	// 	return;
 
 	$poll = $polls->getPoll();
 
@@ -104,6 +104,8 @@ function incPollBlock($side){
 	$template->set('voted', $voted);
 	$template->set("poll", $poll);
 	$template->set("config", $config);
+	$template->set("loggedin", $userData['loggedIn'] != null);
+	
 	$block_contents = $template->toString();
 	blockContainer('Polls',$side, $block_contents);
 }
@@ -127,7 +129,7 @@ function incBookmarksBlock($side){
 }
 
 function incSortBlock($side){
-	global $userData, $sort, $config, $usersdb, $configdb, $requestType, $requestParams;
+	global $userData, $sort, $config, $usersdb, $configdb, $requestType, $requestParams, $rap_pagehandler;
 
 	// get values for the output template for all the user search options
 	$menuOptions = new userSearchMenuOptions(true, 'incSortBlock', $requestType, $requestParams);
@@ -137,7 +139,10 @@ function incSortBlock($side){
 	$template->set('maxage', $menuOptions->searchMaxAge);
 	$template->set('user', $menuOptions->searchName);
 	$template->set('sex_select_list', $menuOptions->sexSelect);
-	$template->set("loc_select_list", $menuOptions->locationSelect);
+	
+	$locationAutocomplete = $rap_pagehandler->subrequest(null, "GetRequest", "/autocomplete/location", array("location_id_field_id"=>"requestParams[location]"), "Public");
+	
+	$template->set("loc_select_list", $locationAutocomplete->get_reply_output());
 	$template->set("interest_select_list", $menuOptions->interestSelect);
 	$template->set("activity_select_list",  $menuOptions->activitySelect);
 	$template->set("picture_select_list", $menuOptions->pictureSelect);
@@ -213,14 +218,20 @@ function incFriendsBlock($side){
 }
 
 function incModBlock($side){
-	global $userData, $mods, $cache;
-
+	global $userData, $mods, $cache, $forums;
+	
 	if(!$userData['loggedIn'])
 		return;
 
-	if(!$mods->isMod($userData['userid']))
+	if(!$mods->isMod($userData['userid']) && !$forums->isOfficialMod($userData['userid']))
 		return;
-
+	
+	$forum_mod = false;
+	if(!$mods->isMod($userData['userid']) && $forums->isOfficialMod($userData['userid']))
+	{
+		$forum_mod = true;
+	}
+	
 	function getAdminsOnline(){
 		global $mods;
 
@@ -266,13 +277,16 @@ function incModBlock($side){
 
 	$adminsonline = $cache->get('adminsonline',30,'getAdminsOnline', 0);
 	$modsonline = $cache->get('modsonline',30,'getNumModsOnline', 0);
-
-
-	$moditemcounts = $mods->getModItemCounts();
-
+	
+	$moditemcounts = array();
+	if(!$forum_mod)
+	{
+		$moditemcounts = $mods->getModItemCounts();
+	}
 	$template =  new template("include/blocks/mod_block");
 
 	$types = array();
+	
 	foreach ($moditemcounts as $type => $num) {
 //		if ($num > 0)
 			$types[$type] = array(
@@ -290,6 +304,7 @@ function incModBlock($side){
 	$template->set('adminsonline', $adminsonline['admin']);
 	$template->set('globalmodsonline', $adminsonline['global']);
 	$template->set('globalmodsonline_count', count($adminsonline['global']));
+	$template->set('voting_mod', !$forum_mod);
 	$block_contents = $template->toString();
 	blockContainer('Moderator',$side, $block_contents);
 }
@@ -456,11 +471,11 @@ function incTextAdBlock($side){
 
 	global $banner, $userData;
 
-	if($userData['limitads'])
+	if($userData['limitads'] && $userData['premium'])
 		return;
 
 	$banner->linkclass = 'sidelink';
-	$bannertext = $banner->getbanner(BANNER_BUTTON60);
+	// $bannertext = $banner->getbanner(BANNER_BUTTON60);
 
 	if($bannertext == "")
 		return;
@@ -476,10 +491,10 @@ function incTextAdBlock($side){
 function incSkyAdBlock($side){
 	global $banner, $userData;
 
-	if($userData['limitads'])
+	if($userData['limitads'] && $userData['premium'])
 		return;
 
-	$bannertext = $banner->getbanner(BANNER_SKY120);
+	$bannertext = $banner->getIFrameBanner(BANNER_SKY120);
 
 	if($bannertext == "")
 		return;
@@ -490,14 +505,12 @@ function incSkyAdBlock($side){
 }
 
 function incPlusBlock($side){
-	global $userData;
+	global $userData, $config;
 
-	if($userData['limitads'])
+	if($userData['limitads'] && $userData['premium'])
 		return;
 
-	$template = new template('include/blocks/plus_block');
-	$block_contents = $template->toString();
-	blockContainer('Nexopia Plus', $side, $block_contents);
+	blockContainer('Nexopia Plus', $side, "<a href=/plus><img src=$config[imageloc]/130x170_plus.gif border=0></a>");
 }
 
 function incSpotlightBlock($side){
@@ -578,9 +591,11 @@ function incScheduleBlock($side){
 	blockContainer('Events', $side, $str);
 }
 
+function incEmptyBlock($side){
+//used to make the page have the side blocks enabled, without actually showing any extra ones.
+}
 
-
-function blockContainer($header, $side, $blockContents)
+function blockContainer($header, $side, $blockContents, $visible=true)
 {
 	global $skinloc, $skindata;
 	$template =  new template("include/blocks/block_container");
@@ -591,7 +606,81 @@ function blockContainer($header, $side, $blockContents)
 	$template->set('block_contents', $blockContents);
 	$template->set('skindata', $skindata);
 	$template->set('width', ($skindata['sideWidth'] - 2*$skindata['blockBorder']));
+	$template->set('visible', $visible);
 	$template->display();
 
 }
 
+function getLastRead($uid)
+{
+	global $cache, $usersdb;
+	$subkeys = array('readtime', 'postcount');
+	$result = $cache->get_multi($subkeys, "weblog-lastread-{$uid}-");
+	$missing = array_diff($subkeys, array_keys($result));
+
+	if ($missing)
+	{
+		$res = $usersdb->prepare_query("SELECT " . implode(',', $subkeys) . " FROM bloglastreadfriends WHERE userid = %", $uid);
+		$dbresult = $res->fetchrow();
+		if ($dbresult) {
+			foreach ($missing as $put)
+			{
+				$cache->put("weblog-lastread-{$uid}-$put", $dbresult[$put], 24*60*60);
+				$result[$put] = $dbresult[$put];
+			}
+		} else {
+			$result = array('readtime' => 0, 'postcount' => 0);
+		}
+	}
+	return $result;
+}
+
+function getAlbumUpdates($uid) {
+	global $cache, $usersdb, $Ruby;
+	$count = $cache->get("userinfo_friends_galleries_count_relation-$uid");
+	if (!is_numeric($count)) {
+		$typeid = $Ruby->send("Gallery::GalleryFolder")->typeid;
+		$res = $usersdb->prepare_query("SELECT COUNT(*) as count FROM scoop_story WHERE userid = % && typeid = ? && viewed = 'n'", $uid, $typeid);
+		$dbresult = $res->fetchrow();
+		$count = $dbresult['count'];
+		$cache->put("userinfo_friends_galleries_count_relation-$uid", $count, 24*60*60);
+	}
+	return $count;
+}
+
+function getGalleryComments($uid) {
+	global $cache, $usersdb, $Ruby;
+	$count = $cache->get("userinfo_gallery_comments_count_relation-$uid");
+	if (!is_numeric($count)) {
+		$typeid = $Ruby->send("Gallery::GalleryComment")->typeid;
+		$res = $usersdb->prepare_query("SELECT COUNT(*) as count FROM scoop_story WHERE userid = % && typeid = ? && viewed = 'n'", $uid, $typeid);
+		$dbresult = $res->fetchrow();
+		$count = $dbresult['count'];
+		$cache->put("userinfo_gallery_comments_count-$uid", $count, 24*60*60);
+	}
+	return $count;
+}
+
+function incUpdateBlock($side){
+	global $userData,$config,$weblog, $staticimgdomain;
+	
+	$template =  new template("include/blocks/updates_block");
+	if(!$userData['halfLoggedIn'])
+		return;
+
+	$friendblogposts = getLastRead($userData['userid']);
+	$friendalbumposts = getAlbumUpdates($userData['userid']);
+	$gallerycomments = getGalleryComments($userData['userid']);
+	
+	$template->set('friendblogposts', $friendblogposts['postcount']);
+	$template->set('friendalbumposts', $friendalbumposts);
+	$template->set('gallerycomments', $gallerycomments);
+	$template->set('profilecomments', $userData['newcomments']);
+	$template->set('current_username', getUserName($userData['userid']));
+	$template->set('blogentries', ($friendblogposts['postcount'] == 1 ? 'friend\'s blog entry' : 'friends\' blog entries'));
+	$template->set('albumentries', ($friendalbumposts == 1 ? 'friend\'s album' : 'friends\' albums'));
+	$template->set('staticimgdomain', $staticimgdomain);
+	
+	$block_contents = $template->toString();
+	blockContainer("Updates",$side, $block_contents);
+}

@@ -1,0 +1,12 @@
+#info_messages {
+	width: 750px;
+	font-size: 11px;
+	margin: auto;
+	& .info_message {
+		border-bottom: 6px solid @section_background_color;
+		background-color: @primary_block_link_color;
+		color: @primary_block_background_color;
+		margin: 2px;
+		padding: 2px;
+	}
+}

@@ -4,6 +4,7 @@ lib_require :Core, 'sql', 'sql/mysql-native/mysql'
 # mysql implementation of the sql stuff
 class SqlDBmysql < SqlBase
 	attr(:db);
+	attr :connection_time
 
 	#takes options in the form:
 	# options = { :host => 'localhost', :login => 'test', :passwd => 'test', :db => 'test',
@@ -23,10 +24,16 @@ class SqlDBmysql < SqlBase
 		@transactions = options[:transactions] || false;
 		@seqtable =  options[:seqtable] || false;
 
-		@timeout = 10; # used to tell if the connection needs to be pinged
+		@timeout = 10;     # number of seconds a connection may be inactive before being reset
+		@max_retries = 10; # number of attempts to connect to a db before giving up
 
 		@db = nil;
 		@in_transaction = false;
+		@pid = nil
+
+		@last_query_time = nil;
+		@connection_creation_time = nil;
+		@connection_time = 0;
 
 		super(name, idx, dbconfig);
 	end
@@ -37,27 +44,62 @@ class SqlDBmysql < SqlBase
 
 	#Connect to the db if needed. Connections are generally created at first use
 	def connect()
-		#check if it's already connected
-		if(@db)
-			if(Time.now.to_i - @last_query_time > @timeout) #if the connection hasn't been used in a while, ping it
-				#return @db.ping();
-			end
+		#check if it's already connected, recently used, and from this process
+		if(@db && (Time.now.to_f - @last_query_time) < @timeout && @pid && Process.pid == @pid)
 			return true; #assume it's still active
 		end
 
-		#connect if needed
+		#if there is no connection, or if the connection hasn't been used in a while, close it and reconnect
+		close()
+
+		retries = 0
 		begin
 			@db = Mysql.real_connect(@server, @user, @password, @dbname, @port)
+			@pid = Process.pid
 		rescue MysqlError => e
-			raise ConnectionError, "Failed to Connect to Database: #{@dbname} Error Code #{e.errno}: #{e.error}";
+			if (@all_options[:bootstrap] && e.error =~ /Unknown database/ && retries == 0)
+				self.bootstrap(*@all_options[:bootstrap])
+				retry;
+			elsif(retries == @max_retries)
+				raise ConnectionError, "Failed to Connect to Database: #{@dbname} Error Code #{e.errno}: #{e.error}";
+			else
+				$log.info("Failed to connect to mysql server, reconnecting.", :info, :sql)
+
+				sleep((retries + 1) * ((rand(200)+50)/1000.0)); #wait between 50 and 250ms (going up each retry)
+
+				retries += 1;
+				retry;
+			end
 		end
+
+		#set last_query_time here, as it is used to tell if a connection has timed out
+		@last_query_time = @connection_creation_time = Time.now.to_f;
 
 		begin
 			query("SET collation_connection = 'latin1_swedish_ci'");
 		rescue
 		end
 
-		@connection_creation_time = Time.now.to_f;
+		$log.info("Connected to #{@server}:#{@dbname}", :debug, :sql)
+	end
+
+	#This creates the database and creates its tables based on those from the config and database specified.
+	def bootstrap(config_name, db)
+		$log.info "Creating database #{@dbname}."
+		config = ConfigBase.load_config(config_name);
+		db_creator = Mysql.real_connect(@server, @user, @password, nil, @port)
+		db_creator.create_db(@dbname)
+		db_creator.select_db(@dbname)
+		bootstrap_db = config.class.get_dbconfigs(config.class.config_name) { |name, idx, dbconf|
+			if (name == db)
+				dbconf.create(name, idx);
+			else
+				nil
+			end
+		}[db]
+		bootstrap_db.list_tables.each {|row|
+			db_creator.query(bootstrap_db.get_split_dbs[0].query("SHOW CREATE TABLE `#{row['Name']}`").fetch['Create Table'])
+		}
 	end
 
 	#close the connection, commiting if needed
@@ -81,30 +123,40 @@ class SqlDBmysql < SqlBase
 
 		@connection_time += Time.now.to_f - @connection_creation_time;
 		@connection_creation_time = 0;
+		@last_query_time = 0;
 	end
 
 	def internal_query(prepared, &block)
 		#run the query
 		retried = false;
-		connect();
-		return @db.query(prepared, &block);
-		
-	rescue MysqlError => e
-		#disconnected since the last query, try again once
-		if(e.errno == 2013 || e.errno == 2006)
-			@db = nil;
-			if(retried)
-				raise ConnectionError, "Reconnect: SQL Error: #{e.errno}, #{e.error}. Query: #{prepared}";
+		begin
+			connect();
+
+			return @db.query(prepared, &block);
+
+		rescue MysqlError => e
+			#disconnected since the last query, reconnect and retry once
+			if(e.errno == 2013 || e.errno == 2006)
+				close()
+
+				if(retried)
+					raise ConnectionError, "Reconnect: SQL Error: #{e.errno}, #{e.error}. Query: #{prepared}";
+				else
+					$log.info("Disconnected from server #{@server}:#{@dbname} during query, reconnecting.", :info, :sql)
+					retried = true;
+					retry;
+				end
+			end
+
+			if (e.errno == 1032)
+				raise CannotFindRowError.new(e.errno, e.error), "SQL Error: #{e.errno}, #{e.error}. Query: #{prepared}";
+			elsif ((e.errno == 1205) || (e.errno == 1213))
+				raise DeadlockError.new(e.errno, e.error), "SQL Error: #{e.errno}, #{e.error}. Query: #{prepared}";
 			else
-				$log.info("Disconnected from server, reconnecting.", :info)
-				retried = true;
-				retry;
+				#other error that we don't know how to recover from
+				raise QueryError.new(e.errno, e.error), "SQL Error: #{e.errno}, #{e.error}. Query: #{prepared}";
 			end
 		end
-
-		#other error that we don't know how to recover from
-		raise QueryError, "SQL Error: #{e.errno}, #{e.error}. Query: #{prepared}";
-
 	end
 	
 	#run a query. Prepare it with the parameters if there are any
@@ -126,7 +178,7 @@ class SqlDBmysql < SqlBase
 		#debug book keeping
 		query_time = end_time - start_time;
 		@time += query_time;
-		@last_query_time = end_time.to_i;
+		@last_query_time = end_time;
 		@num_queries += 1;
 		debug(prepared, query_time);
 
@@ -223,6 +275,10 @@ class SqlDBmysql < SqlBase
 			@total_rows = total_rows; #if the query had SQL_CALC_FOUND_ROWS, this is the result of that
 		end
 
+		def free
+			@result.free()
+		end
+
 		def empty?
 			return @result.empty?
 		end
@@ -268,6 +324,14 @@ class SqlDBmysql < SqlBase
 			while(line = @result.fetch_hash())
 				yield line;
 			end
+		end
+		
+		def collect
+			out = []
+			while(line = @result.fetch_hash())
+				out.push(yield(line))
+			end
+			out
 		end
 
 		# return an array of all the rows as hashes

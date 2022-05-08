@@ -26,36 +26,68 @@ class WebRequestHandler < PageHandler
 	declare_handlers('/') {
 		area :Public
 		handle :GetRequest, :index, "index"
+		handle :GetRequest, :favicon, "favicon.ico"
 
 		access_level [:Admin, :impersonate]
 		area :User
 		handle :GetRequest, :admin_self, "my", remain # passes in to self area with target user changed.
 	}
 
-	def area_dispatch(remain)
-		domain = remain[0]
-		area, remain = $site.url_to_area(remain)
+	def area_dispatch(orig_remain)
+		domain = orig_remain[0]
+		area, remain = $site.url_to_area(orig_remain)
 		if (remain.length == 0) # this is something like http://blah/, translate it to http://blah/index.
 			remain = ["index"]
 		end
 		if (area)
-			$log.info("Dispatching request to: #{area}#{remain}", :debug, :pagehandler)
+			$log.info("Dispatching request to: #{area}#{remain}", :spam, :pagehandler)
 			rewrite(request.method, remain, nil, area)
 		else
-			raise PageError.new(404), "No area found for #{domain || 'No Domain'} (is your domain configured properly?)"
+			force_server = request.cookies['forceserver'].first
+			force_server = force_server && force_server != 0
+			force_server = force_server || orig_remain[1] =~ /forceserver/
+			path = orig_remain[1..-1]
+			if (!force_server)
+				$log.info("Accessed unknown domain #{domain || 'No Domain'}, redirecting to #{url($site.www_url)/path}.", :debug, :pagehandler)
+				external_redirect(url($site.www_url)/path, :Public)
+			else
+				$log.info("Accessed unknown domain #{domain || 'No Domain'} with forceserver, rewriting to #{url/:webrequest/$site.config.www_url/path}", :debug, :pagehandler)
+				rewrite(request.method, url/:webrequest/$site.config.www_url/path, params.to_hash, :Internal)
+			end
 		end
 	end
 
 	def self(remain)
-		remain = remain.collect {|component| CGI::escape(component) }
+		remain = remain.collect {|component| urlencode(component) }
 		$log.info("Handling self request for /#{remain.join('/')}", :debug, :pagehandler);
 		rewrite(request.method, "/#{remain.join('/')}", nil, [:Self, session.user]);
 	end
 
 	def user(username, remain)
-		remain = remain.collect {|component| CGI::escape(component) }
-		userobj = User.get_by_name(username);
+		remain = remain.collect {|component| urlencode(component) }
+		if (/^[0-9]+$/.match(username))
+			userobj = User.find(username.to_i, :first)
+			if (userobj)
+				site_redirect("/", [:User, userobj])
+			end
+		else
+			userobj = User.get_by_name(username);
+		end
 		if (userobj)
+				if(!userobj.visible?(request.session.user) && !request.session.has_priv?(CoreModule, "listusers"))
+					if(request.session.user.anonymous?())
+						$log.info("User(#{username}) requires viewer be logged in", :debug, :pagehandler);
+						redirect_url = url / :users / username / remain;
+						site_redirect(url / :account / :join & {:referer => redirect_url});
+					elsif(userobj.frozen?)
+						$log.info("User(#{username}) is frozen and attempted to view by #{request.session.user.username}", :debug, :pagehandler);
+						rewrite(:GetRequest, url / :profile / :frozen, nil, :Public);
+					else
+						$log.info("User(#{username}) has blocked viewer(#{request.session.user.username})", :debug, :pagehandler);
+						rewrite(:GetRequest, url / :profile / :blocked, nil, :Public);
+					end
+				end
+			
 			$log.info("Handling user(#{username}) request for /#{remain.join('/')}", :debug, :pagehandler);
 			rewrite(request.method, "/#{remain.join('/')}", nil, [:User, userobj]);
 		else
@@ -120,6 +152,11 @@ class WebRequestHandler < PageHandler
 		# rewrite the index to the right skeleton.
 		rewrite(request.method, url/:current/:index, nil, :Skeleton)
 	end
+	
+	def favicon()
+		# rewrite to the skeleton's copy of favicon.ico.
+		rewrite(request.method, url/0/:files/request.skeleton.name/"favicon.ico", nil, :Static)
+	end
 
 	def complete_subrequest_with_timeline(subreq)
 			reply.headers["Content-Type"] = PageRequest::MimeType::XML;
@@ -159,10 +196,10 @@ class WebRequestHandler < PageHandler
 	# fetch-page fetches a page as an xmlhttp request and includes header
 	# information and some logging info.
 	def ajax_dispatcher(host, remain)
-		remain = remain.collect {|component| CGI::escape(component) }
+		remain = remain.collect {|component| urlencode(component) }
 
 		subreq = subrequest(StringIO.new(), request.method, "/webrequest/#{host}/#{remain.join '/'}",
-		                    params.to_hash, :Internal);
+		                    nil, :Internal);
 		#
 		# Copy Cookies into current reply context
 		reply.merge_cookies(subreq.reply)

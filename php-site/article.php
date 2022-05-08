@@ -16,7 +16,12 @@
 	$page = getREQval('page', 'int');
 
 	$article = $cache->get("article-$id");
-
+	
+	if(isset($article) && isset($article['time']) && $article['time'] == 0)
+	{
+		$article = null;
+	}
+	
 	if(!$article){
 		$res = $articlesdb->prepare_query("SELECT * FROM articles WHERE id = #", $id);
 		$article = $res->fetchrow();
@@ -47,7 +52,7 @@
 	$categories = new category( $articlesdb, "cats");
 
 
-	$article['text'] = nl2br(smilies(parseHTML($article['text'])));
+	$article['text'] = smilies(parseHTML($article['text']));
 
 
 	$template =  new template("articles/article/article");

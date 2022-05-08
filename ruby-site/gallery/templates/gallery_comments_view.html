@@ -1,0 +1,52 @@
+<div id="gallery_comments_block" minion_name="gallery_comments:view">
+	<a name="gallery_comments_top"/>
+	
+	<t:json t:data="page_url" t:handle="gallery_comments_page_path"/>
+	<t:json t:data="current_page" t:handle="gallery_comments_current_page"/>
+	<t:json t:data="page_count" t:handle="gallery_comments_num_pages"/>
+	<t:json t:data="get_params" t:handle="get_params"/>
+	
+	<div class="comments_section">
+		<t:if t:id="admin_viewer">
+			<div class="header_accessory">
+				<a href="{admin_view_url}">View all + deleted</a>
+			</div>
+		</t:if>
+		<div class="block_title">
+			COMMENTS  
+		</div>
+
+		<t:if t:id="viewing_user.anonymous?()">
+			<a href="/account/join">Join</a>&#160;or&#160;<a href="/account/login?referer=/users/%{gallery_user.username}/gallery/{gallery_pic_obj.galleryid}/{gallery_pic_obj.id}">login</a>&#160;to view and post comments.
+		</t:if>
+		<form id="delete_comments_form" method="post" action="{comments_delete_url}">
+			<input type="hidden" name="page" value="#{current_page}" />
+			<t:if t:id="!viewing_user.anonymous?()">
+				<t:template-include t:module="gallery" t:name="gallery_comments_page_view" />
+			</t:if>
+		
+			<t:if t:id="show_delete_controls">
+				<div class="select_links">
+					Select:&#160;
+					<a minion_name="gallery_comments:select_all" class="body" href="">All</a>,&#160;
+					<a minion_name="gallery_comments:select_none" class="body" href="">None</a>
+				</div>
+			</t:if>
+		
+			<t:if t:id="admin_viewer && (gallery_user.userid != viewing_user.userid || admin_view == :admin)">
+				<a name="abuse_log_anchor" />
+				<t:template-include t:module="gallery" t:name="gallery_comments_abuse_log" />
+			</t:if>
+		
+			<t:if t:id="show_delete_controls">
+				<t:button id="comments_delete_button" type="submit">Delete</t:button>
+			</t:if>
+		</form>
+			
+		<t:if t:id="show_editor">
+			<t:template-include t:name="gallery_comments_editor" t:module="gallery" />
+		</t:if>
+
+	</div>	
+</div>
+

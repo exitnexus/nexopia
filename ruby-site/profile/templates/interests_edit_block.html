@@ -1,21 +1,23 @@
-<div id="interests_edit_block">
-	<h2>INTERESTS</h2>
-	<div class="accordion_view">
-		<t:loop t:id="Interests.get_by_id(0).children" t:iter="category">
-			<div class="accordion_handle"> #{category.to_s}: </div>
-			<div class="accordion_body">
-				<t:statement>
-					row_count = (category.children.length.to_f / 3).ceil
-				</t:statement>
-				<div t:id="(0...3)" t:iter="column" class="column">
-					<ul>
-						<li t:id="category.children[column*row_count, row_count]" t:iter="interest" class="interest_list">
-							<input type="checkbox" id="checkbox[#{interest.id}]" name="checkbox[#{interest.id}]" cond:checked="(user.interests.include? interest)">#{interest}</input>
-						</li>
-					</ul>
+<div id="interests_edit_block" class="edit_block">
+	<div class="edit_title">INTERESTS</div>
+	<div style="margin-top: 20px">
+		<div class="accordion_view">
+			<t:loop t:id="Interests.get_by_id(0).children" t:iter="category">
+				<div class="accordion_handle"> #{category.to_s}: </div>
+				<div class="accordion_body">
+					<t:statement>
+						row_count = (category.children.length.to_f / 3).ceil
+					</t:statement>
+					<div t:id="(0...3)" t:iter="column" class="column">
+						<ul>
+							<li t:id="category.children[column*row_count, row_count]" t:iter="interest" class="interest_list">
+								<input type="checkbox" id="checkbox[#{interest.id}]" name="checkbox[#{interest.id}]" cond:checked="(user.interests.include? interest)">&#160;#{interest}</input>
+							</li>
+						</ul>
+					</div>
 				</div>
-			</div>
-		</t:loop>
+			</t:loop>
+		</div>
 	</div>
 </div>
 

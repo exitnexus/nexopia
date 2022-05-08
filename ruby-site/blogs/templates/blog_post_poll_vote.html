@@ -1,0 +1,54 @@
+<div id="blog_poll">
+	
+	<div class="blog_post">
+		<div class="extra_content">
+			<img style="#{poll_blog.align_style}" src="#{poll_blog.link}"
+			 width="#{poll_blog.size_percent}"/>
+		</div>
+		
+		<div class="poll_container">
+		<table border="0" cellspacing="0" cellpadding="0">
+		<t:loop t:id="answers" t:iter="answer">
+		<tr>
+			<td class="radio_button">
+				<input type="radio"
+				 name="vote_#{poll_blog.blogid}"
+				 id="vote_#{poll_blog.blogid}_{answer[0]}"
+				 value="{answer[0]}" />
+			</td>
+			<td class="answer_option">
+				<label for="vote_#{poll_blog.blogid}_{answer[0]}">
+					{answer[1]}</label>
+			</td>
+		</tr>
+		</t:loop>
+		</table>
+		</div>
+	
+		<div class="post_submit_btns">
+			<t:if t:id="!anon">
+			<t:button minion_name="blogs:poll_vote:vote"
+			 value="#{poll_blog.blogid}">
+			VOTE</t:button>
+			</t:if>
+			<t:if t:id="anon">
+			<t:button minion_name="blogs:poll_vote:vote_login"
+			 value="#{poll_blog.blogid}">
+			VOTE</t:button>
+			</t:if>
+			<div class="results">
+				<t:if t:id="!anon">
+				<a href="blog/#{poll_blog.blogid}/poll_skip"
+				 minion_name="blogs:poll_vote:skip">
+					Skip to results</a> ({votes})
+				</t:if>
+				<t:if t:id="anon">
+				<a href="blog/#{poll_blog.blogid}/poll_skip"
+				 minion_name="blogs:poll_vote:login">
+					Skip to results</a> ({votes})
+				</t:if>
+			</div>
+		</div>
+	</div>
+	
+</div>

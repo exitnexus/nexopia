@@ -15,9 +15,9 @@ require "json/add/core"
 #JSON.generate(b)
 
 module JSONExported
-	def json_field(name)
+	def json_field(*args)
 		@json_fields ||= []
-		@json_fields << name.to_s
+		@json_fields.concat(args.map{|arg|arg.to_s})
 	end
 	def self.extended(cl)
 		cl.send(:define_method, :to_json){|*a|
@@ -28,29 +28,14 @@ module JSONExported
 				r[name] = send "#{name}"
 				r
 			end
+			result.merge!(@extra_json_properties) if @extra_json_properties
 			result.to_json(*a)
+		}
+		cl.send(:define_method, :add_json_property) { |name, value|
+			@extra_json_properties ||= {}
+			@extra_json_properties[name] = value
 		}
 	end
 end
 
 Lazy::Promise.send(:undef_method, :to_json)
-
-module Gallery
-class Pic < Cacheable
-	extend JSONExported
-	json_field :id
-	json_field :description
-end
-class GalleryFolder < Storable
-	extend JSONExported
-	json_field :id
-	json_field :name
-	json_field :description
-end
-end
-
-class User < Cacheable
-	extend JSONExported
-	json_field :userid
-	json_field :galleries
-end

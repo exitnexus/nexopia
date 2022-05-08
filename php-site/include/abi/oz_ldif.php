@@ -30,7 +30,7 @@ class LdifRecord  {
 	}
 
 	function getFirst($field) {
-	 	$vals =& $this->get($field);
+	 	$vals = $this->get($field);
 	 	if (empty($vals)) return null;
 	 	return $vals[0];
 	}
@@ -67,7 +67,7 @@ class LdifParser {
 		return $str;
 	}
 
-	function Next()  {
+	function next()  {
 		$r = new LdifRecord;
 
 		$previousKey = null;

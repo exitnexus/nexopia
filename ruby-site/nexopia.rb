@@ -1,10 +1,18 @@
 #!/usr/bin/env ruby
 
+# Tell Ruby Enterprise Edition to be copy-on-write friendly because
+# we fork a lot of processes.  Besides, everyone should be friendly
+# to cows.
+if GC.respond_to?(:copy_on_write_friendly=)
+	GC.copy_on_write_friendly = true
+end
+
 # Force the cwd the directory nexopia.rb is in.
 mypath = File.dirname(__FILE__);
 Dir.chdir(mypath);
 
 require "rubygems"
+require "fileutils"
 require "socket";
 require "cgi";
 
@@ -27,20 +35,6 @@ OptionParser.new {|opts|
 
 	opts.on("-c", "--config [NAME]", "Config file name to use (default: dev)") {|config|
 		$config_name = config;
-	}
-
-	opts.on("-a", "--all-tests", "Run all test cases") {
-		$mode = "-test";
-		$tests = [];
-		redirect_stderr = false;
-		log_facilities = {:general => [:direct], :sql => []}
-	}
-
-	opts.on("-t", "--test x,y,z", Array, "Comma separated list of tests to run.") {|list|
-		$mode = "-test";
-		$tests = list;
-		redirect_stderr = false;
-		log_facilities = {:general => [:direct], :sql => []};
 	}
 
 	opts.on("-r", "--run x,y,z", Array, "Comma separated list of run-types to run.") {|list|
@@ -79,8 +73,13 @@ OptionParser.new {|opts|
 	}
 
 	opts.on("-q", "--post-process-queue", "Run only the post processing queue.") {|handler|
-		$mode = '-ppq';
+		$mode = '-worker';
 		redirect_stderr = false;
+	}
+	
+	opts.on("-d", "--deferred-tasks", "Run the deferred task dispatcher.") {|handler|
+		$mode = '-deferred'
+		redirect_stderr = false
 	}
 
 	opts.on("-f", "--no-fork", "Replace fork with a simple yield (disable forking)") {
@@ -127,6 +126,10 @@ setup_global_logging_facility($config, log_facilities, redirect_stderr)
 $log.info("Logging Started", :info);
 
 require "core/lib/filechangemonitor";
+
+ENV["INLINEDIR"] = $config.rubyinline_dir
+FileUtils.mkdir_p($config.rubyinline_dir)
+FileUtils.chmod(0700, $config.rubyinline_dir)
 
 $code_root = Dir.getwd;
 $log.info("Starting in mode: #{$mode}", :info);

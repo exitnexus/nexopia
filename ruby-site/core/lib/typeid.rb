@@ -5,17 +5,43 @@ class TypeIDItem < Storable
 	set_table("typeid");
 	init_storable();
 
+	@@typeids = nil
+	def self.load_all
+		@@typeids = {}
+		rows = self.find(:all, :scan)
+		rows.each{|row|
+			@@typeids[row.typename.downcase] = row
+		}
+	end
+
 	def TypeIDItem.get_by_name(name)
-		if (obj = find(:first, :conditions => ["typename = ?", name]))
+		load_all() if @@typeids.nil?
+		if (obj = @@typeids[name.downcase])
 			return obj;
 		else
-			obj = TypeIDItem.new;
-			obj.typename = name;
-			obj.store();
+			begin
+				obj = TypeIDItem.new;
+				obj.typename = name;
+				obj.store();
+			rescue SqlBase::QueryError => e
+				if (e.errno == 1062)
+					obj = TypeIDItem.find(:typename, :first, name)
+					if (!obj)
+						raise "Typeid duplicate detected, but there was no matching typeid in the database."
+					end
+				else
+					raise # Unknown sql error, just re-raise it.
+				end
+			end
+				
+			@@typeids[name.downcase] = obj
 			return obj;
 		end
 	end
+	
 end
+
+
 
 # Importing this module into a class will allow that class to have a persistant
 # numeric representation in the current installation of the site. This can be used

@@ -1,0 +1,95 @@
+/*@charset "UTF-8";*/
+/* CSS Document */
+
+#pimp_my_profile_full
+{
+
+	& br.clear {
+		clear: both;
+	}
+
+	& .bold {
+		  font-weight: bold;
+	}
+
+	& .italic {
+		font-style: italic;
+	}
+
+	& .page_wrapper1 {
+		position: relative;
+		text-align: center;
+		background-color: #eaeaea;
+	}
+
+	& .page_wrapper2 {
+		width: 800px;
+		margin: 0px auto 0px auto;
+		padding: 0px;
+		background-color: #fff;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+		color: #2d2d2d;
+		text-align: left;
+	}
+
+	& .content_container {
+		padding: 45px 44px 45px 45px;	
+	}
+	
+	& .header {
+		float: left;
+		margin-bottom: 40px;
+	}
+	
+	& .profile_info {
+		float: right;
+		margin-top: 24px;
+	}
+	
+	& .profile_info div {
+		text-align: right;
+	}
+	
+	& .username a:link,
+	.username a:visited {
+		color: #ed2c8c;
+		font-weight: bold;
+		font-size: 16px;
+	}
+	
+	& .username a:hover {
+		color: #636467;
+	}
+	
+	& .site_theme {
+		color: #666666;
+	}
+	
+	& .back_link {
+		float: left;
+	}
+	
+	& .navigation_btns {
+		float: right;
+	}
+	
+	& img.profile_preview {
+		padding: 6px 0px 8px 0px;
+		display: block;
+	}
+
+	& div.content_container a:link, div.content_container a:visited {
+		text-decoration: none;
+		color: #ed2c8c;
+		font-weight: bold;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+	}
+
+	& div.content_container a:hover {
+		text-decoration: none;
+		color: #636467;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+	}
+
+}

@@ -1,0 +1,76 @@
+#profile #classic_film_strip {
+	width: 498px;
+	height: 230px;
+	padding: 5px 6px;
+	position: relative;
+	background-color: @primary_block_background_color;
+	text-align: center;
+	color: @primary_block_text_color;
+	& table {
+		width: 498px;
+		height: 214px;
+		& td {
+			vertical-align: middle;
+			text-align: center;
+		}
+	}
+	& .hover {
+		& .arrow_panel {
+			background-color: @secondary_block_background_color;
+		}
+	}
+	& .right_panel {
+		cursor: pointer;
+		width: 249px;
+		height: 214px;
+		left: 255px;
+		position: absolute;
+		& .arrow_panel {
+			width: 14px;
+			height: 214px;
+			position: relative;
+			left: 235px;
+			display: block;
+			& img {
+				position: relative;
+				left: 4px;
+				top: 102px;
+			}
+		}
+	}
+	& .left_panel {
+		cursor: pointer;
+		width: 249px;
+		height: 214px;
+		left: 6px;
+		position: absolute;
+		& .arrow_panel {
+			width: 14px;
+			height: 214px;
+			position: relative;
+			display: block;
+			& img {
+				position: relative;
+				left: 4px;
+				top: 102px;
+			}
+		}
+	}
+	& .profile_picture_count {
+		float: right;
+		text-align: right;
+		width: 50px;
+	}
+	& .spacer {
+		float: left;
+		width: 50px;
+	}
+}
+
+#profile #empty_classic_film_strip {
+	width: 498px;
+	padding: 6px 6px 12px 6px;
+	background-color: @primary_block_background_color;
+	color: @primary_block_text_color;
+	text-align: center;
+}

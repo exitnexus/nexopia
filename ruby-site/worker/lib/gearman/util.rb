@@ -177,8 +177,8 @@ class Util
   # Log a message if debugging is enabled.
   #
   # @param str  message to log
-  def Util.log(str, force=false)
-    $log.info "#{Time.now.strftime '%Y%m%d %H%M%S'} #{str}", :debug # if force or @@debug
+  def Util.log(str, level = :debug)
+    $log.info str, level, :worker
   end
 
   ##

@@ -393,9 +393,6 @@ end
 					sc.instance_eval{
 					if (((@valCh == 10) || (@valCh == 13))) then
 						@state = 14
-					elsif ((@valCh.chr =~ /[\x00-\x21]/ || @valCh.chr =~ /[\x23-\x5b]/ || @valCh.chr =~ /[\x5d-\x7a]/ || (@valCh == ?|) || @valCh.chr =~ /[\x7e-\x7f]/)) then
-					elsif (()) then
-						@state = 11
 					elsif (((@valCh == 92))) then
 						@state = 17
 					else
@@ -412,9 +409,6 @@ end
 					sc.instance_eval{
 					if (((@valCh == 10) || (@valCh == 13))) then
 						@state = 14
-					elsif ((@valCh.chr =~ /[\x00-\x26]/ || @valCh.chr =~ /[\x28-\x5b]/ || @valCh.chr =~ /[\x5d-\x7a]/ || (@valCh == ?|) || @valCh.chr =~ /[\x7e-\x7f]/)) then
-					elsif (()) then
-						@state = 13
 					elsif (((@valCh == 92))) then
 						@state = 18
 					else
@@ -440,8 +434,6 @@ end
 						@state = 14
 					elsif ((@valCh.chr =~ /[\x00-\x21]/ || @valCh.chr =~ /[\x23-\x5b]/ || @valCh.chr =~ /[\x5d-\x7a]/ || (@valCh == ?|) || @valCh.chr =~ /[\x7e-\x7f]/)) then
 						@state = 10
-					elsif (()) then
-						@state = 11
 					elsif (((@valCh == 92))) then
 						@state = 17
 					elsif ((@valCh == ?")) then
@@ -457,8 +449,6 @@ end
 						@state = 14
 					elsif ((@valCh.chr =~ /[\x00-\x26]/ || @valCh.chr =~ /[\x28-\x5b]/ || @valCh.chr =~ /[\x5d-\x7a]/ || (@valCh == ?|) || @valCh.chr =~ /[\x7e-\x7f]/)) then
 						@state = 12
-					elsif (()) then
-						@state = 13
 					elsif (((@valCh == 92))) then
 						@state = 18
 					elsif ((@valCh == 39)) then
@@ -472,9 +462,6 @@ end
 						@state = 14
 					elsif ((@valCh.chr =~ /[\x00-\x5b]/ || @valCh.chr =~ /[\x5d-\x7a]/ || (@valCh == ?|) || @valCh.chr =~ /[\x7e-\x7f]/)) then
 						@state = 10
-					elsif (()) then
-						@state = 11
-					elsif (((@valCh == 92))) then
 					else
 					@t.kind = @@nosym; true; end
 }
@@ -484,9 +471,6 @@ end
 						@state = 14
 					elsif ((@valCh.chr =~ /[\x00-\x5b]/ || @valCh.chr =~ /[\x5d-\x7a]/ || (@valCh == ?|) || @valCh.chr =~ /[\x7e-\x7f]/)) then
 						@state = 12
-					elsif (()) then
-						@state = 13
-					elsif (((@valCh == 92))) then
 					else
 					@t.kind = @@nosym; true; end
 }
@@ -699,8 +683,6 @@ end
 					sc.instance_eval{
 					if (((@valCh == ?-) || @valCh.chr =~ /[\x30-\x39]/ || @valCh.chr =~ /[\x41-\x5a]/ || (@valCh == ?_) || @valCh.chr =~ /[\x61-\x71]/ || @valCh.chr =~ /[\x73-\x7a]/)) then
 						@state = 1
-					elsif (()) then
-						@state = 50
 					elsif (((@valCh == ?r))) then
 						@state = 55
 					else
@@ -712,8 +694,6 @@ end
 					sc.instance_eval{
 					if (((@valCh == ?-) || @valCh.chr =~ /[\x30-\x39]/ || @valCh.chr =~ /[\x41-\x5a]/ || (@valCh == ?_) || @valCh.chr =~ /[\x61-\x6b]/ || @valCh.chr =~ /[\x6d-\x7a]/)) then
 						@state = 1
-					elsif (()) then
-						@state = 51
 					elsif (((@valCh == ?l))) then
 						@state = 56
 					else

@@ -91,6 +91,42 @@
 
 	$posts = array();
 
+	// NEX-801
+	// Get any cached image paths
+	$picids = array();
+	foreach( $postdata as $line ) {
+		$user = $posterdata[$line['authorid']];
+		$picids[] = $line['authorid'] . "-" . $user['firstpic'];
+	}	
+	$imagepaths = $cache->get_multi($picids, 'galleryimagepaths-');
+	
+	// figure out if there are any images that didn't have cached paths
+	$missingpaths = array_diff($picids, array_keys($imagepaths));
+
+	// If there are any missing paths get them from the DB.
+	if(count($missingpaths)){
+
+		// Generate a list of user id, pic id pairs for the query.	
+		$keys = array('userid' => '%', 'id' => '#');
+		$itemid = array();
+		foreach( $postdata as $line ) {
+			$user = $posterdata[$line['authorid']];
+			$itemid[] = array($line['authorid'], $user['firstpic']);
+		}
+	
+		// Get any remaining images
+		$res = $usersdb->prepare_query("SELECT userid, revision, id FROM gallerypics WHERE ^", $usersdb->prepare_multikey($keys, $itemid));
+		while($line = $res->fetchrow()){
+
+			// Generate the uncached image paths.
+			$imagepaths[$line['userid'] . "-" . $line['id']] = $line['revision'] . '/' . weirdmap($line['userid']) . "/" . $line['id'] . ".jpg";
+
+			// Cache the paths.
+			$cache->put("galleryimagepaths-$line[userid]-$line[id]", $imagepaths[$line['userid'] . "-" . $line['id']], 86400*7);
+		}
+	
+	}
+
 	foreach($postdata as $line){
 		$post = array();
 
@@ -114,7 +150,7 @@
 			$post['forumrank'] = ($user['forumrank'] && $user['premiumexpiry'] > $time ? $user['forumrank'] : $forums->forumrank($user['posts']));
 			$post['thumb'] = "";
 			if($config['forumPic'] && $user['firstpic'])
-				$post['thumb'] = $config['thumbloc'] . floor($line['authorid']/1000) . '/' . weirdmap($line['authorid']) . "/" . $user['firstpic'] . ".jpg";
+				$post['thumb'] = $config['thumbloc'] . $imagepaths[$line['authorid'] . "-" . $user['firstpic']];
 			$post['age'] = $user['age'];
 			$post['sex'] = $user['sex'];
 			$post['postcount'] = ($user['showpostcount'] == 'y' ? $user['posts'] : '');

@@ -1,73 +1,148 @@
 <?php
 /********************************************************************************
-Mac.com contacts importer
+Mac.com (now Mobileme - me.com) contacts importer
 
-Copyright 2007 Octazen Solutions
+Copyright 2008 Octazen Solutions
 All Rights Reserved
 
 You may not reprint or redistribute this code without permission from Octazen Solutions.
 
 WWW: http://www.octazen.com
 Email: support@octazen.com
-V: 1.0
 ********************************************************************************/
-include_once("abimporter.php");
+//include_once(dirname(__FILE__).'/abimporter.php');
+if (!defined('__ABI')) die('Please include abi.php to use this importer!');
 
 /////////////////////////////////////////////////////////////////////////////////////////
-//MacMailImporter
+//MeDotComImporter
 /////////////////////////////////////////////////////////////////////////////////////////
-class MacMailImporter extends WebRequestor {
+class MeDotComImporter extends WebRequestor {
 
- 	var $EXTRACT_REGEX = "/\{\"email1\":\"(.*?)\",\"fullName\":\"(.*?)\"\\}[,\\]]/ims";
+	var $MAX_CONTACTS = 200;
 
-	function fetchContacts ($loginemail, $password) {
+	function login($loginemail, $password)  {
+
+		$this->enableHttp1_1Features(true);
+		//$this->useHttp1_1 = true;
 
 	 	$login = $this->getEmailParts($loginemail);
 	 	$login = $login[0];
-
 		$form = new HttpForm;
-		$form->addField("username", $login);
+		$form->addField("returnURL","aHR0cDovL3d3dy5tZS5jb20vd28vV2ViT2JqZWN0cy9Eb2NrU3RhdHVzLndvYS93YS90cmFtcG9saW5lP2Rlc3RpbmF0aW9uVXJsPS9tYWls");
+		$form->addField("service", "DockStatus");
+		$form->addField("realm", "primary-me");
+		$form->addField("cancelURL", "http://www.me.com/mail");
+		$form->addField("formID", "loginForm");
+		$form->addField("username", $login); // email is fine too
 		$form->addField("password", $password);
-		$form->addField("loginHiddenField", "onLogin");
-		$form->addField("lang", "en");
+		$form->addField("keepLoggedIn", "Login");
+		$form->addField("_authtrkcde", "{#TRKCDE#}");
 		$postData = $form->buildPostData();
-		$html = $this->httpPost("https://www.mac.com/WebObjects/Bookmarks.woa/wa/authenticate?cty=US&lang=en&aff=consumer", $postData);
-		if (strpos($html, 'Invalid member name or password')!=false) {
+		$html = $this->httpPost("https://auth.apple.com/authenticate", $postData);
+		if (strpos($html, 'id="error"')!==false) {
 		 	$this->close();
 			return abi_set_error(_ABI_AUTHENTICATION_FAILED,'Bad user name or password');
 		}
-
-		$html = $this->httpGet("http://www.mac.com/WebObjects/Webmail.woa/wa/DirectAction/emptyPage?action=compose");
 		
-		if (strpos($html, 'Renew your membership today')!=false) {
+		if (strpos($this->lastUrl,'http://www.me.com')===false) {
 		 	$this->close();
-			return abi_set_error(_ABI_AUTHENTICATION_FAILED,'Membership expired');
+			return abi_set_error(_ABI_FAILED,'Unable to login');
 		}
-
 		
-		$location = $this->makeAbsolute($this->lastUrl,"/WebObjects/Webmail.woa/wa/ComposeDirectAction/composeMessage");
-		$form = new HttpForm;
-		$form->addField("to","");
-		$form->addField("mode","");
-		$form->addField("src","");
-		$postData = $form->buildPostData();
-		$html = $this->httpPost($location,$postData);
+		return abi_set_success();
+	}
 
-		$al = array();	
-        preg_match_all($this->EXTRACT_REGEX, $html, $matches, PREG_SET_ORDER);
-		foreach ($matches as $val) {
-		 	$email = jsDecode(trim($val[1]));
-		 	$name = jsDecode(trim($val[2]));
-		 	if (empty($name)) $name=$email;
-		 	if (!empty($email)) {
-				$contact = new Contact($name, $email);
-				$al[] = $contact;
+	function fetchContacts ($loginemail, $password) {
+
+		$res = $this->login($loginemail, $password);
+		if ($res!=_ABI_SUCCESS) return $res;
+
+		// ////////////////////////////////////////////////////////////////////////////
+		// Fetch JSON contacts list
+		// ////////////////////////////////////////////////////////////////////////////
+		$guids = array();
+		$html = $this->httpPost("http://www.me.com/wo/WebObjects/Contacts.woa/wa/ScriptAction/loadContacts?lang=en", '');
+		$res = oz_json_decode($html,true);
+		if (is_array($res) && isset($res['crecords'])) {
+			$records = null;
+		 	if (isset($res['crecords'])) $records = $res['crecords'];
+			if ($records==null && isset($res['records'])) $records = $res['records'];
+		 	if (is_array($records)) {
+			 	foreach ($records as $rec) {
+			 	 	$guid = $rec['guid'];
+			 	 	$type = $rec['type'];
+			 	 	if ('Contact'==$type) {
+			 	 	 	$guids[]=$guid;
+					}
+				}
 			}
 		}
+
+		// ////////////////////////////////////////////////////////////////////////////
+		// Fetch each contact details
+		// ////////////////////////////////////////////////////////////////////////////
+		$al = array();	
+		
+		$n = count($guids);
+		for ($cc=0; $cc<$this->MAX_CONTACTS && $cc<$n; $cc++) {
+			$g = $guids[$cc];
+			//$form = new HttpForm;
+			//$form->addField("guid", $g);
+			//$postData = $form->buildPostData();
+			$html = $this->httpPost("http://www.me.com/wo/WebObjects/Contacts.woa/wa/ScriptAction/refreshContactDetails?lang=en", "guid=$g");
+			
+			$emails = array();
+			$contacts = array();
+			$res = oz_json_decode($html,true);
+			$records = null;
+		 	if (isset($res['crecords'])) $records = $res['crecords'];
+			if ($records==null && isset($res['records'])) $records = $res['records'];
+			if (is_array($res) && $records!=null) {
+			 	//$records = $res['crecords'];
+			 	if (is_array($records)) {
+				 	foreach ($records as $rec) {
+				 	 	$guid = $rec['guid'];
+				 	 	$type = $rec['type'];
+				 	 	$value = isset($rec['associationValue']) ? $rec['associationValue'] : null;
+				 	 	if ('Contact'==$type) {
+							$contacts[] = $rec;
+						}
+						else if ('Email'==$type) {
+							$emails[$guid] = $value;
+						}
+						//Others...
+					}
+				}
+			}
+			
+			foreach ($contacts as $c) {
+			 	if (isset($c['emailAddresses'])) {
+					$emailList = $c['emailAddresses'];
+					if (is_array($emailList)) {
+					 
+						$fname = isset($c['firstName']) ? $c['firstName'] : '';
+						$lname = isset($c['lastName']) ? $c['lastName'] : '';
+						$name = trim(abi_reduceWhitespace($fname.' '.$lname));
+						
+					 	foreach ($emailList as $emailGuid) {
+					 	 	if (isset($emails[$emailGuid])) {
+					 	 		$email = $emails[$emailGuid];
+					 	 		$name2 = empty($name) ? $email : $name;
+					 	 		//abi_valid_email ??
+					 	 		$al[] = new Contact($name2,$email);
+							}
+						}
+					}
+				}
+			}
+		}
+	
 	 	$this->close();
 		return $al;
 	}
 }
 
+//For legacy support
+class MacMailImporter extends MeDotComImporter {}
 
 ?>

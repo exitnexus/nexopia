@@ -1,0 +1,28 @@
+<!-- BLOG ENTRY SECTION START -->
+<div id="blog_header">
+	<a name="blog_top" />
+	<div class="user_thumbnail">
+		<a href="/users/%{blog_user.username}/profile">
+			<img t:id="blog_user" t:linktype="landscapemini"/>
+		</a>
+	</div>
+	<div class="header_content">
+		<div class="page_title">
+			{blog_user.username}'s Blog
+			<t:if t:id="blog_views">
+				<span id="blog_hits" class="blog_hits">
+					<t:if t:id="blog_user.show_hits">{blog_views} Hits</t:if>
+				</span>
+			</t:if>
+		</div>
+		<div class="blog_tabs">
+			<a href="/users/%{blog_user.username}/blog" class="first_tab {'selected' if tab == :blog}">Blog Posts</a>
+			<a href="/users/%{blog_user.username}/blog/calendar" class="{'selected' if tab == :calendar}">Calendar</a>
+			<a href="/users/%{blog_user.username}/blog/friends" class="{'selected' if tab == :friends}">Friends' Entries
+				<t:if t:id="friends_unread_post_count">
+					&#160;({friends_unread_post_count})
+				</t:if>
+				</a>
+		</div>
+	</div>
+</div>

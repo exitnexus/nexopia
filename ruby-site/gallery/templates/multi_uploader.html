@@ -1,0 +1,72 @@
+<t:wrapper>
+	<a href="#{$site.upload_url}/swfupload" id="gallery_upload_link"> </a>
+	<input type="hidden" id="session" name="session" value="#{session}"/>
+	<div id="gallery_upload_header">
+		<form action="#{$site.upload_url}/httpupload/my/gallery/uploadfinished" method="post" enctype="multipart/form-data">
+			<input type="hidden" id="check_certify" name="check_certify" value="1"/>
+			<input type="hidden" name="type" value="Gallery"/>
+			<div class="gallery_section2">
+				<div id="gallery_browse_target">
+					<div id="uploader_overlay" style="position:absolute;"></div>
+					<div class="button_bar" style="display: inline;">
+						<t:button>Choose Pictures</t:button>
+						<input class="noscript" type="file" name="Filedata" id="Filedata_noflash"></input>
+						&nbsp;|&nbsp;
+						<a href="#{PageRequest.current.area_base_uri}/gallery" class="cancel_link">Cancel</a>
+                        <br />
+						<span class="minor script">Use SHIFT to select multiple pictures</span>
+					</div>
+				</div>
+			</div>
+			<input type="hidden" id="selected_gallery" name="selected_gallery" value="{selected_gallery}"/>
+			<ul id="gallery_queue"></ul>
+			<div id="terms_warning" class="gallery_section terms_warning">
+				By uploading photos, you are indicating that you have the right to distribute all the photos and that they do not violate the&#160;<a class="body" href="/wiki/rules/Gallery" target="_new">Gallery Rules</a>.
+			</div>
+			<span class="gallery_section" id="gallery_upload_target">
+				<!--<input type="submit" id="upload_queue" value="Upload"/>-->
+				<div class="button_bar" style="display: inline;">
+					<span class="yui-button yui-button-button">
+						<span class="first-child">
+							<button type="submit" style="display:none" id="upload_queue" minion_name="gallery_upload:classic_upload">
+								Upload
+							</button>
+						</span>
+					</span>
+				</div>
+			</span>
+			<div id="view_album_links" class="gallery_section">
+				<t:button minion_name="button_link" path="/users/%{PageRequest.current.user.username}/gallery/{selected_gallery}">View Album</t:button>&nbsp;|&nbsp;
+				<a href="#{PageRequest.current.area_base_uri}/gallery/{selected_gallery}">Edit Album</a>
+			</div>
+			
+			<div id="alternate_instructions">
+				<a href="http://www.adobe.com/go/flashplayer/" target="_blank">Adobe Flash</a>&nbsp;is required to use this uploader.
+				If you are having difficulty you can switch to the&nbsp;
+				<a id="classic_link" minion_name="gallery_upload:classic_link" class="body" href="javascript:void(0);">classic interface</a>.
+			</div>
+			<a id="view_gallery" class="body" style="display:none">View galleries</a>
+		</form>
+	</div>
+	<div id="gallery_templates" class="template">
+		<ul>
+			<li id="template_file" class="file_upload">
+				<table>
+					<tr>
+						<td class="file_info">
+							<div class="template_description" id="template_description"></div>
+						</td>
+						<td>
+							<img id="template_cancel" class="gallery_cancel" src="{$site.static_files_url}/Gallery/images/cross.gif"/>
+						</td>
+					</tr>
+					<tr>
+						<td colspan="2">
+							<div id="template_progress" class="progress_bar"><div id="template_complete" class="progress_complete"></div></div>
+						</td>
+					</tr>
+				</table>
+			</li>
+		</ul>
+	</div>
+</t:wrapper>

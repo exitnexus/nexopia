@@ -2030,7 +2030,20 @@ class userSearch {
 	function getSubLocs (
 			$location = false	// I: locid to get sublocs for, or false for all
 	) {
+		global $RAP, $rap_pagehandler, $ruby_site_obj;
+		
 		if ($this->locs === false) {
+			if(isset($ruby_site_obj) && isset($rap_pagehandler)) 
+			{
+				if ($location === false)
+					$location = 0;
+					
+				$this->locs = $RAP->sub_locations($location);
+				
+				return $this->locs;
+			}
+
+			// Yuck... old PHP stuff!
 			if (!$this->locationsObj)
 				$this->locationsObj = new category( $this->configdb, "locs");
 
@@ -2168,7 +2181,7 @@ class userSearchResults {
 		}
 
 		// first get the user data for the user
-		$userData = getUserInfo($this->results);
+		$userData = getUserInfo($this->results );
 
 		// next get the taglines for the users
 		$userTaglines = $this->cache->get_multi($this->results, 'tagline-');
@@ -2188,6 +2201,46 @@ class userSearchResults {
 				$this->cache->put("tagline-$uid", "", 86400*7);
 				$userTaglines[$uid] = "";
 			}
+		}
+
+		// NEX-801
+		// Get any cached image paths
+		$picids = array();
+		foreach( $this->results as $key => $userId ) {
+			if (isset($extraValArray[$key]['picId'])) {
+				$picids[] = array($userId, $extraValArray[$key]['picId']);
+			} else {
+				$picids[] = array($userId, $userData[$userId]['firstpic']);	
+			}
+		}	
+		$imagepaths = $this->cache->get_multi($picids, 'galleryimagepaths-');
+
+		// figure out if there are any images that didn't have cached paths
+		$missingpaths = array_diff($picids, array_keys($imagepaths));
+
+		// If there are any missing paths get them from the DB.
+		if(count($missingpaths)){
+			$keys = array('userid' => '%', 'id' => '#');
+			$itemid = array();
+			foreach( $this->results as $key => $userId ) {
+				if (isset($extraValArray[$key]['picId'])) {
+					$itemid[] = array($userId, $extraValArray[$key]['picId']);
+				} else {
+					$itemid[] = array($userId, $userData[$userId]['firstpic']);	
+				}
+			}
+
+			// Get any remaining images
+			$res = $this->usersdb->prepare_query("SELECT userid, revision, id FROM gallerypics WHERE ^", $this->usersdb->prepare_multikey($keys, $itemid));
+			while($line = $res->fetchrow()){
+
+				// Generate the uncached image paths.
+				$imagepaths[$line['userid'] . "-" . $line['id']] = $line['revision'] . '/' . weirdmap($line['userid']) . "/" . $line['id'] . ".jpg";
+
+				// Cache the paths.
+				$this->cache->put("galleryimagepaths-$line[userid]-$line[id]", $imagepaths[$line['userid'] . "-" . $line['id']], 86400*7);
+			}
+
 		}
 
 		// now re-build results array from scratch to contain the data that is required within this object
@@ -2213,9 +2266,7 @@ class userSearchResults {
 
 				// check to see if a picId has been set for the result set, and if so map it to a URL
 				if (isset($resultRecord['picId']) === true && $resultRecord['picId'] != 0) {
-					$resultRecord['picUrl'] = $this->config['thumbloc'];
-					$resultRecord['picUrl'] .= floor($resultRecord['userId']/1000) . "/";
-					$resultRecord['picUrl'] .= weirdmap($resultRecord['userId']) . "/".$resultRecord['picId'].".jpg";
+					$resultRecord['picUrl'] = $this->config['thumbloc'] . $imagepaths[$resultRecord['userId'] . "-" . $resultRecord['picId']];
 				} else {
 					$resultRecord['picUrl'] = false;
 				}
@@ -2408,7 +2459,7 @@ class userSearchMenuOptions {
 	public $searchShowList;			// default selected value (BOOL)
 	public $nameScopeSelect;		// HTML output
 	public $sexSelect;				// HTML output
-	public $locationSelect;			// HTML output
+	// public $locationSelect;			// HTML output
 	public $interestSelect;			// HTML output
 	public $activitySelect;			// HTML output
 	public $pictureSelect;			// HTML output
@@ -2535,9 +2586,9 @@ class userSearchMenuOptions {
 		$interests = new category( $configdb, "interests");
 
 		// init categories and interests branches, inserting option 0 for all
-		$locationBranch = $locations->makeBranch();
+		// $locationBranch = $locations->makeBranch();
 		$interestBranch = $interests->makeBranch();
-		array_unshift ($locationBranch, Array('id' => '0', 'depth' => '0', 'name' => 'All Locations', 'parent' => 0, 'isparent' => 1));
+		// array_unshift ($locationBranch, Array('id' => '0', 'depth' => '0', 'name' => 'All Locations', 'parent' => 0, 'isparent' => 1));
 		array_unshift ($interestBranch, Array('id' => '0', 'depth' => '0', 'name' => 'All Interests', 'parent' => 0, 'isparent' => 1));
 
 		// define values for selects used in the page generation
@@ -2565,7 +2616,7 @@ class userSearchMenuOptions {
 		// init select arrays that will be passed on to the template, using values for defaults which have been set
 		$this->nameScopeSelect = make_select_list_key($nameScopeSelectDef, $this->searchNameScope);
 		$this->sexSelect = make_select_list_key($sexSelectDef, $this->searchSex);
-		$this->locationSelect = makeCatSelect($locationBranch, $this->searchLocation);
+		// $this->locationSelect = makeCatSelect($locationBranch, $this->searchLocation);
 		$this->interestSelect = makeCatSelect($interestBranch, $this->searchInterest);
 		$this->activitySelect = make_select_list_key($activitySelectDef, $this->searchActivity);
 		$this->pictureSelect = make_select_list_key($pictureSelectDef, $this->searchPicture);

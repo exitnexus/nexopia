@@ -1,0 +1,28 @@
+<div t:json="pic" id="edit_photo_panel" class="yui-module yui-overlay yui-panel" minion_name="edit_photo_panel">
+	<input type="hidden" name="form_key" value="#{form_key}" class="form_key"/>
+	<img class="spinner" src="#{$site.static_files_url}/Legacy/images/spinner.gif"/>
+	<div class="description">{pic.description.empty? ? '(Click to edit)' : pic.description}</div>
+	<input type="text" class="description" value="{pic.description}"/>
+	<div class="normal_actions">
+		<div class="right_menu">
+			<t:button class="done">Done</t:button>
+		</div>
+		<div class="left_menu">
+			<t:button class="delete">Delete</t:button>
+			<t:button class="set_album_cover">Set as album cover</t:button>
+			<t:button class="crop_image">Choose thumbnail</t:button>
+		</div>
+	</div>
+	<div class="crop_actions">
+		<div class="right_menu">
+			<t:button class="cancel_crop">Cancel</t:button>
+			<t:button class="complete_crop">Save</t:button>
+		</div>
+		<br class="clear"/>
+	</div>
+
+	<div class="yui-skin-nexopia image_wrapper">
+		<t:varsub t:old="pic.crop" t:new="crop"/>
+		<t:template-include t:module="gallery" t:name="edit_photo_panel_image"/>
+	</div>
+</div>

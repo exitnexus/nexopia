@@ -1531,7 +1531,7 @@ class bannerclient{
 								BANNER_HTML		=> 'html',
 								BANNER_TEXT		=> 'text' );
 
-		$this->pageid = 0;
+		$this->pageid = rand(10000, 99999); //always be 5 digits
 		$this->zone = 0;
 
 		$this->linkclass = 'body';
@@ -1562,8 +1562,6 @@ class bannerclient{
 
 		if($this->dead)
 			return false;
-
-		$this->pageid = rand(10000, 99999); //always be 5 digits
 
 		$numhosts = count($this->hosts);
 		$hostnum = abs($this->userid) % $numhosts;
@@ -1626,7 +1624,16 @@ class bannerclient{
 			if(isset($userData['userid']))
 				$this->userid = $userData['userid']; //negative userid
 			if(!$this->userid) //used for frequency capping for users that aren't logged in
-				$this->userid = getCOOKIEval('userid', 'int');
+			{	
+				$temp = getCOOKIEval('sessionkey', 'string');
+				if($temp && length($temp) > 0)
+					$temp_parts = split(':', $temp, 2);
+					
+				if($temp_parts)
+					$this->userid = (int)$temp_parts[1];
+				else
+					$this->userid = -1;
+			}	
 			$this->age = 0;
 			$this->sex = SEX_UNKNOWN;
 			$this->sexuality = SEX_UNKNOWN;
@@ -1697,8 +1704,24 @@ class bannerclient{
 		return $this->zone . str_pad($this->pageid, 5, "0", STR_PAD_LEFT); //zone is 1 or 2 digits, pageid is 5 digits
 	}
 
+	function getIFrameBanner($size) {
+		$bannersizes = array(
+			BANNER_BANNER => array(484, 76),
+			BANNER_LEADERBOARD => array(736, 106),
+			BANNER_BIGBOX => array(330, 280),
+			BANNER_SKY120 => array(136, 616),
+			BANNER_SKY160 => array(176, 616)
+		);
+		$bannerWidth = $bannersizes[$size][0];
+		$bannerHeight = $bannersizes[$size][1];
+		return "<script>YAHOO.util.Event.on(window, 'load', function() {document.getElementById('banner_iframe_$size').src = '/bannerview.php?size=$size&pageid=".$this->getpageid()."'});</script><iframe id='banner_iframe_$size' frameBorder='0' width='".$bannerWidth."' height='".$bannerHeight."'></iframe>";
+	}
+
 	function getBanner($size, $refresh = false, $passback = 0, $debug = 0, $pageid = false){
 		global $cache;
+		// return $this->getCode(1, 1, BANNER_HTML, 'x', 'y', '<script type="text/javascript" LANGUAGE="JavaScript1.1">
+		// 		<!-- Nexopia.com@Bigbox (250x250 & 300x250 & 300x300) 
+		// 		if (typeof OAS_rns != "string" || OAS_rns.length != 9 || OAS_rns.search(/[^0-9]/) != -1) OAS_rns = new String (Math.random()).substring(2, 11); document.write(\'<scr\'+\'ipt LANGUAGE="JavaScript1.1" SRC="http://network-ca.247realmedia.com/RealMedia/ads/adstream_jx.ads/Nexopia.com/1\'+OAS_rns+\'@x15?JX"></scr\'+\'ipt>\'); // --> </script>', 30);
 
 		$this->getVariables();
 
@@ -1917,7 +1940,7 @@ class bannerclient{
 			$width = $height = 0;
 
 		if($refresh)
-			$str .= "<script>if(parent&&parent.settime){parent.settime($refresh);parent.starttimer();}</script>\n";
+			$str .= "<script>if(parent&&parent.settime){parent.settime($refresh);parent.starttimer();}</script>";
 
 		switch($type){
 			case BANNER_IMAGE:
@@ -2002,13 +2025,35 @@ class bannerclient{
 						}
 						$alt = str_replace("%google_cust_gender%", $this->sex, $alt); //0 for unknown, 1 for male, 2 for female 
 
-						$alt = str_replace("%google_cust_l%", $google->encuserid($userData['userid']), $alt);
-						$alt = str_replace("%google_cust_lh%", $userData['googlehash'], $alt);
-//						$alt = str_replace("%google_ed%", $google->ed(), $alt);
+						if($userData['loggedIn']){
+							$alt = str_replace("%google_cust_l%", $google->encuserid($userData['userid']), $alt);
+							$alt = str_replace("%google_cust_lh%", $userData['googlehash'], $alt);
+//							$alt = str_replace("%google_ed%", $google->ed(), $alt);
+						}else{
+							$alt = str_replace("%google_cust_l%", 0, $alt);
+							$alt = str_replace("%google_cust_lh%", 0, $alt);
+						}
 					}
 				}
 
-				return "<div id='banner_$size'>" . $str . $alt . "</div>";
+
+				$text = $str.$alt;
+				// $text = urlencode($text);
+				// 			$text = str_replace("+", "%20", $text);
+				// 
+				// 			$delayed_load_ad = '<script>
+				// 				<!--
+				// 				YAHOO.util.Event.on(window, \'load\', function() {
+				// 					var banner = document.getElementById("banner_'.$size.'");
+				// 					banner.contentDocument.open();
+				// 					var html = decodeURIComponent("'.$text.'");
+				// 					Nexopia.Utilities.addContent(html, banner);
+				// 					banner.contentDocument
+				// 					
+				// 				});
+				// 				//-->
+				// 			</script>';
+				return "<div id='banner_$size'>$text</div>";
 
 			case BANNER_TEXT:
 				if($link == "")

@@ -1,3 +1,0 @@
-Nexopia = {
-	JSONData: {}
-};

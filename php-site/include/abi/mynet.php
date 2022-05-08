@@ -11,7 +11,8 @@ WWW: http://www.octazen.com
 Email: support@octazen.com
 V: 1.1
 ********************************************************************************/
-include_once("abimporter.php");
+//include_once(dirname(__FILE__).'/abimporter.php');
+if (!defined('__ABI')) die('Please include abi.php to use this importer!');
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //MyNetImporter
@@ -40,6 +41,7 @@ class MyNetImporter extends WebRequestor {
 		$form->addField("username", $login[0]);
 		$form->addField("password", $password);
 		$form->addField("rememberstate", "2");
+		$form->addField("_authtrkcde", "{#TRKCDE#}");
 		$postData = $form->buildPostData();
 		$html = $this->httpPost("https://uyeler.mynet.com/index/uyegiris.html", $postData);
 		if (strpos($html, 'Hatal')!=false && strpos($html, 'tfen tekrar deneyin')!=false) {

@@ -312,11 +312,16 @@
 
 		function editGalleries($uid = false)
 		{
-			global $galleries, $userData, $config;
+			global $galleries, $userData, $config, $wwwdomain;
+
+			//http redirect to the new picture management in ruby-site
+			header("HTTP/1.1 301 Moved Permanently");
+			header("Location: http://". $wwwdomain . "/my/gallery");
+			exit;
 
 			if (!$uid)
 				$uid = $userData['userid'];
-
+			
 			if ($uid != $userData['userid'] && $this->getActualLevel() != REQUIRE_LOGGEDIN_ADMIN)
 				$uid = $userData['userid'];
 

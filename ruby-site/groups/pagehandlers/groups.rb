@@ -16,16 +16,16 @@ module Groups
 			page :GetRequest, :Full, :edit_groups, "edit"
 			page :GetRequest, :Full, :edit_groups, "edit", input(Integer)
 			page :PostRequest, :Full, :update_groups, "update"
-			page :GetRequest, :Full, :remove_group_membership, "remove", input(Integer)
+			handle :GetRequest, :remove_group_membership, "remove", input(Integer)
+
+			handle :GetRequest, :query_groups, "query"
 		
 			area :Public
-			page :GetRequest, :Full, :type, "type"
-			page :GetRequest, :Full, :type, "type", input(Integer)
-			page :GetRequest, :Full, :visibility, "visibility"
-			page :GetRequest, :Full, :visibility, "visibility", input(Integer)
-			
-			handle :GetRequest, :query_groups, "query"
-			
+			handle :GetRequest, :type, "type"
+			handle :GetRequest, :type, "type", input(Integer)
+			handle :GetRequest, :visibility, "visibility"
+			handle :GetRequest, :visibility, "visibility", input(Integer)
+						
 			area :Admin
 			page :GetRequest, :Full, :remove_group, "remove_group", input(Integer), input(String)
 		}
@@ -193,7 +193,7 @@ module Groups
 
 			group_id = params["group_id", Integer, nil];
 
-			template.user_group_types = Groups::GroupMember.grouped_by_type(request.user.userid);
+			template.user_group_types = Groups::GroupMember.grouped_by_type(request.user);
 			if (!group_id.nil?)
 				group = Groups::GroupMember.find(:first, request.user.userid, group_id);
 			elsif (template.user_group_types.nil? || template.user_group_types.empty? || creating_new)
@@ -243,10 +243,6 @@ module Groups
 
 			if (request.impersonation?)
 				$log.info(["groups", "Deleted user #{request.user.username} from group id #{group_id}"], :info, :admin);	
-			
-				site_redirect("/self/#{request.user.username}/groups/edit", :Admin);
-			else
-				site_redirect("/groups/edit", :Self);
 			end
 		end
 
@@ -305,11 +301,11 @@ module Groups
 		Option = Struct.new :value, :text;
 		
 		
-		def option_array(hash)
+		def option_array(list)
 			options = Array.new;
 
-			hash.keys.sort.each { |key| 
-				options << Option.new(key, hash[key]);
+			list.each { |pair| 
+				options << Option.new(pair[1], pair[0]);
 			};
 
 			return options;

@@ -1,7 +1,7 @@
 <?
 
 function openCenter($width = true){
-	echo "<table cellpadding=3 cellspacing=0 width=" . ($width === true ? "100%" : "$width align=center" ) . " style=\"border-collapse: collapse\" border=1 bordercolor=#000000>";
+	echo "<table cellpadding=3 cellspacing=0 width=" . ($width === true ? "100%" : "$width align=center" ) . " style=\"border-collapse: collapse; margin: auto;\" border=1 bordercolor=#000000>";
 	echo "<tr><td class=body>";
 }
 
@@ -11,8 +11,8 @@ function closeCenter(){
 
 function createHeader(){ } //exists purely so a race condition at login time doesn't put stuff in the error log. It doesn't get used anyway.
 
-function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false, $skeleton=false, $modules=array(), $userskinpath=false){
-	global $userData, $skindata, $cache, $config, $skinloc, $siteStats, $mods, $banner, $menus, $weblog, $reporev, $staticimgdomain, $staticdomain;
+function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false, $skeleton="NullSkeleton", $scripts=array(), $userskinpath=false){
+	global $userData, $skindata, $cache, $config, $skinloc, $siteStats, $mods, $banner, $menus, $weblog, $reporev, $staticimgdomain, $staticdomain, $staticbasedomain, $_RUBY, $wwwdomain;
 
 	timeline('start header');
 
@@ -20,11 +20,16 @@ function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false,
 
 	timeline('- done stats');
 
+	if(!isset($scripts) || count($scripts) == 0)
+	{
+		$scripts = $_RUBY["scripts"];
+	}
+
 	$menus = $cache->hdget("menus", 0, 'makeMenus');
 
 	$skindata['incCenter'] = $incCenter;
 	$skindata['rightblocks'] = $incRightBlocks;
-	$skindata['modules'] = $modules;
+	$skindata['scripts'] = $scripts;
 	$skindata['skeleton'] = $skeleton;
 
 
@@ -40,17 +45,19 @@ function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false,
 
 	echo '	<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">';
 	echo "<html><head><title>$config[title]</title><script src=$config[jsloc]general.js></script>";
-	echo "<script src=/static/$reporev/files/Yui/build/yui.js></script>\n";
-	echo "<script src=\"http://".$staticdomain."/Gallery/javascript/SWFUpload.js\"></script>";
+	echo "<meta name=\"verify-v1\" content=\"/88/A5pFXNbF4qL57WPM0suJJt9lcMU5iAflUN/6nzc=\" />";
 	echo "<link rel=stylesheet href='$skinloc" . "default.css'>";
-	foreach ($modules as $module) {
-		$file_name = $module . '.js';
-		echo "<script type=\"text/javascript\" src=\"/static/$reporev/script/$file_name\"></script>";
+	echo "<link rel=\"stylesheet\" href=\"$config[yuiloc]build/container/assets/container.css\"/>";
+	echo "<link rel=\"stylesheet\" href=\"$config[yuiloc]yui_nexopia.css\"/>";
+
+	foreach ($scripts as $script) {
+		echo "<script type=\"text/javascript\" src=\"$script\"></script>";
 	}
 	if ($skeleton) {
 		$structure_name = $skeleton;
 		$skin_name = $skindata['name'];
-		echo "<link rel=\"stylesheet\" href=\"/static/$reporev/style/$structure_name/$skin_name.css\"/>";
+		echo "<link rel=\"stylesheet\" href=\"http://$staticbasedomain/style/$structure_name/$skin_name.css\"/>";
+		echo "<link rel=\"apple-touch-icon\" href=\"http://$staticbasedomain/files/$structure_name/nexopia_iphone.png\"/>";
 	}
 	if ($userskinpath) {
 		echo "<link rel=stylesheet href='$userskinpath'/>";
@@ -109,7 +116,7 @@ function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false,
 				echo "<td rowspan=$skindata[rows] width=$skindata[leftBorderSize] background='$skinloc$skindata[leftBorder]'></td>";
 		}
 
-		echo "<td bgcolor=#000000 background='$skinloc$skindata[headerpic]' align=right height=$skindata[headerheight]>";
+		echo "<td bgcolor=".(array_key_exists('headerbackgroundcolor', $skindata) ? $skindata['headerbackgroundcolor'] : "#000000")." background='$skinloc$skindata[headerpic]' align=right height=$skindata[headerheight] ".(array_key_exists('headernorepeat', $skindata) ? ($skindata['headernorepeat'] == "" ? "" : "style=\"".$skindata['headernorepeat']."\"") : "")." >";
 			if($skindata['floatinglogo']!="")
 				echo "<img src='$skinloc$skindata[floatinglogo]' align=$skindata[floatinglogovalign]>";
 		echo "</td>";
@@ -192,12 +199,14 @@ function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false,
 				$userblog = new userblog($weblog, $userData['userid']);
 				$newreplies = $userblog->getNewReplyCountTotal();
 				$ending = ($newreplies==1? 'y' : 'ies');
-				echo $skindata['menudivider'] . "<a href='/weblog.php?uid=$userData[userid]'>Blog</a>";
+				echo $skindata['menudivider'] . "<a href='/users/" . urlencode($userData['username']) . "/blog'>Blog</a>";
 				if($newreplies)
-					echo " <a href='/weblog.php?newreplies=1'>$newreplies Repl$ending</a>";
+					echo " <a href='/my/blog/new/replies'>$newreplies Repl$ending</a>";
 
-				if($userData['enablecomments'] == 'y')
-					echo $skindata['menudivider'] . "<a href='/usercomments.php'>Comments $userData[newcomments]</a>";
+				if($userData['enablecomments'] == 'y') {
+					$commentscount = getGalleryComments($userData['userid']) + $userData['newcomments'];
+					echo $skindata['menudivider'] . "<a href='/users/". urlencode($userData['username']) ."/comments'>Comments $commentscount</a>";
+				}
 
 				echo " &nbsp;";
 
@@ -219,7 +228,7 @@ function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false,
 	}
 
 	echo "<tr>";
-		echo "<td class=header2" . ($skindata['mainbg'] == "" ? "" : ($skindata['mainbg']{0} == '#' ? "" : " background='$skinloc$skindata[mainbg]'")) . ">"; // bgcolor=$skindata[mainbg], is the correct way, but skins don't expect it.
+		echo "<td class=header2" . ($skindata['mainbg'] == "" ? "" : ($skindata['mainbg']{0} == '#' ? "" : " background='$skinloc$skindata[mainbg]' ")) . (array_key_exists('mainbgnorepeat', $skindata) ? ($skindata['mainbgnorepeat'] ? "style=\"background-repeat:no-repeat;\"":""):"")." >"; // bgcolor=$skindata[mainbg], is the correct way, but skins don't expect it.
 			echo "<table cellpadding=0 cellspacing=$skindata[cellspacing] width=100%>";
 				echo "<tr>";
 
@@ -241,12 +250,12 @@ function incHeader($incCenter=true, $incLeftBlocks=false, $incRightBlocks=false,
 					echo "<td valign=top>";
 //leaderboard
 //*
-	if(!$userData['limitads'] && $_SERVER['PHP_SELF'] != '/index.php'){
+	if(!($userData['limitads'] && $userData['premium']) && $_SERVER['PHP_SELF'] != '/index.php'){
 		timeline('get banner');
 		if(!$incLeftBlocks)
-			$bannertext = $banner->getbanner(BANNER_LEADERBOARD);
+			$bannertext = $banner->getIFrameBanner(BANNER_LEADERBOARD);
 		else
-			$bannertext = $banner->getbanner(BANNER_BANNER);
+			$bannertext = $banner->getIFrameBanner(BANNER_BANNER);
 		if($bannertext!="")
 			echo "<table cellspacing=0 cellpadding=0 align=center><tr><td>$bannertext</td></tr><tr><td height=$skindata[cellspacing]></td></tr></table>";
 	}
@@ -373,7 +382,7 @@ if($skindata['admin']){
 //end menu2
 
 	echo "<tr>";
-		echo "<td class=footer align=center" . ($skindata['mainbg'] == "" ? "" : ($skindata['mainbg']{0} == "#" ? "" : " background='$skinloc$skindata[mainbg]'")) . ">";
+		echo "<td class=footer align=center" . ($skindata['mainbg'] == "" ? "" : ($skindata['mainbg']{0} == "#" ? "" : (array_key_exists('mainbgnorepeat', $skindata) ? ($skindata['mainbgnorepeat'] ? "" : " background='$skinloc$skindata[mainbg]'") : " background='$skinloc$skindata[mainbg]'"))) . ">";
 			echo $config['copyright'];
 		echo "</td>";
 	echo "</tr>";
@@ -391,12 +400,34 @@ if($skindata['admin']){
 	}
 
 echo "</table>\n";
-
-	showNotification();
+showNotification();
 	
 	
 	debugOutput();
 
+	// Delayed loading of the Google analytics script.
+	echo '<script type="text/javascript">
+		YAHOO.util.Event.addListener(this, "load", function() {
+			var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+			var objTransaction = YAHOO.util.Get.script(gaJsHost + "google-analytics.com/ga.js", {
+				onSuccess: function() {
+					var pageTracker = _gat._getTracker("UA-5204531-1");
+					pageTracker._trackPageview();
+				}
+			});
+		});
+	</script>';
+	
+	// Others Online script
+	echo '<script type="text/javascript">
+		YAHOO.util.Event.addListener(this, "load", function() {
+			var head = document.getElementsByTagName("head")[0];
+			var script = document.createElement("script");
+			script.src = "http://www.othersonline.com/partner/scripts/nexopia/alice.js?autorun=true";
+			head.appendChild(script);
+		});
+	</script>';
+	
 	echo "</body></html>";
 }
 

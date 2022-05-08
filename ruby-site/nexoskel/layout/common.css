@@ -5,12 +5,6 @@ h1.header{
 	font-family: $header_font_family;
 	font-size: $header_font_size;
 }
-.header a{
-	color: $header_link_color;
-}
-.header a:hover{
-	color: $header_link_accent_color;
-}
 
 .right_align{
 	float: right;
@@ -18,4 +12,22 @@ h1.header{
 
 [disabled] {
 	color: $minor_font_color;
+}
+
+div.selector_wrapper {
+	display: inline;
+}
+
+td.sideheader
+{
+	vertical-align: middle;
+	height: $side_header_height;
+}
+
+.enhanced_text_box_wrapper .tab_bar .tab_handles .tab_handle {
+	color: #474747;
+}
+
+.enhanced_text_box_wrapper .tab_bar .tab_handles {
+	background-color: inherit;
 }

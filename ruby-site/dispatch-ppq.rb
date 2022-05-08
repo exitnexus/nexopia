@@ -1,82 +1,74 @@
 #!/bin/env ruby
-require 'core/lib/fcgi-native-ext';
 
-require "core/lib/filechangemonitor";
-FileChanges.init_monitoring();
+require 'core/lib/dispatcher';
+
+$term_handler = Proc.new {|kill| exit(); };
+trap("EXIT")    { $term_handler.call(true); }
+trap("SIGTERM") { $term_handler.call(true); }
+trap("SIGINT")  { $term_handler.call(true); }
+trap("SIGHUP")  { $term_handler.call(false); }
+
 require 'site_initialization';
 initialize_site(false, false);
 SiteModuleBase.loaded(){|mod|
 	SiteModuleBase.get(mod).load_all_rb;
 }
+$site.close_dbs(); #close all dbs before the fork
 
-# Pushes sigterms to child processes
-def propagate(pids)
-	pids.each {|pid|
-		$log.info("Killing child process #{pid}");
-		begin
-			Process.kill("SIGTERM", pid);
-		rescue Errno::ESRCH
-			$log.info("Process #{pid} did not exist.");
-		end
-	}
+
+if (!site_module_loaded?(:Worker))
+	$log.info("Worker module not loaded, going down", :critical)
+	exit(1);
 end
 
-$queue_worker_pid = nil;
-$gearman_worker_pid = nil;
-if (site_module_loaded?(:Worker))
-	if (!$gearman_worker_pid)
-		$gearman_worker_pid = WorkerModule.init_gearman();
-	end
-	if (!$queue_worker_pid)
-		$queue_worker_pid = WorkerModule.init_ppq();
-	end
-end
+$num_workers = $site.config.num_workers || 1
+$num_gearman = $site.config.num_gearman || 1
 
-# if kill is true, this is a permanent shutdown. Otherwise, we want the children
-# killed.
-def shutdown(kill = true)
-	savepids = [];
-	if (kill)
-		$log.info("Pid #{Process.pid} received termination signal");
-		if ($log.stderr_pid)
-			savepids.push($log.stderr_pid)
-		end
-	else
-		$log.info("Pid #{Process.pid} received reload signal");
+$worker_pids = []
+$gearman_pids = []
+
+# if kill is true, this is a permanent shutdown. Otherwise, we want the children killed and respawned.
+$term_handler = Proc.new {|kill| 
+	if(kill)
+		$num_workers = 0
+		$num_gearman = 0
 	end
 
-	if ($queue_worker_pid)
-		savepids.push($queue_worker_pid);
-		if (kill)
-			$queue_worker_pid = nil; # prevent it from restarting
-		end
-	end
-	if ($gearman_worker_pid)
-		savepids.push($gearman_worker_pid);
-		if (kill)
-			$gearman_worker_pid = nil; # prevent it from restarting
-		end
-	end
+	Dispatcher.kill_children($worker_pids, 'queue worker');
+	Dispatcher.kill_children($gearman_pids, 'gearman worker');
 
-	propagate(savepids);
 	if (kill)
 		exit();
 	end
-end
+};
 
-trap("SIGTERM") { shutdown(true); }
-trap("SIGHUP") { shutdown(false); }
+$num_workers.times {
+	$worker_pids.push(WorkerModule.spawn_ppq_worker());
+}
+$num_gearman.times {
+	$gearman_pids.push(WorkerModule.spawn_gearman_worker());
+}
 
-while (sleep(0.1))
-	exitpid = Process.wait(-1, Process::WNOHANG);
-	if (exitpid)
-		if (exitpid == $queue_worker_pid)
-			$log.info("Worker thread (#{exitpid}) died, restarting");
-			$queue_worker_pid = WorkerModule.init_ppq();
+while(sleep(0.1) && ($num_gearman > 0 || $num_workers > 0))
+#monitor the children, respawning them if needed
+	begin
+		while(exitpid = Process.wait(-1, Process::WNOHANG))
+			if($worker_pids.delete(exitpid))
+				$log.info("Queue worker #{exitpid} died unexpectedly, restarting", :critical);
+			elsif($gearman_pids.delete(exitpid))
+				$log.info("Gearman worker #{exitpid} died unexpectedly, restarting", :critical);
+			end
 		end
-		if (exitpid == $gearman_worker_pid)
-			$log.info("Worker thread (#{exitpid}) died, restarting");
-			$gearman_worker_pid = WorkerModule.init_gearman();
-		end
+	rescue SystemCallError
+		$worker_pids.clear();
+		$gearman_pids.clear();
+	end
+
+	while($worker_pids.length < $num_workers)
+		$worker_pids.push(WorkerModule.spawn_ppq_worker());
+	end
+	while($gearman_pids.length < $num_gearman)
+		$gearman_pids.push(WorkerModule.spawn_gearman_worker());
 	end
 end
+

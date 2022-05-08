@@ -1,0 +1,37 @@
+#comment_fake_input_mockup {
+	width: 498px;
+	background-color: @primary_block_background_color;
+	padding: 6px 6px 12px 6px;
+	margin: 0px auto 0px auto;
+	color: @primary_block_text_color;
+	
+	& .block_header {
+		font-weight: bold;
+		font-size: 14px;
+		color: @primary_block_header_text_color;
+	}
+	
+	& .comment_write_table {
+		width: 100%;
+		margin-top: 6px;
+		
+		& .viewing_user_picture {
+			padding-right: 16px;
+		}
+		
+		& textarea {
+			width: 426px;
+			height: 54px;
+			padding: 2px;
+			border: 1px solid @primary_block_text_color;
+			background-color: @primary_block_background_color;
+			color: @primary_block_text_color;
+		}
+		
+		& .comment_post_wrapper {
+			margin-bottom: 8px;
+		}
+		
+	}
+	
+}

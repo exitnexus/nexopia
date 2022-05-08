@@ -1,0 +1,32 @@
+<div id="blog_change_permissions_panel" class="blog_panel">
+
+	<div class="button_bar">
+		<t:button class="nexopia_panel_save_and_close">Done</t:button>
+	</div>
+
+	<h1 class="panel_title">CHANGE PERMISSIONS</h1>
+	
+	<form id="entry_permissions_form">
+		<table cellpadding="0" cellspacing="0">
+			<tr>
+				<td class="field_name">Entry&#160;Privacy&#160;Level:</td>
+				<td>
+					<t:handler-include path="/current/selector/visibility" area="Skeleton">
+						<t:var t:name="'id'" t:val="nil"></t:var>
+						<t:var t:name="'allow_empty'" t:val="'No Change'"></t:var>
+					</t:handler-include>
+				</td>
+			</tr>
+			<tr>
+				<td class="field_name">Comments:</td>
+				<td>
+					<select name="comments">
+						<option value="">No Change</option>
+						<option value="true">Allowed</option>
+						<option value="false">Not Allowed</option>
+					</select>
+				</td>
+			</tr>
+		</table>
+	</form>
+</div>

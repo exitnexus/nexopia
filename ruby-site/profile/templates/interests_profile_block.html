@@ -1,9 +1,17 @@
 <div id="interests_profile_block">
-	<h2>INTERESTS</h2>
-	<ul>
-		<li t:id="interest_groups" t:iter="(category, interests)">
-			<div class="category"> #{category.to_s}: </div>
-			<div class="interests"> #{interests.join(", ").to_s} </div>
-		</li>
-	</ul>
+	<div class="block_title">
+		INTERESTS
+	</div>
+	<table cellspacing="0" cellpadding="0">
+		<tbody>
+			<tr t:id="interest_groups" t:iter="(category, interests)">
+				<td class="category">
+					{category}:
+				</td>
+				<td class="interests">
+					{interests.join(', ')}
+				</td>
+			</tr>
+		</tbody>
+	</table>
 </div>

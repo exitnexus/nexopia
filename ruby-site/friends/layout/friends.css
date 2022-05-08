@@ -1,138 +1,208 @@
-.friends {
-	width: 630px;
-	min-height: 400px;
-	background-color: @primary_background_color;
-	padding: 6px;
-	color: @primary_text_color;
-	margin-left: auto;
+/*
+	@primary_block_background_color;
+	@primary_block_link_color;
+	@primary_block_text_color;
+	
+	@secondary_block_background_color;
+	@secondary_block_link_color;
+*/
+
+#friends_layout
+{
+	width: 738px; /* specified in the design */
+	padding: 6px; /* the usual padding */
+	
+	margin-top: 6px;  /* makes the break between the links at the top and the page content */
+	margin-left: auto;  /* along with margin-right, centers the page */
 	margin-right: auto;
-}
+	
 
-.friends .top_menu {
-	text-align: right;
-	width: 630px;
-}
+	background-color: @primary_block_background_color;
 
-.friends .top_menu .selected {
-	font-weight: bold;
-}
+	& #friends_page,
+	#reverse_friends_page
+	{
+		& .pages
+		{
+			text-align: right;
+			color: @primary_block_link_color;
+			
+			& a 
+			{
+				color: @primary_block_link_color;
+				
+				&:hover
+				{
+					color: @primary_block_link_hover_color;
+				}
+			}
+		}
+	}
 
-.friends ul {
-	clear:both;
-	list-style: none;
-	padding: 0px;
-	margin: 0px;
-}
+	& .friend
+	{	
+		background-color: @secondary_block_background_color;
+		color: @secondary_block_text_color;
 
-.friends li {
-	margin: 2px 0px;
-}
+		margin-bottom: 2px;
 
-.friends table {
-	background-color: @secondary_background_color;
-	width: 630px;
-	margin-left: auto;
-	margin-right: auto;
-	border-spacing: 0px;
-}
+		& a
+		{
+			color: @secondary_block_link_color;
+		}
 
-.friends td {
-	text-align:left;
-	color: @primary_text_color;
-	padding: 3px;
-}
+		& .content
+		{
+			float: left;
+			display: inline;
+			width: 595px;			
+			
+			padding-top: 5px;
+			& .name
+			{
+				& a {
+					font-size: 12px;
+					font-weight: bold;
+					text-decoration: none;
+					color: @secondary_block_link_color;
+				}
+				
+				& .mutual
+				{
+					float: right;
+				}
 
-.friends td.minor {
-	color: $minor_font_color;
-	width: 50px;
-}
+				
+			}
+			
+			& .content_table
+			{
+				width: 570px;
+			}
+			& .detail_title
+			{
+				padding: 1px;
+				width: 60px;
+			}
+			
+			& .detail_value
+			{
+				padding: 1px;
+				font-weight: bold;
+			}
 
-.friends img {
-	border: 0px;
-}
+			& .left_side
+			{
+				width: 160px;
+				& .detail_value
+				{
+					width: 100px;
+				}
+			}
 
-.friends .picture {
-	width: 100px;
-	vertical-align: top;
-}
+			& .right_side
+			{
+				width: 410px;
+				& .detail_value
+				{
+					width: 350px;
+					& .tag {
+						width: 350px;
+						overflow: hidden;
+					}
+				}
 
-.friends .comment_cell {
-	vertical-align: top;
-	width: 340px;
-}
+				& .edit_form 
+				{
+					display: none;
+				}
+				& input
+				{
+					width: 320px;
+				}
+				
+				& .notes .note
+				{
+					display: inline;
+				}
+			}
+						
+		}
+		
+		& .pictures_div
+		{
+			float: left;
+			display: inline;
+			height: 84px;
+			width: 119px;
+			
+			& .picture_div
+			{
+				float: left;
+				display: inline;
+				height: 84px;
+				width: 100px;
+	
+				& .profile_picture
+				{
+					height: 84px;
+					width: 100px;
+				}
+			}
 
-.friends .comment {
-	background-color: @secondary_background_color;
-	color: @primary_text_color;
-	width: 100%;
-	height: 100%;
-	padding: 0px;
-	margin: 0px;
-	cursor:pointer;
-}
+			& .online_offline
+			{
+				float: left;
 
-.friends .comment textarea{
-	width: 100%;
-	height: 40px;
-}
+				padding-top: 8px;
+				padding-left: 5px;
 
-.friends .name {
-	height: 25px;
-	width: 530px;
-}
+				height: 8px;
+				width: 10px;
+	
+				& .online_offline_img
+				{
+					height: 8px;
+					width: 10px;
+				}
+			}
+		}
+			
+		& .actions
+		{
+			padding-right: 6px;
+			padding-top: 9px;
+			display: inline;
+			float: right;
+			height: 36px;
+			width: 12px;
 
-.friends a {
-	color: @link_color;
-}
+			& a 
+			{
+				color: @secondary_block_link_color;
 
-.friends a:hover {
-	color: @link_accent_color;
-}
+				&:hover {
+					color: @secondary_block_link_hover_color;
+				}
+			}
 
-.friends .name a {
-	font-size:1.5em;
-	font-weight: bold;
-}
+			& div
+			{
+				height: 8px;
+				width: 10px;
+				margin-bottom: 6px;
+				padding: 0px;
+			}
+			
+			& .custom_color_icon
+			{
+				color: @secondary_block_icon_color;
+			}
+			& .color_icon
+			{
+				color: @secondary_block_icon_color;
+			}
 
-.friends .show_all {
-	padding-top: 1px;
-	width: 630px;
-	text-align: right;
-	float: right;
-	position:absolute;
-}
-
-.friends .actions {
-	float: right;
-}
-
-.friends .actions img {
-	margin-left: 5px;
-}
-
-.friend .connected_friends {
-	width: 100%;
-	padding-left: 20px;
-}
-
-.friend .connected_friends .connected_friend {
-	padding: 2px;
-}
-
-.friends .connected_friends li {
-	float: left;
-}
-
-.friends .connected_friends img.picture {
-	width: 50px;
-}
-
-.friends a.current_page {
-	background-color: @secondary_background_color;
-	font-weight: bold;
-}
-
-.friends .pages {
-	width: 630px;
-	text-align: right;
+		}
+	}
 }

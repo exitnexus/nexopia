@@ -1,0 +1,7 @@
+--- !ruby/object:JavascriptConfig 
+module_require: 
+- core
+- paginator
+- enhanced_text_input
+yui_require:
+- json

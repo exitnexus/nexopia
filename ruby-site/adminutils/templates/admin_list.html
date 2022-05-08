@@ -20,7 +20,7 @@
 		</tr>
 		<tr t:alternating="body, body2" t:id="users" t:iter="user">
 			<td class="{class_var}" >
-				{user.meta.user_name}
+				<a href="/users/{CGI::escape(user.meta.user_name)}">{user.meta.user_name}</a>
 			</td>
 			<td class="{class_var}" >
 				<ul>

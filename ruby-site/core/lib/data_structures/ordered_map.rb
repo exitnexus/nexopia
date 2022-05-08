@@ -1,20 +1,21 @@
 class OrderedMap
 	include(Enumerable);
 
-	def initialize(*key_value_list)
+	def initialize(*input)
 		@array = Array.new
 		@hash = Hash.new;
-		if (key_value_list.last.kind_of?(Hash))
-			key_value_list.pop.each_pair {|key, value|
-				key_value_list << key;
-				key_value_list << value;
+
+		if(input.size == 1 && input[0].kind_of?(Hash))
+			input[0].each{|k,v|
+				self[k] = v
+			}
+		elsif(input.kind_of?(Array)) #assume [[k,v],[k2,v2],...]
+			input = input[0] if(input.size == 1)
+
+			input.each {|k,v|
+				self[k] = v;
 			}
 		end
-		key_value_list.each_index {|i|
-			if (i%2 == 0) #2 #this comment is here only to appease the eclipse syntax highlighter
-				self[key_value_list[i]] = key_value_list[i+1];
-			end
-		}
 	end
 
 	attr_accessor :array, :hash;
@@ -39,6 +40,13 @@ class OrderedMap
 		}
 	end
 
+	def each_key(&block)
+		@array.each(&block)
+	end
+	def each_value(&block)
+		@hash.each_value(&block)
+	end
+	
 	def each_pair(&block)
 		@array.each { |key|
 			if (@hash[key] != nil)
@@ -62,7 +70,7 @@ class OrderedMap
 
 	def []=(key, val)
 		key = [*key]
-		@array << key if (!@array.include?(key))
+		@array << key if (!@hash.include?(key))
 		@hash[key] = val;
 	end
 

@@ -578,7 +578,7 @@ switch ($action) {
 	$locations = new category( $configdb, "locs");
 	$template->set('selectLocationType', make_select_list_key($defaults, $locdefault));
 	if (!isset($sl)) $sl=array();
-	$template->set('selectLocations', makeCatSelect_multiple($locations->makeBranch(), $sl));
+	$template->set('selectLocations', locationAutocomplete_multiple($loc, "data[locs]"));
 	
 	$template->set('selectPagesType', make_select_list_key($defaults, $pagedefault));
 	if (is_array($sp)) $sp = implode("\n", $sp);

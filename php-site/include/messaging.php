@@ -145,8 +145,8 @@ tables:
 			if($num > 0){
 				global $usersdb;
 				$usersdb->prepare_query("UPDATE users SET newmsgs = newmsgs - # WHERE userid = %", $num, $uid);
-//				$cache->decr("newmsgs-$uid", $num);
 				$cache->remove("newmsglist-$uid");
+				$cache->remove("userinfo-$uid");
 
 				if($uid == $userData['userid'])
 					$userData['newmsgs'] -= $num;
@@ -200,8 +200,8 @@ tables:
 
 		if($uid != $userData['userid'] || $numnew != $userData['newmsgs']){
 			$usersdb->prepare_query("UPDATE users SET newmsgs = # WHERE userid = %", $numnew, $uid);
-//			$cache->put("newmsgs-$uid", $numnew, $config['maxAwayTime']);
 			$cache->remove("newmsglist-$uid");
+			$cache->remove("userinfo-$uid");
 		}
 		if($uid == $userData['userid'])
 			$userData['newmsgs'] = $numnew;
@@ -258,19 +258,36 @@ tables:
 	}
 
 	function deliverMsg($to, $subject, $message, $replyto = 0, $fromname = false, $fromid = false, $ignorable = true, $html = false, $allowemail = -1){
-		global $userData, $msgs, $emaildomain, $config, $usersdb, $cache, $useraccounts, $archive;
+		global $userData, $msgs, $emaildomain, $config, $usersdb, $cache, $useraccounts, $archive, $Ruby;
 
-		if ($allowemail === -1)
+		// The allow email parameter is never used on per-message basis.
+		// It's always set by the default for the server.
+		if ($allowemail === -1) {
 			$allowemail = $config['defaultMessageAllowEmails'];
-
-		if($fromname === false)
+		}
+		
+		// The $html parameter is legacy and isn't used in any way.
+		// It should be removed from all the code but hasn't been yet.
+		$html = 'n';
+		
+		// If fromname isn't set use the current user.
+		if($fromname === false) {
 			$fromname = $userData['username'];
-		if($fromid === false){
+		}
+		
+		// If fromid isn't specified then use the current userid and set the age based on the current user
+		// Otherwise use an age of 0.
+		if($fromid === false) {
 			$fromid = $userData['userid'];
 			$age = $userData['age'];
-		}else
+		} else {
 			$age = 0;
-
+		}
+		
+		// Get the user info for the recipient(s)
+		// If there's more than one recipient it means
+		// that it was a mass message and can't possibly be a reply to
+		// another message to so set replyto to 0.
 		if(is_array($to)){
 			$replyto = 0;
 			$tousers = getUserInfo($to);
@@ -278,53 +295,60 @@ tables:
 			$tousers[$to] = getUserInfo($to);
 		}
 
+		// Can't find the recipient, bail out.
 		if(!count($tousers)){
 			$msgs->addMsg("User doesn't exist");
 			return false;
 		}
 
-
+		// Remove HTML from the subject and message text
 		$nsubject = removeHTML(trim($subject));
+		$nmsg = cleanHTML($message);
 
-
-		$nmsg = removeHTML($message);
-
-		if($nsubject=="")
+		if($nsubject=="") {
 			$nsubject="No Subject";
-
-		if($ignorable && $fromid){
-			foreach($tousers as $to => $line){
-				if($ignoreid = isIgnored($to, $fromid, 'msgs', $age, ($replyto > 0) )){ //if ignored by age group or friends list, allow if it is a reply
-					if($ignoreid == 1)
+		}
+		
+		// If the message is ignorable then loop through all the recipients and
+		// remove any who have ignored the user.
+		if($ignorable && $fromid) {
+			foreach($tousers as $to => $line) {
+				if($ignoreid = isIgnored($to, $fromid, 'msgs', $age, ($replyto > 0) )) { //if ignored by age group or friends list, allow if it is a reply
+					if($ignoreid == 1) {
 						$msgs->addMsg("This user only accepts messages from friends.");
-					else
+					} else {
 						$msgs->addMsg("Message Ignored");
+					}
 					unset($tousers[$to]);
 				}
 			}
-			if(!count($tousers))
+			// Exit if we no longer have any recipients
+			if(!count($tousers)) {
 				return false;
+			}
 		}
 
 		$time = time();
 
-	//	ignore_user_abort(true);
-
-
 		$otherreply = 0;
 
+		// If this is a reply to a previous message figure out what the 
+		// parent message id is for the other user.
 		if($replyto){
 			$res = $this->db->prepare_query("SELECT othermsgid FROM msgs WHERE userid = % && id = ?", $fromid, $replyto);
 			$otherreply = $res->fetchrow();
 
-			if($otherreply)
+			if($otherreply) {
 				$otherreply = $otherreply['othermsgid'];
+			}
 		}
 
-		$html = 'n';
+		// msgtext is what ends up in the cache.
+		// note that $html is always 'n'.
 		$msgtext = array('html' => $html, 'msg' => $nmsg);
 		$ip = ($fromid ? ip2int(getip()) : 0);
 
+		// Send the message by saving it in the DB.
 		foreach($tousers as $toid => $user){
 			$firstmsgid = $this->db->getSeqID($toid, DB_AREA_MESSAGE);
 			$secondmsgid = ($fromid ? $this->db->getSeqID($fromid, DB_AREA_MESSAGE) : 0);
@@ -343,38 +367,43 @@ tables:
 				$cache->put("msgtext-$fromid-$secondmsgid", $msgtext, 86400);
 			}
 
-//			$this->db->prepare_query("INSERT INTO msgarchive SET userid = %, id = ?, `to` = ?, toname = ?, `from` = ?, fromname = ?, date = ?, subject = ?, msg = ?",
-//						$toid, $firstmsgid, $toid, $user['username'], $fromid, $fromname, $time, $nsubject, $nmsg);
-
 			$archive->save($fromid, $secondmsgid, ARCHIVE_MESSAGE, ARCHIVE_VISIBILITY_PRIVATE, $toid, 0, $nsubject, $nmsg);
 
+			if($otherreply)
+				$this->db->prepare_query("UPDATE msgs SET status='replied' WHERE (userid = % && id = #) || (userid = % && id = #)", $toid, $otherreply, $fromid, $replyto);
 
 			$new = $cache->remove("newmsglist-$toid");
+			// Sending a message to ourselves?  Update the message count.
+			if($userData['loggedIn'] && $toid == $userData['userid'])
+				$userData['newmsgs']++;
+			$cache->remove("userinfo-$toid");
 		}
 
-		if($otherreply)
-			$this->db->prepare_query("UPDATE msgs SET status='replied' WHERE (userid = % && id = #) || (userid = % && id = #)", $toid, $otherreply, $fromid, $replyto);
-
+		// update message counts
 		$this->db->prepare_query("UPDATE users SET newmsgs = newmsgs+1 WHERE userid IN (%)", array_keys($tousers));
 
-		if($userData['loggedIn'] && $to == $userData['userid'])
-			$userData['newmsgs']++;
-
-
+		// Get the message ready for sending to email.
 		$nmsg2 = smilies($nmsg);
 		$nmsg2 = parseHTML($nmsg2);
 
+		// For each user if email forwarding is turned on send that user an email copy of the message.
 		if($allowemail){
 			foreach($tousers as $to => $user){
-				if($user['fwmsgs'] == 'y'){
+				if ($fromname != "Nexopia") {
+					$forwardmessages = $user['fwmsgs'] == 'y';
+				} else {
+					$forwardmessages = $user['fwsitemsgs'] == 'y';
+				}
+					
+				if($forwardmessages){
 					$emailaddr = $useraccounts->getEmail($user['userid']);
-					smtpmail($emailaddr, $nsubject, "From: $fromname\n\n$nmsg2\n\n------Forwarded Offline Message From $config[title]-----\nThe return address is NOT valid\nYou can disable these emails from your preferences page.", "From: " . (strpos($fromname, ':') === false && strpos($fromname, ';') === false && strpos($fromname,',') === false ? "$fromname on " : "") . "$config[title] <no-reply@$emaildomain>");
+					$from_line = "From: " . (strpos($fromname, ':') === false && strpos($fromname, ';') === false && strpos($fromname,',') === false ? "$fromname on " : "") . "$config[title] <no-reply@$emaildomain>";
+					$messagecontent = "From: $fromname\n\n$nmsg2\n\n------Forwarded Offline Message From $config[title]-----\nThe return address is NOT valid\nYou can disable these emails from your preferences page.";
+					$Ruby->Message->forward_site_message($user['userid'], $nsubject, $nmsg2, $fromname);
 				}
 			}
 		}
-
-	//	ignore_user_abort(false);
-
+		
 		return true;
 	}
 

@@ -1,9 +1,13 @@
 <?
+	require_once("include/general.lib.php");
+
+	//http redirect to the new profile in ruby-site
+	header("HTTP/1.1 301 Moved Permanently");
+	header("Location: http://". $wwwdomain . "/account/activate");
+	exit;
 
 	$forceserver = true;
 	$login = 0;
-
-	require_once("include/general.lib.php");
 
 	$username = getREQval('username');
 	$actkey = getREQval('actkey');

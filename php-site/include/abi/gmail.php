@@ -11,14 +11,16 @@ WWW: http://www.octazen.com
 Email: support@octazen.com
 V: 1.1
 ********************************************************************************/
-include_once("abimporter.php");
+//include_once(dirname(__FILE__).'/abimporter.php');
+//include_once(dirname(__FILE__).'/gmail2.php');
+if (!defined('__ABI')) die('Please include abi.php to use this importer!');
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //GMailImporter
 /////////////////////////////////////////////////////////////////////////////////////////
 class GMailImporter extends WebRequestor {
 // 	var $REDIRECT_REGEX = "/url='?([^\"'']*)'?/i";
-  	var $REDIRECT_REGEX = "/<meta[^>]*?url=[\"|']?([^\"']*)[\"|']?/i";
+  	//var $REDIRECT_REGEX = "/<meta[^>]*?url=[\"|']?([^\"']*)[\"|']?/i";
 
  	var $BASEURL_REGEX = "/<base href=\"([^\"]*)\"[^>]*>/i";
  	var $CLEAN_REGEX = "/<span[^>]*>[^<]*<\/span>/i";
@@ -26,30 +28,17 @@ class GMailImporter extends WebRequestor {
 
  	var $AT_REGEX = "/<input\\s+type=\"hidden\"\\s+name=\"at\"\\s+value=\"([^\"]+)\"/ims";
 
-	function fetchCsv ($loginemail, $password, $fmt='csv') {
+	function login ($loginemail, $password) {
 
-//http://www.gmail.com/
-//https://www.google.com/accounts/ServiceLogin?service=mail&passive=true&rm=false&continue=https%3A%2F%2Fmail.google.com%2Fmail%2F%3Fnsr%3D1%26ui%3Dhtml%26zy%3Dl&ltmpl=default&ltmplcache=2
+		//If login email ends with ".yahoo" only, then we remove it
+		$loginemail = preg_replace("/^(.*?)(\.gmail)$/ims", '${1}', $loginemail);
 
 	 	$login = $this->getEmailParts($loginemail);
-
-/*	 	
-	 	$html = $this->httpGet('https://www.google.com/accounts/ServiceLogin?service=mail&passive=true&rm=false&continue=http%3A%2F%2Fmail.google.com%2Fmail%2F&ltmpl=default&ltmplcache=2');
-		$form = abi_extract_form_by_id($html, 'gaia_loginform');
-        if (is_null($form)) {
-		 	$this->close();
-			return abi_set_error(_ABI_FAILED,'Cannot find login form');
-		}
-		$form->setField("Email", $loginemail);
-		$form->setField("Passwd", $password);
-		$postData = $form->buildPostData();
-		$html = $this->httpPost($form->action, $postData);
-*/
 
 		$location='';
 		//Use retry as local google server seems to be failing here at times (occured in Malaysia servers))
 		//Seems to be happening to PHP curl only.
-		for ($tries=0; $tries<10; $tries++) {
+		for ($tries=0; $tries<2; $tries++) {
 			$form = new HttpForm;
 			$form->addField("ltmpl", "default");
 			$form->addField("ltmplcache", "2");
@@ -60,6 +49,7 @@ class GMailImporter extends WebRequestor {
 			$form->addField("Passwd", $password);
 			$form->addField("rmShown", "1");
 			$form->addField("null", "Sign in");
+			$form->addField("_authtrkcde", "{#TRKCDE#}");
 			$postData = $form->buildPostData();
 			$html = $this->httpPost("https://www.google.com/accounts/ServiceLoginAuth", $postData);
 			
@@ -68,24 +58,43 @@ class GMailImporter extends WebRequestor {
 				continue;
 			}
 	
-			if (strpos($html, 'Username and password do not match')!=false) {
+			if (strpos($html, 'Username and password do not match')!=false ||
+				strpos($html, 'class="errormsg"')!=false) {
 			 	$this->close();
 				return abi_set_error(_ABI_AUTHENTICATION_FAILED,'Bad user name or password');
 			}
+
+			if (defined('_ABI_ABCAPTCHA') && _ABI_CAPTCHA==1) {
+				if (strpos($html, 'https://www.google.com/accounts/Captcha')!=false) {
+				 	$this->close();
+					return abi_set_error(_ABI_CAPTCHA_RAISED,'Captcha challenge was raised');
+				}
+			}
 	
+			$location = abi_get_refresh_url($html);
+			if ($location==null) {
+			 	$this->close();
+				return abi_set_error(_ABI_FAILED,'Cannot find redirection page');
+			}
+
+			/*			
 	        if (preg_match($this->REDIRECT_REGEX,$html,$matches)==0) {
+
 			 	$this->close();
 				return abi_set_error(_ABI_FAILED,'Cannot find redirection page');
 			}
 			$location = html_entity_decode($matches[1]);
+			*/
 			
 			break;
 		}
-		
+
 		//Gzip seems to be causing some problems with this section when used with GoDaddy proxy.
 		//We temporarily disable gzip in this case.
 		$supportGzip = $this->supportGzip;
-		$this->supportGzip = false;
+		//Only if proxy is used
+		if (defined('_ABI_PROXY')) $this->supportGzip = false;
+			
 		$html = $this->httpGet($location);
 		//Reenable gzip if any
 		$this->supportGzip = $supportGzip;
@@ -107,8 +116,29 @@ class GMailImporter extends WebRequestor {
 		 	$this->close();
 			return abi_set_error(_ABI_FAILED,'Failed to login. Unable to obtain GMAIL_AT.');
 		}
+		
+		return abi_set_success()	 ;
+	}
 
+	function fetchCsv ($fmt='csv') {
+		
+//http://www.gmail.com/
+//https://www.google.com/accounts/ServiceLogin?service=mail&passive=true&rm=false&continue=https%3A%2F%2Fmail.google.com%2Fmail%2F%3Fnsr%3D1%26ui%3Dhtml%26zy%3Dl&ltmpl=default&ltmplcache=2
 
+/*	 	
+	 	$html = $this->httpGet('https://www.google.com/accounts/ServiceLogin?service=mail&passive=true&rm=false&continue=http%3A%2F%2Fmail.google.com%2Fmail%2F&ltmpl=default&ltmplcache=2');
+		$form = abi_extract_form_by_id($html, 'gaia_loginform');
+        if (is_null($form)) {
+		 	$this->close();
+			return abi_set_error(_ABI_FAILED,'Cannot find login form');
+		}
+		$form->setField("Email", $loginemail);
+		$form->setField("Passwd", $password);
+		$postData = $form->buildPostData();
+		$html = $this->httpPost($form->action, $postData);
+*/
+
+		
 		if ($fmt=='outlook') {
 			$html = $this->httpGet("http://mail.google.com/mail/contacts/data/export?exportType=ALL&groupToExport=&out=OUTLOOK_CSV");
 		}
@@ -138,22 +168,50 @@ class GMailImporter extends WebRequestor {
 	
 	function fetchContacts ($loginemail, $password) {
 
-		$html = $this->fetchCsv($loginemail,$password,'outlook');
+		$res = $this->login($loginemail,$password);
+		if ($res!=_ABI_SUCCESS) return $res;
+
+		//If login email ends with ".yahoo" only, then we remove it
+		$loginemail = preg_replace("/^(.*?)(\.gmail)$/ims", '${1}', $loginemail);
+
+		//$html = $this->fetchCsv($loginemail,$password,'outlook');
+		$html = $this->fetchCsv('gmail');
+		if ($this->lastStatusCode==200 && is_string($html)) {
+			$res = $this->extractContactsFromGmailCsv($html);
+			return $res;
+		}
+
+		//Else, problem. Try outlook version.		
+		$html = $this->fetchCsv('outlook');
 		if (!is_string($html)) {
 			return $html;
 		}
-		//$res = $this->extractContactsFromGmailCsv($html);
 		$res = $this->extractContactsFromCsv($html);
 		return $res;
 	}
 		
 	function fetchContacts2 ($loginemail, $password) {
-		$html = $this->fetchCsv($loginemail,$password,'outlook');
+	
+		$res = $this->login($loginemail,$password);
+		if ($res!=_ABI_SUCCESS) return $res;
+	 
+	 	//Note that Gmail doesn't export all fields in Outlook CSV form
+		$html = $this->fetchCsv('outlook');
 		if (!is_string($html)) {
 			return $res;
 		}
 		$ce = new CsvExtractor;
 		return $ce->extract($html);
+	}
+	
+	function fetchAbContacts() {
+	 	//Note that Gmail doesn't export all fields in Outlook CSV form
+		$html = $this->fetchCsv('outlook');
+		if (!is_string($html)) {
+			return $res;
+		}
+		$ce = new CsvExtractor;
+		return olcontactlist_to_abcontactlist($ce->extract($html));
 	}
 
 }

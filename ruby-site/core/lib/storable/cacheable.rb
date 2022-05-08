@@ -32,7 +32,14 @@ class Cacheable < Storable
 	#Save the object to the cache and the database.
 	def store(*args)
 		super(*args);
-		self.class.cache.delete(cache_key);
+		self.related_cache_keys.each { |k| self.class.cache.delete(k) };
+	end
+
+	def invalidate
+		self.related_cache_keys.each { |k| self.class.cache.delete(k) }
+		self.related_cache_keys.each { |k| self.class.internal_cache.delete(k) }
+		self.invalidate_cache_keys(false)
+		RelationManager.invalidate_delete(self)
 	end
 
 	#Save the object to cache only.
@@ -41,28 +48,33 @@ class Cacheable < Storable
 	end
 
 	#generate the cache key for this object
-	def cache_key()
+	def cache_key(selection=@selection)
 		keys = primary_key.map { |key|
 			self.send(key);
 		}
 		key = self.class.prefix + '-' + keys.join('/');
+		key << "-#{selection}" if selection
 		return key;
+	end
+	
+	def related_cache_keys
+		keys = []
+		keys << cache_key(nil)
+		self.class.storable_selections.keys.each { |storable_selection_key|
+			keys << cache_key(storable_selection_key)
+		};
+		return keys
 	end
 
 	def delete(*args)
 		super(*args)
-		self.class.cache.delete(cache_key);
+		self.related_cache_keys.each { |k| self.class.cache.delete(k) };
 	end
 
 	class << self
 		def init_cacheable(cache = nil, db = nil, table = nil)
 			set_cache(cache) if (cache);
 			init_storable(db, table);
-		end
-
-		#Default prefix is the name of the class.
-		def prefix()
-			return self.name;
 		end
 
 		protected ############BEGIN PROTECTED METHODS#############
@@ -86,7 +98,7 @@ class Cacheable < Storable
 		end
 
 		def find_in_cache(id_sets, options={})
-			found = super(id_sets)
+			found = super(id_sets, options)
 			found.meta.keys ||= []
 			id_sets = id_sets - found.meta.keys
 			if (!id_sets.empty? && !options[:nomemcache])
@@ -97,23 +109,24 @@ class Cacheable < Storable
 						found.meta.keys << id
 					end
 				}
-				hash_result = cache.load(prefix, keys, self.default_cache_time) { |hash|
-					array_keys = Array.new
-					hash.each_pair{|key, value|
-						array_keys << key
-					}
-					results = self.find(:nomemcache, *array_keys)
+				cache_key = "#{prefix}";
+				cache_key << "-#{options[:selection]}" if options[:selection]
+				hash_result = cache.load(cache_key, keys, self.default_cache_time) { |hash|
+					results = self.find(:nomemcache, :skip_fetch_ids, :selection => options[:selection], *hash.keys)
 					results.each {|result|
 						hash[[*result.get_primary_key]] = result
 					}
 					hash
 				}
 				storable_result = StorableResult.new;
-				hash_result.each_pair {|key, value|
-					storable_result << value
-					value.update_method = :update
-					value.after_load
-					cache_result(value.storable_id, value);
+				hash_result.each_value {|value|
+					if(value)
+						storable_result << value
+						value.selection = get_selection(options[:selection])
+						value.update_method = :update
+						value.after_load
+						cache_result(value.storable_id, value);
+					end
 				}
 				found.concat(storable_result)
 			end

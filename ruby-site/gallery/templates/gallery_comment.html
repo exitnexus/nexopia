@@ -1,0 +1,51 @@
+<div id="user_gallery_comment_#{gallery_comment.id}" class="comment_view_container secondary_block #{(gallery_comment.deleted ? 'deleted':'')}">
+	<table width="100%" cellpadding="0" cellspacing="0" class="single_comment_table">
+		<tr>
+			<td>
+				<div class="comment_user_img">
+					<a t:id="gallery_comment.author">
+						<img t:id="gallery_comment.author" t:linktype="landscapemini" />
+					</a>
+				</div>
+			</td>
+			<td>
+				<div class="comment_content">
+					<t:if t:id="gallery_comment.quick_delete?(viewing_user)">
+						<div class="comment_quick_delete_btn">
+							<a href="#{comments_quick_delete_url}/#{gallery_comment.id}?page=#{current_page}&key={viewing_user.gen_auth_key()}" class="comment_quick_delete" id="comment_quick_delete_#{gallery_comment.id}" minion_name="gallery_comments:quick_delete">
+								<img  src="#{$site.colored_img_url(gallery_user.gallery_skin[:secondary_block_icon_color])/:comments/:images/'icon_delete_comment.gif'}"/>
+							</a>
+						</div>
+					</t:if> 
+					<div class="comment_date">
+						<t:nice-time t:time="gallery_comment.time" t:format="date_and_time"/>
+					</div>
+					<div class="comment_username">
+						<t:if t:id="gallery_comment.deleted">
+							DELETED COMMENT:&nbsp;
+						</t:if>
+						<a t:id="gallery_comment.author"/>
+					</div>
+					<t:if t:id="!gallery_comment.deleted || admin_viewer">
+						<div class="comment_body">
+							@{gallery_comment.nmsg}
+						</div>
+					</t:if>
+				</div>
+			</td>
+		</tr>
+		<tr>
+			<td valign="bottom">
+				<t:if t:id="show_delete_controls && !gallery_comment.deleted"> 
+					<div class="comment_delete">
+						<input class="comment_delete_input" id="comment_delete_#{gallery_comment.userid}:#{gallery_comment.id}" name="comment_delete_#{gallery_comment.userid}:#{gallery_comment.id}" type="checkbox" />
+					</div>
+				</t:if>
+			</td>
+			<td valign="bottom">
+				&#160;
+			</td>
+		</tr>
+	</table>
+</div>
+

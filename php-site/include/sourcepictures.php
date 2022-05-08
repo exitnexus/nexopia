@@ -162,10 +162,14 @@ class sourcepicture extends databaseobject
 		if ($addBrand)
 			$this->addBranding($destImg, $newWidth, $newHeight);
 
-		imagejpeg($destImg, $newPath,80);
-		if ($addBrand)
-			$this->setExifData($newPath);
-	}
+		if (imagejpeg($destImg, $newPath, 80))
+		{
+			if ($addBrand)
+				$this->setExifData($newPath);		
+		}
+		else
+			trigger_error('imagejpeg() returned false when attempting to create "' . $newPath . '"', E_USER_WARNING);
+	}		
 
 	// pass in array of criteria:
 	// $imgInfo = array( array($newPath, $maxWidth, $maxHeight, $addBrand), array(...) );
@@ -199,6 +203,7 @@ class sourcepicture extends databaseobject
 		if(!is_dir($path))
 			@mkdir($path,0777,true);
 
+		# NEX-801 not changing, doesn't seem to be used anywhere live.
 		$uidbase = floor($this->userid / 1000);
 
 		$path .= "{$uidbase}/{$this->userid}/{$this->id}";

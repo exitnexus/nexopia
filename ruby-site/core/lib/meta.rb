@@ -18,13 +18,14 @@ module Meta
 			}
 		}
 		
+		EQUAL = '='
 		def method_missing(method_name, *args)
-			chomped_name = method_name.to_s.chomp("=").to_sym;
+			chomped_name = method_name.to_s.chomp(EQUAL).to_sym;
 			if (chomped_name != method_name)
 				@__meta_array__[chomped_name] = *args
-				method_name = chomped_name
+			else
+				@__meta_array__[chomped_name]
 			end
-			return @__meta_array__[method_name];
 		end
 	end
 end

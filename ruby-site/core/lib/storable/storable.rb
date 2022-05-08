@@ -1,8 +1,23 @@
-lib_require :Core, "var_dump", "attrs/class_attr", 'storable/relations', 'storable/column', 'storable/storable_selection', "attrs/enum_attr", "attrs/enum_map_attr", "attrs/bool_attr", "lazy", 'data_structures/ordered_map', 'data_structures/paged_result', 'storable/user_content'
-lib_require :Core, 'storable/monitored_content'
+lib_require :Core, "var_dump", "attrs/class_attr", 'storable/column', 'storable/storable_selection', "attrs/enum_attr", "attrs/enum_map_attr", "attrs/bool_attr", "lazy", 'data_structures/ordered_map', 'data_structures/paged_result', 'storable/user_content'
+lib_require :Core, 'storable/monitored_content', 'storable/relation_manager', 'storable/storable_proxy', 'storable/storable_id'
 
 require 'set'
 require 'mocha'
+require 'rexml/document' #needed for dclone
+
+class Hash
+	def dclone
+		klone = self.clone
+		klone.clear
+		self.each_key{|k| klone[k.dclone] = self[k].dclone}
+		klone
+	end
+end
+class Bignum; def dclone; self; end; end
+class NilClass; def dclone; self; end; end
+class TrueClass; def dclone; self; end; end;
+class FalseClass; def dclone; self; end; end;
+class Lazy::Promise; def dclone; self; end; end;
 
 #Storable wraps a single row of a table.  It is intended to be subclassed for each database table in use.
 #A basic implementation should be similar to:
@@ -29,45 +44,114 @@ require 'mocha'
 class Storable
 	public
 
-	extend Relations;
-	extend UserContent;
-	extend MonitoredContent;
-
+	extend UserContent
+	extend MonitoredContent
+	
+	def self.report(*args)
+		#intentionally left blank, just captures and ignores calls to setup reporting
+		#when reporter.rb is loaded it extends Scoop::Reporter which overrides this
+	end
+	
 	DEFAULT_PAGE_LENGTH = 25
 	
 	#valid entries here are :insert, and :update
-	attr_accessor(:update_method, :insert_id, :affected_rows, :total_rows, :cache_points)
+	attr_accessor(:update_method, :insert_id, :affected_rows, :total_rows, :cache_points, :selection, :add_to_cache)
 
 	@@subclasses = {};
 	@@__cache__ = {};
-	@@memcached = {};
+	#Create a new object. If +set_default+ is true, then initialize all of its 
+	#column attributes to the default column values.
+	def initialize(set_default = true)
 
-	#Create a new object and initialize all of its column attributes to the default column values.
-	def initialize()
 		self.update_method = :insert;
-		self.cache_points = {}
-		self.class.columns.keys.each {|column| self.cache_points[column] = Set.new}
-		self.cache_points[:all_cache_points] = Set.new
 		
-		@__modified__ = Hash.new
-		self.class.columns.each_value {|column|
-			self.send(:"#{column.name}=", column.parse_string(column.default));
-			@__modified__[column.name.to_sym] = false;
-		}
-	end
-
-	#Checks to see if column has been modified since it was retrieved from the database.
-	def modified?(column=nil)
-		if (column)
-			return @__modified__[column.to_sym];
-		else
-			@__modified__.each_value{|val|
-				return true if (val);
+		if (set_default)
+			self.class.columns.each_value {|column|
+				# Need to create a brand new Enum for Enum columns because if we use the default_value Enum, only the 
+				# pointer to that Enum will be stored in the new object (meaning a change to the new object's value 
+				# would affect future default settings).
+				if(column.default_value.kind_of?(Enum))
+					# Need to check whether we're setting an Enum or EnumMap
+					if (self.respond_to?(:"#{column.name}!"))
+						instance_variable_set(column.sym_ivar_name, EnumMap.new(column.default_value.symbol, column.default_value.hash));
+					else
+						instance_variable_set(column.sym_ivar_name, Enum.new(column.default_value.symbol, column.default_value.symbols));
+					end
+				else
+					instance_variable_set(column.sym_ivar_name, column.default_value);					
+				end
 			}
-			return false;
 		end
 	end
 
+	#Default prefix is the name of the class.
+	def prefix()
+		return self.class.prefix;
+	end
+
+	def to_s
+		return "#{self.class}[#{[*self.get_primary_key].join(',')}]"
+	end
+
+	#call the getter for an extra column to be added to the cache
+	def get_extra_cache_column(column)
+		return extra_cache_columns[column][:get].bind(self).call
+	end
+	#call the setter for an extra column to be added to the cache
+	def set_extra_cache_column(column, value)
+		return extra_cache_columns[column][:set].bind(self).call(value)
+	end
+	
+	#a hash of column name to original value, it will potentially
+	#have missing keys for columns which haven't changed.
+	def __modified__
+		@__modified__ = {} unless @__modified__
+		return @__modified__
+	end
+	
+	#an array of columns that have been modified
+	def modified_columns
+		#If this is a new object then all columns are modified
+		if (self.update_method == :insert)
+			return self.columns.keys
+		else
+			return self.__modified__.keys.select {|key| self.modified?(key)}
+		end
+	end
+
+	#Checks to see if column has been modified since it was retrieved from the database.
+	#
+	# This was changed on Mar 3, 2009 to return true/false values only (with the use of a column)
+	#  depending on the existence of the key in the hash. It used to return the value stored in the
+	#  hash by that column. This was a column when the stored value was nilClass or false. With modified?
+	#  being used entirely in conditionals this caused weird problems. The contents haven't changed, just 
+	#  the return value. Code review revealed nothing directly modifying this hash outside of the Storable
+	#  subsystem and nothing using the return value of this function for anything more than conditional statements.
+	#
+	# It is strongly advised that you do not directly modify the __modified__ hash as it could have
+	#  weird side effects. If you are experiencing problems with UPDATEs check to make sure the correct
+	#  value is returned for the requested column from this function.
+	def modified?(column=nil)
+		if (column)
+			return __modified__.has_key?(column.to_sym);
+		else
+			return !__modified__.values.compact.empty?
+		end
+	end
+	
+	#returns a new storable instance in the form that this object had when it was first loaded
+	def original_version
+		original_version = self.class.new
+		self.columns.keys.each {|column|
+			if (modified?(column))
+				original_version.instance_variable_set(:"@#{column}", __modified__[column])
+			else
+				original_version.instance_variable_set(:"@#{column}", instance_variable_get(:"@#{column}"))
+			end
+		}
+		return original_version
+	end
+	
 	def hash
 		return self.get_primary_key.hash
 	end
@@ -82,13 +166,11 @@ class Storable
 	
 	#Sets every column to report as unmodified.
 	def clear_modified!
-		@__modified__.each_key {|key|
-			@__modified__[key] = false;
-		}
+		@__modified__.clear if @__modified__
 	end
 
 	def storable_id
-		self.class::StorableID.new([*self.get_primary_key])
+		self.class::StorableID.new([*self.get_primary_key], :PRIMARY, self.selection)
 	end
 
 	#This function should be overriden in any subclass that can be associated with a ticket
@@ -107,43 +189,63 @@ class Storable
 	self.enums = {};
 
 	#Save the object to the database.  The attribute update_method is checked to determine how to do this.
+	#
+	# When using the :duplicate option the operation is considered an update. As such, the before_update and
+	#  after_update functions will be called on the object. Since we don't know before hand what operation
+	#  we need to assume one of the two operations and update is it. 
 	def store(*args)
 		options = self.class.extract_options_from_args!(args);
-
-		columns = "";
+		
+		cols = "";
+		incr_cols = "";
 		variables = Array.new;
-
+		incr_variables = Array.new();
+		
+		if(options[:duplicate])
+			dup_update = true;
+			self.update_method = :update;
+		else
+			dup_update = false;
+		end
+				
+		if(options[:increment])
+			incr_update = true;
+		else
+			incr_update = false;
+		end
+		
 		case update_method
 		when :insert
 			before_create();
+			self.invalidate_cache_keys(false)
+			RelationManager.invalidate_store(self)
 			increment_column = nil;
 			self.class.columns.each_value {|column|
-				if (self.modified?(:"#{column.name}") || update_method == :insert)
-					columns += "`#{column.name}`";
-					columns += " = ";
-					columns += (self.class.split_column?(column.name) ? "#" : "?");
-					columns += ", ";
-					if (self.respond_to?(:"#{column.name}!"))
-						variables << self.send(:"#{column.name}!").value;
-					else
-						variables << self.send(:"#{column.name}");
-					end
+				cols += "`#{column.name}`";
+				cols += " = ";
+				cols += (self.class.split_column?(column.name) ? "#" : "?");
+				cols += ", ";
+				if (self.respond_to?(:"#{column.name}!"))
+					variables << self.send(:"#{column.name}!").value;
+				else
+					variables << self.send(column.sym_name);
 				end
-				if (column.extra == "auto_increment")
+				if (column.auto_increment?)
 					increment_column = column.name;
 					options[:insert_id] = true;
 				end
 			}
-			columns.chomp!(", ");
+			cols.chomp!(", ");
 
 			if (options[:ignore])
 				ignore = " IGNORE";
 			else
 				ignore = "";
 			end
-
-			sql = "INSERT #{ignore} INTO #{self.table} SET #{columns} ";
+			
+			sql = "INSERT #{ignore} INTO `#{self.table}` SET #{cols} ";
 			sql_result = self.db.query(sql, *variables);
+	
 			self.update_method = :update;
 			if (options[:insert_id])
 				@insert_id = sql_result.insert_id();
@@ -158,35 +260,78 @@ class Storable
 			after_create();
 		when :update
 			before_update();
+			self.invalidate_cache_keys(true)
+			RelationManager.invalidate_store(self)
 			if (modified?)
 				self.class.columns.each_value {|column|
-					columns += "`#{column.name}`";
-					columns += " = ";
-					columns += (self.class.split_column?(column.name) ? "#" : "?");
-					columns += ", ";
-					if (self.respond_to?(:"#{column.name}!"))
-						variables << self.send(:"#{column.name}!").value;
-					else
-						variables << self.send(:"#{column.name}");
+					if (self.modified?(column.sym_name))
+						cols += "`#{column.name}`";
+						cols += " = ";
+						cols += (self.class.split_column?(column.name) ? "#" : "?");
+						cols += ", ";
+						if (self.respond_to?(:"#{column.name}!"))
+							variables << self.send(:"#{column.name}!").value;
+						else
+							variables << self.send(column.sym_name);
+						end
 					end
 				}
-				columns.chomp!(", ");
-				sql = "UPDATE #{self.table} SET #{columns} WHERE "
-				primary_key.each { |key|
-					variables << self.send(:"#{key}");
-					sql << " #{key} = "
-					sql << (self.class.split_column?(key) ? "#" : "?");
-					sql << " && ";
-				}
- 				if (options[:conditions])
-					if (options[:conditions].kind_of?(Array))
-						sql << " #{options[:conditions].shift}";
-						variables += options[:conditions];
+				
+				cols.chomp!(", ");
+				
+				if(dup_update)
+					if(incr_update)
+						self.class.columns.each_value {|column|
+							if(options[:increment][0] == column.sym_name)
+								incr_cols += "`#{column.name}`";
+								incr_cols += " = `#{column.name}` + #{options[:increment][1]}";
+								incr_cols += ", ";
+							elsif (self.modified?(column.sym_name) && !column.primary)
+								incr_cols += "`#{column.name}`";
+								incr_cols += " = ";
+								incr_cols += (self.class.split_column?(column.name) ? "#" : "?");
+								incr_cols += ", ";
+								if (self.respond_to?(:"#{column.name}!"))
+									incr_variables << self.send(:"#{column.name}!").value;
+								else
+									incr_variables << self.send(column.sym_name);
+								end
+							end
+						}
+						incr_cols.chomp!(", ");
 					else
-						sql << " #{options[:conditions]}";
+						incr_cols = cols;
+					end
+					
+					sql = "INSERT INTO `#{self.table}` SET #{cols} ON DUPLICATE KEY UPDATE #{incr_cols}";
+				else
+					sql = "UPDATE #{self.table} SET #{cols} WHERE "
+				
+					primary_key.each { |key|
+						variables << self.send(:"#{key}");
+						sql << " #{key} = "
+						sql << (self.class.split_column?(key) ? "#" : "?");
+						sql << " && ";
+					}
+					if (options[:conditions])
+						if (options[:conditions].kind_of?(Array))
+							sql << " #{options[:conditions].shift}";
+							variables += options[:conditions];
+						else
+							sql << " #{options[:conditions]}";
+						end
+					end
+					sql.chomp!("&& ");
+				end
+				
+				if(dup_update)
+					if(incr_update)
+						variables = variables + incr_variables;
+					else
+						variables = variables + variables;
 					end
 				end
-				sql.chomp!("&& ");
+				
 				sql_result = self.db.query(sql, *variables);
 				if (options[:affected_rows])
 					@affected_rows = sql_result.affected_rows();
@@ -196,37 +341,48 @@ class Storable
 		else
 			raise "Unsupported update method: #{update_method}";
 		end
-	ensure
-		memcache_invalidate();
 	end
 
+	def prime_extra_columns
+		self.class.extra_cache_columns.each_key {|name|
+			self.get_extra_cache_column(name.to_sym)
+		}
+	end
+	
 	def _dump(depth)
 		values = {}
-		self.class.columns.each_pair {|name, column|
+
+		(self.selection || self.class).columns.each_key {|name|
 			values[name.to_sym] = self.instance_variable_get(:"@#{name.to_sym}")
-			if (values[name.to_sym].kind_of? UserContent::UserContentString)
-				values[name.to_sym] = String.new(values[name.to_sym])
-			end
 		}
-		values[:__update_method__] = self.update_method
-		return Marshal.dump(values)
+
+		values.each{|k,v|
+			values[k] = String.new(v) if (v.kind_of?(UserContent::UserContentString) && v.kind_of?(String))
+		}
+		self.class.extra_cache_columns.each_key {|name|
+			values[name.to_sym] = self.get_extra_cache_column(name.to_sym)
+		}
+		values[:__update_method__] = self.update_method if(self.update_method != :update)
+		values[:__selection__] = self.selection.symbol if(self.selection)
+
+		dump_str = Marshal.dump(values)
+		return dump_str
 	end
 	
 	#Delete the object from local cache and the database.
 	def delete(*args)
-		memcache_invalidate();
-
+		
 		options = self.class.extract_options_from_args!(args);
 
 		case update_method
 		when :insert, :update
 			before_delete();
-			self.invalidate_cache_keys
+			self.invalidate_cache_keys(false)
+			RelationManager.invalidate_delete(self)
 			if (primary_key.length > 0)
-				sql = "DELETE FROM #{self.table} WHERE "
-				first = true;
+				sql = "DELETE FROM `#{self.table}` WHERE "
 				primary_key.each { |key|
-					if (first)
+					if (self.class.split_column?(key))
 						sql << " `#{key}` = # && ";
 					else
 						sql << " `#{key}` = ? && ";
@@ -236,17 +392,18 @@ class Storable
 				sql_result = self.db.query(sql, *get_primary_key);
 			else
 				#If there is no primary key, delete by matching all columns
-				columns = "";
+				cols = "";
 				variables = Array.new;
 				self.class.columns.each_value {|column|
-					columns += "`#{column.name}`";
-					columns += " = ";
-					columns += "?";
-					columns += " AND ";
-					variables << self.send(:"#{column.name}");
+					cols += "`#{column.name}`";
+					cols += " = ";
+					cols += "?";
+					cols += " AND ";
+					variables << self.send(column.sym_name);
 				}
-				columns.chomp!(" AND ");
-				sql_result = self.db.query("DELETE FROM #{self.table} WHERE #{columns}", *variables);
+				cols.chomp!(" AND ");
+				
+				sql_result = self.db.query("DELETE FROM `#{self.table}` WHERE #{cols}", *variables);
 			end
 			if (options[:affected_rows])
 				@affected_rows = sql_result.affected_rows();
@@ -257,108 +414,65 @@ class Storable
 		end
 	end
 
-	def invalidate_cache_keys
-		#if there is a relation that has this in its cached result, delete the cached version of said relation
-		self.invalidate_relation_cache
-		#delete any key in the local cache that points to this object
-		self.cache_points[:all_cache_points].each { |cache_key|
-			self.class.internal_cache.delete(cache_key)
-		}
+	def trigger_event_hook(event)
+		if (self.class.event_hooks[event])
+			self.class.event_hooks[event].each {|hook|
+				self.instance_exec(&hook)
+			}
+		end
 	end
 
 	#Called before a new row is inserted into the database.
-	def before_create();
-		return;
+	def before_create()
+		trigger_event_hook(:before_create)
+		trigger_event_hook(:before_store)
 	end
+
 	#Called after a new row is inserted into the database.
-	def after_create();
-		return;
+	def after_create()
+		trigger_event_hook(:after_create)
+		trigger_event_hook(:after_store)
 	end
 
 	#Called before a row is updated in the database.
 	def before_update();
-		return;
+		trigger_event_hook(:before_store)
+		trigger_event_hook(:before_update)
 	end
 	#Called after a row is updated in the database
 	def after_update();
-		return;
+		trigger_event_hook(:after_update)
+		trigger_event_hook(:after_store)
 	end
 
 	#Called before a row is deleted from the database.
 	def before_delete();
-		return;
+		trigger_event_hook(:before_delete)
 	end
 	#Called after a row is deleted from the database.
 	def after_delete();
-		return;
+		trigger_event_hook(:after_delete)
 	end
 
 	#Called after a row is loaded from the database.
 	def after_load()
-		return;
-	end
-
-	# Invalidate any memcache key whose descriptor matches this instance.
-	# This could be optimized to only invalidate when the relevant data is
-	# actually changed.  Right now, it invalidates on any store/delete where 
-	# the key matches, even if only irrelevant fields have been changed.
-	def memcache_invalidate()
-		return if !@@memcached[self.class];
-		
-		@@memcached[self.class].each_pair{ | prefix,(mindex, key_len) |
-			new_memcache_key = [];
-			old_memcache_key = [];
-			
-			self.class.indexes[mindex].each{ |col|
-				if (modified?(col))
-					old_memcache_key << @column_history[col];
-				else
-					old_memcache_key << send(col);
-				end
-				
-				new_memcache_key << send(col)
-			}
-			
-			newid = new_memcache_key[0...key_len].join("/");
-			oldid = old_memcache_key[0...key_len].join("/");
-			$log.info "deleting key '#{prefix}-#{newid}'", :debug;
-			$site.memcache.delete("#{prefix}-#{newid}");
-			$log.info "deleting key '#{prefix}-#{oldid}'", :debug;
-			$site.memcache.delete("#{prefix}-#{oldid}");
-		}
-		
-	end
-	
-	#Called everytime any column is changed, before the change.
-	def before_field_change(column_name)
-		return if modified?(:"#{column_name}"); 
-		return if !@@memcached[self.class];
-		
-		@@memcached[self.class].each_pair{ | prefix,(mindex, key_len) |
-			memcache_key = [];
-			
-			if self.class.indexes[mindex].index(column_name)
-				@column_history ||= {};
-				@column_history[column_name] = self.send(column_name);
-			end
-		}
+		trigger_event_hook(:after_load)
 	end
 
 	#Called everytime any column is changed, after the change.
 	def on_field_change(column_name)
-		self.cache_points[column_name].each { |cache_key|
-			self.class.internal_cache.delete(cache_key)
-		}
-		self.cache_points[column_name].clear
-		return;
 	end
 
-	def register_cache_point(storable_id)
-		cache_key = storable_id.cache_key
-		storable_id.key_columns.each { |column|
-			self.cache_points[column].add(cache_key)
-		}
-		self.cache_points[:all_cache_points].add(cache_key)
+	def invalidate_cache_keys(use_modification_state)
+		if (use_modification_state) #take only modified columns into consideration for invalidation
+			self.class.internal_cache.delete_if {|key,val|
+				key.match_modified?(self)
+			}
+		else #ignore a columns modification state and just match
+			self.class.internal_cache.delete_if {|key,val|
+				key === self
+			}
+		end
 	end
 
 	def primary_key
@@ -370,11 +484,7 @@ class Storable
 		if (primary_key.length == 1)
 			return self.send(primary_key.first)
 		else
-			keys = Array.new;
-			primary_key.each { |key|
-				keys << self.send(key);
-			}
-			return keys;
+			return primary_key.map { |key| self.send(key) }
 		end
 	end
 
@@ -382,11 +492,8 @@ class Storable
 	def ==(obj)
 		return false unless obj.kind_of?(Storable);
 		self.class.columns.each_key{|column|
-			if (obj.respond_to?(column))
-				return false if (!(obj.send(column) == self.send(column)))
-			else
-				return false;
-			end
+			return false unless (obj.respond_to?(column))
+			return false unless (obj.send(column) == self.send(column))
 		}
 		return true;
 	end
@@ -400,127 +507,65 @@ class Storable
 	class << self
 		public
 		
-		def listen_create(&block) 
-			prechain_method(:after_create, &block)
+		def test_reset
+			self.db.query("TRUNCATE `#{self.table}`")
+			self.internal_cache.delete_if {|key, val| true}
+			RelationManager.test_reset(self)
 		end
 		
-		def listen_delete(&block)
-			postchain_method(:before_delete, &block)
-		end
-		
-		include Mocha::Standalone
-		include Mocha::SetupAndTeardown
-		
-		def mock_instance()
-			
-			mock_obj = new();
-			self.columns.each{|name, column|
-				default = column.default
-				if (default == nil)
-					default = Time.now.to_i
-				end
-				mock_obj.send(:"#{column.name}=", column.parse_string(default));
-			}
-			[*primary_key()].each{|column|
-				mock_obj.send(:"#{column}=", 1);
-			}
-			existing_obj = find(:first, mock_obj.get_primary_key())
-			if (existing_obj)
-				return existing_obj;
-			end
-			mock_obj.store;
-			return mock_obj;
-		end
-		
-		def fake_get_seq_id(*args)
-			@last_id ||= 0
-			@last_id += 1
-			return @last_id
-		end
-		
-		
-		def _use_test_db()
-			@real_db = self.db;
-			@real_table = self.table;
-			
-			alias real_get_seq_id get_seq_id
-			alias get_seq_id fake_get_seq_id
-			
-			self.db = $site.dbs[:generatedtestdb];
-			self.table = "#{$site.dbs.invert[@real_db]}_#{self.table}";
-		end
-		
-		def _unuse_test_db()
-			self.db = @real_db;
-			self.table = @real_table;
-			alias get_seq_id real_get_seq_id
-		end
-		
-		def recurse_use_test_db(pklass)
-			if (@@subclasses[pklass])
-				@@subclasses[pklass].each{|klass|
-					recurse_use_test_db(klass);
-					if (klass.db.kind_of? SqlBase)
-						klass._use_test_db
-					end
-				}
-			end
-		end
-		
-		def recurse_unuse_test_db(pklass)
-			if (@@subclasses[pklass])
-				@@subclasses[pklass].each{|klass|
-					recurse_unuse_test_db(klass);
-					if (klass.db.kind_of? SqlBase)
-						klass._unuse_test_db()
-					end
-				}
-			end
-		end
-		
-		def use_test_db(&block)
-			begin
-				recurse_use_test_db(Storable);
-				yield block;	
-			ensure
-				recurse_unuse_test_db(Storable);
-			end
+		#Default prefix is the name of the class.
+		def prefix()
+			return self.name;
 		end
 
 		def _load(str)
 			values = Marshal.load(str)
-			storable = self.new
-			values.each_pair {|name, value|
-				storable.instance_variable_set(:"@#{name}", value) unless (name =~ /__.+__/)
+
+			storable = self.new(false)
+			storable.update_method = values[:__update_method__] || :update
+			storable.selection = self.get_selection(values[:__selection__]) if values[:__selection__]
+
+			(storable.selection || self).columns.each_key { |name|
+				storable.instance_variable_set(columns[name].sym_ivar_name, values[name])
 			}
-			storable.update_method = values[:__update_method__]
+			extra_cache_columns.each_key{|name|
+				storable.set_extra_cache_column(name, values[name])
+			}
+
 			return storable
 		end
-	
-
+		
+		def register_event_hook(event, &block)
+			self.event_hooks[event] ||= []
+			self.event_hooks[event].push(block)
+		end
 		
 		#Wraps the call to new, this allows children classes to override create and return an object of a different
 		#class if they have need.
-		def storable_new
-			return self.new
+		def storable_new(*args)
+			return self.new(*args)
 		end
 
 		#returns the column names of the primary key
 		def primary_key
-			return indexes["PRIMARY".to_sym];
+			return indexes[:PRIMARY];
 		end
 
 		#registers the inherited class in the subclasses hash tree
 		def inherited(child)
 			@@subclasses[self] ||= []
 			@@subclasses[self] << child
+			#This is magic that sets up SomeDescendantOfStorable::StorableID::StorableClass to be SomeDescendantOfStorable,
+			#and the same for StorableProxy
 			child.const_set("StorableID", Class.new(StorableID))
 			child::StorableID.const_set("StorableClass", child)
-      		super
+			child.const_set("StorableProxy", Class.new(StorableProxy))
+			child::StorableProxy.const_set("StorableClass", child)
+			super
 		end
 		
-		def create_id(id, index)
-			return self::StorableID.new(id, index)
+		def create_id(id, index, selection)
+			return self::StorableID.new(id, index, selection)
 		end
 
 		#a nested hash of subclasses of the current class
@@ -529,11 +574,11 @@ class Storable
 		end
 
 		#Register either a symbol and list of columns or a custom created StorableSelection object.
-		def register_selection(symbol, *columns)
+		def register_selection(symbol, *cols)
 			if (symbol.kind_of?(StorableSelection))
 				selection = symbol;
 			else
-				selection = StorableSelection.new(symbol, *columns);
+				selection = StorableSelection.new(symbol, *cols);
 			end
 			self.storable_selections[selection.symbol] = selection;
 		end
@@ -541,11 +586,11 @@ class Storable
 		#look in current class and parent classes to see if the symbol has been registered anywhere as a selection
 		def get_selection(symbol)
 			selection = self.storable_selections[symbol];
-			begin
-				selection = super(symbol) unless (selection);
-			rescue NoMethodError
-				selection = nil;
+
+			if(!selection && self.class.superclass.method_defined?(:get_selection))
+				selection = super(symbol)
 			end
+
 			return selection;
 		end
 
@@ -579,63 +624,88 @@ class Storable
 		# * <b>:promise</b> - The query will not be performed until the result object is used, or until we can include it in another query.
 		# * <b>:refresh</b> - The object will be loaded from the database whether it was cached or not.  If the object was cached
 		#   the cached version is updated to reflech the current state of the database.
-	    # * <b>:selection</b> - This requires a symbol for a registered selection object, or a custom built selection object.  It will
-	    #   limit the results to those columns allowed.  If a full object has already been cached it will be returned untouched.
+		# * <b>:selection</b> - This requires a symbol for a registered selection object, or a custom built selection object.  It will
+		#   limit the results to those columns allowed.  If a full object has already been cached it will be returned untouched.
 		# * <b>:first</b> - Only the first result is returned and it is not wrapped in an array.
 		#
 		# Some example calls on a theoretical subclass Person:
-	    # 	Person.find(1) # returns an array with one element, the object for ID = 1
-	    # 	Person.find(1, 2, 6, :refresh) # returns an array for objects with IDs in (1, 2, 6), refreshes them all from the database even if they are in memory.
-	    # 	Person.find([7, 17]) # returns an array for objects with IDs in (7, 17)
-	    # 	Person.find(1,2 :promise) # returns an array of promises for the objects with ID 1 and 2, these promises are aggregated when similar promise is executed.
-	    # 	Person.find(:first, :conditions => ["name = ?", "bob"]) # returns the first Person whose name is bob
-	    def find(*args)
-			if ($site.config.storable_force_nomemcache)
-				args << :nomemcache;
-			end
+		# 	Person.find(1) # returns an array with one element, the object for ID = 1
+		# 	Person.find(1, 2, 6, :refresh) # returns an array for objects with IDs in (1, 2, 6), refreshes them all from the database even if they are in memory.
+		# 	Person.find(*[[7], [17]]) # returns an array for objects with IDs in (7, 17)		These are needed to properly query multipart key table.
+		#   Person.find([7], [17]) # returns an array for objects with IDs in (7, 17)
+		# 	Person.find(1,2 :promise) # returns an array of promises for the objects with ID 1 and 2, these promises are aggregated when similar promise is executed.
+		# 	Person.find(:first, :conditions => ["name = ?", "bob"]) # returns the first Person whose name is bob
+		def find(*args)
+			$site.cache.use_context(nil) {
+				if ($site.config.storable_force_nomemcache)
+					args << :nomemcache;
+				end
 			
-			#make this a generic recursive deep copy
-			args = args.clone
-			options = extract_options_from_args!(args);
-			if (args.length > 0)
-				ids = group_ids(args, options[:index]);
-			end
+				#make this a generic recursive deep copy
+				original_args = args
+				args = args.dclone
+				options = extract_options_from_args!(args);
+				if (args.length > 0)
+					ids = group_ids(args, options[:index], options[:selection]);
+				end
 			
-			cacheable = cacheable_options?(options)
+				cacheable = cacheable_options?(options) && !ids.nil?
 
-			options[:limit] = 1 if (options[:first]);
+				#we're not querying for anything, stop now.
+				if (ids.nil? && !options[:limit] && !options[:conditions] && !options[:scan])
+					$log.info "Attempted to perform unconstrained query on table #{self.table} without supplying :scan.", :warning
+					$log.object caller, :debug
+					return StorableResult.new
+				end
 
-			#we're not querying for anything, stop now.
-			if (ids.nil? && !options[:limit] && !options[:conditions] && !options[:scan])
-				$log.info "Attempted to perform unconstrained query without supplying :scan.", :warning
-				$log.object caller, :debug
-				return StorableResult.new
-			end
-
-			if (options[:promise])
 				#If adding new options make sure you don't allow those that need to be passed to SQL
-				if	(cacheable)
-					promised_ids.merge(ids);
+				if(cacheable)
+					promised_ids[options[:selection]] ||= {}
+					ids.each{|id|
+						promised_ids[options[:selection]][id] = true;
+					}
 					if (options[:first])
-						return	promise {
-							result = fetch_ids(ids.first).first
-							if (options[:promise].respond_to?(:call))
-								options[:promise].call(result)
-							else
-								result
-							end
+						execute_load = lambda {
+							result = fetch_ids(options[:selection], ids.first).first
+							promise_callback(result, options[:promise])
 						}
+						if (options[:promise])
+							if (options[:force_proxy])
+								return self::StorableProxy.new(ids.first.properties_hash, &execute_load)
+							else
+								return promise(&execute_load)
+							end
+						else
+							return fetch_ids(options[:selection], ids.first).first
+						end
 					else
-						return promise {
-							result = fetch_ids(*ids)
-							if (options[:promise].respond_to?(:call))
-								options[:promise].call(result)
-							else
-								result
+						if options[:promise]
+							# relation_multi can with an acceptable degree of assuredness pull a list of ids from memcache that
+							# it knows will be there and which are always complete keys, it uses :force_proxy to generate objects
+							# that can be utilized without ever performing the queries when all that is needed are the ids (very useful)
+							#######################################################################################################
+							# XXX: there is the danger that nil results show up in the result set here if a requested id isn't found,
+							# XXX: or that only the first element of a partial key query will be returned even if there are more
+							# XXX: :force_proxy should ONLY be used if the ids passed in are COMPLETE and KNOWN TO EXIST
+							if (options[:force_proxy])
+								results = ids.map {|id|
+									self::StorableProxy.new(id.properties_hash) {
+										result = fetch_ids(options[:selection], id).first
+										promise_callback(result, options[:promise])
+									}
+								}
+								return StorableResult.new(results)
+							else #if we aren't forcing proxy objects then just return a promise to the complete result
+								return promise {
+									result = fetch_ids(options[:selection], *ids)
+									promise_callback(result, options[:promise])
+								}
 							end
-						}
+						else
+							return fetch_ids(options[:selection], *ids)
+						end
 					end
-				else
+				elsif options[:promise]
 					return promise {
 						options.delete(:promise);
 						args << options;
@@ -647,90 +717,44 @@ class Storable
 						end
 					}
 				end
-			end
-
-			if (args.length > 0)
-				result = find_by_id(ids, options)
-			else
-				result = find_all(options);
-			end
 			
-			if options[:first]
-				result =  result.first 
-			elsif cacheable
-				result.uniq!
-			end
-
-			return result
-		end
-
-		# Inform storable that the particular given queries should result in
-		# invalidating the matching memcache entries.  
-		# - prefix: the memcache prefix
-		# - hypothetical key: the length of this determines how many of the 
-		#   index columns will be considered.  For instance, if the index was
-		#   (id1, id2, id3) and hypothetical_key had 2 elements, it would try to 
-		#   invalidate the memcache key called "#{prefix}-#{id1}/#{id2}"
-		# - findargs: should specific the index used if not the primary.
-		def memcache_watch_key(prefix, hypothetical_key, *findargs)
-			options = extract_options_from_args!(findargs);
-			@@memcached[self] ||= {};
-			@@memcached[self][prefix] = [options[:index], [*hypothetical_key].length];
-		end
-		
-		# The only findarg currently considered is ':first'.
-		def memcache_find(prefix, relation_ids, exptime, *findargs)
-			id = relation_ids.join("/");
-			$log.info "Getting #{prefix}-#{id}", :debug;
-			ids = $site.memcache.get("#{prefix}-#{id}");
-			if (ids.nil?)
-				real_findargs = relation_ids.concat(findargs);
-				val = [*(self.find( *real_findargs ))];
-				ids = val.map{|storable|
-					storable.get_primary_key;
-				}
-				$site.memcache.set("#{prefix}-#{id}", ids, exptime);
-			elsif (ids == [])
-				val = StorableResult.new
-			else
-				val = self.find(:promise, *ids);
-			end
-
-			return val.first if (findargs.index(:first))
-			return val;
-		end
-		
-		def memcache_find_ids(prefix, relation_ids, exptime, *findargs)
-			id = relation_ids.join("/");
-			$log.info "Getting #{prefix}-#{id}", :debug;
-			ids = $site.memcache.get("#{prefix}-#{id}");
-			if (ids.nil?)
-				real_findargs = relation_ids.concat(findargs);
-				ids = [*(self.find(*real_findargs))].map{|storable|
-					storable.get_primary_key
-				}
-				$site.memcache.set("#{prefix}-#{id}", ids, exptime);
-			end
-			return ids
-		end
-
-		#clear all elements out of the internal cache.
-		def reset_internal_cache()
-			internal_cache.each_key { |key|
-				if (key.to_s =~ Regexp.new("^#{self.name}-"))
-					internal_cache.delete(key);
+				options.delete(:skip_fetch_ids)
+				
+				if (args.length > 0)
+					result = find_by_id(ids, options)
+				else
+					result = find_all(options);
 				end
+			
+				if (options[:total_rows] && !options[:count])
+					new_args = original_args.dclone
+					new_args << :count
+					result.total_rows = find(*new_args)
+				end
+			
+				return result if options[:count]
+				
+				if options[:first]
+					result =  result.first 
+				elsif cacheable
+					result.uniq!
+				end
+
+				return result
 			}
-			if (subclasses)
-				subclasses.each { |s|
-					s.reset_internal_cache()
-				}
-			end
+		end
+
+		def promise_callback(result, promise)
+			if (promise.respond_to?(:call))
+				promise.call(result)
+			else
+				result
+			end	
 		end
 
 		#pulls database query options from the arguments
 		def extract_options_from_args!(args) #:nodoc:
-			options = Hash.new;
+			options = {};
 			delete_elements = [];
 			args.each {|arg|
 				if (arg.is_a?(Symbol))
@@ -760,27 +784,24 @@ class Storable
 
 		#retrieve a new secondary id for a given primary id (eg. a message id for a user id).
 		def get_seq_id(primary_id)
-            self.extend TypeID unless (self.respond_to?(:typeid));
+			self.extend TypeID unless (self.respond_to?(:typeid));
 			seq_id = self.db.get_seq_id(primary_id, self.typeid, self.seq_initial_value);
 			return seq_id;
 		end
 
-
-		#protected ############BEGIN PROTECTED METHODS#############
-
 		#group any key elements not in an array into key length arrays
-		def group_ids(ids, index)
+		def group_ids(ids, index, selection)
 			grouped_ids = []
 			temp_id = []
 			ids.each {|id|
 				if (id.kind_of?(Array))
-					grouped_ids << self::StorableID.new(id, index)
+					grouped_ids << self::StorableID.new(id, index, selection)
 				elsif (id.kind_of?(StorableID))
 					grouped_ids << id
 				else
 					temp_id << id
 					if (temp_id.length == indexes[index].length)
-						grouped_ids << self::StorableID.new(temp_id, index)
+						grouped_ids << self::StorableID.new(temp_id, index, selection)
 						temp_id = []
 					end
 				end
@@ -790,8 +811,7 @@ class Storable
 			end
 			return grouped_ids
 		end
-		protected :group_ids
-
+		
 		#interprets an array of ids as a partial specification of an index and creates the SQL condition for it.
 		def get_key_conditions(ids, index)
 			if (ids.length <= indexes[index].length)
@@ -808,56 +828,77 @@ class Storable
 		end
 		protected :get_key_conditions
 
+		#Returns a hash of selection -> id set.
+		#For "select *" queries, the key is nil.  
+		def promised_ids
+			key = :"#{self}_promised_ids"
+			storable_cache = $site.cache.get(:storable_cache, :page) { Hash.new };
+			storable_cache[key] ||= {}
+			return storable_cache[key]
+		end
+		
+		#setup an extra column to cache in memcache
+		#by default uses self.column and self.column= as a getter and setter
+		#you can optionally pass in proc/method objects to be used for either/both
+		def cache_extra_column(column, getter=nil, setter=nil)
+			if (!getter)
+				getter = lambda {return self.send(column)}
+			end
+			if (!setter)
+				setter = lambda {|value| return self.send("#{column}=".to_sym), value}
+			end
+			extra_cache_columns[column] = { :get => getter, :set => setter }
+		end
+		
 		#This function needs to be called once in each subclass after inherited databases, tables, etc have been overwritten.
 		#It rechecks column information, sets up attrs, gets primary keys, etc.
 		def init_storable(new_db = nil, new_table = nil, new_enums = nil)
-			class_attr_accessor(:columns, :promised_ids, :fetched_promises, :storable_selections, :indexes);
-			#protected_class_method :promised_ids, :promised_ids=, :fetched_promises, :fetched_promises=;
+			class_attr_accessor(:columns, :fetched_promises, :storable_selections, :indexes, :extra_cache_columns, :event_hooks);
+		
 			self.storable_selections = Hash.new;
-			self.promised_ids = Set.new;
 			self.fetched_promises = Hash.new;
 			self.indexes = Hash.new;
+			self.event_hooks = Hash.new
 			set_db(new_db) if (new_db)
 			set_table(new_table) if (new_table)
-			set_enums(new_enums) if (new_enums)
-			self.columns = Hash.new;
-			result = db.list_fields(table);
+			set_enums(new_enums) if (new_enums) #enum_maps
+			self.columns = {};
+			self.extra_cache_columns = {};
 			db.list_indexes(table).each { |index|
 				self.indexes[index['Key_name'].to_sym] ||= []; #initialize to a new array if this is the first column of the key
 				self.indexes[index['Key_name'].to_sym] << index['Column_name'];
 			}
-			primary_key_exists = self.indexes["PRIMARY".to_sym];
+			primary_key_exists = self.indexes[:PRIMARY];
 			db.list_fields(table).each { |column|
-				column = Column.new(column)
-				self.columns[column.name] = column;
-				if (self.enums.key?(column.name.to_sym))
-					enum_map_attr(column.name.to_sym, self.enums[column.name.to_sym]);
-				elsif (column.type_name == "enum" && column.boolean?)
-					bool_attr(column.name.to_sym)
-				elsif (column.type_name == "enum" && !column.boolean?)
-					enum_attr(column.name.to_sym, column.enum_symbols);
-				else
-					attr(column.name.to_sym, true);
-				end
-				if (column.type_name == "enum")
-					if (column.default != nil)
-						Enum.new(column.default, column.enum_symbols)
+				column = Column.new(column, self.enums[column['Field'].to_sym])
+
+				self.columns[column.sym_name] = column;
+
+				if (self.enums.key?(column.sym_name))
+					enum_map_attr(column.sym_name, self.enums[column.sym_name], column.default_ignore_enum);
+				elsif (column.type_name == "enum")
+					if(column.boolean?)
+						bool_attr(column.sym_name)
+					else
+						enum_attr(column.sym_name, column.enum_symbols);
 					end
+				else
+					attr(column.sym_name, true);
 				end
-				#self.send(:"#{column.name}=", column.parse_string(column.default));
-				#$log.info "#{column.name}:#{column.parse_string(column.default)}";
+
+				var_name = :"#{column.name}="
+				storable_var_name = :"_storable_#{column.name}="
+				column_instance_variable = :"@#{column.name.to_sym}"
 				
-				self.send(:alias_method, :"_storable_#{column.name}=", "#{column.name}=".to_sym);
-				self.send(:define_method, "#{column.name}=".to_sym, lambda { |x|
-					self.before_field_change(column.name);
-					@__modified__[column.name.to_sym] = true;
-					self.send("_storable_#{column.name}=".to_sym, x);
-					#$log.info("Setting #{column.name}.")
+				self.send(:alias_method, storable_var_name, var_name);
+				self.send(:define_method, var_name, lambda { |x|
+					__modified__[column.name.to_sym] = instance_variable_get(column_instance_variable);
+					self.send(storable_var_name, x);
 					self.on_field_change(column.name);
 				})
 				if (!primary_key_exists)
-					self.indexes["PRIMARY".to_sym] ||= []; #initialize to a new array if this is the first column of the key
-					self.indexes["PRIMARY".to_sym] << column.name;
+					self.indexes[:PRIMARY] ||= []; #initialize to a new array if this is the first column of the key
+					self.indexes[:PRIMARY] << column.name;
 				end
 			}
 		end
@@ -876,7 +917,11 @@ class Storable
 
 		def set_enums(new_enums={})
 			class_attr(:enums, true);
-			self.enums = new_enums;
+			if(!self.enums.nil?() && self.enums.kind_of?(Hash))
+				self.enums.merge!(new_enums);
+			else
+				self.enums = new_enums;
+			end
 		end
 		protected :set_enums
 
@@ -896,7 +941,7 @@ class Storable
 
 		#returns the storables for the listed ids, if it has to access the database
 		#to do so it pulls all promised ids from the database as well.
-		def fetch_ids(*ids)
+		def fetch_ids(selection, *ids)
 			query_db = false;
 			results = StorableResult.new()
 			found_ids = []
@@ -906,7 +951,8 @@ class Storable
 					found_ids << id
 					results = results.concat(result)
 				else
-					promised_ids.add(id)
+					promised_ids[selection] ||= {}
+					promised_ids[selection][id] = true
 					query_db = true
 				end
 			}
@@ -923,15 +969,14 @@ class Storable
 		protected :fetch_ids
 
 		#all currently queued promised ids are loaded from the database.  All
-		#retrieved storable objects are returned in an OrderedMap, they are also
-		#cached.  Negative hits are cached as nils.
+		#retrieved storable objects are cached.  Negative hits are cached as nils.
 		def fetch_promised_ids()
-			ids = []
-			promised_ids.each {|id|
-				ids << id
+			#If there are multiple selections queued, get them all
+			promised_ids.each {|selection, val|
+				ids = val.keys
+				#we don't return a result set here, everything we find is cached locally which is where we will look for it
+				self.find(:skip_fetch_ids, :selection => selection, *ids) if (ids.length > 0)
 			}
-			#we don't return a result set here, everything we find is cached locally which is where we will look for it
-			self.find(*ids) if (ids.length > 0)
 			promised_ids.clear()
 		end
 		protected :fetch_promised_ids
@@ -945,20 +990,34 @@ class Storable
 				cached_vals = find_in_cache(id_sets, options);
 				id_sets = id_sets - cached_vals.meta.keys
 			end
-			
 			if (!id_sets.empty?)
-				key_conditions = id_sets.map {|id| id.condition}
+				force_no_split = false;
+				
+				id_sets.each{|id|
+					if(!id.split?())
+						force_no_split = true;
+					end
+				};
+				key_conditions = id_sets.map {|id| id.condition(force_no_split)}
 				key_conditions = self.merge_conditions(" || ", *key_conditions)
 				options[:conditions] = self.merge_conditions(" && ", key_conditions, options[:conditions])
-				result = find_all(options).concat(cached_vals)
-				if (cache_results)
-					id_sets.each {|id|
-						match = result.match(id)
-						cache_result(id, match)
-					}
+				if (!options[:count])
+					result = find_all(options).concat(cached_vals)
+					if (cache_results)
+						id_sets.each {|id|
+							match = result.match(id).uniq
+							cache_result(id, match)
+						}
+					end
+				else
+					return find_all(options) + cached_vals.length
 				end
 			else
-				result = cached_vals;
+				if (!options[:count])
+					result = cached_vals;
+				else
+					return cached_vals.length;
+				end
 			end
 
 			if (options[:limit] && options[:limit] < result.length)
@@ -985,8 +1044,9 @@ class Storable
 
 		#returns an object from the internal cache based on a set of keys.
 		def cache_load(key)
-			if self.internal_cache().key?(key.cache_key)
-				return internal_cache[key.cache_key];
+			int_cache = internal_cache
+			if int_cache.key?(key)
+				return int_cache[key];
 			else
 				return :not_found;
 			end
@@ -1001,24 +1061,21 @@ class Storable
 					storable_result = StorableResult.new
 				end
 			end
-			storable_result.each { |storable| storable.register_cache_point(id)	}
-			internal_cache[id.cache_key] = storable_result
+			internal_cache[id] = storable_result
 			return storable_result
 		end
 		#protected :cache_result
 		
 		#caches nil internally for a set of keys, useful for preventing repeated lookups of a missing row
 		def cache_nil(id)
-			key = id.cache_key
-			internal_cache[key] = nil
+			internal_cache[id] = nil
 		end
 		protected :cache_nil
 
-		#returns an SQL fragment encompassing SELECT something FROM somewhere
+		#returns an SQL fragment encompassing the 'something' in SELECT something FROM somewhere
 		def get_select_string(symbol)
 			selection = get_selection(symbol)
-			return " * FROM `#{self.table}` " if (!selection);
-			return selection.sql << " FROM `#{self.table}`";
+			return (selection ? selection.sql : " * " )
 		end
 		protected :get_select_string
 
@@ -1026,90 +1083,121 @@ class Storable
 		#this is the lowest level function that all finds go through if they hit the database
 		def find_all(options)
 			sql = "SELECT ";
-			sql << " SQL_CALC_FOUND_ROWS " if options[:total_rows];
-			sql << get_select_string(options[:selection]);
+			if (options[:count])
+				sql << " COUNT(*) as `rowcount` "
+			else
+				sql << " SQL_CALC_FOUND_ROWS " if options[:calc_rows];
+				sql << get_select_string(options[:selection]);
+			end
+			sql << " FROM `#{self.table}`"
 			if (options[:conditions])
 				if options[:conditions].class == String
-					sql << db.prepare(" WHERE #{options[:conditions]} ");
+					sql << " WHERE #{options[:conditions]} ";
 				else
-					options[:conditions][0] =  " WHERE " + options[:conditions][0];
-					sql << db.prepare(*options[:conditions]);
+					prep_args = options[:conditions].dclone
+					sql << " WHERE " + db.prepare(*prep_args);
 				end
 			end
 			sql << " GROUP BY #{options[:group]} " if options[:group];
-          	sql << " ORDER BY #{options[:order]} " if options[:order];
-          	if (options[:offset])
+			sql << " ORDER BY #{options[:order]} " if options[:order];
+			if (options[:offset])
 				sql << " LIMIT #{options[:offset]},#{options[:limit] || 0} ";
-          	elsif (options[:limit])
+			elsif (options[:limit])
 				sql << " LIMIT #{options[:limit]} ";
-          	end
+			end
 
 			result = self.db.query(sql);
+
+			if (options[:count])
+				count = 0
+				result.each{|row|
+					count += row['rowcount'].to_i
+				}
+				return count
+			end
+
+			total_rows = result.total_rows
+			
 			storables = PagedResult.new;
 			storables.page = options[:page]
 			storables.page ||= 1
-			storables.total_rows = result.total_rows
+			storables.total_rows = total_rows
 			storables.page_length = options[:limit]
-			storables.page_length ||= result.total_rows
+			storables.page_length ||= total_rows
 			storables.calculated_total = options[:total_rows]
 			
+			selection = get_selection(options[:selection])
+
 			result.each { |row|
+				#Check if the object was already created. This is needed so the previous one can be invalidated if needed.
 				keys = indexes[:PRIMARY].map { |key|
-					columns[key].parse_string(row[key]);
+					columns[key.to_sym].parse_column(row[key]);
 				}
 
-				cached_val = cache_load(self::StorableID.new(keys));
+				cached_val = cache_load(self::StorableID.new(keys, :PRIMARY, selection));
 
-				found_in_cache = false;
-
-				if (cached_val != :not_found && !options[:refresh])
-					found_in_cache = true;
-					storables.concat cached_val;
-					next;
-				elsif (cached_val != :not_found && options[:refresh])
-					found_in_cache = true;
-					storable = cached_val.first;
+				if (cached_val != :not_found)
+					if(options[:refresh])
+						storable = cached_val.first;
+						storable.clear_modified!;
+					else
+						storables << cached_val.first;
+						next;
+					end
 				else
-					storable = self.storable_new;
+					storable = self.storable_new(false);
+					storable.selection = selection
 				end
 
-				selection = get_selection(options[:selection])
-
-				storable.total_rows = result.total_rows;
+				storable.total_rows = total_rows;
 
 				if (!selection)
-					self.columns.each_value { |column|
-						storable.send(:"#{column.name}=", column.parse_string(row[column.name]));
+					columns.each_value { |column|
+						storable.instance_variable_set(column.sym_ivar_name, column.parse_string(row[column.name]));
 					}
 				else
-					self.columns.each_value { |column|
-						if (selection.valid_column?(column.name))
-							storable.send(:"#{column.name}=", column.parse_string(row[column.name]));
-						else
-							if (!found_in_cache) #if we pulled this out of the internal cache then don't invalidate the columns we already knew.
-								storable_class = class << storable; self; end
-								storable_class.send(:define_method, :"#{column.name}=") { |value| raise SiteError, "Attempting to set a column (#{column.name}) that was not fetched from the database."}
-								storable_class.send(:define_method, :"#{column.name}") { raise SiteError, "Attempting to access a column (#{column.name}) that was not fetched from the database."}
-							end
-						end
+					selection.columns.each_key { |name|
+						column = columns[name]
+						storable.instance_variable_set(column.sym_ivar_name, column.parse_string(row[column.name]));
 					}
+
+					if(!$site.config.live)
+						storable_class = class << storable; self; end
+						columns.each_value{ |column|
+							if(!selection.valid_column?(column.sym_name))
+								storable_class.send(:define_method, column.sym_ivar_equ_name) { |value| raise SiteError, "Attempting to set a column (#{column.name}) that was not fetched from the database."}
+								storable_class.send(:define_method, column.sym_ivar_name) { raise SiteError, "Attempting to access a column (#{column.name}) that was not fetched from the database."}
+							end
+						}
+					end
 				end
-				storable.clear_modified!;
 				storable.update_method = :update;
 				storable.after_load();
-
-				if (!selection)
-					cache_result(storable.storable_id, storable);
-				end
-				storables.push storable;
+				
+				storable.add_to_cache = true;
+				storables << storable;
 			}
+
+			storables.each {|storable|
+				storable.prime_extra_columns if storable.add_to_cache
+			}
+
+			storables.each {|storable|
+				if storable.add_to_cache
+					cache_result(storable.storable_id, storable)
+					storable.add_to_cache = false
+				end
+			}
+
 			return storables;
 		end
 		protected :find_all
 
 
 		def internal_cache
-			return $site.cache.get(:storable_cache, :page) { Hash.new };
+			storable_cache = $site.cache.get(:storable_cache, :page) { Hash.new };
+			storable_cache[self] ||= {}
+			return storable_cache[self]
 		end
 
 		def split_column?(column_name)
@@ -1123,10 +1211,11 @@ class Storable
 				!options[:conditions] &&
 				!options[:order] &&
 				!options[:refresh] &&
-				!options[:selection] &&
 				!options[:page] &&
 				!options[:offset] &&
-				(!options[:limit] || options[:first])
+				!options[:count] &&
+				!options[:limit] &&
+				!options[:skip_fetch_ids]
 			)
 		end
 		
@@ -1144,75 +1233,5 @@ class Storable
 	end
 
 	class ArgumentError < SiteError
-	end
-	
-	#StorableID is used internally to organize ids that are being queried for
-	#this includes the ids (possibly partially id) of an object and the index the
-	#ids should be used against
-	class StorableID
-		StorableClass = Storable
-		
-		attr_accessor :id, :index
-		attr_reader :index_name
-		
-		def initialize(id, index_sym=:PRIMARY)
-			raise SiteError if id.first.kind_of? StorableID
-			self.id = id
-			self.index = index_sym
-		end
-		
-		def index=(symbol)
-			@index_name = symbol
-			@index = self.class::StorableClass.indexes[symbol]
-		end
-		
-		def primary_key?
-			return self.index_name == :PRIMARY
-		end
-		
-		def memcacheable?
-			return self.primary_key? && !self.partial_key?
-		end
-		
-		def partial_key?
-			return self.id.length < self.index.length
-		end
-		
-		def condition
-			key_strings = []
-			self.id.each_with_index {|id, i|
-				if (self.class::StorableClass.split_column?(self.index[i]))
-					key_strings << "(#{self.index[i]} = #)"
-				else
-					key_strings << "(#{self.index[i]} = ?)"
-				end
-			}
-			return ["(#{key_strings.join(' && ')})", *id]
-		end
-		
-		#key format is roughly: Module::Class_index-id1/id2
-		def cache_key
-			if self.primary_key?
-				return "#{self.class::StorableClass}-#{self.id.join('/')}"
-			else
-				return "#{self.class::StorableClass}_#{self.index_name}-#{self.id.join('/')}"
-			end
-		end
-		
-		def ===(storable_element)
-			return false unless storable_element.kind_of? self.class::StorableClass
-			self.id.each_with_index {|id, i|
-				id = id.to_s if (id.kind_of? Symbol)
-				begin
-					return false unless (id == storable_element.send(self.index[i]))
-				rescue SiteError #Can happen if storable_element is a selection that doesn't contain the column this index is on
-					return false
-				end
-			}
-		end
-		
-		def key_columns
-			return self.index[0, self.id.length]
-		end
 	end
 end

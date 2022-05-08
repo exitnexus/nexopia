@@ -1,0 +1,9 @@
+--- !ruby/object:JavascriptConfig 
+module_require: 
+- core
+yui_require:
+- element-beta
+- animation
+- container
+- menu
+- button

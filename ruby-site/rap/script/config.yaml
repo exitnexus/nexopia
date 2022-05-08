@@ -1,0 +1,4 @@
+--- !ruby/object:JavascriptConfig 
+module_require: 
+- core
+- enhanced_text_input

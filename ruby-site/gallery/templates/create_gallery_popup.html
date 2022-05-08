@@ -1,0 +1,22 @@
+<div class="gallery_creation" id="gallery_creation" minion_name="gallery_creation">
+	<form id="gallery_create_form" action="#{PageRequest.current.area_base_uri}/gallery/submit_create" method="post">
+		Album Name:<br/>
+		<input class="body" type="text" name="name" id="create_gallery_name" maxlength="32"/><br/>
+		Description:<br/>
+		<textarea class="body" type="text" name="description" maxlength="255"></textarea><br/>
+		Permissions:<br/>
+		<select class="body" name="permission">
+			<option value="anyone"> Visible to Anyone</option>
+			<option value="loggedin"> Logged In Users Only</option>
+			<option value="friends"> Friends Only</option>
+			<option value="none"> Not Visible</option>
+		</select>
+		<br/>
+		<input type="checkbox" name="allow_comments" checked="checked"/><label>Allow Comments</label><br/>
+		<br/>
+		<div class="button_bar" style="display: inline;">
+			<t:button type="submit" id="gallery_create_submit" name="action"> Create Album? </t:button>&#160;|&#160;<a href="" id="cancel_link" class="body tertiary_button">Cancel</a>
+		</div>
+	<br/>
+	</form>
+</div>

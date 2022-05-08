@@ -11,15 +11,15 @@ WWW: http://www.octazen.com
 Email: support@octazen.com
 V: 1.0
 ********************************************************************************/
-include_once("abimporter.php");
+//include_once(dirname(__FILE__).'/abimporter.php');
+if (!defined('__ABI')) die('Please include abi.php to use this importer!');
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //FastMailImporter
 /////////////////////////////////////////////////////////////////////////////////////////
 class FastMailImporter extends WebRequestor {
 
- 	var $UST_REGEX = "/(Ust=[^;]*)/ims";
- 	var $UDM_REGEX = "/(UDm=[^;]*)/ims";
+ 	var $USTUDM_REGEX = "/(Ust=[^&]*).*?(UDm=[^&]*)/ims";
 
 	function fetchContacts ($loginemail, $password) {
 
@@ -27,43 +27,49 @@ class FastMailImporter extends WebRequestor {
 		$login = $emailparts[0];
 		$domain = $emailparts[1];
 		$location = 'http://www.'.$domain.'/mail';
-		$form = new HttpForm;
-		$form->addField("MLS", "LN-*");
-		$form->addField("FLN-UserName", $login);
-		$form->addField("FLN-Password", $password);
-		$form->addField("MSignal_LN-Authenticate*", "Login");
-		$form->addField("FLN-ScreenSize", "-1");
+		
+		$html = $this->httpGet($location);
+		$form = abi_extract_form_by_name($html,"memail");
+		if ($form==null) {
+		 	$this->close();
+			return abi_set_error(_ABI_FAILED,'Cannot find login form');
+		}
+		
+        $form->setField("MLS", "LN-*");
+        $form->setField("FLN-UserName", $login);
+        $form->setField("FLN-Password", $password);
+        $form->setField("MSignal_LN-AU*", "Login");
+        $form->setField("FLN-ScreenSize", "-1");
 		$postData = $form->buildPostData();
 		$html = $this->httpPost($location, $postData);
-		if (strpos($html, 'The user name or password you entered was incorrect')!=false) {
+		if (strpos($html, 'class="ErrMsg"')!=false || strpos($html, 'you entered was incorrect')!=false) {
 		 	$this->close();
 			return abi_set_error(_ABI_AUTHENTICATION_FAILED,'Bad user name or password');
 		}
 
-        if (preg_match($this->UST_REGEX,$this->lastUrl,$matches)==0) {
+        if (preg_match($this->USTUDM_REGEX,$html,$matches)==0) {
 		 	$this->close();
-			return abi_set_error(_ABI_FAILED,'Missing UST');
+			return abi_set_error(_ABI_FAILED,'Missing UST or UDM');
 		}
-		$ust = $matches[1];
-        if (preg_match($this->UDM_REGEX,$this->lastUrl,$matches)==0) {
-		 	$this->close();
-			return abi_set_error(_ABI_FAILED,'Missing UDM');
-		}
-		$udm = $matches[1];
+		$ust = html_entity_decode($matches[1]);
+		$udm = html_entity_decode($matches[2]);
 		
 		// Export address book
 		$location = 'http://www.'.$domain.'/mail?'.$ust.'&'.$udm;
 		$form = new HttpForm;
-		$form->addField("MSignal_UA-Download*", "Download");
-		$form->addField("FUA-DownloadFormat", "OL");
-		$form->addField("_charset_", "utf-8"); // ??
+		$form->addField("_authtrkcde", "{#TRKCDE#}");
 		$form->addField("MLS", "UA-*");
+		$form->addField("SAD-AL-SF", "DN3_0");
 		$form->addField("MSS", "!AD-*");
-		$form->addField("SAD-MADC-TP", "0");
-		$form->addField("SAD-MADC-DI", "20");
-		$form->addField("SAD-MADC-SF", "DN3_0");
-		$form->addField("SAD-MADC-SpecialSortBy", "SNM:0");
-		$postData = $form->buildPostData();
+		$form->addField("SAD-AL-DR", "20");
+		$form->addField("SAD-AL-TP", "0");
+		$form->addField("SAD-AL-SpecialSortBy", "SNM:0");
+		$form->addField("_charset_", "utf-8");
+		$form->addField("FUA-UploadFile", "");
+		$form->addField("FUA-Group", "0");
+		$form->addField("FUA-DownloadFormat", "OL");
+		$form->addField("MSignal_UA-Download*", "Download");
+		$postData = $form->buildPostArray();
 		$html = $this->httpPost($location, $postData);
 		
         $res = $this->extractContactsFromCsv($html);

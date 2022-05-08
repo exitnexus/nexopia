@@ -22,16 +22,13 @@
 	}
 	& input {
 		margin: 3px;
+		width: 245px;
 	}
 	& #gallery_name_input {
 		font-size: 1.3em;
 	}
 	& #gallery_permission {
 		top: 10px;
-	}
-	& #edit_gallery_spinner {
-		float: right;
-		display: none;
 	}
 }
 

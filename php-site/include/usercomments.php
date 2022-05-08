@@ -43,12 +43,11 @@ tables
 		if(!$spam)
 			return false;
 	
-		$nmsg = removeHTML($msg);
+		$nmsg = cleanHTML($msg);
 		
 		$nmsg2 = parseHTML($nmsg);
 		$nmsg3 = smilies($nmsg2);
 		$nmsg3 = wrap($nmsg3);
-		$nmsg3 = nl2br($nmsg3);
 
 
 		$time = time();

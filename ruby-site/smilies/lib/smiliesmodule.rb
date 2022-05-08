@@ -1,80 +1,95 @@
 lib_require :core, 'storable/user_content'
+lib_require :core, 'data_structures/sortedhash'
 
-class Smilies
-	@@smilies = {
-			':)' => 'smile',
-			':(' => 'frown',
-			':D' => 'biggrin',
-			':imslow:' => 'imslow',
-			':p' => 'tongue',
-			':blush:' => 'blush',
-			':hearts:' => 'hearts',
-			':rolleyes:' => 'rolleyes',
-			':love:' => 'love',
-			':rofl:' => 'rofl',
-			':gjob:' => 'thumbs',
-			':sex:' => 'smileysex',
-			':err:' => 'err',
-			';)' => 'wink',
-			':clap:' => 'clap',
-			':date:' => 'date',
-			':cry:' => 'crying',
-			':drool:' => 'drool',
-			':eek:' => 'eek',
-			':beer:' => 'beer',
-			':foie:' => 'nono',
-			':cool:' => 'cool',
-			':shocked:' => 'shocked',
-			':cussing:' => 'cussing',
-			':shifty:' => 'shiftyeyes',
-			':omfg:' => 'omfg',
-			':confused:' => 'confused',
-			':nuts:' => 'silly',
+class SmiliesModule < SiteModuleBase
+	@@smilies = SortedHash.new( [
+			[':)', 'smile'],
+			[':(', 'frown'],
+			[':D', 'biggrin'],
+			[':imslow:', 'imslow'],
+			[':p', 'tongue'],
+			[':P', 'tongue'],
+			[':blush:', 'blush'],
+			[':hearts:', 'hearts'],
+			[':rolleyes:', 'rolleyes'],
+			[':love:', 'love'],
+			[':rofl:', 'rofl'],
+			[':gjob:', 'thumbs'],
+			[':sex:', 'smileysex'],
+			[':err:', 'err'],
+			[';)', 'wink'],
+			[':clap:', 'clap'],
+			[':date:', 'date'],
+			[':cry:', 'crying'],
+			[':drool:', 'drool'],
+			[':eek:', 'eek'],
+			[':beer:', 'beer'],
+			[':foie:', 'nono'],
+			[':cool:', 'cool'],
+			[':shocked:', 'shocked'],
+			[':cussing:', 'cussing'],
+			[':shifty:', 'shiftyeyes'],
+			[':omfg:', 'omfg'],
+			[':confused:', 'confused'],
+			[':nuts:', 'silly'],
 
-			':evil:' => 'evil',
-			':gdate:' => 'girlgirl',
-			':headache:' => 'headache',
-			':headbang:' => 'headbang',
-			':ham:' => 'smash',
-			':high5:' => 'high5',
-			':hug:' => 'hugs',
-			':hungry:' => 'hungry',
-			':iik:' => 'iik',
-			':jawdrop:' => 'jawdrop',
-			':jk:' => 'jk',
-			':kiss:' => 'kiss',
-			':lol:' => 'lol',
-			':lonely:' => 'lonely',
-			':bdate:' => 'manman',
-			':moon:' => 'moon',
-			':music:' => 'music',
-			':O' => 'yawn',
-			':nana:' => 'nana',
-			':neutral:' => 'neutral',
-			':party:' => 'party',
-			':pee:' => 'pee',
-			':phone:' => 'phone',
-			':please:' => 'please',
-			':pray:' => 'pray',
-			':psyco:' => 'psyco',
-			':puke:' => 'puke',
-			':egrin:' => 'egrin',
+			[':evil:', 'evil'],
+			[':gdate:', 'girlgirl'],
+			[':headache:', 'headache'],
+			[':headbang:', 'headbang'],
+			[':ham:', 'smash'],
+			[':high5:', 'high5'],
+			[':hug:', 'hugs'],
+			[':hungry:', 'hungry'],
+			[':iik:', 'iik'],
+			[':jawdrop:', 'jawdrop'],
+			[':jk:', 'jk'],
+			[':kiss:', 'kiss'],
+			[':lol:', 'lol'],
+			[':lonely:', 'lonely'],
+			[':bdate:', 'manman'],
+			[':moon:', 'moon'],
+			[':music:', 'music'],
+			[':O', 'yawn'],
+			[':nana:', 'nana'],
+			[':neutral:', 'neutral'],
+			[':party:', 'party'],
+			[':pee:', 'pee'],
+			[':phone:', 'phone'],
+			[':please:', 'please'],
+			[':pray:', 'pray'],
+			[':psyco:', 'psyco'],
+			[':puke:', 'puke'],
+			[':egrin:', 'egrin'],
 
-			':transport:' => 'transport',
-			':crazy:' => 'crazy',
-			':skull:' => 'skull',
-			':sleep:' => 'sleep',
-			':tv:' => 'tv',
-			':steaming:' => 'steaming',
-			':stun:' => 'stun',
-			':typing:' => 'typing',
-			':throwball:' => 'throwball',
-			':show:' => 'show',
-			':speak:' => 'speak',
-			':bjob:' => 'nogood-red',
-			':wassup:' => 'wassup',
-			':no:' => 'no'
-		};
+			[':transport:', 'transport'],
+			[':crazy:', 'crazy'],
+			[':skull:', 'skull'],
+			[':sleep:', 'sleep'],
+			[':tv:', 'tv'],
+			[':steaming:', 'steaming'],
+			[':stun:', 'stun'],
+			[':typing:', 'typing'],
+			[':throwball:', 'throwball'],
+			[':show:', 'show'],
+			[':speak:', 'speak'],
+			[':bjob:', 'nogood-red'],
+			[':wassup:', 'wassup'],
+			[':no:', 'no'],
+		] );
+
+	def script_values()
+		return {:smilies => @@smilies}
+	end
+	def smilies()
+		@@smilies
+	end
+	
+	def smilie_path(smilie)
+		return "#{$site.static_url}/smilies/#{@@smilies[smilie]}.gif";
+	end
+
+
 	@@regexps = {}
 	@@smilies.each{|code, img|
 		@@regexps[/(^|\s|>)(#{Regexp.quote(code)})($|\s|<)/] = img;
@@ -105,7 +120,7 @@ class Smilies
 			#/(\s|^|>)#{code}(\s|$|<)/
 			#str.gsub!(code, "<img src=\"#{$site.static_files_url}/Legacy/smilies/#{img}.gif\" alt=\"#{code}\">");
 			str.gsub!(code){
-				" <img src=\"/Legacy/smilies/#{img}.gif\" alt=\"#{$2}\"> ";
+				" <img src=\"#{$site.static_files_url}/Legacy/smilies/#{img}.gif\" alt=\"#{$2}\"> ";
 			}
 		}
 		return str;
@@ -123,7 +138,7 @@ class Smilies
 					output << scanner.matched
 					sm = scanner.scan(post)
 					if (sm)
-						output << " <img src=\"/Legacy/smilies/#{@@smilies[sm]}.gif\" alt=\"#{scanner.matched}\"> ";	
+						output << " <img src=\"#{$site.static_files_url}/Legacy/smilies/#{@@smilies[sm]}.gif\" alt=\"#{scanner.matched}\"> ";	
 					else
 						s = scanner.scan(/#{Regexp.quote(pre.chr)}/)
 						if (s)
@@ -147,7 +162,7 @@ class Smilies
 		str.gsub!(@@fast_smilies2){
 			img = @@smilies[$2]
 			if (img)
-				" <img src=\"/Legacy/smilies/#{img}.gif\" alt=\"#{$2}\"> ";	
+				" <img src=\"#{$site.static_files_url}/Legacy/smilies/#{img}.gif\" alt=\"#{$2}\"> ";	
 			else
 				$2
 			end
@@ -158,14 +173,21 @@ class Smilies
 	def self.smilify4(str)
 		str = str.dup
 		index = 0
+		s_count = 0;
+		
 		while(index = str.index(@@fast_smilies2, index))
+			if(s_count > 200)
+				break;
+			end
 			img = @@smilies[$2]
 			if (img)
-				rep = "<img src=\"/Legacy/smilies/#{img}.gif\" alt=\"#{$2}\">"
+				rep = "<img src=\"#{$site.static_files_url}/Legacy/smilies/#{img}.gif\" alt=\"#{$2}\">"
 				str[index+$1.length,$2.length] = rep;
 				index += rep.length
+				s_count = s_count + 1;
+			else
+				index = index+1;
 			end
-			
 		end
 		return str;		
 	end
@@ -178,7 +200,7 @@ class Smilies
 				img = @@smilies[$2]
 				if (img)
 					changed = true;
-					" <img src=\"/Legacy/smilies/#{img}.gif\" alt=\"#{$2}\"> ";	
+					" <img src=\"#{$site.static_files_url}/Legacy/smilies/#{img}.gif\" alt=\"#{$2}\"> ";	
 				else
 					$2
 				end
@@ -188,6 +210,6 @@ class Smilies
 		str
 	end
 
-	UserContent::register_converter(:smilies, Smilies::method(:smilify), true, UserContent::ContentConverter::GENERATES_HTML)
+	UserContent::register_converter(:smilies, SmiliesModule::method(:smilify), true, UserContent::ContentConverter::GENERATES_HTML)
 
 end

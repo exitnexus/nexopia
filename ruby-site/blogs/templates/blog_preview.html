@@ -1,0 +1,24 @@
+<div id="blog_preview">
+	<div class="preview_links">
+		<a href="#close" class="nexopia_panel_close">Close Preview</a>&#160;|&#160;<a href="#post" class="nexopia_panel_save_and_close">Post</a>
+	</div>
+	
+	<div class="blog_post_container">
+		<div class="blog_post_header">
+			<div class="post_title">
+				<a href="javascript:void(0);">{blog_post.title}</a>
+			</div>
+			<div class="post_date">
+				<t:nice-time t:time="blog_post.time" t:format="date_and_time"/>
+			</div>
+		</div>
+		<t:if t:id="!blog_post.extra_content.nil?">#{blog_post.extra_content.display(request)}</t:if>
+		<div class="blog_post">
+			@{blog_post.msg}
+		</div>
+	</div>
+	
+	<div class="preview_links">
+		<a href="#close" class="nexopia_panel_close">Close Preview</a>&#160;|&#160;<a href="#post" minion_name="blogs:submit_new">Post</a>
+	</div>
+</div>

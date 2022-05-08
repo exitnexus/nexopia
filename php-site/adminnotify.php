@@ -73,7 +73,7 @@
 		{
 			$i = !$i;
 			echo "<tr><td class=$classes[$i]><input type=checkbox name=checkID[] value=\"$line[usernotifyid]\"></td>";
-			echo "<td class=$classes[$i]><a class=body href=/profile.php?uid=$line[creatorid]>$line[creatorname]</td>";
+			echo "<td class=$classes[$i]><a class=body href=/users/". urlencode($line["creatorname"]) .">$line[creatorname]</td>";
 			echo "<td class=$classes[$i]><a class=body href=$_SERVER[PHP_SELF]?action=view&id=$line[usernotifyid]>$line[subject]</a></td>";
 			echo "<td class=$classes[$i]>" . userdate("D M j, Y g:i a",$line['createtime']) . "</td>\n";
 			echo "<td class=$classes[$i] nowrap>" . userdate("D M j, Y g:i a",$line['triggertime']) . "</td></tr>\n";
@@ -117,7 +117,7 @@
 
 		$friends = getFriendsList($userData['userid']);
 
-		$nmsg = removeHTML(trim($msg));
+		$nmsg = cleanHTML(trim($msg));
 
 		incHeader();
 
@@ -135,15 +135,15 @@
 
 			echo "<table width=100%>";
 			echo "<tr><td class=header>Subject:</td><td class=header>$nsubject</td></tr>";
-			echo "<tr><td class=body colspan=2>" . nl2br($nmsg3) . "</td></tr>";
+			echo "<tr><td class=body colspan=2>" . $nmsg3 . "</td></tr>";
 
 			echo "</table><hr>";
 			echo "</td></tr>";
 		}
 		echo "</table>";
 
-		echo "<table align=center>";
 		echo "<form action=$_SERVER[PHP_SELF] method=post name=editbox>\n";
+		echo "<table align=center>";
 	//	echo "<tr><td class=body colspan=2 align=center><b>Please do not share personal or financial information while using Nexopia.com.<br>All information passed through the use of this site, is at the risk of the user.<br>Nexopia.com will assume no liability for any users' actions.</b></td></tr>";
 		echo "<tr><td class=body>To: </td><td class=body><input class=body type=text name=to value=\"$to\" style=\"width:120\"><select name=friends style=\"width:120\" class=body onChange=\"if(this.selectedIndex!=0) this.form.to.value=this.options[this.selectedIndex].value;this.selectedIndex=0\"><option>Choose a Friend" . make_select_list($friends) . "</select></td></tr>\n";
 		echo "<tr><td class=body>Subject: </td><td class=body><input class=body type=text name=\"subject\" value=\"" . htmlentities($subject) . "\" style=\"width:300\" maxlength=64></td></tr>\n";
@@ -160,7 +160,7 @@
 		echo "</td></tr>\n";
 		echo "<tr><td class=body colspan=2 align=center><input class=body type=submit name=action value=Preview> <input class=body type=submit name=action accesskey='s' value=\"Create\"></td></tr>\n";
 
-		echo "</form></table>";
+		echo "</table></form>";
 
 		incFooter();
 		exit();
@@ -238,11 +238,11 @@
 
 		echo "<table width=100%>\n";
 		echo "<tr><td class=body colspan=2><a class=body href=\"$_SERVER[PHP_SELF]\">Notification list</a></td></tr>";
-		echo "<tr><td class=header>From:</td><td class=header><a class=header href=/profile.php?uid=$notification[creatorid]>$notification[creatorname]</a></td></tr>";
+		echo "<tr><td class=header>From:</td><td class=header><a class=header href=/users/". urlencode($notification["creatorname"])  .">$notification[creatorname]</a></td></tr>";
 		echo "<tr><td class=header>Created:</td><td class=header>" . userdate("D M j, Y g:i a", $notification['createtime']) . "</td></tr>";
 		echo "<tr><td class=header>Trigger on:</td><td class=header>" . userdate("D M j, Y g:i a", $notification['triggertime']) . "</td></tr>";
 		echo "<tr><td class=header>Subject:</td><td class=header>$notification[subject]</td></tr>";
-		echo "<tr><td class=body valign=top colspan=2>" . nl2br(parseHTML(smilies($notification['message']))) . "<br><br></td></tr>";
+		echo "<tr><td class=body valign=top colspan=2>" . parseHTML(smilies($notification['message'])) . "<br><br></td></tr>";
 		echo "</table>";
 
 		incFooter();

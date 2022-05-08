@@ -1,0 +1,11 @@
+<t:wrapper>
+It looks like {sender.username} has made you a little more popular by adding you to {sender.possessive_pronoun} friends list.
+
+<t:if t:id="!receiver.friend?(sender)">
+Do you want to add them back? Go here: 
+{login_url}%{add_url}
+</t:if>
+
+You can remove yourself if you don't want to be on this person's list here: 
+{login_url}%{remove_url}
+</t:wrapper>

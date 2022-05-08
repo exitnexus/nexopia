@@ -1,0 +1,8 @@
+<t:wrapper>
+Looks like&nbsp;<a href="#{sender_profile}" class="body">{sender.username}</a>&nbsp;has removed you from {sender.possessive_pronoun} friends list.&nbsp;&nbsp;
+
+<t:if t:id="receiver.friend?(sender)">
+Do you want to return the favor by&nbsp;<a href="{login_url}%{remove_url}" class="body">removing</a>&nbsp;#{sender.objective_pronoun} from yours?
+</t:if>
+
+</t:wrapper>

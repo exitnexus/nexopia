@@ -51,12 +51,13 @@ class VideoInfo
 		# Figure out which site it's from and create a specific VideoInfo configured
 		# to correctly parse that site.
 		youtube_url = "youtube.com";
+		youtube_delayed_url = "youtube-nocookie.com"
 		google_url = "video.google.com";
 		break_url = "break.com";
 		photobucket_url = "photobucket.com";
 		vimeo_url = "vimeo.com";
 
-		if (src.index(youtube_url) != nil)
+		if (src.index(youtube_url) != nil || src.index(youtube_delayed_url) != nil)
 			info = VideoInfoYoutube.new(src);
 		elsif (src.index(google_url) != nil)
 			info = VideoInfoGoogle.new(src);

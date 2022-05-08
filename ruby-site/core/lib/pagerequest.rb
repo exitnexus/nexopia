@@ -1,4 +1,5 @@
-lib_require :Core, "typesafehash", "bufferio", "session", "user_time", "pagehandler";
+lib_require :Core, "typesafehash", "bufferio", "session", "user_time", "pagehandler", 'url';
+#require "system_timer";
 
 # This class contains the main information used in handling an http request.
 # It is taken from whatever source information was passed to the site application.
@@ -122,19 +123,39 @@ class PageRequest
 
 	# A context object used by the cache.
 	attr_reader :context;
+	
+	# A token for the current request tree to be used in log output
+	attr_reader :token
 
 	LogStartRequest = Struct.new(:prev_req, :this_req);
 	class LogStartRequest
 		def to_s()
-			"Request Transition #{prev_req} -> #{this_req}"
+			str = "Request Start #{this_req}"
+			str << ", called from #{prev_req.to_s(false)}" if prev_req
+			str
 		end
 	end
-	LogEndRequest = Struct.new(:prev_req, :this_req);
+	LogEndRequest = Struct.new(:prev_req, :this_req, :time);
 	class LogEndRequest
 		def to_s()
-			"Request Transition #{prev_req} <- #{this_req}"
+			str = "Request Done [#{format("%.3f", time)} msec] #{this_req}"
+			str << ", going back to: #{prev_req.to_s(false)}" if prev_req
+			str
 		end
 	end
+
+	def get_reply_output()
+		if(!@reply.nil?() && !@reply.out.nil?())
+			return @reply.out.string;
+		end
+		return "";
+	end
+
+	
+	def get_reply_ok()
+		return @reply.ok?;
+	end
+	
 
 	# Initialize and run a new request object. Yields to the caller to do the actual execution.
 	# This allows it to manage the request stack correctly. The request object is only considered
@@ -142,93 +163,174 @@ class PageRequest
 	# method takes :GetRequest, :PostRequest, and :HeadRequest. If it's HeadRequest, it
 	# the method method will return :GetRequest but the head method will return true.
 	def initialize(method, area, uri, headers, cookies, params, user, reply = nil)
-		prev_req = PageRequest.current
-
-		@context = (prev_req ? prev_req.context : {})
-
-		$site.cache.use_context(@context) {
-			@method = method;
-			@area = area;
-			if (uri.class == String)
-				@uri = uri.split(':');
-				if (@uri.length > 1)
-					@selector = @uri.last.to_sym;
-				else
-					@selector = :Page;
+		begin
+#			SystemTimer.timeout_after(1800) do
+				prev_req = PageRequest.current
+				@method = method;
+				@area = area;
+				if (uri.class == String)
+					@uri = uri.split(':');
+					if (@uri.length > 1)
+						@selector = @uri.last.to_sym;
+					else
+						@selector = :Page;
+					end
+					@uri = @uri.first;
+				else # expecting it to be an array of path components here, and we assume it's a body request.
+					@uri = uri
+					@selector = :Body
 				end
-				@uri = @uri.first;
-			else # expecting it to be an array of path components here, and we assume it's a body request.
-				@uri = uri
-				@selector = :Body
+
+				@cookies = cookies;
+
+				if(prev_req && prev_req.session)
+					@session = prev_req.session
+				else
+					@session = promise {
+						if (@cookies['sessionkey'].first)
+							#Ruby site generated session
+							sessioncookie = @cookies['sessionkey'];
+							if (session = Session.get(sessioncookie.value.to_s()))
+								self.reply.headers['X-LIGHTTPD-userid'] = session.user.userid
+								self.reply.headers['X-LIGHTTPD-age'] = session.user.age
+								self.reply.headers['X-LIGHTTPD-sex'] = session.user.sex
+								self.reply.headers['X-LIGHTTPD-loc'] = session.user.loc
+								self.reply.headers['X-LIGHTTPD-usertype'] = session.user.plus? ? 'plus' : 'user'
+								
+								session
+							else
+								self.reply.headers['X-LIGHTTPD-usertype'] = 'anon'
+								Session.create_anonymous_session(headers['REMOTE_ADDR'])
+							end
+						else
+							self.reply.headers['X-LIGHTTPD-usertype'] = 'anon'
+							Session.create_anonymous_session(headers['REMOTE_ADDR'])
+						end
+					}
+				end
+
+				if (prev_req && prev_req.token)
+					@token = prev_req.token
+				else
+					@token = "req:#{Process.pid}:#{(rand*1000).to_i}"
+					if (params['log_token'])
+						@token << ":#{params['log_token'][0..15]}"
+					end
+				end
+
+				# Make these not hard code
+				@skeleton = (prev_req ? prev_req.skeleton : $site.default_skeleton);
+
+				@headers = headers;
+				@params = TypeSafeHash.new(params);
+				# TODO: Find a way to remove the @area == :User test to user code.
+				@user = user || (@area == :User && @session && !@session.anonymous?() && @session.user && !@session.user.anonymous?());
+
+				@log = (prev_req ? prev_req.log : {});
+				@current_log = {};
+
+				@reply = if(reply)
+					reply
+				elsif(prev_req)
+					prev_req.reply
+				else
+					accepted_encodings = [];
+					accepted_encodings << :gzip if (headers['HTTP_ACCEPT_ENCODING'] =~ /gzip/)
+					accepted_encodings << :deflate if (headers['HTTP_ACCEPT_ENCODING'] =~ /deflate/)
+
+					PageReply.new(StringIO.new(), true, accepted_encodings)
+				end
+
+				starttime = Time.now.to_f
+
+				PageRequest.stack.push(self);
+				@request_stack = PageRequest.stack.dup;
+				begin
+					$log.info(LogStartRequest.new(prev_req, self), :debug, :pagehandler);
+
+					old_time_zone = UserTime.default_time_zone
+					UserTime.default_time_zone = promise {
+						if (!@session.anonymous?)
+							UserTime.zone_name_by_index(@session.user.timeoffset)
+						else
+							old_time_zone
+						end
+					}
+
+					yield self
+
+				ensure
+					UserTime.default_time_zone = old_time_zone
+					PageRequest.stack.pop;
+					endtime = Time.now.to_f
+					$log.info(LogEndRequest.new(prev_req, self, (endtime-starttime)*1000), :debug, :pagehandler);
+				end
 			end
+#		rescue Timeout::Error
+#			$log.info "PageRequest Timeout::Error, uri: #{uri}, userid: #{user == nil ? "none" : user.userid}", :error
+#		end
+	end
 
-			@cookies = cookies;
-
-			@session = promise {
-				if (prev_req || @cookies['sessionkey'].first)
-					#Ruby site generated session
-					sessioncookie = @cookies['sessionkey'];
-					if (prev_req)
-						prev_req.session
-					elsif (session = Session.get(sessioncookie.value.to_s()))
-						session
-					else
-						Session.create_anonymous_session(headers['REMOTE_ADDR'])
-					end
-				elsif (@cookies['key'].first and @cookies['userid'].first)
-					#PHP site generated session
-					userid = @cookies['userid'];
-					key = @cookies['key'];
-					if (prev_req)
-						prev_req.session
-					elsif (session = Session.get("#{key.first}:#{userid.first}"))
-						session
-					else
-						Session.create_anonymous_session(headers['REMOTE_ADDR'])
-					end
-				else
-					Session.create_anonymous_session(headers['REMOTE_ADDR'])
-				end
-			}
-
-			# Make these not hard code
-			@skeleton = (prev_req ? prev_req.skeleton : $site.default_skeleton);
-
-			@headers = headers;
-			@params = TypeSafeHash.new(params);
-			# TODO: Find a way to remove the @area == :User test to user code.
-			@user = user || (@area == :User && @session && !@session.anonymous?() && @session.user && !@session.user.anonymous?());
-
-			@log = (prev_req ? prev_req.log : {});
-			@current_log = {};
-
-			accepted_encodings = [];
-			accepted_encodings << :gzip if (headers['HTTP_ACCEPT_ENCODING'] =~ /gzip/)
-			accepted_encodings << :deflate if (headers['HTTP_ACCEPT_ENCODING'] =~ /deflate/)
+	#This changes hash2 and its subhashes in place, it's private for a reason, 
+	#not meant to be used outside of convert_to_nested_hash.
+	def PageRequest.recursive_merge(hash1, hash2)
+		hash1.each_pair { |key, value|
+			#Added to circumvent the "Poison NULL" exploit.
+			if(key.kind_of?(String))
+				key = key.gsub(/\000/, "");
+			end
+			if(value.kind_of?(String))
+				value = value.gsub(/\000/, "");
+			end
 			
-			@reply = reply || (prev_req ? prev_req.reply : PageReply.new(StringIO.new(), true, accepted_encodings))
-
-			PageRequest.stack.push(self);
-			@request_stack = PageRequest.stack.dup;
-			begin
-				$log.info(LogStartRequest.new(prev_req, self), :debug, :pagehandler);
-				default_tz = UserTime.default_time_zone
-				tz_promise = promise {
-					if (!@session.anonymous?)
-						UserTime.zone_name_by_index(@session.user.timeoffset)
-					else
-						default_tz
-					end
-				}
-				UserTime.use_time_zone(tz_promise) {
-					yield self;
-				}
-			ensure
-				PageRequest.stack.pop;
-				$log.info(LogEndRequest.new(prev_req, self), :debug, :pagehandler);
+			if (!hash2[key])
+				hash2[key] = value;
+			elsif (hash2[key].kind_of?(Hash) && value.kind_of?(Hash))
+				hash2[key] = recursive_merge(value, hash2[key]);
 			end
 		}
+		return hash2;
+	end	
+
+	def PageRequest.convert_to_nested_hash(cgi_hash)
+		new_hash = {};
+		cgi_hash.each_pair {|key, value|
+			if ((value.kind_of? Array) && key !~ /\[\]$/)
+				value = value.first
+			end
+			
+			#Added to circumvent the "Poison NULL" exploit.
+			if(key.kind_of?(String))
+				key = key.gsub(/\000/, "");
+			end
+			if(value.kind_of?(String))
+				value = value.gsub(/\000/, "");
+			end
+			
+			while (key =~ /(.*)\[(.+)?\]$/)
+				key = $1;
+				if ($2)
+					value = {$2 => value}
+				else
+					new_hash[key] ||= []
+					if (!new_hash[key].kind_of? Array)
+						$log.info "Tried to add '#{key}' as an array and a value.", :error
+					end
+					old_vals = [*value];
+					old_vals.each{|v|
+						new_hash[key] << v
+					}
+				end
+			end
+			if (new_hash[key].kind_of?(Hash) && value.kind_of?(Hash))
+				new_hash[key] = recursive_merge(value, new_hash[key]);
+			else
+				new_hash[key] = value;
+			end
+		}
+		return new_hash
 	end
+	
 
 	# Gets the currently running request object.
 	def PageRequest.current()
@@ -272,6 +374,33 @@ class PageRequest
 	# yields with the request object and it is considered to be active for the
 	# duration of that block.
 	def PageRequest.new_from_cgi(cgi)
+		if (!(['GET','POST','HEAD'].include? cgi.env_table['REQUEST_METHOD']))
+			# See core/fcgi-native-ext.rb for more details on how the cgi object got this far, and why we're
+			# just returning an empty PageReply. This 'if' statement, as well as the following code from
+			# core/fcgi-native-ext.rb should be removed if we do start supporting PUT requests:
+			#
+			# 	# Ultra-safe checking of the request parameter to make sure that it isn't a PUT request, which Ruby's cgi.rb does not 
+			# 	# support (see the initialize_query method). If it is, we don't go any further with initialization because to call 'super' 
+			# 	# would result in the child process dying. Instead, we return the CGI object as is, to be dealt with hastily in the
+			# 	# PageRequest.new_from_cgi method.
+			# 	if (!request.nil? && !request.env.nil? && !request.env['REQUEST_METHOD'].nil? && request.env['REQUEST_METHOD'] == 'PUT')
+			# 		return self;
+			# 	end
+			$log.info "#{cgi.env_table['REQUEST_METHOD']} requests are not supported yet.", :error
+			return PageReply.new(StringIO.new(), true);
+		end
+		# If you get this error, you're doing something you shouldn't. Most likely, you have just innocently
+		# used 'json_obj' as a parameter name, which has been reserved for application/json form posts. This
+		# is a relatively new way of posting form data which our partners Tynt are using and we might use in
+		# the future. It does seem to have limited use, at least, in the Rails community. Check out the file
+		# core/fcgi-native-ext.rb (and search for 'json_obj' in this file) for a more in-depth explanation, 
+		# but if you're doing a regular form post and just want the damn thing to work, you probably don't 
+		# need to go any further. Just take a deep breath, think of another name for your 'json_obj' parameter,
+		# and all will be well. Happy coding!
+		if (cgi.params.has_key?("json_obj") && cgi.env_table["CONTENT_TYPE"] !~ /application\/json/)
+			raise "DO NOT use 'json_obj' as a parameter on a non-JSON Content-type";
+		end
+
 		# if this is a get request, we have to parse the request variables
 		# manually, since lighttpd doesn't do it for us if it goes through a
 		# 404-dispatcher, and we get better consistancy if we just always do it.
@@ -287,8 +416,9 @@ class PageRequest
 			request_vars = request_vars.collect {|x| x.split(/=/); }
 			request_vars.each {|x|
 				if (x.length == 2)
-					request_hash[CGI::unescape(x[0])] ||= []
-					request_hash[CGI::unescape(x[0])] << CGI::unescape(x[1]);
+					decoded_key = urldecode(x[0])
+					request_hash[decoded_key] ||= []
+					request_hash[decoded_key] << urldecode(x[1]);
 				end
 			}
 		end
@@ -307,9 +437,15 @@ class PageRequest
 		accepted_encodings << :deflate if (cgi.env_table['HTTP_ACCEPT_ENCODING'] =~ /deflate/)
 		reply = PageReply.new(cgi.stdoutput, true, accepted_encodings)
 		
+
 		return PageRequest.new(cgi_to_request_method(cgi.request_method),
 							   :Internal, uri, cgi.env_table, cgi.cookies,
-							   request_hash, nil, reply) {|req| yield req};
+							   PageRequest.convert_to_nested_hash(request_hash),
+							   nil, reply) {|req| 
+									$site.cache.use_context({}) {
+										yield req
+									}
+								};
 	end
 
 	# Creates a PageRequest object from a mongrel request object. Like
@@ -340,6 +476,10 @@ class PageRequest
 	end
 	
 	def impersonation?
+		if(area != :Self)
+			raise("Impersonation? has no meaning outside Self area");
+		end
+		
 		if (session.anonymous?)
 			return false
 		end
@@ -355,7 +495,7 @@ class PageRequest
 				$site.self_url
 			end
 		else
-			$site.area_to_url(area)
+			$site.area_to_url([area,user])
 		end
 	end
 
@@ -370,18 +510,37 @@ class PageRequest
 
 		int = (parts[0].to_i<<24)|(parts[1].to_i<<16)|(parts[2].to_i<<8)|(parts[3]).to_i;
 
-		if(int >= 2**31)
+		if(int >= 2**31) # bad but needed for compatibility with the php code
 			int -= 2**32;
 		end
 
 		return int;
 	end
 
+	def self.mike_ip(ip)
+			parts = ip.split(".");
 
-	@@ip = nil;
+			if(parts.size != 4)
+				return 0;
+			end
+
+			int = (parts[0].to_i<<24)|(parts[1].to_i<<16)|(parts[2].to_i<<8)|(parts[3]).to_i;
+
+			if(int >= 2**31) # bad but needed for compatibility with the php code
+				int -= 2**32;
+			end
+
+			return int;
+	end
+	
+	
 	def get_ip()
-		if(@@ip)
-			return @@ip;
+		if(@ip)
+			return @ip;
+		end
+		
+		if (!headers['REMOTE_ADDR'] && !headers['HTTP_X_FORWARDED_FOR'])
+			return @ip = '127.0.0.1'
 		end
 
 		remote_addr = headers['REMOTE_ADDR'];
@@ -392,16 +551,16 @@ class PageRequest
 
 			ips.each { |ip|
 				if(is_routable_ip(ip.strip))
-					@@ip = ip.strip;
+					@ip = ip.strip;
 				end
 			};
 		end
 
-		if(!@@ip)
-			@@ip = remote_addr
+		if(!@ip)
+			@ip = remote_addr
 		end
 
-		return @@ip;
+		return @ip;
 	end
 
 
@@ -444,14 +603,17 @@ require 'yaml'
 				changes[:uri] += ":#{@selector}";
 			end
 		end
+		
+		changes[:headers] &&= @headers.merge(changes[:headers])
+		changes[:params] &&= @params.to_hash.merge(changes[:params]) 
 
 		new_req = PageRequest.new(
 			changes[:method] || @method,
 			changes[:area] || @area,
 			changes[:uri] || "#{@uri}:#{@selector}",
-			@headers.merge(changes[:headers] || {}),
+			changes[:headers] || @headers,
 			@cookies,
-			@params.to_hash.merge(changes[:params] || {}),
+			changes[:params] || @params,
 			changes[:user] || @user,
 			changes[:reply] || @reply
 		) {|req|
@@ -484,10 +646,11 @@ require 'yaml'
 	end
 
 	class AccessLevelError < PageError
-		attr_reader :why, :url_to_fix
-		def initialize(why, url_to_fix = nil)
+		attr_reader :why, :url_to_fix, :request_user
+		def initialize(why, url_to_fix = nil, request_user = PageRequest.current.user)
 			@why = why
 			@url_to_fix = url_to_fix
+			@request_user = request_user
 			super(403)
 		end
 	end
@@ -508,7 +671,7 @@ require 'yaml'
 				AccessLevelError.new("Should be logged in and activated to access this page", $site.www_url/"login.php")
 			else
 				if (session.user.state != 'active')
-					AccessLevelError.new("Should be activated to access this page", $site.www_url/:accountcreate/:activate)
+					AccessLevelError.new("Should be activated to access this page", $site.www_url/:account/:activate)
 				else
 					nil
 				end
@@ -519,10 +682,17 @@ require 'yaml'
 		when :Admin then
 			(!session.anonymous? && session.has_priv?(*handler.priv)) ||
 			                           AccessLevelError.new("Must be an admin to access this page")
+		when :DebugInfo then
+			(!session.anonymous? && $site.debug_user?(session.user.id)) ||
+			                           AccessLevelError.new("Must be a debug info user to access this page")
 		when :IsUser then
-			(!session.anonymous? && !user.anonymous? && (session.user.id == user.id ||
-														 (handler.priv && session.has_priv?(*handler.priv)))) ||
+			if (session.anonymous?)
+				AccessLevelError.new("Should be logged in to access this page", $site.www_url/"login.php")
+			else
+				(!user.anonymous? && (session.user.id == user.id ||
+            (handler.priv && session.has_priv?(*handler.priv)))) ||
 			                           AccessLevelError.new("Must be the user this area points to to use this page")
+			end
 		when :IsFriend then
 			(!session.anonymous? && !user.anonymous? && user.friends.include?(session.user)) ||
 			                           AccessLevelError.new("Must be a friend of the user to use this page")
@@ -577,7 +747,12 @@ require 'yaml'
 		return negotiate_content_type(MimeType::XHTML, MimeType::HTML);
 	end
 	def extension_content_type(filename)
-		ext = filename.sub(/^.*(\.[a-zA-Z]+)$/, '\1')
+		if (filename)
+			ext = filename.sub(/^.*(\.[a-zA-Z]+)$/, '\1').downcase
+		else
+			ext = nil;
+		end
+		
 		return MimeTypeExtensions[ext] || MimeTypeExtensions['default']
 	end
 end
@@ -595,7 +770,11 @@ class PageReply
 	# the client.
 	attr_reader :mix_headers;
 
-	def initialize(out = StringIO.new(), mix_headers = true, supported_encodings = [])
+	def initialize(out = nil, mix_headers = true, supported_encodings = [])
+		if(out.nil?())
+			out = StringIO.new();
+		end
+
 		@cookies = {};
 		@mix_headers = mix_headers;
 		@headers = {'Status' => '200 OK', 'Content-Type' => "text/html"};
@@ -603,8 +782,9 @@ class PageReply
 		@headers_sent = false;
 
 		out.extend BufferIO;
+		# If sending unbuffered data, see bufferio.rb, BufferIO#buffer=.
 		out.initialize_buffer {
-			if (@headers['Content-Type'] =~ /^text\//)
+			if (@headers['Content-Type'] =~ /^text\// && !@headers['Content-Encoding'])
 				if (supported_encodings.index(:gzip))
 					out.gzip_buffer 
 					@headers['Content-Encoding'] = "gzip"
@@ -617,6 +797,10 @@ class PageReply
 		}
 		out.clear_buffer(); # clear it out, we're in a new request now.
 		@out = out;
+	end
+	
+	def status()
+		return self.headers['Status']
 	end
 
 	def merge_cookies(other_reply)
@@ -688,7 +872,7 @@ class ErrorLog
 	def log_page(realstr, level, facility)
 		if (PageRequest.current)
 			str = detailed_string(facility, level, realstr, Time.now);
-			PageRequest.current.reply.out.puts("<pre>#{CGI::escapeHTML(str)}</pre>");
+			PageRequest.current.reply.out.puts("<pre>#{htmlencode(str)}</pre>");
 		end
 	end
 

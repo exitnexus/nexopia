@@ -2,6 +2,7 @@ lib_require :Core, "template/template_processor"
 lib_require :Core, "template/rexml_util"
 
 module Template
+	# This namespace provides "yield"-like functionality in templates.
 	class CallProcessor < Processor
 		namespace :call
 		show_in_html false
@@ -61,7 +62,12 @@ module Template
 			def call_page(node, code, &block)
 				code.append(%Q| @__url = #{node.attribute('url')}; \n|.gsub('&apos;', "'"));
 				code.append(%Q| @__entries = #{node.attribute('id')}; \n|.gsub('&apos;', "'"));
-				doc = REXML::TemplateDocument.new(load_xml_file("core", "page"));
+
+				doc = REXML::TemplateDocument.new("<t:outer " +
+					"xmlns:t=\"#{TemplateClass::TEMPLATE_NAMESPACE}\" " + 
+					"xmlns:cond=\"#{TemplateClass::TEMPLATE_NAMESPACE}\" " +
+					"xmlns:call=\"#{TemplateClass::TEMPLATE_NAMESPACE}\" " +
+					">" + load_xml_file("core", "page") + "</t:outer>");
 
 				prepare_yield(doc.root, node)
 				
@@ -69,7 +75,13 @@ module Template
 			end
 			
 			def call_dropdown(node, code, &block)
-				doc = REXML::TemplateDocument.new(load_xml_file("core", "dropdown"));
+				doc = REXML::TemplateDocument.new("<t:outer " +
+					"xmlns:t=\"#{TemplateClass::TEMPLATE_NAMESPACE}\" " + 
+					"xmlns:cond=\"#{TemplateClass::TEMPLATE_NAMESPACE}\" " +
+					"xmlns:call=\"#{TemplateClass::TEMPLATE_NAMESPACE}\" " +
+					">" + load_xml_file("core", "dropdown") + "</t:outer>");
+
+
 				code.append(%Q|@bodyid = Template::CallProcessor.get_next_id\n|);
 				
 				prepare_yield(doc.root, REXML::XPath.first(node, '/descendant::call:block[@id=\'header\']'), 'header')

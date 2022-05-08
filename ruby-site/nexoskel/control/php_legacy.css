@@ -1,0 +1,191 @@
+table {
+	text-align: left;
+}
+
+tr {
+	vertical-align: top;
+}
+
+body {
+	background-color: $page_background_color;
+	font-family: $legacy_font_family;
+	font-size: $legacy_body_font_size;
+	margin: 0px;
+}
+
+body input, select, textarea {
+	font-family: $legacy_font_family;
+	font-size: $legacy_body_font_size;
+	color: #000;
+	border: 1px solid #949494;
+}
+
+td.sideheader {
+	color: $legacy_sidebar_header_text_color;
+	padding-bottom: 3px;
+}
+
+td.side {
+	background-color: $legacy_sidebar_background_color;
+	color: $legacy_sidebar_text_color;
+	
+	& a {
+		color: $legacy_sidebar_link_color;
+		text-decoration: none;
+		
+		&:hover{
+			color: $legacy_sidebar_link_accent_color;
+		}
+	}
+
+	& input, select, textarea {
+		color: #000;
+		border-width: 1px;
+		border-style: solid;
+		border-color: $legacy_sidebar_input_border_color;
+		margin-top: 1px;
+	}
+}
+
+#sitebody td.headerfront
+{
+	color: $legacy_header_front_text_color;
+	background-color: $legacy_header_front_background_color;
+	background-image: $legacy_header_front_background_image;
+	height: $legacy_header_front_height;
+	padding-bottom: 8px;
+	vertical-align: middle;
+}
+
+td.header {
+	background-color: $legacy_header_background_color;
+	color: $legacy_header_text_color;
+}
+
+a.header {
+	color: $legacy_header_link_color;
+	text-decoration: none;
+	
+	&:hover {
+		color: $legacy_header_link_accent_color
+	}
+}
+
+td.header2 {
+	color: $legacy_alt_header_color;
+}
+
+a.header2 {
+	color: $legacy_alt_header_link_color;
+	text-decoration: none;
+	
+	&:hover {
+		color: $legacy_alt_header_link_accent_color;
+	}
+}
+
+td.body {
+	background-color: $legacy_primary_background_color;
+	color: $legacy_primary_text_color;
+}
+
+td.body2 {
+	background-color: $legacy_secondary_background_color;
+	color: $legacy_secondary_text_color;
+}
+
+a.body {
+	color: $legacy_link_color;
+	text-decoration: none;
+	
+	&:hover {
+		color: $legacy_link_accent_color;
+	}
+}
+
+td.footer {
+	color: $legacy_footer_color;
+	text-decoration: none;
+	font-size: 6pt;
+}
+
+td.menu{
+	height: $menuheight;
+	vertical-align: middle;
+	color: $legacy_menu_text_color;
+	font-size: 9pt;
+	
+	& a {
+		color: $legacy_menu_link_color;
+		text-decoration: none;
+		
+		&:hover {
+			color: $legacy_menu_link_accent_color;
+		}
+	}
+}
+
+td.forumlst1 {
+	background-color: $legacy_forum_new_posts_background_color;
+	color: $legacy_forum_new_posts_text_color;
+}
+
+a.forumlst1 {
+	color: $legacy_forum_new_posts_link_color;
+	text-decoration: none;
+	
+	&:hover {
+		color: $legacy_forum_new_posts_link_accent_color;
+	}
+}
+
+td.forumlst0 {
+	background-color: $legacy_forum_no_new_posts_background_color;
+	color: $legacy_forum_no_new_posts_text_color;
+}
+
+a.forumlst0 {
+	color: $legacy_forum_no_new_posts_link_color;
+	text-decoration: none;
+	
+	&:hover{
+		color: $legacy_forum_no_new_posts_link_accent_color;
+	}
+}
+
+a.forumlst2 {
+	color: $legacy_forum_new_thread_link_color;
+	text-decoration: none;
+	
+	&:hover {
+		color: $legacy_forum_new_thread_link_accent_color;
+	}
+}
+
+td.small {
+	background-color: $legacy_small_background_color;
+	color: $legacy_small_text_color;
+}
+
+a.small {
+	color: $legacy_small_link_color;
+	text-decoration: none;
+	
+	&:hover {
+		color: $legacy_small_link_accent_color;
+	}
+}
+
+td.msg {
+	background-color: $legacy_user_message_background_color;
+	color: $legacy_user_message_text_color;
+}
+
+a.msg {
+	color: $legacy_user_message_link_color;
+	text-decoration: none;
+	
+	&:hover {
+		color: $legacy_user_message_link_accent_color;
+	}
+}

@@ -64,11 +64,10 @@
 	$uids = array();
 	$comments = array();
 	while($line = $res->fetchrow()){
-		$line['nmsg'] = removeHTML($line['msg']);
+		$line['nmsg'] = cleanHTML($line['msg']);
 		$line['nmsg'] = parseHTML($line['nmsg']);
 		$line['nmsg'] = smilies($line['nmsg']);
 		$line['nmsg'] = wrap($line['nmsg']);
-		$line['nmsg'] = nl2br($line['nmsg']);
 
 		$comments[] = $line;
 		$uids[$line['authorid']] = $line['authorid'];
@@ -116,11 +115,10 @@ function addComment($id, $msg, $preview = "changed", $params = array(), $usedb =
 	if(trim($msg)=="")
 		return;
 
-	$nmsg = removeHTML($msg);
+	$nmsg = cleanHTML($msg);
 	$nmsg2 = parseHTML($nmsg);
 	$nmsg3 = smilies($nmsg2);
 	$nmsg3 = wrap($nmsg3);
-	$nmsg3 = nl2br($nmsg3);
 
 	if($preview == "Preview"){
 		incHeader();
@@ -135,7 +133,6 @@ function addComment($id, $msg, $preview = "changed", $params = array(), $usedb =
 		echo "<table width=100% cellspacing=0>";
 
 		echo "<input type=hidden name='id' value='" . htmlentities($id) . "'>\n";
-		echo "<input type=hidden name='action' value='comment'>\n";
 		echo "<input type=hidden name='db' value='" . htmlentities($usedb) . "'>\n";
 
 		foreach($params as $k => $v)
@@ -143,10 +140,10 @@ function addComment($id, $msg, $preview = "changed", $params = array(), $usedb =
 
 		echo "<tr><td class=body>";
 
-		editBox($nmsg);
+		editBox($msg);
 
 		echo "</td></tr>\n";
-		echo "<tr><td class=header align=center><input type=submit name=postaction value=Preview> <input type=submit name=postaction value='Post' accesskey='s' onClick='checksubmit()'></td></tr>\n";
+		echo "<tr><td class=header align=center><input type=submit name=action value=Preview> <input type=submit name=action value='Post' accesskey='s' onClick='checksubmit()'></td></tr>\n";
 
 		echo "</table>";
 		echo "</form>";
@@ -156,7 +153,7 @@ function addComment($id, $msg, $preview = "changed", $params = array(), $usedb =
 	}
 
 	$uid = $userData['userid'];
-	enqueue("Comment", "create", $uid, array($uid, $id));
+	enqueue("Comments::Comment", "create", $uid, array($uid, $id));
 
 	if($usedb == 'polls'){
 		$result=$polldb->prepare_query("SELECT id FROM pollcomments WHERE itemid = # && time > # && authorid = #", $id, time() - 15, $userData['userid']);

@@ -1,3 +1,4 @@
+require 'digest/md5'
 
 class Menu
 	
@@ -60,7 +61,7 @@ class Menu
 			end
 		end
 	
-		result = MD5.new("#{myuserid}:blah:#{id}").to_s[0, 10];
+		result = Digest::MD5.new.update("#{myuserid}:blah:#{id}").to_s[0, 10];
 		return result;
 	end
 
@@ -107,7 +108,7 @@ class Menu
 	$menus['main'].addItem("Logout",		"/logout.php?k=",				0.5,	false,	'_top',	true);
 	$menus['main'].addItem("Login",			"/login.php",					-1);
 	$menus['main'].addItem("Help",			'/help/',						0);
-	$menus['main'].addItem("Join",			"/accountcreate",				-1);
+	$menus['main'].addItem("Join",			"/account",				-1);
 
 	$menus['personal'] = Menu.new();
 	$menus['personal'].addItem("Preferences",	"/prefs.php",					0.5);

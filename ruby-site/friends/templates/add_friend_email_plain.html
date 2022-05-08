@@ -1,0 +1,15 @@
+<t:wrapper>
+It looks like {sender.username} has made you a little more popular by adding you to {sender.possessive_pronoun} friends list.#{"\n"}
+#{"\n"}
+<t:if t:id="!receiver.friend?(sender)">
+Do you want to add them back? Go here: #{"\n"}
+{login_url}%{add_url}#{"\n"}
+</t:if>
+#{"\n"}
+You can remove yourself if you don't want to be on this person's list here: #{"\n"}
+{login_url}%{remove_url}#{"\n"}
+#{"\n"}
+#{"\n"}
+<t:template-include name="message_footer_plain" module="orwell"/>
+
+</t:wrapper>

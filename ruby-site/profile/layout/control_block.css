@@ -1,0 +1,122 @@
+#profile
+{
+	& .control_block
+	{
+		background-color: @utility_block_background_color;
+		color: @utility_block_text_color;
+		padding: 6px 0px 12px 0px;
+		min-height: 222px;
+		font-family: Verdana, Helvetica, Arial, sans-serif;
+	
+		& a
+		{
+			color: @utility_block_link_color;
+			font-size: 11px;
+			font-weight: bold;
+			padding: 1px 2px 1px 2px;
+			margin-top: 2px;
+		}
+	
+		& .custom_color_icon
+		{
+			color: @utility_block_icon_color;
+		}
+		& .color_icon
+		{
+			color: @utility_block_icon_color;
+		}
+	
+		& tr td
+		{
+			padding-left: 6px;
+			padding-right: 6px;
+			vertical-align: middle;
+		}
+	
+		& table.hover tr:hover, table.hover tr.hover
+		{
+			color: @utility_block_background_color;
+			background-color: @utility_block_link_color;
+		
+			& a
+			{
+				color: @utility_block_background_color;
+			}
+		}
+	
+		& .control_block_function_filler
+		{
+			max-height: 88px;
+		}
+	
+		& .user_info
+		{
+			padding-left: 6px;
+			padding-right: 6px;
+			min-height: 72px;
+			position: relative;
+			font-size: 11px;
+		
+			& .user_name
+			{
+				color: @utility_block_header_text_color;
+				font-family: Verdana, Helvetica, Arial, sans-serif;
+				font-size: 16px;
+				font-weight: bold;
+				margin-bottom: 5px;
+			}
+		
+			& .plus_icon
+			{
+				float: right;
+				display: inline;
+				width: 12px;
+				height: 12px;
+				padding-right: 4px;
+				& img
+				{
+					border: none;
+				}
+			}
+		
+			& .admin_info
+			{
+				float: left;
+			}
+			& .profile_hits
+			{
+				font-weight: bold;
+				float: left;
+			}
+
+			& .user_status
+			{
+				font-weight: bold;
+			}
+		
+			& .user_status_online
+			{
+				color: @utility_block_user_online_color;
+			}
+		
+			& .user_status_offline
+			{
+				color: @utility_block_user_offline_color;
+			}
+			& .user_tags {
+				font-size: 10px;
+			}
+		}
+		& .profile_function_table 
+		{
+			border-top: 1px dotted #929292;
+			width: 100%;
+			margin-top: 8px;
+		}
+		& .profile_function_icon 
+		{
+			width: 12px;
+			text-align: center;
+		}
+	}
+}

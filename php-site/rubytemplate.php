@@ -9,24 +9,40 @@ $skeleton = false;
 $width = true;
 $leftblocks = array();
 $rightblocks = array();
+$user_skin = false;
 
-if (isset($_POST['X-modules']))
-	$modules = split('/', $_POST['X-modules']);
+$ruby_obj = $ruby_post->fetch('X-output');
 
-if (isset($_POST['X-skeleton']))
-	$skeleton = $_POST['X-skeleton'];
+$output = $ruby_obj->generate();
 
-if (isset($_POST['X-Center']))
-	$width = $_POST['X-Center'];
 
-if (isset($_POST['X-LeftBlocks']))
-	$leftblocks = preg_split('/,\s*/', $_POST['X-LeftBlocks']);
+if ( $ruby_obj->fetch('X-scripts') !== null )
+	$scripts = $ruby_obj->fetch('X-scripts');
 
-if (isset($_POST['X-RightBlocks']))
-	$rightblocks = preg_split('/,\s*/', $_POST['X-RightBlocks']);
+if ( $ruby_obj->fetch('X-skeleton') !== null )
+	$skeleton = $ruby_obj->fetch('X-skeleton');
 
-incHeader($width, $leftblocks, $rightblocks, $skeleton, $modules);
+if ( $ruby_obj->fetch('X-Center') !== null )
+	$width = $ruby_obj->fetch('X-Center');
 
-echo "<!--RubyReplaceThis-->";
+if ( $ruby_obj->fetch('X-width') !== null)
+	$width = $ruby_obj->fetch('X-width');
+
+if ( $ruby_obj->fetch('X-LeftBlocks') !== null )
+	$leftblocks = preg_split('/,\s*/', $ruby_obj->fetch('X-LeftBlocks'));
+
+if ( $ruby_obj->fetch('X-RightBlocks') !== null )
+	$rightblocks = preg_split('/,\s*/', $ruby_obj->fetch('X-RightBlocks'));
+
+if( $ruby_obj->fetch('X-user-skin') != null )
+	$user_skin = $ruby_obj->fetch('X-user-skin');
+
+incHeader($width, $leftblocks, $rightblocks, $skeleton, $scripts, $user_skin);
+
+//echo "<!--RubyReplaceThis-->";
+echo "<div class=\"ruby_content\">";
+echo "<div id=\"info_messages\"></div>";
+echo $output;
+echo "</div>";
 
 incFooter();

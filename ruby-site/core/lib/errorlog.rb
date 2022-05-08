@@ -1,3 +1,5 @@
+require 'stringio'
+
 def overload_exception()
 	Exception.class_eval {
 		# log_level indicates what level the error should be logged at.
@@ -44,11 +46,12 @@ end
 #  - :debug (lowest)
 class ErrorLog
 	LogLevels = {
-		:debug => 0,
-		:info => 1,
-		:warning => 2,
-		:error => 3,
-		:critical => 4
+		:spam     => 0,
+		:debug    => 1,
+		:info     => 2,
+		:warning  => 3,
+		:error    => 4,
+		:critical => 5
 	};
 
 	attr_reader :stderr_pid;
@@ -73,8 +76,13 @@ class ErrorLog
 			@colorize_log_output = false
 		end
 
+		begin
+			require 'syslog'
+		rescue LoadError
+		end
+
 		@facilities = facilities;
-		@targets = nil; # to overload targets for a period.
+		@targets = []; # to overload targets for a period.
 		@facility = :general;
 		@default_minlevel = default_minlevel
 		@highlighter = @colorize_log_output && Text::ANSIHighlighter.new
@@ -99,6 +107,17 @@ class ErrorLog
 			stderr_read, stderr_write = IO.pipe();
 			@stderr_pid = fork {
 				$0 = "nexopia-logger for #{origpid}";
+
+			#Keep the logger process around for an extra 0.1s after a SIGTERM. This is because any
+			#errors in the parents will kill the logger, but still try to output stuff, which fails.
+			#This way the extra output actually gets logged.
+				trap("SIGTERM"){
+					Thread.new {
+						sleep(0.1);
+						exit(0);
+					}
+				}
+
 				stderr_read.each_line {|line|
 					level = if (line.include? 'warning:')
 						:warning
@@ -117,6 +136,24 @@ class ErrorLog
 		end
 	end
 
+
+	# Set up logging for any special cases that we want to track.
+	def setup_special_logging
+		# Redefine this deprecated method to properly log through our logging mechanism (so
+		# that a developer will see it even when in single thread view) and also log a 
+		# stacktrace so that we can see where it's coming from. Return object_id, which should
+		# be equivalent.
+		Object.send :define_method, :id, lambda {
+			# For known issue logging
+			$log.info "KNOWN ISSUE NEX-900: Accessing deprecated Object method on class: #{self.class}", :warning
+			# Ruby's original warning message
+			$log.info "Object#id will be deprecated; use Object#object_id", :warning
+			$log.object caller, :warning
+			return object_id
+		}
+	end
+
+
 	def reassert_stderr()
 		# this branch reasserts our stderr from within a cgi handler.
 		if (@debugstderr)
@@ -128,46 +165,80 @@ class ErrorLog
 	# Logs the information from an actual exception thrown. $! is error, $@ is
 	# backtrace. is_warning is either true or false, indicating use warn_level or
 	# log_level respectively.
-	def error(error, backtrace, is_warning = false)
+	def error(error = $!, backtrace = $@, is_warning = false)
 
 		# This should really do more work to make the output cleaner, but this'll
 		# work for now.
-
-		out = "#{error}\n";
+		out = StringIO.new()
+		
+		if (error.respond_to?(:page_request))
+			out << ":#{error.page_request.area}#{error.page_request.uri}"
+			if (!error.page_request.session.user.anonymous?)
+				out << " suser=#{error.page_request.session.user.username},suid=#{error.page_request.session.user.userid}"
+			end
+			if (error.page_request.user)
+				out << " puser=#{error.page_request.user.username},puid=#{error.page_request.user.userid}"
+			end
+			out << ": "
+		end
+		out.puts(error)
 		backtrace.each { |line|
-			out += "#{line}\n";
+			out.puts(line)
 			if (is_warning) # only log the last stack of a warning.
 				break;
 			end
 		}
 
-		info("#{out}", is_warning ? error.warn_level : error.log_level, error.facility);
+		info(out.string, is_warning ? error.warn_level : error.log_level, error.facility);
 	end
 
 	# Logs a string at the specified level to the configured targets.
 	def info(string, level = :info, facility = @facility)
 		minlevel = log_minlevel_for(facility)
+		if (level && LogLevels[level].nil?)
+			raise "Invalid log level: #{level} provided."
+		end
 		if (level && LogLevels[level] >= LogLevels[minlevel])
 			# Get the targets for the given facility, and fall back to :general
 			# if it's not found.
-			targets = @targets || @facilities.fetch(facility) { @targets || @facilities[:general]; };
+			targets = @targets + @facilities.fetch(facility) { @targets.empty? ? @facilities[:general] : @targets };
 
-			targets.each {|target|
+			targets.uniq.each {|target|
 				send("log_#{target}", string, level, facility);
 			}
 		end
 	end
 
-	def timestr()
-		Time.now.strftime("%b %d %Y, %H:%M:%S");
+	def userstr
+		return nil unless(defined? PageRequest) #needed since PageRequest is defined after errorlog is loaded
+		req = PageRequest.current
+		return nil unless req
+
+		if(evaluated?(req.session))
+			return "#{req.session.userid}/#{req.get_ip}"
+		else
+			return req.get_ip
+		end
 	end
 
-	def detailed_string(facility, level, string, time = nil)
-		if (time)
-			"#{time}.#{Process.pid}.#{facility}.#{level}:#{string}"
-		else
-			"#{Process.pid}.#{facility}.#{level}:#{string}"
-		end
+	#put in constants so they don't get created each time.
+	LOG_TIME_FORMAT = "%b %d %y, %H:%M:%S."
+	LOG_TIME_FORMAT_MS = "%04i"
+
+	def timestr()
+		time = Time.now
+		return time.strftime(LOG_TIME_FORMAT) + format(LOG_TIME_FORMAT_MS, ((time.to_f - time.to_i) * 10000))
+	end
+
+	def detailed_string(facility, level, string, time = nil, user = nil, pid = Process.pid)
+		str = ""
+		str << "#{time} "  if time
+		str << "[#{user}] " if user
+		str << "#{$site.config_name}." if $site && $site.config_name
+		str << "#{pid}.#{facility}.#{level}"
+		str << " (#{PageRequest.top.token})" if Object.const_defined?(:PageRequest) && PageRequest.top
+		str << ": #{string}"
+		return str
 	end
 
 	# Logs an object's var_get() to the configured targets
@@ -177,18 +248,27 @@ class ErrorLog
 
 	# Passes the string directly to stderr.
 	def log_stderr(realstr, level, facility)
+		realstr = realstr.to_s.strip
 		if (@colorize_log_output)
 			realstr = colorize(level, realstr)
 			level = colorize(level, level)
 			facility = colorize(facility, facility)
 			time = colorize(:time, timestr)
-			@realstderr.puts(detailed_string(facility, level, realstr, time));
+			user = colorize(:user, userstr)
+			pid = colorize(:pid, Process.pid)
+			@realstderr.puts(detailed_string(facility, level, realstr, time, user, pid));
 		else
-			@realstderr.puts(detailed_string(facility, level, realstr, timestr));
+			@realstderr.puts(detailed_string(facility, level, realstr, timestr, userstr));
+		end
+		begin
+			@realstderr.fsync
+		rescue
+			@realstderr.flush
 		end
 	end
 
 	def colorize(symbol, string)
+		return nil unless string
 		return "#{@highlighter.foreground($config.colors(symbol))}#{string}#{@highlighter.reset}"
 	end
 	# Passes the *real* string directly to stdout. Mostly for the dispatch-test
@@ -208,9 +288,9 @@ class ErrorLog
 
 	# Passes the string to syslog at a level mapped to syslog loglevels.
 	def log_syslog(realstr, level, facility)
-		require "syslog";
 		syslog_level = case level
-			when :debug then Syslog::LOG_DEBUG;
+			when :spam then Syslog::LOG_INFO;
+			when :debug then Syslog::LOG_INFO;
 			when :info then Syslog::LOG_INFO;
 			when :warning then Syslog::LOG_WARNING;
 			when :error then Syslog::LOG_ERR;
@@ -218,13 +298,14 @@ class ErrorLog
 		end
 
 		@syslog = @syslog || Syslog.open($0, 0, Syslog::LOG_LOCAL1)
-		@syslog.log(syslog_level, "%s", detailed_string(facility, level, realstr));
+		
+		@syslog.log(syslog_level | Syslog::LOG_LOCAL1, "%s", detailed_string(facility, level, realstr, nil, userstr));
 	end
 
 	# Writes to an error log file in the site_base_dir directory.
 	def logfile(filename, realstr, level, facility)
 		File.open("#{$config.site_base_dir}/logs/site/#{filename}.log", "a") {|logfile|
-			logfile.puts(detailed_string(facility, level, realstr, timestr));
+			logfile.puts(detailed_string(facility, level, realstr, timestr, userstr));
 		}
 	end
 
@@ -256,11 +337,11 @@ class ErrorLog
 	# passed in. Ie.
 	# $log.log_to(:logfile) { $log.info("hello"); }
 	def to(*targets)
-		@targets = targets;
+		targets, @targets = @targets, targets;
 		begin
 			yield
 		ensure
-			@targets = nil;
+			targets, @targets = @targets, targets;
 		end
 	end
 

@@ -1,0 +1,47 @@
+#confirm_email_mockup {
+	width: 726px;
+	padding: 18px 12px 12px 12px;
+	margin: 0px auto 0px auto;
+	background-color: $primary_background_color;
+	color: $primary_text_color;
+	
+	& * {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+	}
+	
+	& br.clear {
+		clear: both;
+	}
+	
+	& .header {
+		font-weight: bold;
+		color: $header_background_color;
+		font-size: 18px;
+		padding-bottom: 30px;
+	}
+	
+	& .content {
+		width: 475px;
+	
+		& span.email {
+			font-weight: bold;
+		}
+			
+		& .big_btn {
+			padding-top: 12px;
+			padding-bottom: 50px;
+			
+			& .custom_button button {
+				font-size: 18px;
+				text-decoration: underline;
+				padding: 4px 35px 6px 35px;
+			}
+		}
+		
+		& .extra_tips {
+			color: $subdued_text_color;
+		}
+	}
+	
+}

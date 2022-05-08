@@ -5,20 +5,22 @@ class Module
 	def enum_attr(name, *syms)
 		syms.flatten!
 
+		variable_name = :"@#{name}"
+
 		self.send(:define_method, :"#{name}") {
-			if (instance_variables.include?("@#{name}"))
-				return instance_variable_get(:"@#{name}").symbol;
+			if (instance_variable_defined?(variable_name))
+				return instance_variable_get(variable_name).symbol;
 			else
-				instance_variable_set(:"@#{name}", Enum.new(syms.first, syms));
-				return instance_variable_get(:"@#{name}").symbol;
+				instance_variable_set(variable_name, Enum.new(syms.first, syms));
+				return instance_variable_get(variable_name).symbol;
 			end
 		}
 
 		self.send(:define_method, :"#{name}=") { |symbol|
-			if (instance_variables.include?("@#{name}"))
-				instance_variable_get(:"@#{name}").symbol = symbol;
+			if (instance_variable_defined?(variable_name))
+				instance_variable_get(variable_name).symbol = symbol;
 			else
-				instance_variable_set(:"@#{name}", Enum.new(symbol, syms));
+				instance_variable_set(variable_name, Enum.new(symbol, syms));
 			end
 		}
 	end

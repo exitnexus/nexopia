@@ -1,7 +1,10 @@
 lib_require :Core, "data_structures/enum"
 class Boolean < Enum
+
+	@@bool_symbols = [false, true]
+
 	def initialize(bool=false)
-		@symbols = [false, true].to_set;
+		@symbols = @@bool_symbols;
 		if (bool)
 			@symbol = true;
 		else

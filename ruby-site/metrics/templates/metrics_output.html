@@ -1,0 +1,71 @@
+<div class="metrics" id="metrics_output">
+<table border="1">
+	<tr>
+		<th>Date</th>
+		<t:loop t:id="headers" t:iter="metricheader">
+		<th colspan="{metricheader[:header_colspan]}">
+			{metricheader[:description]}
+		</th>
+		</t:loop>
+	</tr>
+	<!--tr>
+		<th>&nbsp;</th>
+		<t:loop t:id="headers" t:iter="metricheader">
+			<th colspan="{metricheader[:header_colspan]}">
+				{metricheader[:header]}
+			</th>
+		</t:loop>
+	</tr-->
+	<t:if t:id="any_subheaders">
+	<tr>
+		<th>&nbsp;</th>
+		<t:loop t:id="headers" t:iter="metricheader">
+			<t:if t:id="metricheader[:subheaders].empty?">
+				<th colspan="{metricheader[:subheader_colspan]}">&nbsp;</th>
+			</t:if>
+			<t:if t:id="!metricheader[:subheaders].empty?">
+			<t:loop t:id="metricheader[:subheaders]" t:iter="subheader">
+				<th colspan="{metricheader[:subheader_colspan]}">
+					{subheader}
+				</th>
+			</t:loop>
+			</t:if>
+		</t:loop>
+	</tr>
+	</t:if>
+	<t:if t:id="any_usertypes">
+	<tr>
+		<th>&nbsp;</th>
+		<t:loop t:id="headers" t:iter="metricheader">
+			<t:if t:id="metricheader[:subheaders].empty?">
+				<t:if t:id="metricheader[:usertypes]">
+					<th>all</th><th>plus</th><th>active</th>
+				</t:if>
+				<t:if t:id="!metricheader[:usertypes]">
+					<th>&nbsp;</th>
+				</t:if>
+			</t:if>
+			<t:if t:id="!metricheader[:subheaders].empty?">
+			<t:loop t:id="metricheader[:subheaders]" t:iter="subheader">
+				<t:if t:id="metricheader[:usertypes]">
+					<th>all</th><th>plus</th><th>active</th>
+				</t:if>
+				<t:if t:id="!metricheader[:usertypes]">
+					<th>&nbsp;</th>
+				</t:if>
+			</t:loop>
+			</t:if>
+		</t:loop>
+	</tr>
+	</t:if>
+	
+	
+	<t:loop t:id="data" t:iter="row">
+	<tr>
+		<t:loop t:id="row" t:iter="col">
+			<td>{col}</td>
+		</t:loop>
+	</tr>
+	</t:loop>
+</table>
+</div>

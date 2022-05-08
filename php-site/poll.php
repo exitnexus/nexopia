@@ -22,6 +22,7 @@
 		case "Suggest Poll":
 			$question = getPOSTval('question');
 			$answers = getPOSTval('answers', 'array');
+			ksort($answers);
 			if($polls->addPoll($question, $answers, true)){
 				incHeader();
 				echo "Thanks for submitting your poll. It will be checked and might go up in the near future";

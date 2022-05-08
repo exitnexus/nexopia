@@ -1,0 +1,47 @@
+/* styles for header/body/footer wrapper within container */
+.autocomplete_main_container
+{
+	& .yui-ac-content{
+		/* Default */
+	    background:$primary_background_color;
+		color:$primary_text_color;
+		
+		/* styles for prehighlighted result item */
+		& li.yui-ac-prehighlight 
+		{
+		    background:$secondary_background_color;
+			color:$secondary_text_color;
+		}
+		
+		/* styles for highlighted result item */
+		& li.yui-ac-highlight {
+		    background:$secondary_background_color;
+			color:$secondary_text_color;
+		}
+	}
+}
+
+#edit_panel
+{
+	& .autocomplete_main_container
+	{
+		& .yui-ac-content{
+			/* Default */
+		    background: #FFFFFF;
+			color: #323237;
+
+			/* styles for prehighlighted result item */
+			& li.yui-ac-prehighlight 
+			{
+			    background: #DFDFDF;
+				color: #000000;
+			}
+
+			/* styles for highlighted result item */
+			& li.yui-ac-highlight {
+			    background: #DFDFDF;
+				color: #000000;
+			}
+		}
+	}
+}

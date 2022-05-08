@@ -19,6 +19,9 @@ class DateSelector < PageHandler
 		page :GetRequest, :Full, :date, "date"
 		page :GetRequest, :Full, :dob, "dob"
 		page :GetRequest, :Full, :date, "date", input(Integer), input(Integer), input(Integer)
+		# Expects a dob timestamp value as input
+		page :GetRequest, :Full, :dob, "dob", input(Integer)
+		# Expects a month, day, and year as input
 		page :GetRequest, :Full, :dob, "dob", input(Integer), input(Integer), input(Integer)
 	}
 
@@ -27,7 +30,7 @@ class DateSelector < PageHandler
 	YEARS = (1900..Time.now.year).to_a;
 
 	MAX_AGE = 60;
-	MIN_AGE = 14;
+	MIN_AGE = 13;
 
 	def date(month=nil,day=nil,year=nil)
 		t = Template.instance("nexoskel","date_selector");
@@ -63,7 +66,17 @@ class DateSelector < PageHandler
 	end
 
 	
-	def dob(month=nil,day=nil,year=nil)
+	def dob(month_or_dob=nil,day=nil,year=nil)
+		
+		if (!month_or_dob.nil? && day.nil? && year.nil?)
+			dob_time = Time.at(month_or_dob).getgm;
+			month = dob_time.month;
+			day = dob_time.day;
+			year = dob_time.year;
+		else
+			month = month_or_dob;
+		end
+		
 		t = Template.instance("nexoskel","date_selector");
 		
 		t.day_ref = params["day_ref", String, "day"];

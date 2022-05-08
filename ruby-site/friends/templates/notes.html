@@ -1,0 +1,16 @@
+<tr id="notes_{friendid}">
+	<td class="detail_title">Notes:</td>
+	<td t:id="!edit_mode" class="detail_value"><div class="note" minion_name="friends:truncated">{comment}</div></td>
+	<t:if t:id="edit_mode">
+		<td class="notes detail_value">
+			<div class="note" minion_name="friends:truncated">{comment}</div>
+			<t:if t:id="!comment.to_s.empty?">&nbsp;</t:if>
+			<a class="edit_link" minion_name="friends:notes:edit" href="">
+				&nbsp;[edit]
+			</a>
+			<form method="post" class="edit_form" minion_name="friends:notes:form" action="#{PageRequest.current.area_base_uri}/friends/comments/update/%{friendid}">
+				<input class="edit_notes" type="text" value="{comment}" name="comment" maxlength="128"/>
+			</form>
+		</td>
+	</t:if>
+</tr>

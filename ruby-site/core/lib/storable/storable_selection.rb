@@ -3,17 +3,15 @@ class StorableSelection
 	attr_reader(:symbol, :columns, :sql);
 	def initialize(symbol, *columns)
 		@symbol = symbol;
-		@columns = columns.flatten;
-	end
-	
+		@columns = {}
+		columns.flatten.each{|c|@columns[c] = true};
+
 	#retrieve an sql SELECT string.  eg. "SELECT `id`, `name` "
-	def sql
-		columns = columns.map{|col| "`#{col}`"}
-		return " #{columns.join(', ')} ";
+		@sql = " `" + @columns.keys.join('`, `') + "` "
 	end
-	
+
 	def valid_column?(name)
-		return columns.include?(name.to_sym);
+		return @columns[name.to_sym];
 	end
 	
 end

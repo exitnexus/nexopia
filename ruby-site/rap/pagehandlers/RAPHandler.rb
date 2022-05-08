@@ -12,6 +12,8 @@
 require 'rubygems'
 require 'RAP'
 
+lib_want :Gallery, 'gallery_pic'
+
 class Array
 	def to_hash
 		h = {};
@@ -21,16 +23,26 @@ class Array
 		h
 	end
 end
+class PhpBinding
+	def initialize(bind)
+		@bind = bind
+	end
+	def method_missing(name)
+		name = name.to_s.gsub(/^g_/, '$')
+		eval(name, @bind)
+	end
+end
+
 class RAPminiHandler < PageHandler
 	declare_handlers("") {
 		area :Public
 		access_level :Any
 		
-		page :GetRequest, :Php, :rap_missing,	input(/.*\.php/)
+		page :GetRequest, :Php, :rap_missing, input(/.*\.php/), remain;
 		handle :GetRequest, :bannerview, "bannerview.php"
-		handle :GetRequest, :rap_about,		"rap", "about"
+		handle :GetRequest, :rap_about, "rap", "about"
 		handle :GetRequest, :head, "header"
-		
+
 		area :Internal
 		handle :GetRequest, :internal_header, "header"
 		handle :GetRequest, :block, "blocks", input(String)
@@ -42,6 +54,10 @@ class RAPminiHandler < PageHandler
 
 		begin
 			RapModule::php.register_object self, "rap_pagehandler"
+			RapModule::php.register_object(srequest.post, "ruby_post");
+			RapModule::php.register_object($site, "ruby_site_obj");
+			RapModule::php.register_object(PhpBinding.new(binding), "Ruby")
+			
 			results = RapModule::php.exec "bannerview.php", srequest 
 		rescue
 			$log.info $!, :error
@@ -76,11 +92,17 @@ class RAPminiHandler < PageHandler
 	
 	def parse_headers(results)
 		headers = {};
+		
 		results[:headers].split("\n").each do |header|
 			key,value = header.split(":", 2)
-			headers[key.strip] ||= []
-			headers[key.strip] << value.strip;
+			if(key && value)
+				headers[key.strip] ||= []
+				headers[key.strip] << value.strip;
+			else
+				$log.info "Invalid header received through rap: #{header}", :warning
+			end
 		end
+		
 		return headers
 	end
 	
@@ -145,18 +167,33 @@ class RAPminiHandler < PageHandler
 		puts t.display();
 	end
 	
-	def prep_variables_r(params)
-		$log.info "Prep variables:"
+	def prep_variables_r(params)		
 		files = {};
 		vars = {};
 		
+		# Somehow we can get an Array as a parameter just like we can get a Hash. In the spirit of not
+		# doing drastic modifications of complex code that I simply don't understand, I am hacking it
+		# out in the first part of this loop. I explicitly check if the params method parameter is an
+		# Array. If it is, I know that it doesn't follow the "key,value" format that a Hash would, so
+		# the "k" value below will actually be the parameter. I then use a counter value as the key
+		# to the "files" or "vars" hash because the methods that call this method expect a hash returned.
+		# It seems to work fine, and at the very least, it shouldn't break anything that wasn't broken
+		# before, as before we were blind to Arrays through RAP.
+		#
+		# TODO: When someone understands this code more and has a little time, fix the hackiness here
+		# to either make sure we never get an Array passed through (I though PHP only used hashes?!?)
+		# or deal more elegantly with either possibility.
+		array_index = 0;
 		params.each {|k, param|
-			$log.info "#{k}"
-			$log.object param
-			$log.object param.respond_to?(:original_filename)
+			if (params.kind_of? Array)
+				param = k;
+				k = array_index;
+				array_index = array_index + 1;
+			end
+				
 			if (param.respond_to?(:original_filename))
 				files[k] = param
-			elsif (param.kind_of? Hash)
+			elsif (param.kind_of?(Hash) || param.kind_of?(Array))
 				r_vars, r_files = prep_variables_r(param);
 				r_files.each_pair{|index, f|
 					files[k] ||= []
@@ -167,24 +204,41 @@ class RAPminiHandler < PageHandler
 				vars[k] = param
 			end
 		}
-		$log.object vars;
-		$log.object files;
-		$log.info "------------------------"
 		return [vars, files]
 	end
 	
-	def prepare_request(*match)
-		post = Hash.new
-		get = Hash.new
-		files = Hash.new
-		cookies = Hash.new
-
-		$log.object params.to_hash, :critical
-		if params.to_hash.length > 0 then
-			get, files = prep_variables_r(params.to_hash)
-			if (request.method == :PostRequest)
-				post = get;
+	def unhash_contents(h)
+		return h if !h.is_a?(Hash)
+		a = Array.new()
+		for i in 0..h.length - 1
+			key = i.to_s
+			if !h.has_key?(key)
+				# Couldn't do it, array indices are messed up
+				return h
 			end
+			a << h[key]
+		end
+		return a
+	end
+	
+	def prepare_request(match, remain = nil)
+		post    = {}
+		get     = {}
+		files   = {}
+		cookies = {}
+
+		paramhash = params.to_hash
+		if(paramhash.length > 0)
+			vars, files = prep_variables_r(paramhash)
+			if (request.method == :PostRequest)
+				post = vars;
+			else
+				get = vars;
+			end
+			# Undo hashing of subelements
+			vars.each { |k, v|
+				vars[k] = unhash_contents(v) if v.is_a?(Hash)
+			}
 		end
 		headers = request.headers;
 		
@@ -199,32 +253,29 @@ class RAPminiHandler < PageHandler
 			session.user.class.columns.each_value {|column|
 				user_obj["#{column.name}"] = session.user.send(:"#{column.name}");
 			}
-			user_obj["interests"] = session.user.interests.to_a.map{|i| i.interestid}.join(",");
+			user_obj['interests'] = session.user.interests.to_a.map{|i| i.interestid}.join(",");
 			user_obj['username'] = session.user.username;
-			if (session.user.state.to_s == "active")
-				user_obj['loggedIn'] = true
-			else
-				user_obj['loggedIn'] = false
-			end
+			user_obj['loggedIn'] = (session.user.state.to_s == "active");
 			user_obj['halfLoggedIn'] = true;
 			user_obj['sessionkey'] = session.sessionid;
 			user_obj['sessionlockip'] = session.lockip;
 			user_obj['premium'] = session.user.plus?;
-			user_obj['debug'] = (session.user.userid == 203)
+			user_obj['debug'] = false;
+			user_obj['userid'] = session.user.userid;
+			user_obj['limitads'] = session.user.limitads;
+			user_obj['trustjstimezone'] = session.user.trustjstimezone;
 		else
 			user_obj['loggedIn'] = false;
 			user_obj['halfLoggedIn'] = false;
-			user_obj['timeoffset']=0;
+			user_obj['timeoffset'] = 0;
 			user_obj['limitads'] = false;
 			user_obj['premium'] = false;
 			user_obj['debug'] = false;
 			user_obj['userid'] = -1;
 		end		
-
+		
 		srequest.files = {};
-		$log.info "These are the files:", :critical
-		$log.object files;
-		files.each{|handle, arr|
+		files.each{|handle, io|
 			srequest.files[handle] = { 
 				'name' => {},
 				'type' => {},
@@ -232,43 +283,70 @@ class RAPminiHandler < PageHandler
 				'tmp_name' => {},
 				'error' => {}
 			}
-			[*arr].each_with_index{|io,index|
-				$log.info "Adding file #{handle}", :error
-				$log.object io, :error;
-				if (io.kind_of? Tempfile || (!io.kind_of? File))
-					f = File.new("/tmp/input_file_#{handle}.#{Process.pid}", "w")
+			if (io.kind_of? Array)
+				io.each_with_index{|io,index|
+					if (io.kind_of? Tempfile)
+						tmpfile = io
+					else
+						f = Tempfile.new("input_file")
+						f.write(io.read)
+						f.flush
+						f.rewind;
+						tmpfile = f;
+					end
+			
+					srequest.files[handle]['name'][index] = io.original_filename
+					srequest.files[handle]['type'][index] = ""
+					srequest.files[handle]['size'][index] = io.length
+					srequest.files[handle]['tmp_name'][index] = tmpfile.path
+					srequest.files[handle]['error'][index] = ''
+				}
+			else
+				if (io.kind_of? Tempfile)
+					tmpfile = io
+				else
+					f = Tempfile.new("input_file")
 					f.write(io.read)
 					f.flush
 					f.rewind;
 					tmpfile = f;
-				else
-					tmpfile = io;
 				end
-				
-				srequest.files[handle]['name'][index] = io.original_filename
-				srequest.files[handle]['type'][index] = ""
-				srequest.files[handle]['size'][index] = io.length
-				srequest.files[handle]['tmp_name'][index] = tmpfile.path
-				srequest.files[handle]['error'][index] = ''
-			}
+		
+				srequest.files[handle]['name'] = io.original_filename
+				srequest.files[handle]['type'] = ""
+				srequest.files[handle]['size'] = io.length
+				srequest.files[handle]['tmp_name'] = tmpfile.path
+				srequest.files[handle]['error'] = ''				
+			end
 		}
-		 
+
+		filename = "/" + match.to_s();
+		
+		needed_modules = PageHandler.modules.collect{|mod| mod.javascript_dependencies + [mod] }.flatten.uniq.compact
+		paths = needed_modules.map{|mod|
+			mod.javascript_config.javascript_paths
+		}
+		paths = paths.flatten.uniq
+		
 		srequest.globals = {"myvar" => ""}
-		srequest.ruby = {"auth" => user_obj}
+		srequest.ruby = {"auth" => user_obj, "scripts" => paths}
 		srequest.get = get
 		srequest.post = post
 		srequest.server = request.headers
-		srequest.server['SCRIPT_NAME'] = "/#{match}"
-		srequest.server['SCRIPT_FILENAME'] = "#{$site.config.svn_base_dir}/php-site/public_html/#{match}"
-		srequest.server['DOCUMENT_ROOT'] = "#{$site.config.svn_base_dir}/php-site/public_html/"
+		srequest.server.delete('HTTP_ACCEPT_ENCODING') #php should NOT be gzipping the data before sending it to us
+		srequest.server['NEXOPIA_PHP_CONFIG'] = $site.config.rap_php_config if $site.config.rap_php_config
+		srequest.server['HTTP_HOST'] = $site.config.www_url.to_s
+		srequest.server['SCRIPT_NAME'] = filename
+		srequest.server['SCRIPT_FILENAME'] = "#{$site.config.legacy_base_dir}#{filename}"
+		srequest.server['DOCUMENT_ROOT'] = "#{$site.config.legacy_base_dir}/"
 		srequest.server['ORIG_PATH_INFO'] = ""
-		srequest.server['ORIG_SCRIPT_NAME'] = "/#{match}"
-		srequest.server['ORIG_SCRIPT_FILENAME'] = "#{$site.config.svn_base_dir}/php-site/public_html/#{match}"
+		srequest.server['ORIG_SCRIPT_NAME'] = filename
+		srequest.server['ORIG_SCRIPT_FILENAME'] = "#{$site.config.legacy_base_dir}#{filename}"
 		srequest.server['PATH_TRANSLATED'] = ""
 		srequest.cookies = cookies
 		return srequest;
 	end
-	
+
 	class Poll
 		def has_voted?(*args)
 			return false;
@@ -375,37 +453,70 @@ class RAPminiHandler < PageHandler
 		return t.display();
 	end
 	
-	def rap_missing *match
-		srequest = prepare_request(*match)
+	def rap_missing(match, remain)
+		PageHandler.top[:modules] << SiteModuleBase.get(:Interstitial);
+		
+		srequest = prepare_request(match, remain);
 
 		begin
-			dbobj = $site.dbs[:usersdb]
-			
-			RapModule::php.register_object dbobj, "dbobj"
-			
-			RapModule::php.register_object self, "rap_pagehandler"
-			results = RapModule::php.exec "#{match.join("/")}", srequest 
+			RapModule::php.register_object(srequest.post, "ruby_post");
+			RapModule::php.register_object(self, "rap_pagehandler");
+			RapModule::php.register_object($site, "ruby_site_obj");
+			RapModule::php.register_object(PhpBinding.new(binding), "Ruby")
+			results = RapModule::php.exec("#{match}", srequest);
 		rescue
 			$log.info $!, :error
 			$log.info $!.backtrace, :error
+			raise
 		end
 		
 		headers = parse_headers(results)
 		handle_php_headers(headers)
 
 		#TODO: Put this back to how it was
- 		puts results[:output]
+		puts results[:output]
 #		puts RAPminiHandler::RAP_page(results[:output], headers)
 	end
 	
-	def do_an_add one, two
+	def build_session(user_id, cached_login, lock_ip)
+		new_session = Session.build(PageRequest.current.get_ip_as_int(), user_id, cached_login, lock_ip);
+		if(new_session.cookie.nil?())
+			$log.info("New cookie was nil!")
+		end
+		PageRequest.current.reply.set_cookie(new_session.cookie);
+	end
+	
+	def destroy_session(user_id, key)
+		temp_session = Session.get("#{key}:#{user_id}");
+		if(!temp_session.nil?())
+			request_ip = PageRequest.current.get_ip_as_int();
+			expired_cookie = temp_session.destroy(request_ip);
+			if(!expired_cookie.nil?())
+				PageRequest.current.reply.set_cookie(expired_cookie);
+			end
+		end
+	end
+	
+	def ruby_log(s)
+		$log.info(s, :warning);
+	end
+
+	def delete_gallery_pics(pics)
+		if (site_module_loaded?(:Gallery))
+			pics = pics.values.map {|pic| pic.split(':').map {|id| id.to_i}}
+			pics = Gallery::Pic.find(*pics)
+			pics.each {|pic| pic.delete}
+		end
+	end
+	
+	def ruby_log_object(obj)
+		$log.object(obj, :warning);
+	end
+	
+	def do_an_add(one, two)
 		return one + two
 	end
-	
-	def a_msg
-		return "hi there"
-	end
-	
+		
 	def get_ruby_object
 		return self
 	end
@@ -414,7 +525,7 @@ class RAPminiHandler < PageHandler
 		return [1, 4, "cat"]
 	end
 	
-	def do_something_with_an_array in_val
+	def do_something_with_an_array(in_val)
 		return "#{in_val.to_s}"
-	end
+	end	
 end

@@ -26,7 +26,7 @@ td.header		{ background: #fac1e2; color: #2c2c2c; font-family: arial, sans-serif
 a.header  	{ color: #2c2c2c; text-decoration:none; }
 a.header:hover	{ color: #f27fc2; }
 
-td.headerfront	{ color:#2c2c2c; background: #fff url(http://static.nexopia.com/skins/verypink/blockhead.png); font-size: 12pt; height:26px; text-indent:10px; padding-bottom:10px;}
+td.headerfront	{ color:#2c2c2c; background: #fff url(http://static.nexopia.com/1/files/Legacy/skins/verypink/blockhead.png); font-size: 12pt; height:26px; text-indent:10px; padding-bottom:10px;}
 
 td.header2			{ color: #fff; font-weight: bold; font-family: arial, sans-serif; font-size: 8pt}
 a.header2     	{ color: #fff; text-decoration:none; }
@@ -60,7 +60,7 @@ a.forumlst1:hover,a.forumlst1:active { color: #f27fc2; text-decoration:none; fon
 a.forumlst2:link,a.forumlst2:visited { color: #000; text-decoration:none; font: 8pt arial, sans-serif; }
 a.forumlst2:hover,a.forumlst2:active { color: #f27fc2; text-decoration:none; font: 8pt arial, sans-serif;}
 
-td.small		{ background: #fac1e2 url(http://static.nexopia.com/skins/verypink/headerbg.png);color: #2c2c2c; font-family: arial, sans-serif; font-size: 8pt}
+td.small		{ background: #fac1e2 url(http://static.nexopia.com/1/files/Legacy/skins/verypink/headerbg.png);color: #2c2c2c; font-family: arial, sans-serif; font-size: 8pt}
 a.small  	{ color: #2c2c2c; text-decoration:none; }
 a.small:hover	{ color: #f27fc2; }
 

@@ -1,10 +1,10 @@
 <div t:docid="groups_profile_block" id="groups_profile_block">
-	<div class="groups_header">
-		<div class="groups_title">
-			GROUPS
+	<div>
+		<div class="block_title">
+			CONNECTIONS
 		</div>
 	</div>
-	<table>
+	<table cellspacing="0" cellpadding="0">
 		<!-- Groups Table -->
 		<t:loop t:id="user_group_types" t:iter="user_group_type">
 			<t:loop t:id="user_group_type" t:iter="user_group" t:index="num">
@@ -15,8 +15,8 @@
 					<t:if t:id="num > 0">
 						<td></td>
 					</t:if>
-					<td>
-						{user_group.group_name}<br />
+					<td class="single_connection">
+						<span class="name">{user_group.group_name}</span><br />
 						<span class="location">{user_group.group_location_path}</span><br/>
 						<span class="duration">{user_group.duration}</span><br/>
 					</td>

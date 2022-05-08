@@ -1,0 +1,47 @@
+<div id="pimp_my_profile_full">
+
+	<div class="page_wrapper1">
+	<div class="page_wrapper2">
+	
+		<div class="content_container">
+			<div class="header">
+				<img src="#{$site.static_files_url}/Vote/images/vote02_header_small.gif" />
+			</div>
+			<div class="profile_info">
+				<div class="username">
+					<a href="/users/%{skin.designername}">{skin.designername}</a>
+				</div>
+				<t:if t:id="!skin.siteskin.nil?">
+				<div class="site_theme">
+					Viewed in&#160;<span class="italic">{skin.siteskin}</span>
+				</div>
+				</t:if>
+			</div>
+			<br class="clear" />
+			
+			<div class="back_link">
+				<a href="../">&#171; Back to Voting Page</a>
+			</div>
+			<div class="navigation_btns">
+				<a href="{prevskin}"><img border="0" src="#{$site.static_files_url}/Vote/images/vote_previous_btn.gif" /></a>
+				&#160;<a href="{nextskin}"><img border="0" src="#{$site.static_files_url}/Vote/images/vote_next_btn.gif" /></a>
+			</div>
+			<br class="clear" />
+			
+			<img border="0" src="#{$site.static_files_url}/Vote/images/{skin.filename}_full.jpg" class="profile_preview" />
+			
+			<div class="back_link">
+				<a href="/vote">&#171; Back to Voting Page</a>
+			</div>
+			<div class="navigation_btns">
+				<a href="{prevskin}"><img border="0" src="#{$site.static_files_url}/Vote/images/vote_previous_btn.gif" /></a>
+				&#160;<a href="{nextskin}"><img border="0" src="#{$site.static_files_url}/Vote/images/vote_next_btn.gif" /></a>
+			</div>
+			<br class="clear" />
+			
+		</div>
+	
+	</div>
+	</div>
+	
+</div>

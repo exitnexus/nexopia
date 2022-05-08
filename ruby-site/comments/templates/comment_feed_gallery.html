@@ -1,0 +1,200 @@
+<div id="comment_feed">
+
+	<a t:id="user" class="user_thumbnail"><img t:id="user" t:linktype="landscapemini"/></a>
+	<div class="comment_header">
+		<div class="username">
+			{user.username}'s Comments
+		</div>
+	</div>
+	<br class="clear" />
+	
+	<div class="secondary_tabs">
+		<a href="/users/%{user.username}/comments" class="first_tab">Profile</a> |
+		<a href="/users/%{user.username}/comments/gallery" class="selected">Gallery</a>
+	</div>
+	
+	
+	
+	<div t:id="story_maps" t:iter="story_map" t:index="index" class="comment_view_container_gallery{index == 0 ? ' first_comment' : ''}">
+		<div class="comment_description">
+			<div class="comment_icon">
+				<img src="{$site.static_files_url}/nexoskel/images/photo_comment.gif" />
+			</div>
+			<a t:id="story_map.first.reporter.pic.owner">
+				{story_map.first.reporter.pic.owner.username}'s
+			</a>&#160;
+			<a t:id="story_map.first.reporter.pic">photo</a>&#160;in the album&#160;
+			<a t:id="story_map.first.reporter.pic.gallery"></a>.
+		</div>
+		<div class="comment_gallery_photo">
+			<a t:id="story_map.first.reporter.pic"><img t:id="story_map.first.reporter.pic" t:linktype="squaremini"/></a>
+		</div>
+		
+		<!-- If the owner of the picture is the owner of the feed then we want the "Showing X of Y" to be at the top. -->
+		<t:if t:id="(story_map.first.reporter.pic.owner.userid == user.userid)">
+		<table class="view_hidden_comments comment_list_spacing" t:id="story_map.meta.link_to_all">
+		<tr>
+			<td>
+				<div class="comment_body">
+					<a t:id="story_map.first.reporter.pic">Showing {story_map.length} of {story_map.first.reporter.pic.comments_count} comments.</a>&#160;
+						<t:if t:id="story_map.meta.new_stories > 0">({story_map.meta.new_stories} new)</t:if>
+				</div>
+			</td>
+		</tr>
+		</table>
+		</t:if>
+		
+		<t:loop t:id="story_map" t:iter="story" t:index="comment_index" >
+		
+			<t:if t:id="(comment_index == 0) && (story.reporter.author.userid != user.userid) && (story_map.first.reporter.pic.owner.userid != user.userid)">
+			<table class="view_hidden_comments comment_list_spacing" t:id="story_map.meta.link_to_all">
+			<tr>
+				<td>
+					<div class="comment_body">
+						<a t:id="story_map.first.reporter.pic">Showing {story_map.length} of {story_map.first.reporter.pic.comments_count} comments.</a>&#160;
+							<t:if t:id="story_map.meta.new_stories > 0">({story_map.meta.new_stories} new)</t:if>
+					</div>
+				</td>
+			</tr>
+			</table>
+			</t:if>
+		
+			<table class="single_comment_table comment_list_spacing">
+			<tr>
+				<td>
+					<div class="comment_user_img">
+						<a t:id="story.reporter.author"><img t:id="story.reporter.author" t:linktype="landscapemini"/></a>
+					</div>
+				</td>
+				<td>
+					<div class="comment_content">
+						<div class="comment_date">
+							<t:nice-time t:time="story.reporter.time" t:format="date_and_time"/>
+						</div>
+						<div class="comment_username">
+							<a t:id="story.reporter.author"></a>
+						</div>
+						<br class="clear" />
+						<div class="comment_body">
+							@{story.reporter.nmsg}
+						</div>
+					</div>
+				</td>
+			</tr>
+			</table>
+		
+			<t:if t:id="(comment_index == 0) && (story.reporter.author.userid == user.userid) && (story_map.first.reporter.pic.owner.userid != user.userid)" >
+			<table class="view_hidden_comments comment_list_spacing" t:id="story_map.meta.link_to_all">
+			<tr>
+				<td>
+					<div class="comment_body">
+						<a t:id="story_map.first.reporter.pic">Showing {story_map.length} of {story_map.first.reporter.pic.comments_count} comments.</a>&#160;
+							<t:if t:id="story_map.meta.new_stories > 0">({story_map.meta.new_stories} new)</t:if>
+					</div>
+				</td>
+			</tr>
+			</table>
+			</t:if>
+		
+		</t:loop>
+	</div>
+	
+	<!-- <div class="comment_view_container_gallery">
+		<div class="comment_description">
+			<div class="comment_icon">
+				<img border="0" src="{$site.static_files_url}/mockups/common/icons/icon_gallery.gif" />
+			</div>
+			<a href="#">username's</a>&#160;<a href="#">photo</a>&#160;in the album&#160;<a href="#">Random</a>.
+		</div>
+		<div class="comment_gallery_photo">
+			<a href="#"><img border="0" src="{$site.static_files_url}/mockups/gallery_placeholders/gallery_album12.gif" /></a>
+		</div>
+		<table class="view_hidden_comments" width="100%" cellspacing="0" cellpadding="0">
+		<tr>
+			<td>
+				<div class="comment_body">
+					<a href="#">View all comments</a>&#160;(7)
+				</div>
+			</td>
+		</tr>
+		</table>
+		<table class="single_comment_table" width="100%" cellspacing="0" cellpadding="0">
+		<tr>
+			<td>
+				<div class="comment_user_img">
+					<a href="#"><img border="0" src="{$site.static_files_url}/mockups/common/user_thumb05.jpg" /></a>
+				</div>
+			</td>
+			<td>
+				<div class="comment_content">
+					<div class="comment_date">
+						02:43pm | Dec 30, '08
+					</div>
+					<div class="comment_username">
+						<a href="#">username</a>
+					</div>
+					<div class="comment_body">
+						Donec sed erat a tortor mattis sagittis.  Cras interdum sapien id lorem. Aliquam nibh. Aliquam viverra scelerisque nulla.
+					</div>
+				</div>
+			</td>
+		</tr>
+		</table>
+		<table class="single_comment_table comment_list_spacing" width="100%" cellspacing="0" cellpadding="0">
+		<tr>
+			<td>
+				<div class="comment_user_img">
+					<a href="#"><img border="0" src="{$site.static_files_url}/mockups/common/user_thumb05.jpg" /></a>
+				</div>
+			</td>
+			<td>
+				<div class="comment_content">
+					<div class="comment_date">
+						02:43pm | Dec 30, '08
+					</div>
+					<div class="comment_username">
+						<a href="#">username</a>
+					</div>
+					<div class="comment_body">
+						Donec sed erat a tortor mattis sagittis.  Cras interdum sapien id lorem. Aliquam nibh. Aliquam viverra scelerisque nulla.
+					</div>
+				</div>
+			</td>
+		</tr>
+		</table>
+	</div>
+	
+	<div class="comment_view_container_gallery">
+		<div class="comment_description">
+			<div class="comment_icon">
+				<img border="0" src="{$site.static_files_url}/mockups/common/icons/icon_gallery.gif" />
+			</div>
+			<a href="#">username's</a>&#160;<a href="#">photo</a>&#160;in the album&#160;<a href="#">Random</a>.
+		</div>
+		<div class="comment_gallery_photo">
+			<a href="#"><img border="0" src="{$site.static_files_url}/mockups/gallery_placeholders/gallery_album13.gif" /></a>
+		</div>
+		<table class="single_comment_table" width="100%" cellspacing="0" cellpadding="0">
+		<tr>
+			<td>
+				<div class="comment_user_img">
+					<a href="#"><img border="0" src="{$site.static_files_url}/mockups/common/user_thumb05.jpg" /></a>
+				</div>
+			</td>
+			<td>
+				<div class="comment_content">
+					<div class="comment_date">
+						02:43pm | Dec 30, '08
+					</div>
+					<div class="comment_username">
+						<a href="#">username</a>
+					</div>
+					<div class="comment_body">
+						Donec sed erat a tortor mattis sagittis.  Cras interdum sapien id lorem. Aliquam nibh. Aliquam viverra scelerisque nulla. Donec sed erat a tortor mattis sagittis.  Cras interdum sapien id lorem. Aliquam nibh. Aliquam viverra scelerisque nulla. Donec sed erat a tortor mattis sagittis.  Cras interdum sapien id lorem. Aliquam nibh. Aliquam viverra scelerisque nulla.
+					</div>
+				</div>
+			</td>
+		</tr>
+		</table>
+	</div> -->
+</div>

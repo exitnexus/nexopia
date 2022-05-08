@@ -7,6 +7,7 @@ def initialize_site(init_pagehandlers = true, close_dbs = false)
 		$site.load_modules();
 		$site.load_page_handlers() if init_pagehandlers;
 		$site.load_templates() if init_pagehandlers;
+		$site.load_skins() if init_pagehandlers;
 		$site.close_dbs() if close_dbs;
 		$log.info("Loading done...", :critical)
 	rescue Object

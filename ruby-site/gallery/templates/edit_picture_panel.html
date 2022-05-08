@@ -1,0 +1,21 @@
+<div id="edit_picture_panel" minion_name="edit_picture_panel" t:json="pic.id">
+	<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.6.0/build/assets/skins/sam/resize.css"/> 
+	<link rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.6.0/build/assets/skins/sam/imagecropper.css"/> 
+	
+	<input type="hidden" name="form_key" value="{form_key}" minion_name="edit_picture:form_key"/>
+	
+	<div class="panel_functions">
+		<t:button minion_name="edit_picture:done">Done</t:button>
+	</div>
+	<h1>EDIT PHOTO<img src="#{$site.static_files_url}/nexoskel/images/spinner.gif" class="spinner" minion_name="edit_picture:spinner"/></h1>
+	<t:template-include name="edit_picture_panel_functions" module="gallery"/>
+	<div class="image_cropper">
+		<table class="image_wrapper yui-skin-nexopia">
+			<tr><td><img t:id="pic" t:linktype="profile" id="source_image" minion_name="edit_picture:image" t:json="pic.crop"/></td></tr>
+		</table>
+	</div>
+	<div class="instructions">
+		Drag and scale rectangle to change thumbnail crop. 
+		&nbsp;<a href="#help" minion_name="help" title="Image Cropper" content="The crop only affects picture thumbnails and profile pictures in the Improved Slider View.">[?]</a>
+	</div>
+</div>

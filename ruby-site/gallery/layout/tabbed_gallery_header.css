@@ -1,0 +1,49 @@
+.tabbed_gallery_header {
+	& a {
+		color: @primary_block_link_color;
+		&:hover {
+			color: @primary_block_link_hover_color;
+		}
+	}
+
+	& .user_thumbnail {
+		float: left;
+		margin-right: 6px;
+	}
+
+	& .gallery_header {
+		float: left;
+
+		& div.username {
+			font-size: 16px;
+			font-weight: bold;
+			color: @primary_block_header_text_color;
+			margin: 0px;
+		}
+
+		& .gallery_tabs {
+			border-bottom: 1px solid @secondary_block_background_color;
+			padding-top: 6px;
+			padding-bottom: 2px;
+			width: 682px;
+
+			& a {
+				border-right: 1px solid @secondary_block_background_color;
+				border-top: 1px solid @secondary_block_background_color;
+				padding: 2px 15px 2px 15px;
+				text-decoration: none;
+			}
+
+			& a.first_tab {
+				border-left: 1px solid @secondary_block_background_color;
+			}
+
+			& .selected {
+				border-bottom: 1px solid @primary_block_background_color;
+				font-weight: bold;
+			}
+
+		}
+
+	}
+}

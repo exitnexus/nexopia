@@ -61,7 +61,7 @@
 
 		foreach($users as $user){
 			echo "<tr>";
-			echo "<td class=$classes[$i]><a class=body href=/profile.php?uid=$user[userid]>" . $usernames[$user['userid']] . "</a></td>";
+			echo "<td class=$classes[$i]><a class=body href=/users/". urlencode($usernames[$user['userid']]) .">" . $usernames[$user['userid']] . "</a></td>";
 			echo "<td class=$classes[$i]>" . ($user['subscribe'] == 'y' ? 'Subscribed' : '') . "</td>";
 			echo "<td class=$classes[$i]>" . userdate("F j, Y, g:i a", $user['readtime']) . "</td>";
 			echo "<td class=$classes[$i] align=right>" . ($user['posts']+1) . "</td>";

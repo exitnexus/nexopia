@@ -11,7 +11,8 @@ WWW: http://www.octazen.com
 Email: support@octazen.com
 V: 1.1
 ********************************************************************************/
-include_once("abimporter.php");
+//include_once(dirname(__FILE__).'/abimporter.php');
+if (!defined('__ABI')) die('Please include abi.php to use this importer!');
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //IcqImporter
@@ -28,6 +29,7 @@ class IcqImporter extends WebRequestor {
 		$form->addField("domain", "icqmail.com");
 		$form->addField("username", $login);
 		$form->addField("password", $password);
+		$form->addField("_authtrkcde", "{#TRKCDE#}");
 		$postData = $form->buildPostData();
 		$html = $this->httpPost("http://www.icqmail.com/default.asp", $postData);
 		if (strpos($html, 'Please enter a valid username')!=false) {

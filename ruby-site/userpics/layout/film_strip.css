@@ -1,23 +1,155 @@
+.film_strip_zoom_frame_wrapper
+{
+	position: absolute;
+	top: 0px;
+	height: 100%;
+	left: 0px;
+	width: 100%;
+	
+	z-index: 100;
+	
+	& .zoom_frame
+	{
+		position: absolute;
+		overflow: visible;
+		
+		cursor: pointer;
+		
+		& .image_box
+		{
+			position: absolute;
+			top: 18px;
+			bottom: 36px;
+			left: 18px;
+			right: 18px;
+			
+			overflow: hidden;
+			
+			& img
+			{
+				width: auto;
+				height: auto;
+			}
+		}
+		
+		& .frame_background
+		{
+			position: absolute;
+			top: 0px;
+			bottom: 0px;
+			left: 0px;
+			right: 0px;
+			
+			background-color: #121212;
+		}
+		
+		& .zoom_frame_info
+		{
+			position: absolute;
+			bottom: 8px;
+			height: 28px;
+			left: 18px;
+			right: 18px;
+			
+			padding-top: 4px;
+			font-size: 11px;
+			text-align: left;
+			
+			overflow: hidden;
+			
+			color: #fff;
+			
+			& .zoom_frame_title
+			{
+				position: absolute;
+				top: 4px;
+				left: 2px;
+				right: 50px;
+				
+				overflow: hidden;
+			}
+			
+			& .zoom_frame_close
+			{
+				position: absolute;
+				top: 4px;
+				right: 0px;
+				
+				color: #fff;
+				
+				padding-right: 0px;
+				cursor: pointer;
+			}
+			
+			& a.zoom_frame_link
+			{
+				position: absolute;
+				top: 4px;
+				right: 17px;
+				
+				color: #fff;
+				text-decoration: underline;
+			}
+		}
+	}
+}
+
+*html .film_strip_zoom_frame_wrapper .zoom_frame
+{
+	padding: 18px;
+	padding-bottom: 36px;
+}
+
+*html .film_strip_zoom_frame_wrapper .zoom_frame .zoom_frame_info
+{
+	width: 100%;
+}
+
+*html .film_strip_zoom_frame_wrapper .zoom_frame .frame_background
+{
+	position: absolute;
+	top: 0px;
+	height: 200%;
+	left: 0px;
+	width: 200%;
+	
+	background-color: #121212;
+}
+
 #film_strip
 {
 	position: relative;
-	height: 184px;
-	width: 404px;
+	height: 240px;
+	width: 510px;
 	
-	background-color: #333;
+	background-color: #383838;
 
 	font-family: Verdana, Arial, sans-serif;
 	font-size: 10px;
 	color: #eee;
+	
+	& #film_strip_image_loading
+	{
+		display: block;
+		position: absolute;
+		top: 49px;
+		left: 214px;
+		
+		padding: 16px;
+		
+		background-color: #121212;
+	}
 }
 
 #film_strip #film_strip_handle
 {
 	position: absolute;
 	top: 0px;
-	height: 184px;
+	height: 100%;
 	left: 0px;
-	width: 404px;
+	width: 510px;
+	
+	cursor: pointer;
 	
 	z-index: 10;
 }
@@ -46,6 +178,11 @@
 	height: 100%;
 	left: 0px;
 	width: 100000px;
+	position: relative;
+	left: -177px; /* film strip box is 510px wide, images are 288px, 510-288/2 = 111px of space on each side, 288-111=177px to shift it by*/
+	&.no_scrolling {
+		left: 111px;
+	}
 }
 
 #film_strip #film_strip_images img
@@ -75,6 +212,8 @@
 
 #film_strip #film_strip_comments
 {
+	position: relative;
+	left: -510px;
 	width: 100000px;
 	height: 20px;
 }
@@ -82,7 +221,7 @@
 #film_strip #film_strip_comments p
 {
 	position: relative;
-	width: 340px;
+	width: 446px;
 	height: 16px;
 	overflow: hidden;
 	text-align: center;
@@ -99,10 +238,29 @@
 {
 	position: absolute;
 	bottom: 4px;
+	left: 0px;
+	
+	padding-left: 4px;
+	
+	font-size: 9px;
+	color: #aaa;
+}
+
+#film_strip #film_strip_actions
+{
+	position: absolute;
+	bottom: 4px;
 	right: 0px;
 	
 	padding-right: 4px;
 	
 	font-size: 9px;
 	color: #aaa;
+	
+	& img, canvas
+	{
+		display: inline;
+		border: 0;
+		padding-left: 6px;
+	}
 }

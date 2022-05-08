@@ -96,11 +96,11 @@ class MemCache
 		end
 		
 		def query
-			format(%Q{Query type: %s}, type);
+			type.to_s
 		end
 		
 		def to_s()
-			format(%Q{%s: "%s" took %.3f msec}, server, query, time * 1000);
+			format(%Q{%s [%.3f msec] %s}, (server.kind_of?(Fixnum) ? "<#{server} servers>" : server), time * 1000, query);
 		end
 	end
 
@@ -136,7 +136,7 @@ class MemCache
 		:compression	=> true,
 		:namespace		=> nil,
 		:readonly		=> false,
-		:urlencode		=> true,
+		:urlencode		=> false,
 		:readbuf_size	=> DefaultReadBufferSize,
 		:rehash			=> false,
 		:delete_only	=> false
@@ -246,7 +246,7 @@ class MemCache
 			hsh[k] = {:count => 0, :utime => 0.0, :stime => 0.0}
 		}
 		@stats_callback	= nil
-
+		
 		self.servers	= servers
 	end
 
@@ -404,7 +404,7 @@ class MemCache
 		raise MemCacheError, "no active servers" unless self.active?
 		hash = nil
 		single_result = false;
-		unless (keys.class == Array)
+		unless (keys.kind_of?(Array))
 			keys = [[keys]];
 			single_result = true;
 		end
@@ -416,30 +416,34 @@ class MemCache
 		
 		begin
 			@mutex.synchronize( Sync::SH ) {
-				hash = OrderedMap.new(self.fetch( :get, *fullkeys.values ));
+				hash = self.fetch( :get, *fullkeys.values );
 			}
 	
 			if (block)
-				missing_keys = Hash.new;
-				backup_keys = [];
-				fullkeys.each_pair {|key,fullkey|
-					if (hash[fullkey] == nil)
+				missing_keys = {};
+				fullkeys.each_key {|key|
+					if(hash[fullkeys[key]] == nil)
 						missing_keys[key] = nil;
-						backup_keys << key
 					end
 				}
 				if (!missing_keys.empty?)
+					backup_keys = missing_keys.dup;
 					missing_keys = yield(missing_keys)
-					missing_keys.each_pair{|k,v|
-						raise "Bad key used." if not (backup_keys.index(k))
+					missing_keys.each_key{|k|
+						raise "Bad key #{k} returned while grabbing #{prefix}. Check class of key parts." if(!backup_keys.include?(k))
 					}
 
-					missing_keys.each_pair{ |key, value|
+					set_vals = {}
+					missing_keys.each{ |key, value|
 						if (key)
-							set(fullkeys[key], value, exptime);
+							set_vals[fullkeys[key]] = value;
 							hash[fullkeys[key]] = value;
 						end
 					}
+
+					if(!set_vals.empty?)
+						set_many(set_vals, exptime);
+					end
 				end
 			end
 	
@@ -452,7 +456,13 @@ class MemCache
 				missing_keys[key] = nil;
 			}
 			
-			yield missing_keys;
+			hash = yield missing_keys;
+			if (single_result)
+				result = hash[keys.first]
+			else
+				result = hash
+			end
+			return result
 		end
 	end
 
@@ -481,17 +491,16 @@ class MemCache
 		rval = nil
 
 		@mutex.synchronize( Sync::EX ) {
-			rval = self.store( :set, key, val, exptime )
+			rval = self.store( :set, {key => val}, exptime )
 		}
 
-		return rval
+		return (rval ? rval[key] : rval)
 	end
 
 
 	### Multi-set method; unconditionally set each key/value pair in
-	### +pairs+. The call to set each value is done synchronously, but until
-	### memcached supports a multi-set operation this is only a little more
-	### efficient than calling #set for each pair yourself.
+	### +pairs+. Since this is done async and in parallel, it is more
+	###  efficient than doing them individually.
 	def set_many( pairs, exptime=0 )
 		raise MemCacheError, "no active servers" unless self.active?
 		raise MemCacheError, "readonly cache" if self.readonly?
@@ -499,17 +508,13 @@ class MemCache
 			"expected an object that responds to the #each_pair message" unless
 			pairs.respond_to?( :each_pair )
 
-		rvals = []
+		rval = nil
 
-		# Just iterate over the pairs, setting them one-by-one until memcached
-		# supports multi-set.
 		@mutex.synchronize( Sync::EX ) {
-			pairs.each_pair do |key, val|
-				rvals << self.store( :set, key, val, exptime )
-			end
+			rval = self.store( :set, pairs, exptime )
 		}
 
-		return rvals
+		return rval
 	end
 
 
@@ -551,9 +556,11 @@ class MemCache
 		raise MemCacheError, "no active servers" unless self.active?
 		raise MemCacheError, "readonly cache" if self.readonly?
 
+		rval = nil
 		@mutex.synchronize( Sync::EX ) {
-			self.store( :add, key, val, exptime )
+			rval = self.store( :add, {key => val}, exptime )
 		}
+		return rval[key]
 	end
 
 
@@ -562,9 +569,11 @@ class MemCache
 		raise MemCacheError, "no active servers" unless self.active?
 		raise MemCacheError, "readonly cache" if self.readonly?
 
+		rval = nil
 		@mutex.synchronize( Sync::EX ) {
-			self.store( :replace, key, val, exptime )
+			rval = self.store( :replace, {key => val}, exptime )
 		}
+		return rval[key]
 	end
 
 
@@ -595,16 +604,16 @@ class MemCache
 	end
 
 	class DeleteLog < Log
-		attr_reader :key, :flags, :exptime
-		def initialize(server, time, type, key, exptime)
+		attr_reader :keys, :flags, :exptime
+		def initialize(server, time, type, keys, exptime)
 			super(server, time, type)
-			@key = key
+			@keys = keys
 			@exptime = exptime
 		end
 		
 		def query
-			format(%Q{%s, Key: %s, Expire: %i},
-				   super(), key, exptime)
+			format("%s, Keys: %s, Expire: %i",
+				   super(), keys.join(", "), exptime)
 		end
 	end
 
@@ -616,21 +625,62 @@ class MemCache
 		svr = nil
 
 		res = @mutex.synchronize( Sync::EX ) {
-			svr = self.get_server( key )
-			cachekey = self.make_cache_key( key )
+			begin
+				svr = self.get_server( key )
+				cachekey = self.make_cache_key( key )
 
-			self.add_stat( :delete ) do
-				cmd = "delete %s%s" % [ cachekey, time ? " #{time.to_i}" : "" ]
+				self.add_stat( :delete ) {
+					cmd = "delete %s%s" % [ cachekey, time ? " #{time.to_i}" : "" ]
 				
-				diff = Log.timer {
-					res = self.send( svr => cmd )
+					diff = Log.timer {
+						res = self.send( svr => cmd )
+					}
+					$log.info(DeleteLog.new(svr, diff, "delete", [key], time), :debug, :memcache)
+					res
 				}
-				$log.info(DeleteLog.new(svr, diff, "delete", key, time), :debug, :memcache)
-				res
+			rescue MemCacheNoServerError
+				$log.info(DeleteLog.new("noserver", 0, "delete(nosrv)", [key], time), :debug, :memcache)
+				return false # fail silently if we can't connect to the server.
 			end
 		}
 
 		res && res[svr].blocks[0].cmd == "DELETED\r\n"
+	end
+
+	def delete_many( *keys )
+		raise MemCacheError, "no active servers" unless self.active?
+		raise MemCacheError, "readonly cache" if self.readonly?
+
+		map = {}
+		svr = nil
+		res = @mutex.synchronize( Sync::EX ) {
+			self.add_stat( :delete ) {
+				# Map the key's server to the command to fetch its value
+				keys.each { |key|
+					svr = self.get_server( key )
+					ckey = self.make_cache_key( key )
+					map[ svr ] ||= []
+					map[ svr ] << "delete " + ckey
+				}
+
+				diff = Log.timer {
+					res = self.send( map )
+				}
+				$log.info(DeleteLog.new((map.length == 1 ? svr : map.length), diff, "delete_many", keys, 0), :debug, :memcache)
+				res
+			}
+		}
+
+		count = 0
+
+		if(res)
+			res.each{|svr, responses|
+				responses.blocks.each { |response|
+					count += 1 if(response.cmd == "DELETED\r\n")
+				}
+			}
+		end
+		return count
 	end
 
 
@@ -788,7 +838,7 @@ class MemCache
 
 
 	#########
-	protected
+	#protected
 	#########
 
 	### Create a hash mapping the specified command to each of the given
@@ -885,55 +935,74 @@ class MemCache
 	end
 
 	class StoreLog < Log
-		attr_reader :key, :flags, :exptime, :value
-		def initialize(server, time, type, key, flags, exptime, value)
+		attr_reader :keys, :exptime
+		def initialize(server, time, type, keys, exptime) # keys is a hash key => length
 			super(server, time, type)
-			@key = key
-			@flags = flags
+			@keys = keys
 			@exptime = exptime
-			@value = value
 		end
 		
 		def query
-			format(%Q{%s, Key: %s, Flags: %i, Expire: %i, Value Len: %i},
-				   super(), key, flags, exptime, value.length)
+			str = super()
+			keys.each{|key, len| str << ", Key: #{key} => Len: #{len}" }
+			str << ", Expire: #{exptime}"
+			return str
 		end
 	end
 
-	### Store the specified +value+ to the cache associated with the specified
-	### +key+ and expiration time +exptime+.
-	def store( type, key, val, exptime )
+	### Store the specified key => value pairs to the cache with the expiration time +exptime+.
+	def store( type, pairs, exptime )
 		return nil if (@delete_only)
 
 		# Questionable Behavior: Is this line the right thing to do?
 		# Removing it doesn't change client behaviour, since the client
 		# will just check mysql next time since nil indicates no result.
-		return self.delete( key ) if val.nil?
-		
-		svr = self.get_server( key )
-		cachekey = self.make_cache_key( key )
-		res = nil
+		del_keys = []
+		pairs.delete_if { |k, v|
+			del_keys << k if(v.nil?)
+			v.nil?
+		}
+		self.delete_many(*del_keys) if del_keys.length > 0
+		return if pairs.length == 0
 
-		self.add_stat( type ) {
-			# Prep the value for storage
-			sval, flags = self.prep_value( val )
+		map = {}
+		svr = nil
+		res = @mutex.synchronize( Sync::EX ) {
+			self.add_stat( type ) {
+				# Map the key's server to the command to fetch its value
+				logoutput = {}
+				pairs.each { |key, val|
+					svr = self.get_server( key )
+					ckey = self.make_cache_key( key )
 
-			# Form the command
-			cmd = []
-			cmd << "%s %s %d %d %d" %
-				[ type, cachekey, flags, exptime, sval.length ]
-			cmd << sval
-			self.debug_msg( "Storing with: %p", cmd )
+					sval, flags = self.prep_value( val )
 
-			time = Log.timer {
-				# Send the command and read the reply
-				res = self.send( svr => cmd )
+					map[ svr ] ||= []
+					map[ svr ] << "%s %s %d %d %d\r\n%s" % [ type, ckey, flags, exptime, sval.length, sval ]
+					
+					logoutput[ckey] = sval.length
+				}
+
+				time = Log.timer {
+					res = self.send( map )
+				}
+
+				$log.info(StoreLog.new(svr, time, type, logoutput, exptime), :debug, :memcache)
+
+				res
 			}
-			$log.info(StoreLog.new(svr, time, type, cachekey, flags, exptime, sval), :debug, :memcache)
 		}
 
-		# Check for an appropriate server response
-		return (res && res[svr] && res[svr].blocks[0].cmd.rstrip == "STORED")
+		result = {}
+
+		if(res)
+			res.each{|svr, responses|
+				responses.blocks.each { |response|
+					result[response.ckey] = (response.cmd == "STORED\r\n")
+				}
+			}
+		end
+		return result
 	rescue MemCacheNoServerError
 		nil
 	end
@@ -948,7 +1017,7 @@ class MemCache
 		end
 		
 		def query
-			format(%Q{%s (%s), Keys: %s}, super(), positive ? "+" : "-", keys.join(','))
+			format(%Q{%s (%s) Keys: %s}, super(), positive ? "+" : "-", keys.join(','))
 		end
 	end
 
@@ -973,40 +1042,52 @@ class MemCache
 				map[ svr ] << " " + ckey
 			end
 			
-			start = Time.now.to_f
-			found = []
+			if (!$site.config.live)
+				start = Time.now.to_f
+				found = []
+			end
 			# Send the commands and map the results hash into the return hash
 			self.send( map, true ) do |svr, reply|
-				diff = Time.now.to_f - start
-
+				if (!$site.config.live)
+					diff = Time.now.to_f - start
+					found_this = []
+				end
+				
+				if(reply.blocks.nil?())
+					return res;
+				end
+				
 				# Iterate over the replies, stripping first the 'VALUE
 				# <cachekey> <flags> <len>' line with a regexp and then the data
 				# line by length as specified by the VALUE line.
-				found_this = []
- 				reply.blocks.each {|v|
- 				    if v.cmd[0]=='V'[0]
- 				        ckey, flags, len = v.ckey,v.flags,v.len
- 					    data = v.data
- 					    rval = self.restore( data[0,len], flags )
- 					    res[ cachekeys[ckey] ] = rval
- 					    found_this << cachekeys[ckey]
- 					end
- 				}
- 				$log.info(FetchLog.new(svr, diff, type, found_this, true), :debug, :memcache)
- 				found += found_this
+				reply.blocks.each {|v|
+					if v.cmd[0]=='V'[0]
+						ckey, flags, len = v.ckey,v.flags,v.len
+						data = v.data
+						rval = self.restore( data[0,len], flags )
+						res[ cachekeys[ckey] ] = rval
+						found_this << cachekeys[ckey] if (!$site.config.live)
+					end
+				}
+				if (!$site.config.live)
+					$log.info(FetchLog.new((map.length == 1 ? svr : map.length), diff, type, found_this, true), :debug, :memcache)
+					found += found_this
+				end
 
 				unless reply.blocks[-1].cmd == "END" + CRLF
 					raise MemCacheError, "Malformed reply fetched from %p: %p" %
 						[ svr, rval ]
 				end
 			end
-			diff = Time.now.to_f - start
-			map.each {|svr, keys|
-				missed = keys.chomp.split(" ").map{|i| cachekeys[i] }.compact - found
-				if (!missed.empty?)
-					$log.info(FetchLog.new(svr, diff, type, missed, false), :debug, :memcache)
-				end
-			}
+			if (!$site.config.live)
+				diff = Time.now.to_f - start
+				map.each {|svr, keys|
+					missed = keys.chomp.split(" ").map{|i| cachekeys[i] }.compact - found
+					if (!missed.empty?)
+						$log.info(FetchLog.new((map.length == 1 ? svr : map.length), diff, type, missed, false), :debug, :memcache)
+					end
+				}
+			end
 		}
 		return res
 	end
@@ -1165,7 +1246,13 @@ class MemCache
 			raise MemCache::InternalError, "Attempt to use an invalid object type as a key #{key.class.name}.";
 		end
 
-		ck = uri_escape( ck ) unless !@urlencode
+		if(@urlencode)
+			ck = uri_escape( ck )
+		elsif(ck[' '])
+			raise MemCache::InternalError, "Attempt to use a key with a <space>.";
+		elsif(ck["\n"])
+			raise MemCache::InternalError, "Attempt to use a key with a <new-line>.";
+		end
 
 		self.debug_msg( "Cache key for %p: %p", key, ck )
 		return ck
@@ -1178,7 +1265,7 @@ class MemCache
 	### commands for each server, do multiplexed IO between all of them, reading
 	### single-line responses.
 	def send( pairs, multiline=false )
-	    self.debug_msg "Send for %d pairs: %p", pairs.length, pairs
+		self.debug_msg "Send for %d pairs: %p", pairs.length, pairs
 		raise TypeError, "type mismatch: #{pairs.class.name} given" unless
 			pairs.is_a?( Hash )
 		buffers = {}
@@ -1189,7 +1276,8 @@ class MemCache
 
 		# Set up the buffers and reactor for the exchange
 		pairs.each do |server,cmds|
-			
+			cmds = [*cmds]
+
 			unless server.alive?
 				rval[server] = nil
 				pairs.delete( server )
@@ -1197,12 +1285,12 @@ class MemCache
 			end
 
 			# Handle either Arrayish or Stringish commandsets
-			wbuf = cmds.respond_to?( :join ) ? cmds.join( CRLF ) : cmds.to_s
+			wbuf = cmds.join( CRLF )
 			self.debug_msg( "Created command %p for %p", wbuf, server )
 			wbuf += CRLF
 
 			# Make a buffer tuple (read/write) for the server
-			buffers[server] = { :rbuf => MemCache::RecvBuffer::new, :wbuf => wbuf }
+			buffers[server] = { :rbuf => MemCache::RecvBuffer::new(cmds.length), :wbuf => wbuf }
 
 			# Register the server's socket with the reactor
 			@reactor.register( server.socket, :write, :read, server,
@@ -1211,7 +1299,18 @@ class MemCache
 
 		# Do all the IO at once
 		self.debug_msg( "Reactor starting for %d IOs", @reactor.handles.length )
-		@reactor.poll until @reactor.empty?
+		begin
+			@reactor.poll(2.0) until @reactor.empty?
+		rescue Exception
+			self.debug_msg("Reactor error for %d IO's", @reactor.handles.length)
+			pairs.each{|server, cmds|
+				if(server.alive?)
+					server.mark_dead();
+				end
+			};
+			@reactor.clear()
+			return nil;
+		end
 		self.debug_msg( "Reactor finished." )
 
 		# Build the return value, delegating the processing to a block if one
@@ -1293,6 +1392,9 @@ class MemCache
 	### object. The +depth+ argument is used to specify the call depth from
 	### which the exception's stacktrace should be gathered.
 	def handle_protocol_error( buffer, server, depth=4 )
+		server.mark_dead();
+		@reactor.clear();
+		
 		case buffer
 		when CLIENT_ERROR
 			raise ClientError, $1, caller(depth)
@@ -1342,6 +1444,10 @@ class MemCache
 			@sock	 = nil
 			@retry	 = nil
 			@status	 = "not yet connected"
+			
+	 		# Attempt to resolve NEX-1243 where queue runners seemed to be
+			# using each others' memcache instances and getting confused.
+			@pid = nil
 		end
 
 
@@ -1378,7 +1484,7 @@ class MemCache
 			]
 		end
 		def to_s
-			inspect
+			return "<%s:%d>" % [ @host, @port ]
 		end
 
 
@@ -1394,9 +1500,9 @@ class MemCache
 		### connected socket object on success; sets @dead and returns +nil+ on
 		### any failure.
 		def socket
-
+			
 			# Connect if not already connected
-			unless @sock || (!@sock.nil? && @sock.closed?)
+			if (@pid.nil? || (@pid != Process.pid) || !@sock || @sock.closed?)
 
 				# If the host was dead, don't retry for a while
 				if @retry
@@ -1409,6 +1515,7 @@ class MemCache
 						TCPSocket::new( @host, @port )
 					}
 					@status = "connected"
+					@pid = Process.pid
 				rescue SystemCallError, IOError, TimeoutError => err
 					# $deferr.puts "Error while connecting to %s:%d: %s" %
 					#	[ @host, @port, err.message ]
@@ -1426,6 +1533,7 @@ class MemCache
 		def mark_dead( reason="Unknown error" )
 			@sock.close if @sock && !@sock.closed?
 			@sock = nil
+			@pid = nil
 			@retry = Time::now + ( 30 + rand(10) )
 			@status = "DEAD: %s: Will retry at %s" %
 				[ reason, @retry ]
@@ -1490,12 +1598,11 @@ class MemCache
 	class RecvBuffer
 
 		### Create a new RecvBuffer
-		def initialize
+		def initialize(num_needed)
 			@blocks            = []
 			@unparsed_data     = ''
 			@data_bytes_needed = 0
-			@crlf_bytes_needed = 0
-			@done              = false
+			@num_results_needed= num_needed
 			@error             = false
 		end
 
@@ -1515,9 +1622,6 @@ class MemCache
 
 		# The MemCache::MsgBlock that is currently being filled
 		attr_accessor :current_block
-
-		# The completion flag
-		attr_writer :done
 
 		# The error condition flag
 		attr_writer :error
@@ -1562,7 +1666,7 @@ class MemCache
 					# understand the protocol right, any other responses
 					# except VALUE and STAT indicates that the response
 					# is complete.
-					@done  = true
+					@num_results_needed -= 1
 					@error = true if cmd =~ /\A\S*ERROR/
 				end
 			end
@@ -1570,7 +1674,9 @@ class MemCache
 
 		### Returns +true+ if the receive buffer has reached the end of input
 		### data
-		def done?  ; return @done  ; end
+		def done?
+			return @num_results_needed == 0
+		end
 
 
 		### Returns +true+ if the receive buffer has parsed an error response in
@@ -1585,7 +1691,7 @@ class MemCache
 
 
 		#########
-		protected
+		#protected
 		#########
 
 		### Output a debugging message depicting the current state of the buffer

@@ -20,19 +20,19 @@
 	}
 
 	if(!$thread || $thread['moved'])
-		die("Bad Thread id");
+		die("Bad Thread id.");
 
 
 	$perms = $forums->getForumPerms($thread['forumid']);	//checks it's a forum, not a realm
 
 	if(!$perms['view'])
-		die("You don't have permission to view this forum");
+		die(wrap_forum_die_message("You don't have permission to view this forum."));
 
 	if(!$perms['post'])
-		die("You don't have permission to post in this forum");
+		die(wrap_forum_die_message("You don't have permission to post in this forum.",$tid));
 
 	if($thread['locked']=='y' && !$perms['postlocked'])
-		die("You don't have permission to post in locked threads");
+		die(wrap_forum_die_message("You don't have permission to post in locked threads.",$tid));
 
 
 	switch($action){
@@ -99,7 +99,7 @@ function reply($msg, $preview){
 	if($preview){
 		$msg = trim($msg);
 
-		$nmsg = removeHTML($msg);
+		$nmsg = cleanHTML($msg);
 
 		$nmsg3 = $forums->parsePost($nmsg);
 
@@ -125,7 +125,7 @@ function postReply($msg,$subscribe){
 	if(!$spam)
 		reply($msg,true);
 
-	$nmsg = removeHTML($msg);
+	$nmsg = cleanHTML($msg);
 
 	$time = time();
 
@@ -217,5 +217,12 @@ function postReply($msg,$subscribe){
 	exit;
 }
 
+function wrap_forum_die_message($die_message, $tid = 0) {
+	$msg = "<h1>".$die_message."</h1>";
+	if($tid) {
+		$msg .= "<a href=\"forumviewthread.php?tid=".$tid."\">Return to thread</a>";
+	}
+	return $msg;
+}
 
 

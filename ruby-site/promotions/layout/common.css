@@ -1,0 +1,521 @@
+/* GENERAL */
+
+.promotions_container {
+	position: relative;
+	margin: 6px auto 6px auto;
+	width: 750px;
+}
+
+.promotions_container * {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 11px;
+	color: #5d5d5d;
+}
+
+
+.promotions_container {
+	
+	& br.clear {
+		clear: both;
+	}
+	
+	& .block_container hr {
+		color: #fff;
+		background-color: #fff;
+		border: 1px dotted #929292;
+		border-style: none none dotted;
+	}
+	
+	& span.bold {
+		font-weight: bold;
+	}
+	
+	& span.italic {
+		font-style: italic;
+	}
+	
+	& div.profile_header_container {
+		position: relative;
+		padding: 6px;
+		top: 0px;
+		left: 0px;
+		right: 0px;
+		background-color: #fff;
+		vertical-align: top;
+	}
+	
+	& div.profile_left_column_container {
+		position: relative;
+		width: 234px;
+		margin-right: 6px;
+		float: left;
+	}
+	
+	& div.profile_right_column_container {
+		position: relative;
+		width: 510px;
+		float: right;
+	}
+	
+	& .skin_left_column {
+		width: 373px;
+		padding-right: 6px;
+	}
+	
+	& .skin_right_column {
+		width: 221px;
+	}
+	
+	& div.view_all,
+	div.page_navigation {
+		float: right;
+		margin-top: 2px;
+		color: #939393;
+		font-size: 10px;
+	}
+	
+	& div.page_navigation {
+		margin-left: 6px;
+	}
+	
+	& div.page_navigation div {
+		float: right;
+	}
+	
+	& div.submit_btns a {
+		color: #5d5d5d;
+		background-color: #dfdfdf;
+		border: 0px;
+		width: 40px;
+		text-decoration: none;
+		padding: 1px 6px 1px 6px;
+		text-align: center;
+		display: block;
+	}
+	
+	& input.text {
+		border: 1px solid #929292;
+	}
+	
+	& select.select {
+		border: 1px solid #929292; 
+	}
+	
+	& input.submit {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 10px;
+		color: #5d5d5d;
+		background-color: #dfdfdf;
+		border: 0px;
+		padding: 0px 6px 0px 6px;
+	}
+	
+	
+	/* ALIGNMENT */
+	
+	& div.left {
+		float: left;
+	}
+	
+	& div.right {
+		float: right;
+	}
+	
+	
+	/* TOP NAVIGATION */
+	
+	& div.profile_navigation a,
+	div.profile_nav_secondary a {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 13px;
+	}
+	
+	& div.profile_navigation {
+		color: #000;
+		float: left;
+		letter-spacing: 0px;
+	}
+	
+	& div.profile_navigation #current_page {
+		font-weight: bold;
+	}
+	
+	& div.profile_nav_secondary {
+		color: #000;
+		float: right;
+		letter-spacing: 0px;
+	}
+	
+	
+	/* BLOCK CONTAINERS */
+	
+	& div.block_container {
+		background-color: #fff;
+		padding: 6px 6px 12px 6px;
+		margin: 6px 0px 0px 0px;
+	}
+	
+	& div.block_title {
+		color: #000;
+		font-weight: bold;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 13px;
+		letter-spacing: 0px;
+	}
+	
+	& div.user_thumbnail {
+		float: left;
+		margin: 0px 6px 0px 0px;
+	}
+	
+	& div.page_title {
+		font-weight: bold;
+		font-size: 15px;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		color: #000;
+	}
+	
+	& .paging_header {
+		margin: 0px 0px 6px 0px;
+	}
+		
+	& .paging_footer {
+		padding: 6px 0px 0px 6px;
+		clear: both;
+	}
+	
+	
+	/* PADDING AND MARGINS */
+	
+	& div.padding_0_0_0_0 {
+		padding: 0px;
+	}
+	
+	& div.padding_6_0_0_0 {
+		padding: 6px 0px 0px 0px;
+	}
+	
+	& div.padding_0_0_0_6 {
+		padding: 0px 0px 0px 6px;
+	}
+	
+	& div.margin_0_0_6_0 {
+		margin-bottom: 6px;
+	}
+	
+	& div.margin_0_0_4_0 {
+		margin-bottom: 4px;
+	}
+	
+	& div.margin_0_0_0_6 {
+		margin-left: 6px;
+	}
+	
+	
+	/* ABUSE LOG */
+	
+	& div.abuse_log_container .text,
+	div.abuse_log_container textarea,
+	div.abuse_log_container select {
+		border: 1px solid #929292;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 11px;
+		color: #5d5d5d;
+	}
+	
+	& div.abuse_log_container .text {
+		padding: 3px 5px 3px 5px;
+		width: 592px;
+	}
+	
+	& div.abuse_log_container textarea {
+		padding: 3px 5px 3px 5px;
+		margin: 6px 0px 6px 0px;
+		width: 726px;
+		height: 150px;
+	}
+	
+	& div.abuse_log_container select {
+		padding: 2px;
+	}
+	
+	& div.abuse_log_container select option {
+		padding-left: 2px;
+	}
+	
+	& div.abuse_log_container .submit {
+		float: right;
+	}
+	
+	
+	/* MODULES */
+	
+	& .module_container {
+		background-color: #dfdfdf;
+		padding: 2px 3px 3px 3px;
+	}
+	
+	& .apply_skins_table {
+		width: 100%;
+	}
+	
+	& .apply_skins_table td {
+		padding-top: 2px;
+	}
+	
+	& .apply_skins_table select {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 10px;
+		background-color: #fff;
+		border: 1px solid #929292;
+		height: 16px;
+		width: 205px;
+		color: #5d5d5d;
+	}
+	
+	& .apply_skins_table .right {
+		text-align: right;
+	}
+	
+	& .apply_skins_table .apply_all {
+		float: left;
+		margin-left: 69px;
+	}
+	
+	& .choose_color {
+		width: 18px;
+		height: 16px;
+		border: 1px solid #929292;
+		float: left;
+	}
+	
+	& .choose_hex_code {
+		float: left;
+	}
+	
+	& .hex_code_input {
+		height: 14px;
+		width: 70px;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 10px;
+		background-color: #fff;
+		border: 1px solid #929292;
+		color: #5d5d5d;
+	}
+	
+	& .module_colors {
+		width: 100%;
+	}
+	
+	& .module_colors .right {
+		padding-left: 14px;
+	}
+	
+	& .module_colors td {
+		padding-top: 6px;
+	}
+	
+	& .module_colors .choose_color {
+		margin-right: 2px;
+	}
+	
+	& .module_colors .buttons {
+		text-align: right;
+	}
+	
+	& .module_colors .submit {
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 10px;
+		color: #fff;
+		background-color: #929292;
+		border: 0px;
+		width: 52px;
+		margin-top: 6px;
+	}
+	
+	
+	/* EDIT - NEW CONTENT SELECT */
+	
+	& div.new_content {
+		margin-top: 6px;
+		display: block;
+	}
+	
+	& div.new_content_container {
+		position: absolute;
+		z-index: 1;
+		background-color: #4e4e4e;
+		width: 150px;
+		color: #fff;
+		margin-top: 1px;
+		padding: 0px 6px 0px 6px;
+		visibility: hidden;
+	}
+	
+	& div.new_content_container div.category {
+		font-weight: bold;
+		padding: 6px 0px 2px 0px;
+	}
+	
+	& div.new_content_container div.options {
+		padding: 0px 0px 6px 0px;
+	}
+	
+	& div.new_content_container a {
+		display: block;
+		margin-top: 2px;
+	}
+	
+	
+	/* EDIT BUTTONS */
+	
+	& .edit_btn_container {
+		float: right;
+	}
+	
+	& .edit_btn_container a {
+		margin-left: 2px;
+	}
+	
+	& .edit_btns a {
+		background-color: #4e4e4e;
+		padding: 1px 6px 1px 6px;
+	}
+	
+	
+	/* EDIT BOXES - USER INFO */
+	
+	& .edit_profile_user {
+		position: relative;
+		width: 100%;
+		margin-bottom: 3px;
+	}
+	
+	& .edit_profile_user .name {
+		font-weight: bold;
+	}
+	
+	& .edit_profile_user .right {
+		vertical-align: top;
+		height: 13px;
+	}
+	
+	& .edit_profile_user .right input {
+		height: 13px;
+	}
+	
+	& .edit_profile_user .text {
+		width: 96px;
+	}
+	
+	& .edit_profile_user .input {
+		margin-top: 6px;
+		padding-bottom: 6px;
+	}
+	
+	& .edit_profile_user input {
+		padding: 1px 0px 1px 3px;
+	}
+	
+	
+	/* EDIT BOXES - VITALS */
+	
+	& .forms {
+		border: 1px solid #929292;
+		font-family: Verdana, Arial, Helvetica, sans-serif;
+		font-size: 10px;
+		color: #5d5d5d;
+	}
+	
+	& .edit_profile_user input {
+		padding: 1px 0px 1px 3px;
+	}
+	
+	& .stat_table input {
+		padding: 1px 0px 1px 3px;
+	}
+	
+	& .stat_table .text {
+		width: 237px;
+	}
+	
+	& .stat_table .real_name {
+		width: 47%;
+	}
+	
+	& .stat_table .select {
+		width: 241px;
+	}
+	
+	& .stat_table .birthdate {
+		width: 32.2%;
+	}
+	
+	
+	/* LINKS */
+	
+	& .view_all a:link,
+	.view_all a:visited {
+		color: #939393;
+		text-decoration: none;
+		font-size: 10px;
+	}
+	
+	& .view_all a:hover {
+		color: #ec008c;
+		text-decoration: underline;
+	}
+	
+	& .profile_function a:link,
+	.profile_function a:visited {
+		color: #000;
+		font-size: 11px;
+		font-weight: bold;
+		padding: 1px 2px 1px 2px;
+		margin-top: 2px;
+		text-decoration: none;
+	}
+	
+	& .profile_function a:hover {
+		color: #a4a4a4;
+		text-decoration: none;
+	}
+	
+	& div.profile_navigation a:link,
+	div.profile_navigation a:visited,
+	div.profile_nav_secondary a:link,
+	div.profile_nav_secondary a:visited {
+		color: #000;
+		text-decoration: none;
+	}
+	
+	& div.profile_navigation a:hover,
+	div.profile_nav_secondary a:hover {
+		color: #ec008c;
+		text-decoration: underline;
+	}
+	
+	& .block_title a:link,
+	.block_title a:visited {
+		text-decoration: none;
+		color: #000;
+		font-size: 13px;
+	}
+	
+	& .block_title a:hover {
+		text-decoration: underline;
+		color: #ec008c;
+	}
+	
+	& div.edit_btns a:link,
+	div.edit_btns a:visited {
+		color: #fff;
+		text-decoration: none;
+	}
+	
+	& div.edit_btns a:hover {
+		color: #d4d4d4;
+		text-decoration: none;
+	}
+
+}

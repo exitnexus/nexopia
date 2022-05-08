@@ -1,18 +1,36 @@
+.profile_right_column
+{
+	& div#interests_profile_block
+	{
+		& td.interests
+		{
+			width: 348px;
+		}
+	}
+}
+
 div#interests_profile_block {
-	& h2 {
-		font-family: $page_font_family;
-		font-size: 14px;
-		letter-spacing: 0px;
-		margin: 0px;
+	margin-bottom: -6px;
+	
+	& table
+	{
+		width: 100%;
+		
+		& *
+		{
+			font-size: 11px;
+			font-family: Verdana, Arial, Helvetica, sans-serif;
+		}
 	}
-	& ul {
-		list-style: none;
-		padding: 0px;
-	}
-	& div.category {
+	
+	& .category {
 		float: left;
-		width: 140px;
+		width: 150px;
 		font-weight: bold;
+	}
+	
+	& .interests {
+		padding-bottom: 6px;
 	}
 }
 
@@ -21,9 +39,13 @@ div#interests_edit_block {
 		list-style: none;
 		padding: 0px;
 		text-align: left;
+		
+		& li {
+			margin-top: 1px;
+		}
 	}
 	& div.column {
 		float: left;
-		width: 180px;
+		width: 33%;
 	}
 }

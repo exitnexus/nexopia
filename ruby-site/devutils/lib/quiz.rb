@@ -1,3 +1,4 @@
+=begin
 require 'test/unit'
 lib_require :Devutils, 'defect_tag'
 class Quiz < Test::Unit::TestCase
@@ -27,3 +28,4 @@ class Quiz < Test::Unit::TestCase
 		end
 	end
 end
+=end

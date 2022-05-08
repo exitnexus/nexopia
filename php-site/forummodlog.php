@@ -28,8 +28,12 @@
 
 
 	$page = getREQval('page', 'int');
+	$search = getREQval('search');
 
-	$res = $forums->db->prepare_query("SELECT SQL_CALC_FOUND_ROWS action,threadid,var1,var2,time,forummodlog.userid FROM forummodlog WHERE forummodlog.forumid = ? ORDER BY time DESC LIMIT " . $page*$config['linesPerPage'].", $config[linesPerPage]", $fid);
+	if($search && ($searchuid = getUserId($search)))
+		$res = $forums->db->prepare_query("SELECT SQL_CALC_FOUND_ROWS * FROM forummodlog WHERE forumid = # && userid = # ORDER BY time DESC LIMIT #, #", $fid, $searchuid, $page*$config['linesPerPage'], $config['linesPerPage']);
+	else
+		$res = $forums->db->prepare_query("SELECT SQL_CALC_FOUND_ROWS * FROM forummodlog WHERE forumid = # ORDER BY time DESC LIMIT #, #", $fid, $page*$config['linesPerPage'], $config['linesPerPage']);
 
 	$rows = array();
 	while($line = $res->fetchrow())
@@ -123,7 +127,7 @@
 	}
 
 	$template = new template('forums/forummodlog');
-	$template->set('pageList', pageList("$_SERVER[PHP_SELF]?fid=$fid",$page,$numpages,'header'));
+	$template->set('pageList', pageList("$_SERVER[PHP_SELF]?fid=$fid&search=" . urlencode($search),$page,$numpages,'header'));
 	$template->set('forumdata', $forumdata);
 	$template->set('fid', $fid);
 	$template->set('userNames', $userNames);
@@ -131,5 +135,6 @@
 	$template->set('threadDeleted', $threadDeleted);
 	$template->set('threadnames', $threadnames);
 	$template->set('forumnames', $forumnames);
+	$template->set('search', $search);
 	$template->display();
 	

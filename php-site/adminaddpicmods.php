@@ -69,7 +69,7 @@
 
 	incHeader();
 
-	echo "<table align=center><form action=$_SERVER[PHP_SELF] method=post name=editbox>";
+	echo "<form action=$_SERVER[PHP_SELF] method=post name=editbox><table align=center>";
 	echo "<tr><td class=header colspan=2 align=center>Add/Remove Pic Mods</td></tr>";
 
 	echo "<tr><td class=body>Users to add/remove:<br><textarea class=body name=usernames cols=80 rows=10>";
@@ -90,7 +90,7 @@
 	echo "<input class=body type=submit name=action value='Add Pic Mods'>";
 	echo "<input class=body type=submit name=action value='Remove Pic Mods'>";
 	echo "</td></tr>";
-	echo "</form></table>";
+	echo "</table></form>";
 
 	incFooter();
 
